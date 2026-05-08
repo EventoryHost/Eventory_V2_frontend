@@ -8,7 +8,6 @@ export default function InventoryPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     return (
-        // Dead simple wrapper — no height tricks, no overflow, no relative/stacking
         <div style={{ backgroundColor: 'white', paddingBottom: '96px' }}>
 
             {/* Top Bar */}
@@ -59,35 +58,26 @@ export default function InventoryPage() {
                     To Start getting your bookings you will have to list your service
                 </p>
 
-                {/* 
-                    Using a plain <button> with inline styles only.
-                    No Tailwind transitions, no transforms, no active:scale — 
-                    all of which can interfere with iOS touch handling.
-                */}
-                <div className='w-[fit-content] h-[fit-content] ' onClick={() => setIsCreateModalOpen(true)}>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        style={{
-                            width: '280px',
-                            height: '56px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: '#09090b',
-                            color: '#fafafa',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontSize: '16px',
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            // The only iOS-specific override needed
-                            WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
-                        }}
-                    >
-                        Add
-                    </button>
-                </div>
-
+                <button
+                    onClick={() => setIsCreateModalOpen(true)}
+                    style={{
+                        width: '280px',
+                        height: '56px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#09090b',
+                        color: '#fafafa',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '16px',
+                        fontWeight: 500,
+                        cursor: 'pointer',
+                        WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
+                    }}
+                >
+                    Add
+                </button>
             </div>
 
             <CreateServiceModal

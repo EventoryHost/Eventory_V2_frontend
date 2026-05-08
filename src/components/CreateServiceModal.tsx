@@ -80,8 +80,9 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
 
     const handleVendorSelect = (vendorName: string) => {
         setSelectedVendor(vendorName);
-        if (vendorName === 'Caterer') {
-            localStorage.setItem('service_id', 'CAT' + Math.random().toString(36).substring(7).toUpperCase());
+        if (vendorName === 'Caterer' || vendorName === 'Makeup Artist') {
+            const prefix = vendorName === 'Caterer' ? 'CAT' : 'MAK';
+            localStorage.setItem('service_id', prefix + Math.random().toString(36).substring(7).toUpperCase());
             setTimeout(() => {
                 onClose();
                 router.push('/dashboard/packages/new');
@@ -160,6 +161,7 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
                                     backgroundColor: '#f4f4f5', border: 'none',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     cursor: 'pointer', flexShrink: 0,
+                                    color: '#1a1c1c'
                                 }}
                             >
                                 <X size={20} />
@@ -216,6 +218,7 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
                                     backgroundColor: '#f4f4f5', border: 'none',
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                                     cursor: 'pointer', flexShrink: 0,
+                                    color: '#1a1c1c'
                                 }}
                             >
                                 <X size={20} />
