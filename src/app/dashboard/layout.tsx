@@ -8,8 +8,8 @@ export default function DashboardLayout({
 }>) {
     return (
         <>
-            <div className="bg-gray-50 min-h-screen" style={{ isolation: 'isolate' }}>
-                <main className="min-h-screen pb-24 max-w-md mx-auto bg-white shadow-xl min-[450px]:border-x border-gray-100">
+            <div className="bg-gray-50 min-h-screen">
+                <main className="min-h-screen pb-24 max-w-md mx-auto bg-white shadow-xl min-[450px]:border-x border-gray-100 relative">
                     {children}
                 </main>
             </div>
