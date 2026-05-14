@@ -40,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# InstaArchive
+InstaArchive/
+**/node_modules/
+**/venv/
+**/.next/
+**/downloads/
+*.xz
+session.json
