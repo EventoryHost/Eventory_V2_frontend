@@ -70,7 +70,7 @@ export default function SetupBusinessProfile() {
     const eventCategories = [
         'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Conference', 'Workshop', 'Exhibition', 'Engagement', 'Anniversary'
     ];
-    
+
     const cityLocalities: Record<string, string[]> = {
         "Ghaziabad": ["Indirapuram", "Vasundhara", "Vaishali"],
         "Delhi": ["Connaught Place", "South Delhi", "North Delhi", "Dwarka", "Saket"],
@@ -79,7 +79,7 @@ export default function SetupBusinessProfile() {
         "Meerut": ["Shastri Nagar", "Modipuram", "Pallavpuram"],
         "Noida": ["Sector 18", "Sector 62", "Noida Extension", "Sector 15"]
     };
-    
+
     const cities = Object.keys(cityLocalities);
 
     const avatars = [
@@ -91,7 +91,7 @@ export default function SetupBusinessProfile() {
         if (typeof window !== 'undefined') {
             const id = localStorage.getItem('vendor_id');
             setVendorId(id);
-            
+
             // Pre-fill from localStorage if available
             const savedName = localStorage.getItem('vendor_name');
             const savedPoc = localStorage.getItem('vendor_poc');
@@ -109,7 +109,7 @@ export default function SetupBusinessProfile() {
             const savedCover = localStorage.getItem('vendor_cover_image');
             const savedStep = localStorage.getItem('vendor_setup_step');
             const savedVendorId = localStorage.getItem('vendor_id');
-            
+
             // Auto-recovery for development: if no vendor_id, fetch one from the backend
             if (!savedVendorId) {
                 console.warn('No vendor_id found. Attempting to fetch an existing vendor for development...');
@@ -127,7 +127,7 @@ export default function SetupBusinessProfile() {
                     })
                     .catch(err => console.error('Failed to auto-recover vendor_id:', err));
             }
-            
+
             if (savedName) setFormData(prev => ({ ...prev, businessName: savedName }));
             if (savedPoc) setFormData(prev => ({ ...prev, pocName: savedPoc }));
             if (savedEmail) setFormData(prev => ({ ...prev, email: savedEmail }));
@@ -159,7 +159,7 @@ export default function SetupBusinessProfile() {
         try {
             const vendorId = localStorage.getItem('vendor_id');
             console.log('Attempting update for vendor:', vendorId);
-            
+
             if (!vendorId) {
                 console.error('No vendor ID found in localStorage');
                 return;
@@ -185,10 +185,10 @@ export default function SetupBusinessProfile() {
                     coverImage: formData.coverImage
                 }),
             });
-            
+
             console.log('Update response status:', response.status);
             const data = await response.json();
-            
+
             if (response.ok) {
                 console.log('Update successful, current step:', step);
                 // Save locally too
@@ -206,7 +206,7 @@ export default function SetupBusinessProfile() {
                 if (formData.description) localStorage.setItem('vendor_description', formData.description);
                 localStorage.setItem('vendor_business_photos', JSON.stringify(formData.businessPhotos));
                 if (formData.coverImage) localStorage.setItem('vendor_cover_image', formData.coverImage);
-                
+
                 if (step === 12) {
                     console.log('Final step reached. Redirecting...');
                     localStorage.removeItem('vendor_setup_step');
@@ -343,21 +343,21 @@ export default function SetupBusinessProfile() {
             {/* Top Bar */}
             <div className="px-6 pt-12">
                 {/* Progress Bar */}
-                <div 
+                <div
                     className="w-full h-[12px] rounded-[12px] overflow-hidden mb-6"
                     style={{ backgroundColor: 'rgba(230, 233, 234, 1)' }}
                 >
-                    <div 
+                    <div
                         className="h-full rounded-[12px] transition-all duration-500"
-                        style={{ 
+                        style={{
                             width: `${(step / 12) * 98}%`,
-                            backgroundColor: 'rgba(3, 27, 36, 1)' 
+                            backgroundColor: 'rgba(3, 27, 36, 1)'
                         }}
                     />
                 </div>
 
                 {/* Save & Exit */}
-                <button 
+                <button
                     onClick={handleSaveAndExit}
                     className="flex items-center gap-1 text-[#030303] text-[14px] font-medium py-2 active:opacity-60 transition-all"
                 >
@@ -383,7 +383,7 @@ export default function SetupBusinessProfile() {
                             </h1>
 
                             <div className="flex flex-col items-start gap-2 w-full max-w-[361px]">
-                                <input 
+                                <input
                                     autoFocus
                                     type="text"
                                     placeholder="Business Name/ Brand Name"
@@ -393,7 +393,7 @@ export default function SetupBusinessProfile() {
                                     onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                                     onKeyDown={(e) => e.key === 'Enter' && !isButtonDisabled() && handleContinue()}
                                     className="w-full text-[16px] leading-6 font-normal px-5 py-4 border rounded-xl outline-none transition-all bg-white shadow-sm font-figtree placeholder:text-[rgba(159,159,169,1)]"
-                                    style={{ 
+                                    style={{
                                         borderColor: isFocused || formData.businessName ? 'rgba(3, 3, 3, 1)' : 'rgba(212, 212, 216, 1)',
                                         color: isFocused || formData.businessName ? 'rgba(3, 3, 3, 1)' : 'rgba(159, 159, 169, 1)'
                                     }}
@@ -405,7 +405,7 @@ export default function SetupBusinessProfile() {
                                     <div className="relative flex items-center justify-center">
                                         <input type="checkbox" checked={formData.isIndividual} onChange={(e) => setFormData({ ...formData, isIndividual: e.target.checked })} className="sr-only" />
                                         <div className={`w-5 h-5 border-2 rounded-[4px] transition-all flex items-center justify-center ${formData.isIndividual ? 'bg-[#04222D] border-[#04222D]' : 'border-[#D4D4D8] group-hover:border-gray-400'}`}>
-                                            {formData.isIndividual && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                            {formData.isIndividual && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                                         </div>
                                     </div>
                                     <span className="text-[#030303] text-[14px] font-medium leading-[20px] font-figtree">I operate as an individual</span>
@@ -426,7 +426,7 @@ export default function SetupBusinessProfile() {
                                 What is the name of the person receiving the order
                             </h1>
                             <div className="flex flex-col items-start gap-2 w-full max-w-[361px]">
-                                <input 
+                                <input
                                     autoFocus
                                     type="text"
                                     placeholder="Person Name"
@@ -436,7 +436,7 @@ export default function SetupBusinessProfile() {
                                     onChange={(e) => setFormData({ ...formData, pocName: e.target.value })}
                                     onKeyDown={(e) => e.key === 'Enter' && !isButtonDisabled() && handleContinue()}
                                     className="w-full text-[16px] leading-6 font-normal px-5 py-4 border rounded-xl outline-none transition-all bg-white shadow-sm font-figtree placeholder:text-[rgba(159,159,169,1)]"
-                                    style={{ 
+                                    style={{
                                         borderColor: isFocused || formData.pocName ? 'rgba(3, 3, 3, 1)' : 'rgba(212, 212, 216, 1)',
                                         color: isFocused || formData.pocName ? 'rgba(3, 3, 3, 1)' : 'rgba(159, 159, 169, 1)'
                                     }}
@@ -460,7 +460,7 @@ export default function SetupBusinessProfile() {
                                 What is your Email
                             </h1>
                             <div className="flex flex-col items-start gap-2 w-full max-w-[361px]">
-                                <input 
+                                <input
                                     autoFocus
                                     type="email"
                                     placeholder="Johnjoe@gmail.com"
@@ -470,7 +470,7 @@ export default function SetupBusinessProfile() {
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     onKeyDown={(e) => e.key === 'Enter' && !isButtonDisabled() && handleContinue()}
                                     className="w-full text-[16px] leading-6 font-normal px-5 py-4 border rounded-xl outline-none transition-all bg-white shadow-sm font-figtree placeholder:text-[rgba(159,159,169,1)]"
-                                    style={{ 
+                                    style={{
                                         borderColor: isFocused || formData.email ? 'rgba(3, 3, 3, 1)' : 'rgba(212, 212, 216, 1)',
                                         color: isFocused || formData.email ? 'rgba(3, 3, 3, 1)' : 'rgba(159, 159, 169, 1)'
                                     }}
@@ -566,19 +566,18 @@ export default function SetupBusinessProfile() {
                                     <button
                                         key={type}
                                         onClick={() => setFormData(prev => ({ ...prev, vendorType: type }))}
-                                        className={`px-4 py-2 rounded-full border transition-all font-medium text-[14px] font-figtree flex items-center gap-2 ${
-                                            formData.vendorType === type
+                                        className={`px-4 py-2 rounded-full border transition-all font-medium text-[14px] font-figtree flex items-center gap-2 ${formData.vendorType === type
                                                 ? 'bg-[#04222D] border-[#04222D] text-white'
                                                 : 'bg-white border-[#D4D4D8] text-[#3F3F47] hover:bg-gray-50'
-                                        }`}
+                                            }`}
                                     >
                                         {type}
                                         {formData.vendorType === type && (
-                                            <div 
-                                                className="bg-white rounded-full p-0.5" 
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    setFormData(prev => ({ ...prev, vendorType: '' })); 
+                                            <div
+                                                className="bg-white rounded-full p-0.5"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setFormData(prev => ({ ...prev, vendorType: '' }));
                                                 }}
                                             >
                                                 <X size={12} className="text-[#04222D]" />
@@ -593,7 +592,7 @@ export default function SetupBusinessProfile() {
                             </p>
 
                             {formData.vendorType && (
-                                <motion.div 
+                                <motion.div
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     className="space-y-4 pt-4 border-t border-gray-100"
@@ -619,7 +618,7 @@ export default function SetupBusinessProfile() {
                                     <div className="relative w-full max-w-[361px]">
                                         <div className="text-[12px] font-semibold text-[#030303] mb-2 uppercase tracking-wider">All Categories</div>
                                         <div className="relative">
-                                            <input 
+                                            <input
                                                 type="text"
                                                 placeholder="Search Events"
                                                 value={eventSearch}
@@ -685,13 +684,12 @@ export default function SetupBusinessProfile() {
                                                     toggleServiceArea(city, true);
                                                 }
                                             }}
-                                            className={`px-5 py-2.5 rounded-full border transition-all text-[14px] font-medium font-figtree ${
-                                                activeCity === city 
-                                                    ? 'bg-[#04222D] border-[#04222D] text-white' 
+                                            className={`px-5 py-2.5 rounded-full border transition-all text-[14px] font-medium font-figtree ${activeCity === city
+                                                    ? 'bg-[#04222D] border-[#04222D] text-white'
                                                     : formData.serviceAreas.includes(city)
                                                         ? 'bg-gray-100 border-[#04222D] text-[#04222D]'
                                                         : 'bg-white border-[#D4D4D8] text-[#3F3F47] hover:bg-gray-50'
-                                            }`}
+                                                }`}
                                         >
                                             {city}
                                         </button>
@@ -709,11 +707,10 @@ export default function SetupBusinessProfile() {
                                                 <button
                                                     key={locality}
                                                     onClick={() => toggleServiceArea(locality)}
-                                                    className={`px-5 py-2.5 rounded-full border transition-all text-[14px] font-medium font-figtree ${
-                                                        formData.serviceAreas.includes(locality)
+                                                    className={`px-5 py-2.5 rounded-full border transition-all text-[14px] font-medium font-figtree ${formData.serviceAreas.includes(locality)
                                                             ? 'bg-[#04222D] border-[#04222D] text-white'
                                                             : 'bg-white border-[#D4D4D8] text-[#3F3F47] hover:bg-gray-50'
-                                                    }`}
+                                                        }`}
                                                 >
                                                     {locality}
                                                 </button>
@@ -729,7 +726,7 @@ export default function SetupBusinessProfile() {
                                     </p>
                                     <div className="relative w-full max-w-[361px]">
                                         <div className="relative">
-                                            <input 
+                                            <input
                                                 type="text"
                                                 placeholder="Search Locations"
                                                 value={locationSearch}
@@ -806,30 +803,30 @@ export default function SetupBusinessProfile() {
                             {tempImage ? (
                                 <div className="space-y-10 flex flex-col items-center">
                                     <div className="relative w-64 h-64 rounded-full overflow-hidden border-4 border-[#04222D]/10 shadow-xl bg-gray-50 flex items-center justify-center">
-                                        <motion.img 
-                                            src={tempImage} 
-                                            alt="Profile Preview" 
+                                        <motion.img
+                                            src={tempImage}
+                                            alt="Profile Preview"
                                             className="w-full h-full object-cover"
                                             style={{ scale: zoom }}
                                             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                                         />
                                     </div>
-                                    
+
                                     <div className="w-full max-w-[361px] space-y-4">
                                         <div className="flex justify-between items-center px-1">
                                             <span className="text-sm font-medium text-[#030303] font-figtree">Zoom</span>
                                             <span className="text-xs text-gray-400 font-figtree">{Math.round(zoom * 100)}%</span>
                                         </div>
-                                        <input 
-                                            type="range" 
-                                            min="1" 
-                                            max="3" 
-                                            step="0.01" 
-                                            value={zoom} 
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="3"
+                                            step="0.01"
+                                            value={zoom}
                                             onChange={(e) => setZoom(parseFloat(e.target.value))}
                                             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#04222D]"
                                         />
-                                        <button 
+                                        <button
                                             onClick={() => {
                                                 setTempImage(null);
                                                 setFormData(prev => ({ ...prev, profilePicture: '' }));
@@ -863,17 +860,16 @@ export default function SetupBusinessProfile() {
                                     {/* Avatar Grid */}
                                     <div className="flex justify-center gap-8 pt-4">
                                         {avatars.map((url, idx) => (
-                                            <button 
+                                            <button
                                                 key={idx}
                                                 onClick={() => {
                                                     setTempImage(url);
                                                     setFormData(prev => ({ ...prev, profilePicture: url }));
                                                 }}
-                                                className={`relative w-[140px] h-[140px] rounded-full flex items-center justify-center transition-all ${
-                                                    formData.profilePicture === url 
-                                                        ? 'ring-2 ring-[#04222D] ring-offset-4' 
+                                                className={`relative w-[140px] h-[140px] rounded-full flex items-center justify-center transition-all ${formData.profilePicture === url
+                                                        ? 'ring-2 ring-[#04222D] ring-offset-4'
                                                         : 'hover:scale-105'
-                                                }`}
+                                                    }`}
                                             >
                                                 <div className="w-full h-full rounded-full overflow-hidden bg-gray-50 border border-gray-100">
                                                     <img src={url} alt={`Avatar ${idx + 1}`} className="w-full h-full object-cover" />
@@ -905,11 +901,10 @@ export default function SetupBusinessProfile() {
 
                             <div className="space-y-2 relative">
                                 <div className="flex justify-end pr-1">
-                                    <span className={`text-[12px] font-medium font-figtree transition-colors ${
-                                        formData.description.length > 400 
-                                            ? 'text-rose-500' 
+                                    <span className={`text-[12px] font-medium font-figtree transition-colors ${formData.description.length > 400
+                                            ? 'text-rose-500'
                                             : 'text-gray-400'
-                                    }`}>
+                                        }`}>
                                         {formData.description.length}/400
                                     </span>
                                 </div>
@@ -917,11 +912,10 @@ export default function SetupBusinessProfile() {
                                     value={formData.description}
                                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Description about your brand"
-                                    className={`w-full min-h-[220px] p-5 rounded-[8px] border transition-all resize-none font-figtree text-[15px] leading-relaxed placeholder:text-gray-400 outline-none text-[#030303] ${
-                                        formData.description.length > 400
+                                    className={`w-full min-h-[220px] p-5 rounded-[8px] border transition-all resize-none font-figtree text-[15px] leading-relaxed placeholder:text-gray-400 outline-none text-[#030303] ${formData.description.length > 400
                                             ? 'border-rose-300 bg-rose-50/10 focus:border-rose-500'
                                             : 'border-[#71717B] focus:border-[#04222D] bg-[#E6E9EA]'
-                                    }`}
+                                        }`}
                                 />
                                 <p className="text-[13px] font-medium font-figtree text-gray-400">
                                     A minimum of 200 characters is required
@@ -1032,7 +1026,7 @@ export default function SetupBusinessProfile() {
                                         <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-[#04222D]">
                                             <ImageIcon size={24} />
                                         </div>
-                                        
+
                                         <label className="bg-white text-[#04222d] border border-[#04222d] px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer hover:bg-gray-50 transition-all shadow-sm">
                                             Choose a File
                                             <input type="file" className="hidden" accept="image/*" multiple onChange={handlePhotosUpload} />
@@ -1040,7 +1034,7 @@ export default function SetupBusinessProfile() {
                                         <div className="text-center">
                                             <p className="text-[16px] font-semibold text-[#04222D] font-figtree">Add your images</p>
                                             <p className="text-[12px] text-gray-500 mt-1 font-figtree">Max size 10 MB</p>
-                                        </div>e 
+                                        </div>e
                                     </div>
 
                                     {/* Photo Grid */}
@@ -1049,7 +1043,7 @@ export default function SetupBusinessProfile() {
                                             {formData.businessPhotos.map((photo, idx) => (
                                                 <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden group">
                                                     <img src={photo} className="w-full h-full object-cover" />
-                                                    <button 
+                                                    <button
                                                         onClick={() => removePhoto(idx)}
                                                         className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                                     >
@@ -1086,13 +1080,12 @@ export default function SetupBusinessProfile() {
                     <button
                         disabled={isButtonDisabled() || loading}
                         onClick={handleContinue}
-                        className={`w-full h-[56px] rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${
-                            isButtonDisabled() || loading
+                        className={`w-full h-[56px] rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${isButtonDisabled() || loading
                                 ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                 : 'text-white active:scale-[0.98]'
-                        }`}
-                        style={{ 
-                            backgroundColor: isButtonDisabled() || loading ? '#E5E7EB' : CONTINUE_BUTTON_COLOR 
+                            }`}
+                        style={{
+                            backgroundColor: isButtonDisabled() || loading ? '#E5E7EB' : CONTINUE_BUTTON_COLOR
                         }}
                     >
                         {loading ? 'Saving...' : (step === 12 ? 'Submit' : 'Continue')}
@@ -1104,7 +1097,7 @@ export default function SetupBusinessProfile() {
                     )}
                 </div>
             </div>
-            
+
             {/* Home Indicator Spacer */}
             <div className="h-6" />
         </div>

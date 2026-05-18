@@ -22,6 +22,18 @@ export default function LoginPage() {
         session: '',
     });
     const [timer, setTimer] = useState(0);
+    const [loggedInUser, setLoggedInUser] = useState<{ id: string | null; name: string | null } | null>(null);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('vendor_token');
+            const id = localStorage.getItem('vendor_id');
+            const name = localStorage.getItem('vendor_name');
+            if (token && id) {
+                setLoggedInUser({ id, name });
+            }
+        }
+    }, []);
 
     // Timer for Resend OTP
     useEffect(() => {
@@ -148,12 +160,52 @@ export default function LoginPage() {
                                 exit={{ opacity: 0, x: -20 }}
                                 className="space-y-3 mt-auto"
                             >
-                                <button
-                                    onClick={() => router.push('/signup')}
-                                    className="w-full py-4 bg-[#04222D] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-all"
-                                >
-                                    Create Account
-                                </button>
+                                {loggedInUser ? (
+                                    <>
+                                        <div className="flex items-center gap-3 w-full">
+                                            <button
+                                                onClick={() => {
+                                                    localStorage.removeItem('vendor_token');
+                                                    localStorage.removeItem('vendor_id');
+                                                    localStorage.removeItem('vendor_name');
+                                                    setLoggedInUser(null);
+                                                }}
+                                                className="flex-1 py-4 bg-[#EF4444] text-white rounded-xl font-bold text-base shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                                Log out
+                                            </button>
+                                            
+                                            <div className="relative group flex items-center">
+                                                <button 
+                                                    type="button"
+                                                    className="w-14 h-14 flex items-center justify-center bg-[#F0F2F5] text-gray-500 hover:bg-gray-200 hover:text-gray-700 rounded-xl transition-all border border-gray-200"
+                                                >
+                                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                </button>
+                                                {/* Tooltip */}
+                                                <div className="absolute bottom-full right-0 mb-3 w-[220px] p-3 bg-[#030303] text-white text-[13px] leading-snug rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible focus-within:opacity-100 focus-within:visible transition-all z-50 shadow-xl pointer-events-none">
+                                                    You are already logged in with ID: <span className="font-bold text-blue-400">{loggedInUser.id}</span>
+                                                    <div className="absolute top-full right-[20px] -mt-1 border-[6px] border-transparent border-t-[#030303]"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={() => router.push('/dashboard')}
+                                            className="w-full py-4 bg-[#04222D] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-all"
+                                        >
+                                            Go to Dashboard
+                                        </button>
+                                    </>
+                                ) : (
+                                    <button
+                                        onClick={() => router.push('/signup')}
+                                        className="w-full py-4 bg-[#04222D] text-white rounded-xl font-semibold text-base shadow-lg active:scale-[0.98] transition-all"
+                                    >
+                                        Create Account
+                                    </button>
+                                )}
+
                                 <button
                                     onClick={() => setStep(1)}
                                     className="w-full py-4 bg-[#F0F2F5] text-gray-800 rounded-xl font-semibold text-base active:scale-[0.98] transition-all"

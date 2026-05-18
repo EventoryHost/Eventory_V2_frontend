@@ -46,7 +46,7 @@ export default function SignupFlow() {
             const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ mobile: formData.phone }),
+                body: JSON.stringify({ mobile: formData.phone, isSignup: true }),
             });
             const data = await response.json();
             if (data.success) {
@@ -55,6 +55,11 @@ export default function SignupFlow() {
                 nextStep();
             } else {
                 setStatus({ ...status, loading: false, error: data.message || 'Failed to send OTP' });
+                if (data.code === 'USER_ALREADY_EXISTS') {
+                    setTimeout(() => {
+                        router.push('/login');
+                    }, 3000);
+                }
             }
         } catch (err) {
             setStatus({ ...status, loading: false, error: 'Server connection failed' });
@@ -80,7 +85,11 @@ export default function SignupFlow() {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('vendor_name', formData.name);
                     if (data.token) localStorage.setItem('vendor_token', data.token);
-                    if (data.vendorId) localStorage.setItem('vendor_id', data.vendorId);
+                    if (data.vendor?.id) {
+                        localStorage.setItem('vendor_id', data.vendor.id);
+                    } else if (data.vendorId) {
+                        localStorage.setItem('vendor_id', data.vendorId);
+                    }
                 }
 
                 setStatus({ ...status, loading: false, success: 'OTP Verified!' });

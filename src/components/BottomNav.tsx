@@ -18,6 +18,9 @@ export default function BottomNav() {
     const pathname = usePathname();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
+    // Hide BottomNav on document verification pages to prevent UI overlap
+    if (pathname.includes('/documents')) return null;
+
     return (
         <>
             <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-2 py-2 flex justify-around items-center z-50 pb-safe">
@@ -69,9 +72,9 @@ export default function BottomNav() {
             </nav>
 
             {isCreateModalOpen && (
-                <CreateServiceModal 
-                    isOpen={isCreateModalOpen} 
-                    onClose={() => setIsCreateModalOpen(false)} 
+                <CreateServiceModal
+                    isOpen={isCreateModalOpen}
+                    onClose={() => setIsCreateModalOpen(false)}
                 />
             )}
         </>

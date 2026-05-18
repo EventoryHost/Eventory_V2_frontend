@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import CreateServiceModal from '@/components/CreateServiceModal';
 
 export default function InventoryPage() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        if (searchParams.get('add') === 'true') {
+            setIsCreateModalOpen(true);
+        }
+    }, [searchParams]);
 
     return (
         <div style={{ backgroundColor: 'white', paddingBottom: '96px' }}>
