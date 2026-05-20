@@ -41,6 +41,8 @@ interface FlowShellProps {
     onDuplicateVariant: () => void;
     onRenameVariant: () => void;
     onDeleteVariant: () => void;
+    isSaving?: boolean;
+    saveLabel?: string;
 }
 
 export default function FlowShell({
@@ -68,6 +70,8 @@ export default function FlowShell({
     onDuplicateVariant,
     onRenameVariant,
     onDeleteVariant,
+    isSaving = false,
+    saveLabel,
 }: FlowShellProps) {
     return (
         <div className="min-h-screen bg-[#FDFDFD] relative">
@@ -93,18 +97,18 @@ export default function FlowShell({
                         {variants.map((v) => (
                             <div key={v} className="relative group">
                                 <button
-                                    onClick={() => onSelectVariant(v)}
+                                    onClick={() => {
+                                        if (selectedVariant === v) {
+                                            onOpenVariantModal(v);
+                                        } else {
+                                            onSelectVariant(v);
+                                        }
+                                    }}
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
                                     className={`px-6 py-2.5 rounded-full text-[14px] font-semibold border transition-all flex items-center gap-2 ${selectedVariant === v ? 'bg-white text-[#04222D] border-[#04222D]' : 'bg-white text-[#3F3F47] border-[#E4E4E7] hover:border-gray-400'}`}
                                 >
                                     {v}
                                     {selectedVariant === v && <ChevronDown size={16} className="text-[#04222D]" />}
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); onOpenVariantModal(v); }}
-                                    className="absolute -top-1 -right-1 w-5 h-5 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity hover:text-gray-900 shadow-sm"
-                                >
-                                    <MoreHorizontal size={12} />
                                 </button>
                             </div>
                         ))}
@@ -165,18 +169,30 @@ export default function FlowShell({
                     {step > 1 && (
                         <button
                             onClick={onBack}
-                            style={{ fontFamily: 'Figtree, sans-serif', padding: '16px 32px' }}
-                            className="flex-1 flex justify-center items-center bg-white border border-[#E4E4E7] text-gray-900 rounded-[12px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
+                            disabled={isSaving}
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className="flex-1 h-14 flex justify-center items-center bg-white border border-[#E4E4E7] text-gray-900 rounded-[12px] font-semibold text-[16px] whitespace-nowrap px-4 sm:px-8 active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Back
                         </button>
                     )}
                     <button
                         onClick={onNext}
-                        style={{ fontFamily: 'Figtree, sans-serif', padding: '16px 32px' }}
-                        className="flex-1 flex justify-center items-center gap-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
+                        disabled={isSaving}
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                        className={`flex-1 h-14 flex justify-center items-center gap-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] whitespace-nowrap px-4 sm:px-8 active:scale-[0.98] transition-transform ${isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-opacity-95'}`}
                     >
-                        Save & Next
+                        {isSaving ? (
+                            <div className="flex items-center justify-center gap-2">
+                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Saving...</span>
+                            </div>
+                        ) : (
+                            saveLabel || (step === config.steps.length ? 'Publish Package' : 'Save & Next')
+                        )}
                     </button>
                 </div>
             </div>
@@ -219,18 +235,18 @@ export default function FlowShell({
                                 </motion.div>
                             )}
                             {variantAction === 'rename' && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => onSetVariantAction('none')}>
-                                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm bg-white rounded-[24px] p-6 relative" onClick={(e) => e.stopPropagation()}>
-                                        <button onClick={() => onSetVariantAction('none')} className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"><X size={18} /></button>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">ACTION REQUIRED</p>
-                                        <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-gray-900 mb-2">Rename Variant</h2>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-gray-600 mb-6">Enter a new name for this variant to keep your setup organized.</p>
-                                        <div className="mb-6">
-                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-gray-600 mb-2">Variant Name</label>
-                                            <input type="text" value={renameVariantValue} onChange={(e) => onSetRenameVariantValue(e.target.value)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full p-3.5 bg-white border border-gray-300 rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900" />
-                                        </div>
-                                        <button onClick={onRenameVariant} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] hover:bg-opacity-90 transition-colors">Save</button>
-                                    </motion.div>
+                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => onSetVariantAction('none')}>
+                                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm bg-white rounded-[24px] p-6 relative" onClick={(e) => e.stopPropagation()}>
+                                         <button onClick={() => onSetVariantAction('none')} className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"><X size={18} /></button>
+                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">ACTION REQUIRED</p>
+                                         <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-gray-900 mb-2">Rename Variant</h2>
+                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-gray-600 mb-6 leading-relaxed">Enter a new name for this variant to keep your crew setup organized.</p>
+                                         <div className="mb-6">
+                                             <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-gray-600 mb-2">Variant Name</label>
+                                             <input type="text" value={renameVariantValue} onChange={(e) => onSetRenameVariantValue(e.target.value)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full p-3.5 bg-white border border-gray-300 rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900" />
+                                         </div>
+                                         <button onClick={onRenameVariant} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] hover:bg-opacity-90 transition-colors">Save</button>
+                                     </motion.div>
                                 </motion.div>
                             )}
                             {variantAction === 'delete' && (
@@ -240,6 +256,7 @@ export default function FlowShell({
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">ACTION REQUIRED</p>
                                         <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-gray-900 mb-4">Delete Variant</h2>
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-gray-600 mb-2 leading-relaxed">Are you sure you want to delete the &ldquo;{variantToManage}&rdquo; variant?</p>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-gray-600 mb-6 leading-relaxed">All associated configurations will be permanently removed.</p>
                                         <button onClick={onDeleteVariant} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 bg-[#DE350B] text-white rounded-[12px] font-semibold text-[16px] mb-4 hover:bg-opacity-90 transition-colors">Delete</button>
                                         <button onClick={() => onSetVariantAction('none')} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-2 text-[#9F9FA9] font-semibold text-[16px] hover:text-gray-900 transition-colors">Cancel</button>
                                     </motion.div>

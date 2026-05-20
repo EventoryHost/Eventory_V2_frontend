@@ -2,17 +2,7 @@ import React from 'react';
 import { ArrowLeft, Upload, FileText, X, ChevronDown, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-export interface PolicyFile {
-    name: string;
-    size: number;
-}
-
-export interface SampleMediaFile {
-    file: File;
-    name: string;
-    size: number;
-    preview: string;
-}
+import { PolicyFile, SampleMediaFile } from '../shared/types';
 
 export interface Addon {
     id: string;
@@ -107,7 +97,8 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
         if (e.target.files && e.target.files.length > 0) {
             const filesArray = Array.from(e.target.files).map(file => ({
                 name: file.name,
-                size: file.size
+                size: file.size,
+                file: file
             }));
             setAddonPolicies(prev => [...prev, ...filesArray]);
         }

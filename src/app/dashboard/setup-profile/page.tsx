@@ -290,44 +290,74 @@ export default function SetupBusinessProfile() {
         });
     };
 
-    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadToS3 = async (file: File): Promise<string> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData,
+        });
+        if (!response.ok) {
+            throw new Error('Failed to upload file');
+        }
+        const data = await response.json();
+        return data.url;
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result as string;
-                setTempImage(base64String);
-                setFormData(prev => ({ ...prev, profilePicture: base64String }));
-            };
-            reader.readAsDataURL(file);
+            setLoading(true);
+            try {
+                const url = await uploadToS3(file);
+                setTempImage(url);
+                setFormData(prev => ({ ...prev, profilePicture: url }));
+            } catch (err) {
+                console.error("Failed to upload profile picture:", err);
+                alert("Failed to upload profile picture. Please try again.");
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
-    const handleCoverUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, coverImage: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            setLoading(true);
+            try {
+                const url = await uploadToS3(file);
+                setFormData(prev => ({ ...prev, coverImage: url }));
+            } catch (err) {
+                console.error("Failed to upload cover image:", err);
+                alert("Failed to upload cover image. Please try again.");
+            } finally {
+                setLoading(false);
+            }
         }
     };
 
-    const handlePhotosUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePhotosUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
             const fileArray = Array.from(files);
-            fileArray.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setFormData(prev => {
-                        if (prev.businessPhotos.length >= 10) return prev;
-                        return { ...prev, businessPhotos: [...prev.businessPhotos, reader.result as string] };
-                    });
-                };
-                reader.readAsDataURL(file);
-            });
+            setLoading(true);
+            try {
+                const uploadPromises = fileArray.map(file => uploadToS3(file));
+                const urls = await Promise.all(uploadPromises);
+                setFormData(prev => {
+                    const newPhotos = [...prev.businessPhotos, ...urls];
+                    if (newPhotos.length > 10) {
+                        return { ...prev, businessPhotos: newPhotos.slice(0, 10) };
+                    }
+                    return { ...prev, businessPhotos: newPhotos };
+                });
+            } catch (err) {
+                console.error("Failed to upload business photos:", err);
+                alert("Failed to upload some business photos. Please try again.");
+            } finally {
+                setLoading(false);
+            }
         }
     };
 

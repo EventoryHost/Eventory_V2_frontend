@@ -189,7 +189,7 @@ export default function DashboardHome() {
                             disabled={isResetting}
                             className="absolute right-20 top-6 bg-red-500 text-white text-[12px] font-bold px-3 py-2 rounded-lg shadow-lg active:scale-95 z-50"
                         >
-                            {isResetting ? 'Resetting...' : 'RESET DATA'}
+                            {isResetting ? 'Resetting...' : 'Delete Profile'}
                         </motion.button>
                     )}
                 </AnimatePresence>

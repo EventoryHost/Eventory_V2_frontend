@@ -28,13 +28,18 @@ export interface GuestTier {
 export interface PolicyFile {
     name: string;
     size: number;
+    file?: File;
+    preview?: string;
 }
 
 export interface SampleMediaFile {
-    file: File;
+    /** Present only before S3 upload; omitted when restored from DB or after immediate upload. */
+    file?: File;
     name: string;
     size: number;
+    /** Blob URL (local preview) or permanent S3/CloudFront URL. */
     preview: string;
+    mediaType?: 'image' | 'video';
 }
 
 export function formatFileSize(bytes: number): string {
