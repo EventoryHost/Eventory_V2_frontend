@@ -48,7 +48,9 @@ export default function DashboardHome() {
             // Check backend data first (Primary source of truth)
             if (vendorId) {
                 try {
-                    const res = await fetch(`http://localhost:4000/api/vendors/${vendorId}`);
+                    const res = await fetch(`http://localhost:4000/api/vendors/${vendorId}`, {
+                        cache: 'no-store'
+                    });
                     const data = await res.json();
 
                     if (data.success && data.data) {
@@ -63,7 +65,11 @@ export default function DashboardHome() {
                         });
                         
                         // If everything is verified, move to Step 3
-                        if (vendor.isAadharVerified && vendor.isPanVerified && (vendor.isGstVerified || vendor.isIndividual) && vendor.bankDetails?.accountNumber) {
+                        const isDocVerified = vendor.isIndividual 
+                            ? (vendor.isAadharVerified && vendor.isPanVerified)
+                            : (vendor.isPanVerified && vendor.isGstVerified);
+
+                        if (isDocVerified && vendor.bankDetails?.accountNumber) {
                             console.log("✅ All documents verified! Moving to Step 3.");
                             setDashboardStep(3); // Onboarding complete
                             localStorage.setItem('dashboard_step', '3');
@@ -82,7 +88,9 @@ export default function DashboardHome() {
             }
 
             // Fallback to local flags only if backend check didn't resolve to Step 3
-            if (success === 'true' || savedStep === '2') {
+            if (savedStep === '3') {
+                setDashboardStep(3);
+            } else if (success === 'true' || savedStep === '2') {
                 setDashboardStep(2);
                 if (success === 'true') setShowSuccessModal(true);
                 localStorage.setItem('dashboard_step', '2');
@@ -96,8 +104,8 @@ export default function DashboardHome() {
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('onboarding_complete') === 'true') {
             setShowVerifiedModal(true);
-            setDashboardStep(2);
-            setStep2Progress(100);
+            setDashboardStep(3);
+            localStorage.setItem('dashboard_step', '3');
             // Clean up URL
             window.history.replaceState({}, document.title, window.location.pathname);
         }
@@ -332,7 +340,10 @@ export default function DashboardHome() {
                 </div>
 
                 {/* Create Package CTA */}
-                <div className="flex p-6 items-center gap-4 self-stretch rounded-xl border border-dashed border-[#D4D4D8] bg-[#F4F4F5] group cursor-pointer transition-all hover:bg-gray-100/80">
+                <div 
+                    onClick={() => router.push('/dashboard/inventory')}
+                    className="flex p-6 items-center gap-4 self-stretch rounded-xl border border-dashed border-[#D4D4D8] bg-[#F4F4F5] group cursor-pointer transition-all hover:bg-gray-100/80"
+                >
                     <div className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-50">
                         <Box className="text-[#3F3F47] w-5 h-5" />
                     </div>

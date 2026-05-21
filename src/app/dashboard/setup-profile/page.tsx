@@ -33,6 +33,10 @@ export default function SetupBusinessProfile() {
     const [zoom, setZoom] = useState(1);
     const [tempImage, setTempImage] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
+    const [uploadingCover, setUploadingCover] = useState(false);
+    const [coverProgress, setCoverProgress] = useState(0);
+    const [uploadingPhotos, setUploadingPhotos] = useState(false);
+    const [photosProgress, setPhotosProgress] = useState(0);
     const [vendorId, setVendorId] = useState<string | null>(null);
     const [eventSearch, setEventSearch] = useState('');
     const [showEventDropdown, setShowEventDropdown] = useState(false);
@@ -148,6 +152,36 @@ export default function SetupBusinessProfile() {
             if (savedStep) setStep(parseInt(savedStep));
         }
     }, []);
+
+    useEffect(() => {
+        let interval: any;
+        if (uploadingCover) {
+            setCoverProgress(0);
+            interval = setInterval(() => {
+                setCoverProgress(prev => prev >= 90 ? prev : prev + Math.floor(Math.random() * 15 + 5));
+            }, 300);
+        } else {
+            setCoverProgress(100);
+            const to = setTimeout(() => setCoverProgress(0), 500);
+            return () => { clearInterval(interval); clearTimeout(to); };
+        }
+        return () => clearInterval(interval);
+    }, [uploadingCover]);
+
+    useEffect(() => {
+        let interval: any;
+        if (uploadingPhotos) {
+            setPhotosProgress(0);
+            interval = setInterval(() => {
+                setPhotosProgress(prev => prev >= 90 ? prev : prev + Math.floor(Math.random() * 10 + 5));
+            }, 400);
+        } else {
+            setPhotosProgress(100);
+            const to = setTimeout(() => setPhotosProgress(0), 500);
+            return () => { clearInterval(interval); clearTimeout(to); };
+        }
+        return () => clearInterval(interval);
+    }, [uploadingPhotos]);
 
     const handleSaveAndExit = async () => {
         await handleUpdate();
@@ -324,7 +358,7 @@ export default function SetupBusinessProfile() {
     const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            setLoading(true);
+            setUploadingCover(true);
             try {
                 const url = await uploadToS3(file);
                 setFormData(prev => ({ ...prev, coverImage: url }));
@@ -332,7 +366,7 @@ export default function SetupBusinessProfile() {
                 console.error("Failed to upload cover image:", err);
                 alert("Failed to upload cover image. Please try again.");
             } finally {
-                setLoading(false);
+                setUploadingCover(false);
             }
         }
     };
@@ -341,7 +375,7 @@ export default function SetupBusinessProfile() {
         const files = e.target.files;
         if (files) {
             const fileArray = Array.from(files);
-            setLoading(true);
+            setUploadingPhotos(true);
             try {
                 const uploadPromises = fileArray.map(file => uploadToS3(file));
                 const urls = await Promise.all(uploadPromises);
@@ -356,7 +390,7 @@ export default function SetupBusinessProfile() {
                 console.error("Failed to upload business photos:", err);
                 alert("Failed to upload some business photos. Please try again.");
             } finally {
-                setLoading(false);
+                setUploadingPhotos(false);
             }
         }
     };
@@ -1031,7 +1065,20 @@ export default function SetupBusinessProfile() {
 
                             <div className="space-y-6">
                                 {/* Cover Image Section */}
-                                <div className={`relative flex items-center justify-between p-4 rounded-[8px] transition-all ${formData.coverImage ? 'bg-[#04222D]/5 border border-[#04222D]' : 'bg-[#E6E9EA]'}`}>
+                                <div className={`relative flex items-center justify-between p-4 rounded-[8px] transition-all ${formData.coverImage ? 'bg-[#04222D]/5 border border-[#04222D]' : 'bg-[#E6E9EA]'} overflow-hidden`}>
+                                    {uploadingCover && (
+                                        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-4">
+                                            <div className="w-full max-w-[200px] space-y-2">
+                                                <div className="flex justify-between text-[11px] font-bold text-[#04222D]">
+                                                    <span>Uploading Cover...</span>
+                                                    <span>{coverProgress}%</span>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-[#04222D] transition-all duration-300" style={{ width: coverProgress + '%' }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-4">
                                         <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${formData.coverImage ? 'bg-white' : 'bg-white/50'}`}>
                                             {formData.coverImage ? (
@@ -1052,7 +1099,20 @@ export default function SetupBusinessProfile() {
 
                                 {/* Carousel Photos Section */}
                                 <div className="space-y-4">
-                                    <div className="w-full p-8 rounded-[8px] bg-[#E6E9EA] flex flex-col items-center justify-center gap-4 group transition-all border border-[#71717B]/20">
+                                    <div className="w-full p-8 rounded-[8px] bg-[#E6E9EA] flex flex-col items-center justify-center gap-4 group transition-all border border-[#71717B]/20 relative overflow-hidden">
+                                        {uploadingPhotos && (
+                                            <div className="absolute inset-0 bg-white/90 backdrop-blur-sm z-10 flex flex-col items-center justify-center p-6">
+                                                <div className="w-full max-w-[250px] space-y-2">
+                                                    <div className="flex justify-between text-[12px] font-bold text-[#04222D]">
+                                                        <span>Uploading Photos...</span>
+                                                        <span>{photosProgress}%</span>
+                                                    </div>
+                                                    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                                                        <div className="h-full bg-[#04222D] transition-all duration-300" style={{ width: photosProgress + '%' }} />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                         <div className="w-12 h-12 bg-white rounded-full shadow-sm flex items-center justify-center text-[#04222D]">
                                             <ImageIcon size={24} />
                                         </div>
@@ -1064,7 +1124,7 @@ export default function SetupBusinessProfile() {
                                         <div className="text-center">
                                             <p className="text-[16px] font-semibold text-[#04222D] font-figtree">Add your images</p>
                                             <p className="text-[12px] text-gray-500 mt-1 font-figtree">Max size 10 MB</p>
-                                        </div>e
+                                        </div>
                                     </div>
 
                                     {/* Photo Grid */}

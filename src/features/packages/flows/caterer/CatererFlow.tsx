@@ -724,7 +724,6 @@ export default function CatererFlow() {
             {step === 3 && <CatererStep3PoliciesAndCharges
                 teamEquipmentPrice={teamEquipmentPrice} setTeamEquipmentPrice={setTeamEquipmentPrice}
                 teamEquipmentUnit={teamEquipmentUnit} setTeamEquipmentUnit={setTeamEquipmentUnit}
-                lastMinuteInputRef={lastMinuteInputRef}
                 guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier}
                 isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                 weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}

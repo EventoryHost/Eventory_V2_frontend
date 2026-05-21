@@ -77,24 +77,19 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
             {/* Last Minute Charges Upload */}
             <div>
                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] uppercase tracking-wide mb-4">Last Minute Charges</p>
-                <button 
-                    type="button" 
-                    onClick={() => p.lastMinuteInputRef.current?.click()} 
-                    className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4"
-                >
-                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4"><Upload size={24} className="text-[#3F3F47]" /></div>
+                <label className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4 cursor-pointer block text-center">
+                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto"><Upload size={24} className="text-[#3F3F47]" /></div>
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload Last Minute charges documents</p>
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide">Browse Files</span>
-                </button>
-                <input
-                    type="file"
-                    ref={p.lastMinuteInputRef}
-                    style={{ display: 'none' }}
-                    accept=".pdf,.doc,.docx"
-                    multiple
-                    onChange={p.onLastMinuteUpload}
-                />
+                    <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx"
+                        multiple
+                        onChange={p.onLastMinuteUpload}
+                    />
+                </label>
                 
                 {p.lastMinuteFiles && p.lastMinuteFiles.length > 0 && (
                     <div className="flex flex-col gap-3">
@@ -639,24 +634,19 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
             {/* Policies */}
             <div className="mt-8">
                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] uppercase tracking-wide mb-4">Policies &amp; Rules</p>
-                <button 
-                    type="button" 
-                    onClick={() => p.policyInputRef.current?.click()} 
-                    className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4"
-                >
-                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4"><Upload size={24} className="text-[#3F3F47]" /></div>
+                <label className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4 cursor-pointer block text-center">
+                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto"><Upload size={24} className="text-[#3F3F47]" /></div>
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload Policy Documents</p>
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide">Browse Files</span>
-                </button>
-                <input
-                    type="file"
-                    ref={p.policyInputRef}
-                    style={{ display: 'none' }}
-                    accept=".pdf,.doc,.docx"
-                    multiple
-                    onChange={p.onPolicyUpload}
-                />
+                    <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx"
+                        multiple
+                        onChange={p.onPolicyUpload}
+                    />
+                </label>
                 {p.policyFiles && p.policyFiles.length > 0 && (
                     <div className="flex flex-col gap-3">
                         {p.policyFiles.map((file, idx) => (
