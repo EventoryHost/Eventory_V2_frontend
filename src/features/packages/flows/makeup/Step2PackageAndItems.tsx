@@ -3,7 +3,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronUp, ChevronDown, MoreHorizontal, Pencil, Trash2, Sparkles, Bell, X } from 'lucide-react';
+import { Plus, ChevronUp, ChevronDown, MoreHorizontal, Pencil, Trash2, Sparkles, Scissors, Droplets, Palette, Hand, HelpCircle, X, ShieldAlert } from 'lucide-react';
 import { MakeupServiceItem } from '../../shared/types';
 import { Addon } from '../../components/AddonModal';
 
@@ -28,15 +28,19 @@ interface Props {
     handleOpenAddonForm: () => void;
     handleEditAddon: (addon: Addon) => void;
     deleteAddon: (id: string) => void;
+    notProvidedDetails: string;
+    setNotProvidedDetails: (v: string) => void;
+    providedDetails: string;
+    setProvidedDetails: (v: string) => void;
 }
 
 const makeupItemTypes = [
     { name: 'Makeup', icon: Sparkles },
-    { name: 'Hair', icon: Bell },
-    { name: 'Skin & Spa', icon: Bell },
-    { name: 'Mehendi', icon: Bell },
-    { name: 'Nail', icon: Bell },
-    { name: 'Other', icon: Bell },
+    { name: 'Hair', icon: Scissors },
+    { name: 'Skin & Spa', icon: Droplets },
+    { name: 'Mehendi', icon: Palette },
+    { name: 'Nail', icon: Hand },
+    { name: 'Other', icon: HelpCircle },
 ];
 
 /* ── Shared token classes ── */
@@ -65,7 +69,33 @@ export default function MakeupStep2PackageAndItems({
     handleOpenAddonForm,
     handleEditAddon,
     deleteAddon,
+    notProvidedDetails,
+    setNotProvidedDetails,
+    providedDetails,
+    setProvidedDetails,
 }: Props) {
+    const handleBulletChange = (e: React.ChangeEvent<HTMLTextAreaElement>, setter: (v: string) => void) => {
+        let val = e.target.value;
+        if (val.length > 0 && !val.startsWith('• ')) {
+            val = '• ' + val.replace(/^•\s*/, '');
+        }
+        setter(val);
+    };
+
+    const handleBulletKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>, value: string, setter: (v: string) => void) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const target = e.target as HTMLTextAreaElement;
+            const start = target.selectionStart;
+            const end = target.selectionEnd;
+            const newValue = value.substring(0, start) + '\n• ' + value.substring(end);
+            setter(newValue);
+            requestAnimationFrame(() => {
+                target.selectionStart = target.selectionEnd = start + 3;
+            });
+        }
+    };
+
     return (
         <>
             <div className="flex flex-col gap-6 pb-32">
@@ -85,23 +115,23 @@ export default function MakeupStep2PackageAndItems({
                 <div className="flex flex-col gap-4">
                     {makeupItems.map((item) => (
                         <div key={item.id} className="bg-white rounded-[12px] border border-[#E4E4E7] transition-all">
-                            <div className="p-6 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center">
+                            <div className="p-4 sm:p-6 flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="w-10 h-10 flex-shrink-0 rounded-full bg-[#F4F4F5] flex items-center justify-center">
                                         <Sparkles size={20} className="text-[#3F3F47]" />
                                     </div>
-                                    <div className="flex flex-col">
+                                    <div className="flex flex-col flex-1 min-w-0">
                                         <input
                                             type="text"
                                             value={item.type}
                                             onChange={(e) => updateMakeupItemType(item.id, e.target.value)}
                                             style={{ fontFamily: 'Figtree, sans-serif' }}
-                                            className="text-[16px] font-medium text-[#030303] bg-transparent border-none focus:outline-none p-0 leading-[24px]"
+                                            className="text-[16px] font-medium text-[#030303] bg-transparent border-none focus:outline-none p-0 leading-[24px] w-full truncate"
                                         />
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#9F9FA9] leading-[18px]">{item.options.length} Options • {item.brands.length} Brands</p>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#9F9FA9] leading-[18px] truncate">{item.options.length} Options • {item.brands.length} Brands</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center flex-shrink-0">
                                     <button onClick={() => toggleMakeupItemExpand(item.id)} className="p-2 text-[#71717A] hover:bg-gray-100 rounded-full">
                                         {item.isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                     </button>
@@ -215,7 +245,7 @@ export default function MakeupStep2PackageAndItems({
                                             </div>
                                         </div>
 
-                                        <button onClick={() => toggleMakeupItemExpand(item.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 rounded-full bg-[#E6E9EA] hover:bg-[#D4D4D8] transition-colors text-[#9F9FA9] hover:text-[#3F3F47] font-medium text-[16px] leading-[24px]">
+                                        <button onClick={() => toggleMakeupItemExpand(item.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 rounded-full bg-[#04222D] hover:bg-[#031820] transition-colors text-white font-medium text-[16px] leading-[24px]">
                                             Save Item
                                         </button>
                                     </motion.div>
@@ -257,6 +287,38 @@ export default function MakeupStep2PackageAndItems({
                         <button onClick={handleOpenAddonForm} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-6 rounded-[12px] border-[2px] border-dashed border-[#D4D4D8] text-[#9F9FA9] text-[16px] font-normal leading-[24px] bg-white hover:bg-gray-50 transition-colors">
                             Enter Add-on +
                         </button>
+                    </div>
+                </div>
+
+                {/* Provided / Not Provided */}
+                <div className="flex flex-col gap-4">
+                    <div className="bg-white rounded-[12px] border border-[#E4E4E7] p-6">
+                        <div className="flex items-center gap-2 mb-2">
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wide">NOT PART OF THIS PACKAGE</h4>
+                            {!notProvidedDetails.trim() && <ShieldAlert size={16} className="text-white fill-red-600" />}
+                        </div>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#71717A] mb-4 leading-[18px]">Enter the things that will not be provided by you</p>
+                        <textarea
+                            value={notProvidedDetails}
+                            onChange={(e) => handleBulletChange(e, setNotProvidedDetails)}
+                            onKeyDown={(e) => handleBulletKeyDown(e, notProvidedDetails, setNotProvidedDetails)}
+                            placeholder="Enter Details.."
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className={`${INPUT} w-full h-24 resize-none`}
+                        />
+                    </div>
+
+                    <div className="bg-white rounded-[12px] border border-[#E4E4E7] p-6">
+                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wide mb-2">PART OF THIS PACKAGE</h4>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#71717A] mb-4 leading-[18px]">Enter the things that will be provided by you</p>
+                        <textarea
+                            value={providedDetails}
+                            onChange={(e) => handleBulletChange(e, setProvidedDetails)}
+                            onKeyDown={(e) => handleBulletKeyDown(e, providedDetails, setProvidedDetails)}
+                            placeholder="Enter Details.."
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className={`${INPUT} w-full h-24 resize-none`}
+                        />
                     </div>
                 </div>
             </div>

@@ -2,7 +2,8 @@ import React from 'react';
 import { ArrowLeft, Upload, FileText, X, ChevronDown, Check } from 'lucide-react';
 import { createPortal } from 'react-dom';
 
-import { PolicyFile, SampleMediaFile } from '../shared/types';
+import { PolicyFile, SampleMediaFile, formatFileSize } from '../shared/types';
+import { FilePreviewModal } from './FilePreviewModal';
 
 export interface Addon {
     id: string;
@@ -39,6 +40,7 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
     const [addonPolicies, setAddonPolicies] = React.useState<PolicyFile[]>([]);
     const [addonMedia, setAddonMedia] = React.useState<SampleMediaFile[]>([]);
     const [addonProductType, setAddonProductType] = React.useState<string>('Food');
+    const [previewFile, setPreviewFile] = React.useState<{ url: string | null; name: string } | null>(null);
 
     const addonPolicyInputRef = React.useRef<HTMLInputElement>(null);
     const addonMediaInputRef = React.useRef<HTMLInputElement>(null);
@@ -131,12 +133,9 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
         });
     };
 
-    const formatFileSize = (bytes: number) => {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    const formatFileSizeLocal = (bytes: number) => {
+        if (bytes === 0) return 'Existing Document';
+        return `${formatFileSize(bytes)} _ Uploaded`;
     };
 
     return createPortal(
@@ -320,9 +319,15 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                                             <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
                                                 <FileText size={16} className="text-[#3F3F47] stroke-2" />
                                             </div>
-                                            <div className="flex-1 min-w-0">
+                                            <div 
+                                                className="flex-1 min-w-0 cursor-pointer hover:underline"
+                                                onClick={() => {
+                                                    const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null);
+                                                    if (url) setPreviewFile({ url, name: file.name });
+                                                }}
+                                            >
                                                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] break-all">{file.name}</p>
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
+                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSizeLocal(file.size)}</p>
                                             </div>
                                         </div>
                                         <button onClick={() => removeAddonPolicy(idx)} className="text-[#3F3F47] hover:text-[#030303]">
@@ -352,12 +357,24 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                                     {addonMedia.map((file, idx) => (
                                         <div key={idx} className="flex items-center justify-between p-4 bg-white border border-[#E4E4E7] rounded-[8px]">
                                             <div className="flex items-center gap-4 flex-1 min-w-0">
-                                                <div className="w-12 h-12 rounded-[4px] overflow-hidden bg-gray-100 flex-shrink-0">
+                                                <div 
+                                                    className="w-12 h-12 rounded-[4px] overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer"
+                                                    onClick={() => {
+                                                        const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null);
+                                                        if (url) setPreviewFile({ url, name: file.name });
+                                                    }}
+                                                >
                                                     <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
                                                 </div>
-                                                <div className="flex-1 min-w-0">
+                                                <div 
+                                                    className="flex-1 min-w-0 cursor-pointer hover:underline"
+                                                    onClick={() => {
+                                                        const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null);
+                                                        if (url) setPreviewFile({ url, name: file.name });
+                                                    }}
+                                                >
                                                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] truncate">{file.name}</p>
-                                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSize(file.size)}</p>
+                                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSizeLocal(file.size)}</p>
                                                 </div>
                                             </div>
                                             <button onClick={() => removeAddonMedia(idx)} className="text-[#3F3F47] hover:text-[#030303] ml-3">
@@ -392,6 +409,15 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                     </div>
                 </div>
             </div>
+
+            {previewFile && (
+                <FilePreviewModal
+                    isOpen={!!previewFile}
+                    onClose={() => setPreviewFile(null)}
+                    fileUrl={previewFile.url}
+                    fileName={previewFile.name}
+                />
+            )}
         </div>,
         document.body
     );

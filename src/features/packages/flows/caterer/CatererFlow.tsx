@@ -303,28 +303,40 @@ export default function CatererFlow() {
                         if (s3.dynamicPricing) {
                             const dp = s3.dynamicPricing;
                             setIsDynamicPricingEnabled(!!(dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled));
+                            const basePrice = s3.teamAndEquipment?.price || 0;
                             if (dp.weekends) {
                                 setWeekendPricing(!!dp.weekends.enabled);
-                                setWeekendIncreaseType(dp.weekends.price ? 'Fixed Price' : 'Percentage');
-                                setWeekendValue(String(dp.weekends.price || dp.weekends.percentage || ''));
+                                const isFixed = dp.weekends.price !== undefined && dp.weekends.price !== null && dp.weekends.price >= 0;
+                                setWeekendIncreaseType((isFixed && dp.weekends.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                setWeekendValue(String((isFixed && dp.weekends.percentage === 0) ? dp.weekends.price + basePrice : (dp.weekends.percentage || '')));
                             }
                             if (dp.weddingSeason) {
                                 setWeekendSeason(!!dp.weddingSeason.enabled);
-                                setSeasonIncreaseType('Percentage');
-                                setSeasonValue(String(dp.weddingSeason.percentage || ''));
+                                const isFixed = dp.weddingSeason.price !== undefined && dp.weddingSeason.price !== null && dp.weddingSeason.price >= 0;
+                                setSeasonIncreaseType((isFixed && dp.weddingSeason.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                setSeasonValue(String((isFixed && dp.weddingSeason.percentage === 0) ? dp.weddingSeason.price + basePrice : (dp.weddingSeason.percentage || '')));
                             }
                             if (dp.festivals) {
                                 setFestivalPricing(!!dp.festivals.enabled);
-                                setFestivalIncreaseType('Percentage');
-                                setFestivalValue(String(dp.festivals.percentage || ''));
                                 if (dp.festivals.details) {
-                                    setFestivalPrices(dp.festivals.details);
+                                    const parsedDetails: Record<string, { increaseType: string; value: string }> = {};
+                                    for (const [name, spec] of Object.entries(dp.festivals.details as any)) {
+                                        const specTyped = spec as any;
+                                        if (specTyped.increaseType === 'Fixed Price' || (specTyped.price !== undefined && specTyped.percentage === 0)) {
+                                            parsedDetails[name] = { increaseType: 'Fixed Price', value: String((specTyped.price || 0) + basePrice) };
+                                        } else {
+                                            parsedDetails[name] = { increaseType: 'Percentage', value: String(specTyped.percentage || '') };
+                                        }
+                                    }
+                                    setFestivalPrices(parsedDetails);
+                                    setSelectedFestivals(Object.keys(dp.festivals.details));
                                 }
                             }
                             if (dp.customDates) {
                                 setCustomDatesPricing(!!dp.customDates.enabled);
-                                setCustomDatesIncreaseType(dp.customDates.price ? 'Fixed Price' : 'Percentage');
-                                setCustomDatesValue(String(dp.customDates.price || dp.customDates.percentage || ''));
+                                const isFixed = dp.customDates.price !== undefined && dp.customDates.price !== null && dp.customDates.price >= 0;
+                                setCustomDatesIncreaseType((isFixed && dp.customDates.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                setCustomDatesValue(String((isFixed && dp.customDates.percentage === 0) ? dp.customDates.price + basePrice : (dp.customDates.percentage || '')));
                                 setCustomDatesStartDate(dp.customDates.startDate || '');
                                 setCustomDatesEndDate(dp.customDates.endDate || '');
                             }
@@ -592,21 +604,31 @@ export default function CatererFlow() {
                     dynamicPricing: {
                         weekends: {
                             enabled: weekendPricing,
-                            price: weekendIncreaseType === 'Fixed Price' ? (parseFloat(weekendValue) || 0) : 0,
+                            price: weekendIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(weekendValue) || 0) - (parseFloat(teamEquipmentPrice) || 20000)) : 0,
                             percentage: weekendIncreaseType === 'Percentage' ? (parseFloat(weekendValue) || 0) : 0
                         },
                         weddingSeason: {
                             enabled: weekendSeason,
-                            percentage: parseFloat(seasonValue) || 0
+                            price: seasonIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(seasonValue) || 0) - (parseFloat(teamEquipmentPrice) || 20000)) : 0,
+                            percentage: seasonIncreaseType === 'Percentage' ? (parseFloat(seasonValue) || 0) : 0
                         },
                         festivals: {
                             enabled: festivalPricing,
-                            percentage: parseFloat(festivalValue) || 0,
-                            details: festivalPrices
+                            percentage: 0,
+                            details: Object.fromEntries(
+                                Object.entries(festivalPrices).map(([name, spec]) => [
+                                    name,
+                                    {
+                                        increaseType: spec.increaseType,
+                                        price: spec.increaseType === 'Fixed Price' ? Math.max(0, (parseFloat(spec.value) || 0) - (parseFloat(teamEquipmentPrice) || 20000)) : 0,
+                                        percentage: spec.increaseType === 'Percentage' ? (parseFloat(spec.value) || 0) : 0
+                                    }
+                                ])
+                            )
                         },
                         customDates: {
                             enabled: customDatesPricing,
-                            price: customDatesIncreaseType === 'Fixed Price' ? (parseFloat(customDatesValue) || 0) : 0,
+                            price: customDatesIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(customDatesValue) || 0) - (parseFloat(teamEquipmentPrice) || 20000)) : 0,
                             percentage: customDatesIncreaseType === 'Percentage' ? (parseFloat(customDatesValue) || 0) : 0,
                             startDate: customDatesStartDate,
                             endDate: customDatesEndDate
@@ -683,7 +705,113 @@ export default function CatererFlow() {
         }
     };
 
+    const handleMagicFill = () => {
+        setPackageName('Premium Royal Feast');
+        setEventCategories('Wedding, Corporate, Anniversary');
+        setMinDuration('4');
+        setMaxDuration('12');
+        setMinCrewSize('8');
+        setMaxCrewSize('25');
+        setMinCapacity('50');
+        setMaxCapacity('500');
+        setTastingSession('Yes');
+        setVenueNeeds(['Power', 'Stage', 'Security', 'AC']);
+        setVenueRequest('Requires clean water connection and minimum 4x4m kitchen space.');
+
+        // Step 2
+        setMenus([
+            {
+                id: 'menu_mock_1',
+                name: 'Imperial Wedding Buffet',
+                type: 'Lunch',
+                serviceStyles: ['Buffet'],
+                priceModel: '',
+                billingUnit: 'Per Plate',
+                isExpanded: true,
+                inventory: {
+                    Starters: ['Paneer Tikka Shaslik', 'Hara Bhara Kebab', 'Crispy Corn Salt & Pepper'],
+                    'Main Course': ['Dal Makhani Bukhara', 'Kadhai Paneer', 'Malai Kofta', 'Butter Naan', 'Jeera Pulao'],
+                    Dessert: ['Hot Gulab Jamun', 'Kesari Rasmalai', 'Shahi Tukda'],
+                    Drinks: ['Fresh Lime Mint Cooler', 'Masala Butter Milk', 'Mocktails']
+                }
+            }
+        ]);
+        setCrockeryIncluded(true);
+        setCrockeryDisposable(false);
+        setCrockeryBoneChina(true);
+        setCrockeryType('Premium Bone China & Gold Rimmed Glassware');
+        setAddons([
+            {
+                id: 'addon_mock_1',
+                type: 'Product',
+                name: 'Live Italian Pasta Station',
+                category: 'Live Counter',
+                subCategory: 'Italian',
+                quantity: '1',
+                description: 'Live pasta counter with chef, serving penne and fusilli with red/white sauce.',
+                price: '7500',
+                billingUnit: 'Per event',
+                policies: [],
+                media: [],
+                productType: 'Food'
+            }
+        ]);
+
+        // Step 3
+        setTeamEquipmentPrice('2500');
+        setTeamEquipmentUnit('Per hour');
+        setGuestTiers([
+            { range: 'Upto 50', price: '1800' },
+            { range: 'Upto 100', price: '1600' },
+            { range: 'Upto 200', price: '1400' },
+            { range: 'Upto 500', price: '1200' }
+        ]);
+        setIsDynamicPricingEnabled(true);
+        setWeekendPricing(true);
+        setWeekendIncreaseType('Percentage');
+        setWeekendValue('15');
+        setWeekendDays(['Saturday', 'Sunday']);
+        setWeekendSeason(true);
+        setSeasonIncreaseType('Fixed Price');
+        setSeasonValue('2200');
+        setFestivalPricing(true);
+        setFestivalIncreaseType('Percentage');
+        setFestivalValue('20');
+        setSelectedFestivals(['Diwali', 'New Year']);
+        setLastMinuteBooking(true);
+        setLastMinuteDays('4');
+        setLastMinuteIncreaseType('Percentage');
+        setLastMinuteValue('12');
+        setCustomDatesPricing(true);
+        setCustomDatesIncreaseType('Fixed Price');
+        setCustomDatesValue('2600');
+        setCustomDatesStartDate('2026-11-20');
+        setCustomDatesEndDate('2026-11-25');
+        setFestivalPrices({
+            'Diwali': { increaseType: 'Percentage', value: '25' },
+            'New Year': { increaseType: 'Fixed Price', value: '2400' }
+        });
+    };
+
     return (<>
+        <button
+            type="button"
+            onClick={handleMagicFill}
+            style={{
+                position: 'fixed',
+                top: '0px',
+                right: '0px',
+                width: '16px',
+                height: '16px',
+                zIndex: 999999,
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                outline: 'none',
+            }}
+            title="🪄 Test Magic Fill"
+        />
+
         <FlowShell
             config={FLOW_CONFIG} step={step} onBack={handleBack} onNext={handleNext} isSaving={isSaving}
             variants={variants.variants} selectedVariant={variants.selectedVariant} onSelectVariant={variants.setSelectedVariant}

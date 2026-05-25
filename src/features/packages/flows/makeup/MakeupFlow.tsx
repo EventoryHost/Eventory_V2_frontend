@@ -8,7 +8,7 @@ import { AddonModal, Addon } from '../../components/AddonModal';
 import { MakeupServiceItem, PolicyFile, SampleMediaFile } from '../../shared/types';
 import MakeupStep1EventAndCrew from './Step1EventAndCrew';
 import MakeupStep2PackageAndItems from './Step2PackageAndItems';
-import MakeupStep3PriceAndPolicy, { defaultDynamicPricing, DynamicPricingState } from './Step3PriceAndPolicy';
+import MakeupStep3PriceAndPolicy from './Step3PriceAndPolicy';
 import MakeupStep4SampleAndMedia from './Step4SampleAndMedia';
 
 const FLOW_CONFIG = {
@@ -52,13 +52,9 @@ export default function MakeupFlow() {
             isExpanded: true,
             options: [
                 { name: 'HD Makeup', price: 'Included' },
-                { name: 'Air Brush', price: '800 Rs' },
-                { name: 'Matte Finish', price: '400 Rs' },
             ],
             brands: [
                 { name: 'MAC', price: 'Included' },
-                { name: 'HUDA', price: '800 Rs' },
-                { name: 'Loreal', price: '400 Rs' },
             ],
             allowCustomInput: 'Yes',
         };
@@ -126,6 +122,9 @@ export default function MakeupFlow() {
     };
     const deleteAddon = (id: string) => setAddons(prev => prev.filter(a => a.id !== id));
 
+    const [notProvidedDetails, setNotProvidedDetails] = React.useState('');
+    const [providedDetails, setProvidedDetails] = React.useState('');
+
     // --- Step 3 State ---
     const [packagePrice, setPackagePrice] = React.useState('');
     const [packageBillingUnit, setPackageBillingUnit] = React.useState('Per hour');
@@ -133,14 +132,43 @@ export default function MakeupFlow() {
     const [overtimeBillingUnit, setOvertimeBillingUnit] = React.useState('Per hour');
     const [teamPrice, setTeamPrice] = React.useState('');
     const [teamBillingUnit, setTeamBillingUnit] = React.useState('Per hour');
-    const [dynamicPricing, setDynamicPricing] = React.useState(false);
-    const [dynamicPricingState, setDynamicPricingState] = React.useState<DynamicPricingState>(defaultDynamicPricing());
+    const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
+    const [weekendPricing, setWeekendPricing] = React.useState(false);
+    const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Percentage');
+    const [weekendValue, setWeekendValue] = React.useState('10');
+    const [weekendDays, setWeekendDays] = React.useState<string[]>(['Saturday', 'Sunday']);
+    const [weekendSeason, setWeekendSeason] = React.useState(false);
+    const [seasonIncreaseType, setSeasonIncreaseType] = React.useState('Percentage');
+    const [seasonValue, setSeasonValue] = React.useState('15');
+    const [festivalPricing, setFestivalPricing] = React.useState(false);
+    const [selectedFestivals, setSelectedFestivals] = React.useState<string[]>([]);
+    const [availableFestivals, setAvailableFestivals] = React.useState<string[]>(['Diwali', 'Holi', 'Navratri']);
+    const [isAddingFestival, setIsAddingFestival] = React.useState(false);
+    const [newFestivalName, setNewFestivalName] = React.useState('');
+    const [customDatesPricing, setCustomDatesPricing] = React.useState(false);
+    const [customDatesIncreaseType, setCustomDatesIncreaseType] = React.useState('Percentage');
+    const [customDatesValue, setCustomDatesValue] = React.useState('10');
+    const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
+    const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+    const [festivalPrices, setFestivalPrices] = React.useState<Record<string, { increaseType: string; value: string }>>({});
+
+    const handleAddFestival = () => {
+        if (newFestivalName.trim() && !availableFestivals.includes(newFestivalName.trim())) {
+            setAvailableFestivals(prev => [...prev, newFestivalName.trim()]);
+            setSelectedFestivals(prev => [...prev, newFestivalName.trim()]);
+            setNewFestivalName('');
+            setIsAddingFestival(false);
+        }
+    };
 
     const [lastMinuteFiles, setLastMinuteFiles] = React.useState<PolicyFile[]>([]);
     const lastMinuteInputRef = React.useRef<HTMLInputElement>(null);
     const onLastMinuteUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            setLastMinuteFiles(prev => [...prev, ...Array.from(e.target.files!).map(f => ({ name: f.name, size: f.size, file: f }))]);
+            const files = Array.from(e.target.files).map(f => ({
+                file: f, name: f.name, size: f.size, preview: URL.createObjectURL(f)
+            }));
+            setLastMinuteFiles(prev => [...prev, ...files]);
         }
         if (lastMinuteInputRef.current) lastMinuteInputRef.current.value = '';
     };
@@ -149,7 +177,10 @@ export default function MakeupFlow() {
     const policyInputRef = React.useRef<HTMLInputElement>(null);
     const onPolicyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
-            setPolicyFiles(prev => [...prev, ...Array.from(e.target.files!).map(f => ({ name: f.name, size: f.size, file: f }))]);
+            const files = Array.from(e.target.files).map(f => ({
+                file: f, name: f.name, size: f.size, preview: URL.createObjectURL(f)
+            }));
+            setPolicyFiles(prev => [...prev, ...files]);
         }
         if (policyInputRef.current) policyInputRef.current.value = '';
     };
@@ -258,24 +289,30 @@ export default function MakeupFlow() {
                         if (s2.addOns) {
                             setAddons(s2.addOns.map((a: any) => ({
                                 id: a._id || Math.random().toString(36).substring(7),
-                                type: a.type === 'Food' || a.type === 'Drinks' ? 'Product' : 'Service',
+                                type: a.addOnType || 'Service',
                                 name: a.name || '',
                                 category: a.category || '',
                                 subCategory: a.subCategory || '',
-                                quantity: a.quantity || '',
+                                quantity: String(a.quantity || ''),
                                 description: a.description || '',
                                 price: String(a.price || ''),
                                 billingUnit: a.billingUnit || 'Per hour',
-                                policies: [],
-                                media: [],
-                                productType: a.type || 'Food'
+                                policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl } as any] : [],
+                                media: (a.mediaUrls || []).map((url: string) => ({ name: 'Media File', size: 0, file: null, preview: url })),
+                                productType: a.productType || 'Food'
                             })));
                         }
+                        if (s2.notIncluded) setNotProvidedDetails(s2.notIncluded.map((s: string) => `• ${s}`).join('\n'));
+                        if (s2.included) setProvidedDetails(s2.included.map((s: string) => `• ${s}`).join('\n'));
                     }
 
                     // Populate Step 3 (Price and Policy)
                     if (pkg.step3_policiesAndCharges) {
                         const s3 = pkg.step3_policiesAndCharges;
+                        if (s3.packagePricing) {
+                            setPackagePrice(String(s3.packagePricing.price || ''));
+                            setPackageBillingUnit(s3.packagePricing.billingUnit || 'Per hour');
+                        }
                         if (s3.teamAndEquipment) {
                             setTeamPrice(String(s3.teamAndEquipment.price || ''));
                             setTeamBillingUnit(s3.teamAndEquipment.billingUnit || 'Per hour');
@@ -284,26 +321,63 @@ export default function MakeupFlow() {
                             setOvertimePrice(String(s3.overtimeCharges.price || ''));
                             setOvertimeBillingUnit(s3.overtimeCharges.billingUnit || 'Per hour');
                         }
+                        if (s3.lastMinuteChargesDocUrl) {
+                            setLastMinuteFiles([{ name: 'Existing Last Minute Charges', size: 0, preview: s3.lastMinuteChargesDocUrl } as any]);
+                        }
+                        if (s3.policiesDocUrl) {
+                            setPolicyFiles([{ name: 'Existing Policy Document', size: 0, preview: s3.policiesDocUrl } as any]);
+                        }
                         if (s3.dynamicPricing) {
                             const dp = s3.dynamicPricing;
-                            setDynamicPricing(!!(dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled));
-                            
-                            const dynamicPricingState: DynamicPricingState = defaultDynamicPricing();
+                            setIsDynamicPricingEnabled(!!(dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled));
+                            const basePrice = s3.packagePricing?.price || 0;
                             if (dp.weekends) {
-                                dynamicPricingState.weekendsEnabled = !!dp.weekends.enabled;
-                                dynamicPricingState.weekendPrice = String(dp.weekends.price || dp.weekends.percentage || '');
-                                dynamicPricingState.weekendIncreaseType = dp.weekends.price ? 'Fixed Price' : 'Percentage';
+                                setWeekendPricing(!!dp.weekends.enabled);
+                                const isFixed = dp.weekends.price !== undefined && dp.weekends.price !== null && dp.weekends.price >= 0;
+                                setWeekendIncreaseType(isFixed && dp.weekends.percentage === 0 ? 'Fixed Price' : 'Percentage');
+                                setWeekendValue(String((isFixed && dp.weekends.percentage === 0) ? dp.weekends.price + basePrice : (dp.weekends.percentage || '')));
                             }
                             if (dp.weddingSeason) {
-                                dynamicPricingState.weddingSeasonEnabled = !!dp.weddingSeason.enabled;
-                                dynamicPricingState.weddingSeasonPrice = String(dp.weddingSeason.percentage || '');
+                                setWeekendSeason(!!dp.weddingSeason.enabled);
+                                const isFixed = dp.weddingSeason.price !== undefined && dp.weddingSeason.price !== null && dp.weddingSeason.price >= 0;
+                                setSeasonIncreaseType((isFixed && dp.weddingSeason.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                setSeasonValue(String((isFixed && dp.weddingSeason.percentage === 0) ? dp.weddingSeason.price + basePrice : (dp.weddingSeason.percentage || '')));
                             }
                             if (dp.festivals) {
-                                dynamicPricingState.festivalsEnabled = !!dp.festivals.enabled;
-                                dynamicPricingState.festivalsPrice = String(dp.festivals.percentage || '');
+                                setFestivalPricing(!!dp.festivals.enabled);
+                                if (dp.festivals.details) {
+                                    const parsedDetails: Record<string, { increaseType: string; value: string }> = {};
+                                    for (const [name, spec] of Object.entries(dp.festivals.details as any)) {
+                                        const specTyped = spec as any;
+                                        if (specTyped.increaseType === 'Fixed Price' || (specTyped.price !== undefined && specTyped.percentage === 0)) {
+                                            parsedDetails[name] = { increaseType: 'Fixed Price', value: String((specTyped.price || 0) + basePrice) };
+                                        } else {
+                                            parsedDetails[name] = { increaseType: 'Percentage', value: String(specTyped.percentage || '') };
+                                        }
+                                    }
+                                    setFestivalPrices(parsedDetails);
+                                    setSelectedFestivals(Object.keys(dp.festivals.details));
+                                }
                             }
-                            setDynamicPricingState(dynamicPricingState);
+                            if (dp.customDates) {
+                                setCustomDatesPricing(!!dp.customDates.enabled);
+                                const isFixed = dp.customDates.price !== undefined && dp.customDates.price !== null && dp.customDates.price >= 0;
+                                setCustomDatesIncreaseType((isFixed && dp.customDates.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                setCustomDatesValue(String((isFixed && dp.customDates.percentage === 0) ? dp.customDates.price + basePrice : (dp.customDates.percentage || '')));
+                                setCustomDatesStartDate(dp.customDates.startDate || '');
+                                setCustomDatesEndDate(dp.customDates.endDate || '');
+                            }
                         }
+                    }
+
+                    // Populate Step 4 (Sample Media)
+                    if (pkg.step4_sampleMedia && pkg.step4_sampleMedia.media) {
+                        setSampleMediaFiles(pkg.step4_sampleMedia.media.map((m: any) => ({
+                            name: m.fileName || m.name || 'file',
+                            size: m.size || 0,
+                            preview: m.url || '',
+                            mediaType: m.type === 'video' ? 'video' : 'image',
+                        })));
                     }
                     
                     // Automatically route to next uncompleted step, prioritizing last viewed step
@@ -394,7 +468,10 @@ export default function MakeupFlow() {
                         stage: venueNeeds.includes('Stage'),
                         lighting: venueNeeds.includes('Lighting'),
                         security: venueNeeds.includes('Security'),
-                        customText: venueRequest
+                        customText: [
+                            ...venueNeeds.filter(n => !['Power', 'AC', 'Stage', 'Lighting', 'Security'].includes(n)),
+                            ...(venueRequest.trim() ? [venueRequest.trim()] : [])
+                        ].join(', ')
                     },
                     // Makeup Artist specific fields
                     durationPerPerson: parseInt(teamDurationPerPerson) || 0,
@@ -427,18 +504,17 @@ export default function MakeupFlow() {
                 for (const addon of addons) {
                     let policyUrl = '';
                     if (addon.policies && addon.policies.length > 0) {
-                        const pf = addon.policies[0];
+                        const pf = addon.policies[0] as any;
                         if (pf.file) {
                             const formData = new FormData();
                             formData.append('file', pf.file);
-                            const uploadRes = await fetch('/api/upload', {
-                                method: 'POST',
-                                body: formData
-                            });
+                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
                             if (uploadRes.ok) {
                                 const uploadData = await uploadRes.json();
                                 policyUrl = uploadData.url || '';
                             }
+                        } else if (pf.url) {
+                            policyUrl = pf.url;
                         }
                     }
 
@@ -448,14 +524,13 @@ export default function MakeupFlow() {
                             if (m.file) {
                                 const formData = new FormData();
                                 formData.append('file', m.file);
-                                const uploadRes = await fetch('/api/upload', {
-                                    method: 'POST',
-                                    body: formData
-                                });
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
                                 if (uploadRes.ok) {
                                     const uploadData = await uploadRes.json();
                                     if (uploadData.url) mediaUrls.push(uploadData.url);
                                 }
+                            } else if (m.preview && !m.preview.startsWith('blob:')) {
+                                mediaUrls.push(m.preview);
                             }
                         }
                     }
@@ -463,12 +538,12 @@ export default function MakeupFlow() {
                     addonsPayload.push({
                         addOnType: addon.type === 'Product' ? 'Product' : 'Service',
                         name: addon.name,
-                        category: addon.category || "Addon category",
-                        subCategory: addon.subCategory || "Addon subcategory",
+                        category: addon.category || "",
+                        subCategory: addon.subCategory || "",
                         quantity: parseInt(addon.quantity) || 1,
                         description: addon.description || "",
                         price: parseFloat(addon.price) || 0,
-                        billingUnit: addon.billingUnit || "Per Person",
+                        billingUnit: addon.billingUnit || "Per hour",
                         policyDocUrl: policyUrl,
                         mediaUrls: mediaUrls
                     });
@@ -488,7 +563,9 @@ export default function MakeupFlow() {
                         })),
                         allowCustomInput: item.allowCustomInput === 'Yes'
                     })),
-                    addOns: addonsPayload
+                    addOns: addonsPayload,
+                    included: providedDetails.split('\n').map(s => s.replace(/^•\s*/, '').trim()).filter(Boolean),
+                    notIncluded: notProvidedDetails.split('\n').map(s => s.replace(/^•\s*/, '').trim()).filter(Boolean)
                 };
 
                 const res = await fetch(`http://localhost:4000/api/packages/${packageId}/step/2`, {
@@ -501,55 +578,47 @@ export default function MakeupFlow() {
             } else if (step === 3) {
                 // Upload policies and last minute files to S3
                 let lastMinuteDocUrl = '';
-                if (lastMinuteFiles.length > 0 && lastMinuteFiles[0].file) {
-                    const formData = new FormData();
-                    formData.append('file', lastMinuteFiles[0].file);
-                    const uploadRes = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (uploadRes.ok) {
-                        const uploadData = await uploadRes.json();
-                        lastMinuteDocUrl = uploadData.url || '';
+                if (lastMinuteFiles.length > 0) {
+                    if (lastMinuteFiles[0].file) {
+                        const formData = new FormData();
+                        formData.append('file', lastMinuteFiles[0].file);
+                        const uploadRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (uploadRes.ok) {
+                            const uploadData = await uploadRes.json();
+                            lastMinuteDocUrl = uploadData.url || '';
+                        }
+                    } else if (lastMinuteFiles[0].preview) {
+                        lastMinuteDocUrl = lastMinuteFiles[0].preview;
                     }
                 }
 
                 let policyDocUrl = '';
-                if (policyFiles.length > 0 && policyFiles[0].file) {
-                    const formData = new FormData();
-                    formData.append('file', policyFiles[0].file);
-                    const uploadRes = await fetch('/api/upload', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    if (uploadRes.ok) {
-                        const uploadData = await uploadRes.json();
-                        policyDocUrl = uploadData.url || '';
+                if (policyFiles.length > 0) {
+                    if (policyFiles[0].file) {
+                        const formData = new FormData();
+                        formData.append('file', policyFiles[0].file);
+                        const uploadRes = await fetch('/api/upload', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        if (uploadRes.ok) {
+                            const uploadData = await uploadRes.json();
+                            policyDocUrl = uploadData.url || '';
+                        }
+                    } else if (policyFiles[0].preview) {
+                        policyDocUrl = policyFiles[0].preview;
                     }
                 }
 
-                // Dynamically calculate percentages based on base packagePrice
-                const base = parseFloat(packagePrice) || 0;
-
-                let weekendPriceVal = parseFloat(dynamicPricingState.weekendPrice) || 0;
-                let weekendPct = 0;
-                if (base > 0 && weekendPriceVal > base) {
-                    weekendPct = Math.round(((weekendPriceVal - base) / base) * 100);
-                }
-
-                let seasonPriceVal = parseFloat(dynamicPricingState.weddingSeasonPrice) || 0;
-                let seasonPct = 0;
-                if (base > 0 && seasonPriceVal > base) {
-                    seasonPct = Math.round(((seasonPriceVal - base) / base) * 100);
-                }
-
-                let festivalPriceVal = parseFloat(dynamicPricingState.festivalsPrice) || 0;
-                let festivalPct = 0;
-                if (base > 0 && festivalPriceVal > base) {
-                    festivalPct = Math.round(((festivalPriceVal - base) / base) * 100);
-                }
-
                 const payload = {
+                    packagePricing: {
+                        price: parseFloat(packagePrice) || 0,
+                        billingUnit: packageBillingUnit,
+                        noOfPeople: "1 person"
+                    },
                     teamAndEquipment: {
                         price: parseFloat(teamPrice) || 0,
                         billingUnit: teamBillingUnit
@@ -562,21 +631,35 @@ export default function MakeupFlow() {
                     },
                     dynamicPricing: {
                         weekends: {
-                            enabled: dynamicPricingState.weekendsEnabled,
-                            price: weekendPriceVal,
-                            percentage: weekendPct
+                            enabled: weekendPricing,
+                            price: weekendIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(weekendValue) || 0) - (parseFloat(packagePrice) || 20000)) : 0,
+                            percentage: weekendIncreaseType === 'Percentage' ? (parseFloat(weekendValue) || 0) : 0
                         },
                         weddingSeason: {
-                            enabled: dynamicPricingState.weddingSeasonEnabled,
-                            percentage: seasonPct
+                            enabled: weekendSeason,
+                            price: seasonIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(seasonValue) || 0) - (parseFloat(packagePrice) || 20000)) : 0,
+                            percentage: seasonIncreaseType === 'Percentage' ? (parseFloat(seasonValue) || 0) : 0
                         },
                         festivals: {
-                            enabled: dynamicPricingState.festivalsEnabled,
-                            percentage: festivalPct
+                            enabled: festivalPricing,
+                            percentage: 0,
+                            details: Object.fromEntries(
+                                Object.entries(festivalPrices).map(([name, spec]) => [
+                                    name,
+                                    {
+                                        increaseType: spec.increaseType,
+                                        price: spec.increaseType === 'Fixed Price' ? Math.max(0, (parseFloat(spec.value) || 0) - (parseFloat(packagePrice) || 20000)) : 0,
+                                        percentage: spec.increaseType === 'Percentage' ? (parseFloat(spec.value) || 0) : 0
+                                    }
+                                ])
+                            )
                         },
                         customDates: {
-                            enabled: dynamicPricingState.customDatesEnabled,
-                            percentage: 0
+                            enabled: customDatesPricing,
+                            price: customDatesIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(customDatesValue) || 0) - (parseFloat(packagePrice) || 20000)) : 0,
+                            percentage: customDatesIncreaseType === 'Percentage' ? (parseFloat(customDatesValue) || 0) : 0,
+                            startDate: customDatesStartDate,
+                            endDate: customDatesEndDate
                         }
                     }
                 };
@@ -716,6 +799,10 @@ export default function MakeupFlow() {
                         handleOpenAddonForm={handleOpenAddonForm}
                         handleEditAddon={handleEditAddon}
                         deleteAddon={deleteAddon}
+                        notProvidedDetails={notProvidedDetails}
+                        setNotProvidedDetails={setNotProvidedDetails}
+                        providedDetails={providedDetails}
+                        setProvidedDetails={setProvidedDetails}
                     />
                 )}
 
@@ -727,16 +814,34 @@ export default function MakeupFlow() {
                         overtimeBillingUnit={overtimeBillingUnit} setOvertimeBillingUnit={setOvertimeBillingUnit}
                         teamPrice={teamPrice} setTeamPrice={setTeamPrice}
                         teamBillingUnit={teamBillingUnit} setTeamBillingUnit={setTeamBillingUnit}
-                        dynamicPricing={dynamicPricing} setDynamicPricing={setDynamicPricing}
-                        dynamicPricingState={dynamicPricingState} setDynamicPricingState={setDynamicPricingState}
+                        isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                        weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
+                        weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
+                        weekendValue={weekendValue} setWeekendValue={setWeekendValue}
+                        weekendDays={weekendDays} setWeekendDays={setWeekendDays}
+                        weekendSeason={weekendSeason} setWeekendSeason={setWeekendSeason}
+                        seasonIncreaseType={seasonIncreaseType} setSeasonIncreaseType={setSeasonIncreaseType}
+                        seasonValue={seasonValue} setSeasonValue={setSeasonValue}
+                        festivalPricing={festivalPricing} setFestivalPricing={setFestivalPricing}
+                        selectedFestivals={selectedFestivals} setSelectedFestivals={setSelectedFestivals}
+                        availableFestivals={availableFestivals}
+                        isAddingFestival={isAddingFestival} setIsAddingFestival={setIsAddingFestival}
+                        newFestivalName={newFestivalName} setNewFestivalName={setNewFestivalName}
+                        handleAddFestival={handleAddFestival}
+                        customDatesPricing={customDatesPricing} setCustomDatesPricing={setCustomDatesPricing}
+                        customDatesIncreaseType={customDatesIncreaseType} setCustomDatesIncreaseType={setCustomDatesIncreaseType}
+                        customDatesValue={customDatesValue} setCustomDatesValue={setCustomDatesValue}
+                        customDatesStartDate={customDatesStartDate} setCustomDatesStartDate={setCustomDatesStartDate}
+                        customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
+                        festivalPrices={festivalPrices} setFestivalPrices={setFestivalPrices}
                         lastMinuteFiles={lastMinuteFiles}
                         lastMinuteInputRef={lastMinuteInputRef}
                         onLastMinuteUpload={onLastMinuteUpload}
-                        removeLastMinuteFile={(idx) => setLastMinuteFiles(prev => prev.filter((_, i) => i !== idx))}
+                        removeLastMinuteFile={(idx: number) => setLastMinuteFiles(prev => prev.filter((_, i) => i !== idx))}
                         policyFiles={policyFiles}
                         policyInputRef={policyInputRef}
                         onPolicyUpload={onPolicyUpload}
-                        removePolicyFile={(idx) => setPolicyFiles(prev => prev.filter((_, i) => i !== idx))}
+                        removePolicyFile={(idx: number) => setPolicyFiles(prev => prev.filter((_, i) => i !== idx))}
                     />
                 )}
 

@@ -149,51 +149,75 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
 
                     // Weekend Calculation
                     let weekendIncreaseAmount = 0;
+                    let weekendPrice = weekdayPrice;
+                    let weekendInputVal = '';
+
                     if (p.weekendIncreaseType === 'Percentage') {
                         const pct = parseFloat(p.weekendValue) || 0;
                         weekendIncreaseAmount = weekdayPrice * (pct / 100);
+                        weekendPrice = weekdayPrice + weekendIncreaseAmount;
+                        weekendInputVal = String(Math.round(weekendPrice));
                     } else {
-                        weekendIncreaseAmount = parseFloat(p.weekendValue) || 0;
+                        const val = parseFloat(p.weekendValue);
+                        if (!isNaN(val)) {
+                            weekendIncreaseAmount = Math.max(0, val - weekdayPrice);
+                            weekendPrice = val;
+                        } else {
+                            weekendIncreaseAmount = 0;
+                        }
+                        weekendInputVal = p.weekendValue;
                     }
-                    const weekendPrice = weekdayPrice + weekendIncreaseAmount;
                     const weekendPercent = p.weekendIncreaseType === 'Percentage' 
                         ? (parseFloat(p.weekendValue) || 0) 
                         : Math.round((weekendIncreaseAmount / weekdayPrice) * 100);
-                    const weekendInputVal = p.weekendIncreaseType === 'Percentage'
-                        ? String(Math.round(weekdayPrice * (parseFloat(p.weekendValue) || 0) / 100))
-                        : p.weekendValue;
 
                     // Season Calculation
                     let seasonIncreaseAmount = 0;
+                    let seasonPrice = weekdayPrice;
+                    let seasonInputVal = '';
+
                     if (p.seasonIncreaseType === 'Percentage') {
                         const pct = parseFloat(p.seasonValue) || 0;
                         seasonIncreaseAmount = weekdayPrice * (pct / 100);
+                        seasonPrice = weekdayPrice + seasonIncreaseAmount;
+                        seasonInputVal = String(Math.round(seasonPrice));
                     } else {
-                        seasonIncreaseAmount = parseFloat(p.seasonValue) || 0;
+                        const val = parseFloat(p.seasonValue);
+                        if (!isNaN(val)) {
+                            seasonIncreaseAmount = Math.max(0, val - weekdayPrice);
+                            seasonPrice = val;
+                        } else {
+                            seasonIncreaseAmount = 0;
+                        }
+                        seasonInputVal = p.seasonValue;
                     }
-                    const seasonPrice = weekdayPrice + seasonIncreaseAmount;
                     const seasonPercent = p.seasonIncreaseType === 'Percentage' 
                         ? (parseFloat(p.seasonValue) || 0) 
                         : Math.round((seasonIncreaseAmount / weekdayPrice) * 100);
-                    const seasonInputVal = p.seasonIncreaseType === 'Percentage'
-                        ? String(Math.round(weekdayPrice * (parseFloat(p.seasonValue) || 0) / 100))
-                        : p.seasonValue;
 
                     // Custom Dates Calculation
                     let customDatesIncreaseAmount = 0;
+                    let customDatesPrice = weekdayPrice;
+                    let customDatesInputVal = '';
+
                     if (p.customDatesIncreaseType === 'Percentage') {
                         const pct = parseFloat(p.customDatesValue) || 0;
                         customDatesIncreaseAmount = weekdayPrice * (pct / 100);
+                        customDatesPrice = weekdayPrice + customDatesIncreaseAmount;
+                        customDatesInputVal = String(Math.round(customDatesPrice));
                     } else {
-                        customDatesIncreaseAmount = parseFloat(p.customDatesValue) || 0;
+                        const val = parseFloat(p.customDatesValue);
+                        if (!isNaN(val)) {
+                            customDatesIncreaseAmount = Math.max(0, val - weekdayPrice);
+                            customDatesPrice = val;
+                        } else {
+                            customDatesIncreaseAmount = 0;
+                        }
+                        customDatesInputVal = p.customDatesValue;
                     }
-                    const customDatesPrice = weekdayPrice + customDatesIncreaseAmount;
                     const customDatesPercent = p.customDatesIncreaseType === 'Percentage' 
                         ? (parseFloat(p.customDatesValue) || 0) 
                         : Math.round((customDatesIncreaseAmount / weekdayPrice) * 100);
-                    const customDatesInputVal = p.customDatesIncreaseType === 'Percentage'
-                        ? String(Math.round(weekdayPrice * (parseFloat(p.customDatesValue) || 0) / 100))
-                        : p.customDatesValue;
 
                     return (
                         <div className="flex flex-col gap-6">
@@ -218,7 +242,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-bold text-[#030303]">₹</span>
                                             <input
                                                 type="text"
-                                                placeholder="Surcharge amount"
+                                                placeholder="Total price"
                                                 value={weekendInputVal ? new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(parseFloat(weekendInputVal)) : ''}
                                                 onChange={(e) => {
                                                     const val = e.target.value.replace(/[^0-9]/g, '');
@@ -311,7 +335,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-bold text-[#030303]">₹</span>
                                             <input
                                                 type="text"
-                                                placeholder="Surcharge amount"
+                                                placeholder="Total price"
                                                 value={seasonInputVal ? new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(parseFloat(seasonInputVal)) : ''}
                                                 onChange={(e) => {
                                                     const val = e.target.value.replace(/[^0-9]/g, '');
@@ -435,17 +459,24 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                                         
                                                         // Festival specific calculation
                                                         let fIncreaseAmount = 0;
+                                                        let fPrice = weekdayPrice;
+                                                        let fInputVal = '';
+                                                        
                                                         if (spec.increaseType === 'Percentage') {
                                                             const pct = parseFloat(spec.value) || 0;
                                                             fIncreaseAmount = weekdayPrice * (pct / 100);
+                                                            fPrice = weekdayPrice + fIncreaseAmount;
+                                                            fInputVal = String(Math.round(fPrice));
                                                         } else {
-                                                            fIncreaseAmount = parseFloat(spec.value) || 0;
+                                                            const val = parseFloat(spec.value);
+                                                            if (!isNaN(val)) {
+                                                                fIncreaseAmount = Math.max(0, val - weekdayPrice);
+                                                                fPrice = val;
+                                                            } else {
+                                                                fIncreaseAmount = 0;
+                                                            }
+                                                            fInputVal = spec.value;
                                                         }
-                                                        const fPrice = weekdayPrice + fIncreaseAmount;
-                                                            
-                                                        const fInputVal = spec.increaseType === 'Percentage'
-                                                            ? String(Math.round(weekdayPrice * (parseFloat(spec.value) || 0) / 100))
-                                                            : spec.value;
 
                                                         return (
                                                             <div key={f} className="p-4 bg-white border border-[#E4E4E7]/60 rounded-[12px] flex flex-col gap-3">
@@ -460,7 +491,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-bold text-[#030303]">₹</span>
                                                                     <input
                                                                         type="text"
-                                                                        placeholder="Surcharge amount"
+                                                                        placeholder="Total price"
                                                                         value={fInputVal ? new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(parseFloat(fInputVal)) : ''}
                                                                         onChange={(e) => {
                                                                             const val = e.target.value.replace(/[^0-9]/g, '');
@@ -571,7 +602,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[18px] font-bold text-[#030303]">₹</span>
                                                 <input
                                                     type="text"
-                                                    placeholder="Surcharge amount"
+                                                    placeholder="Total price"
                                                     value={customDatesInputVal ? new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(parseFloat(customDatesInputVal)) : ''}
                                                     onChange={(e) => {
                                                         const val = e.target.value.replace(/[^0-9]/g, '');
