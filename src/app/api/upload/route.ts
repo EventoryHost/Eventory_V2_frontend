@@ -3,12 +3,19 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import path from "path";
 
+const awsRegion = process.env.APP_AWS_REGION || process.env.AWS_REGION || "ap-south-1";
+const awsAccessKeyId = process.env.APP_AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+const awsSecretAccessKey =
+  process.env.APP_AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+const awsBucketName =
+  process.env.APP_AWS_S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || "eventory-bucket";
+
 // Initialize S3 Client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION || "ap-south-1",
+  region: awsRegion,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID as string,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY as string,
+    accessKeyId: awsAccessKeyId as string,
+    secretAccessKey: awsSecretAccessKey as string,
   },
 });
 
@@ -32,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     // Upload to S3
     const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET_NAME || "eventory-bucket",
+      Bucket: awsBucketName,
       Key: s3Key,
       Body: buffer,
       ContentType: file.type,
@@ -46,9 +53,7 @@ export async function POST(request: NextRequest) {
     if (process.env.CLOUDFRONT_DOMAIN) {
       fileUrl = `https://${process.env.CLOUDFRONT_DOMAIN}/${s3Key}`;
     } else {
-      const bucket = process.env.AWS_S3_BUCKET_NAME || "eventory-bucket";
-      const region = process.env.AWS_REGION || "ap-south-1";
-      fileUrl = `https://${bucket}.s3.${region}.amazonaws.com/${s3Key}`;
+      fileUrl = `https://${awsBucketName}.s3.${awsRegion}.amazonaws.com/${s3Key}`;
     }
 
     return NextResponse.json({ success: true, url: fileUrl });
