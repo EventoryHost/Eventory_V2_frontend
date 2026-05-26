@@ -1,4 +1,5 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -6,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowRight, RefreshCcw, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = apiUrl('');
 
 export default function LoginPage() {
     const router = useRouter();

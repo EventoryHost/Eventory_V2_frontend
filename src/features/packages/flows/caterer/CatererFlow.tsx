@@ -1,4 +1,5 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 import React from 'react';
 import { useRouter } from 'next/navigation';
 import FlowShell from '../../shared/FlowShell';
@@ -184,7 +185,7 @@ export default function CatererFlow() {
             }
             try {
                 // 1. Check if vendor already has a draft package in the database
-                const draftRes = await fetch(`http://localhost:4000/api/packages/vendor/${vendorId}?status=Draft`);
+                const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
                 const draftData = await draftRes.json();
                 
                 if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
@@ -399,7 +400,7 @@ export default function CatererFlow() {
                 }
 
                 // 2. Fallback: Initialize a fresh draft if no draft package exists
-                const res = await fetch('http://localhost:4000/api/packages/initialize', {
+                const res = await fetch(apiUrl('/packages/initialize'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -432,7 +433,7 @@ export default function CatererFlow() {
             }
             setIsSaving(true);
             try {
-                const initRes = await fetch('http://localhost:4000/api/packages/initialize', {
+                const initRes = await fetch(apiUrl('/packages/initialize'), {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -491,7 +492,7 @@ export default function CatererFlow() {
                     }
                 };
 
-                const res = await fetch(`http://localhost:4000/api/packages/${currentPackageId}/step/1`, {
+                const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/1`), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -544,7 +545,7 @@ export default function CatererFlow() {
                     }))
                 };
 
-                const res = await fetch(`http://localhost:4000/api/packages/${packageId}/step/2`, {
+                const res = await fetch(apiUrl(`/packages/${packageId}/step/2`), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -638,7 +639,7 @@ export default function CatererFlow() {
                     lastMinuteChargesDocUrl: lastMinuteUrls.join(', ')
                 };
 
-                const res = await fetch(`http://localhost:4000/api/packages/${packageId}/step/3`, {
+                const res = await fetch(apiUrl(`/packages/${packageId}/step/3`), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
@@ -678,7 +679,7 @@ export default function CatererFlow() {
                     }
                 }
 
-                const resStep4 = await fetch(`http://localhost:4000/api/packages/${packageId}/step/4`, {
+                const resStep4 = await fetch(apiUrl(`/packages/${packageId}/step/4`), {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ media: mediaPayload })
@@ -686,7 +687,7 @@ export default function CatererFlow() {
                 if (!resStep4.ok) throw new Error("Failed to save Step 4 (Media files).");
 
                 // Submit package
-                const resSubmit = await fetch(`http://localhost:4000/api/packages/${packageId}/submit`, {
+                const resSubmit = await fetch(apiUrl(`/packages/${packageId}/submit`), {
                     method: 'POST'
                 });
                 if (!resSubmit.ok) {

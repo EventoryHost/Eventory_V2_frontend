@@ -1,6 +1,7 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { Bell, Edit3, Eye, FileText, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CreateServiceModal from '@/components/CreateServiceModal';
@@ -16,7 +17,7 @@ interface PackageData {
     };
 }
 
-export default function InventoryPage() {
+function InventoryContent() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -40,7 +41,7 @@ export default function InventoryPage() {
             }
             try {
                 // Fetch all packages for the vendor
-                const res = await fetch(`http://localhost:4000/api/packages/vendor/${vendorId}`);
+                const res = await fetch(apiUrl(`/packages/vendor/${vendorId}`));
                 if (res.ok) {
                     const data = await res.json();
                     if (data.status === 'SUCCESS') {
@@ -198,5 +199,13 @@ export default function InventoryPage() {
                 onClose={() => setIsCreateModalOpen(false)}
             />
         </div>
+    );
+}
+
+export default function InventoryPage() {
+    return (
+        <Suspense fallback={null}>
+            <InventoryContent />
+        </Suspense>
     );
 }

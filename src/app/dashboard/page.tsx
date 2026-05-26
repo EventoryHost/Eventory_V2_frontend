@@ -1,4 +1,5 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +49,7 @@ export default function DashboardHome() {
             // Check backend data first (Primary source of truth)
             if (vendorId) {
                 try {
-                    const res = await fetch(`http://localhost:4000/api/vendors/${vendorId}`, {
+                    const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
                         cache: 'no-store'
                     });
                     const data = await res.json();
@@ -118,7 +119,7 @@ export default function DashboardHome() {
         setIsResetting(true);
         try {
             // 1. Delete from DB
-            await fetch(`http://localhost:4000/api/vendors/${vendorId}`, {
+            await fetch(apiUrl(`/vendors/${vendorId}`), {
                 method: 'DELETE'
             });
 

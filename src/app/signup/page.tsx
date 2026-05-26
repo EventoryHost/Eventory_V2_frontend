@@ -1,11 +1,12 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ArrowRight, RefreshCcw, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = apiUrl('');
 const PRIMARY_COLOR = 'rgba(4, 34, 45, 1)'; // #04222D
 
 export default function SignupFlow() {

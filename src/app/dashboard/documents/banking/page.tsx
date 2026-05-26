@@ -1,4 +1,5 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import React, { useState, Suspense, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,7 +16,7 @@ import {
     Banknote
 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = apiUrl('');
 
 // Professional list of major Indian banks and their codes
 const MAJOR_BANKS = [

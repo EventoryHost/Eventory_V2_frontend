@@ -1,11 +1,12 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft, ArrowLeft, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = apiUrl('');
 
 function AadhaarContent() {
     const router = useRouter();

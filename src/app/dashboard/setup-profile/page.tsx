@@ -1,11 +1,12 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ArrowLeft, ArrowRight, X, Search, Check, Upload, CheckCircle2, XCircle, Plus, Image as ImageIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = apiUrl('');
 const CONTINUE_BUTTON_COLOR = 'rgba(4, 34, 45, 1)';
 
 export default function SetupBusinessProfile() {

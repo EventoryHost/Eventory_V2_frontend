@@ -1,11 +1,12 @@
 'use client';
+import { apiUrl } from '@/lib/api';
 
 import React, { useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-const API_BASE = 'http://localhost:4000/api';
+const API_BASE = apiUrl('');
 
 function PANContent() {
     const router = useRouter();
