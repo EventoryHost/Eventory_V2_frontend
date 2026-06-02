@@ -21,6 +21,12 @@ const vendors = [
     { name: "Makeup Artist", icon: Sparkles },
 ];
 
+const packageVendorPrefixes: Record<string, string> = {
+    Caterer: 'CAT',
+    Decorator: 'DEC',
+    'Makeup Artist': 'MAK',
+};
+
 const options = [
     {
         title: "Create a product",
@@ -49,6 +55,8 @@ const options = [
         action: () => console.log("Use template")
     }
 ];
+
+type CreateOption = (typeof options)[number];
 
 export default function CreateServiceModal({ isOpen, onClose }: CreateServiceModalProps) {
     const router = useRouter();
@@ -80,9 +88,9 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
 
     const handleVendorSelect = (vendorName: string) => {
         setSelectedVendor(vendorName);
-        if (vendorName === 'Caterer' || vendorName === 'Makeup Artist') {
-            const prefix = vendorName === 'Caterer' ? 'CAT' : 'MAK';
-            localStorage.setItem('service_id', prefix + Math.random().toString(36).substring(7).toUpperCase());
+        const prefix = packageVendorPrefixes[vendorName];
+        if (prefix) {
+            localStorage.setItem('service_id', `${prefix}${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
             setTimeout(() => {
                 onClose();
                 router.push('/dashboard/packages/new');
@@ -90,7 +98,7 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
         }
     };
 
-    const handleOptionClick = (option: any) => {
+    const handleOptionClick = (option: CreateOption) => {
         if (option.isPackageTrigger) {
             setStep('SELECT_VENDOR');
         } else {
