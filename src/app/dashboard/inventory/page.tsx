@@ -69,7 +69,7 @@ function InventoryContent() {
     const handleResumeDraft = (pkg: PackageData) => {
         // We can just open the flow for that vendor type. 
         // The flow component will automatically load the draft for that vendor.
-        router.push(`/dashboard/packages/flows?vendorType=${pkg.vendorType}&bookingType=${pkg.bookingType}`);
+        router.push(`/dashboard/packages/flows?vendorType=${pkg.vendorType}&bookingType=${pkg.bookingType}&draftId=${pkg._id}`);
     };
 
     return (

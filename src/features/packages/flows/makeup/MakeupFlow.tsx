@@ -244,7 +244,7 @@ export default function MakeupFlow() {
                     // Populate Step 1 (Event & Crew)
                     if (pkg.step1_eventAndCrew) {
                         const s1 = pkg.step1_eventAndCrew;
-                        setPackageName(s1.packageName || '');
+                        setPackageName(s1.packageName === 'Untitled Package' ? '' : s1.packageName || '');
                         if (s1.eventCategories) setEventCategories(s1.eventCategories.join(', '));
                         if (s1.durationPerPerson) setTeamDurationPerPerson(String(s1.durationPerPerson));
                         if (s1.durationOfSetup) setTeamDurationOfSetup(String(s1.durationOfSetup));

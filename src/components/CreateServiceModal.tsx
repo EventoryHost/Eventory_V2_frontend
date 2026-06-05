@@ -25,6 +25,7 @@ const packageVendorPrefixes: Record<string, string> = {
     Caterer: 'CAT',
     Decorator: 'DEC',
     'Makeup Artist': 'MAK',
+    'DJ Artist': 'DJA',
 };
 
 const options = [

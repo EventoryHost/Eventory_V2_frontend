@@ -74,7 +74,7 @@ export default function FlowShell({
     saveLabel,
 }: FlowShellProps) {
     return (
-        <div className="min-h-screen bg-[#FDFDFD] relative">
+        <div className="min-h-screen bg-[#FDFDFD] relative overflow-x-hidden">
             {/* Header */}
             <div className="sticky top-0 bg-white z-20 border-b border-gray-100 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -157,8 +157,8 @@ export default function FlowShell({
             </div>
 
             {/* Page Content */}
-            <div className="p-6 max-w-md mx-auto">
-                <div className="flex flex-col gap-8">
+            <div className="p-6 max-w-md mx-auto w-full min-w-0">
+                <div className="flex flex-col gap-8 w-full min-w-0">
                     {children}
                 </div>
             </div>

@@ -150,7 +150,7 @@ export default function DecoratorFlow() {
                         // Populate Step 1 (Event & Crew)
                         if (pkg.step1_eventAndCrew) {
                             const s1 = pkg.step1_eventAndCrew;
-                            setPackageName(s1.packageName || '');
+                            setPackageName(s1.packageName === 'Untitled Package' ? '' : s1.packageName || '');
                             if (s1.eventCategories) setEventCategories(s1.eventCategories.join(', '));
                             setPoc(s1.poc || '');
                             if (s1.duration) {
