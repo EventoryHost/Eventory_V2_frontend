@@ -7,7 +7,7 @@ import { FilePreviewModal } from './FilePreviewModal';
 
 export interface Addon {
     id: string;
-    type: 'Service' | 'Product';
+    type: 'Service' | 'Product' | 'Space' | 'Assets';
     name: string;
     category: string;
     subCategory: string;
@@ -18,6 +18,16 @@ export interface Addon {
     policies: PolicyFile[];
     media: SampleMediaFile[];
     productType?: string;
+    
+    // Venue Addon Specific
+    spaceType?: string;
+    layout?: string;
+    capacityStanding?: string;
+    capacitySitting?: string;
+    capacityDining?: string;
+    environment?: 'Indoor' | 'Outdoor';
+    activities?: string[];
+    amenities?: string[];
 }
 
 interface AddonModalProps {
@@ -42,6 +52,19 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
     const [addonProductType, setAddonProductType] = React.useState<string>('Food');
     const [previewFile, setPreviewFile] = React.useState<{ url: string | null; name: string } | null>(null);
 
+    // Venue Addon Specific
+    const [addonSpaceType, setAddonSpaceType] = React.useState('');
+    const [addonLayout, setAddonLayout] = React.useState('');
+    const [addonCapacityStanding, setAddonCapacityStanding] = React.useState('');
+    const [addonCapacitySitting, setAddonCapacitySitting] = React.useState('');
+    const [addonCapacityDining, setAddonCapacityDining] = React.useState('');
+    const [addonEnvironment, setAddonEnvironment] = React.useState<'Indoor' | 'Outdoor'>('Indoor');
+    const [addonActivities, setAddonActivities] = React.useState<string[]>([]);
+    const [addonAmenities, setAddonAmenities] = React.useState<string[]>([]);
+    const [customActivity, setCustomActivity] = React.useState('');
+    const [customAmenity, setCustomAmenity] = React.useState('');
+    const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
+
     const addonPolicyInputRef = React.useRef<HTMLInputElement>(null);
     const addonMediaInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -59,6 +82,14 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonPolicies(addon.policies);
                 setAddonMedia(addon.media);
                 setAddonProductType(addon.productType || 'Food');
+                setAddonSpaceType(addon.spaceType || '');
+                setAddonLayout(addon.layout || '');
+                setAddonCapacityStanding(addon.capacityStanding || '');
+                setAddonCapacitySitting(addon.capacitySitting || '');
+                setAddonCapacityDining(addon.capacityDining || '');
+                setAddonEnvironment(addon.environment || 'Indoor');
+                setAddonActivities(addon.activities || []);
+                setAddonAmenities(addon.amenities || []);
             } else {
                 setAddonType('Service');
                 setAddonName('');
@@ -71,6 +102,14 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonPolicies([]);
                 setAddonMedia([]);
                 setAddonProductType('Food');
+                setAddonSpaceType('');
+                setAddonLayout('');
+                setAddonCapacityStanding('');
+                setAddonCapacitySitting('');
+                setAddonCapacityDining('');
+                setAddonEnvironment('Indoor');
+                setAddonActivities([]);
+                setAddonAmenities([]);
             }
         }
     }, [isOpen, addon]);
@@ -90,7 +129,17 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
             billingUnit: addonBillingUnit,
             policies: addonPolicies,
             media: addonMedia,
-            ...(addonType === 'Product' && { productType: addonProductType })
+            ...(addonType === 'Product' && { productType: addonProductType }),
+            ...(addonType !== 'Service' && addonType !== 'Product' && {
+                spaceType: addonSpaceType,
+                layout: addonLayout,
+                capacityStanding: addonCapacityStanding,
+                capacitySitting: addonCapacitySitting,
+                capacityDining: addonCapacityDining,
+                environment: addonEnvironment,
+                activities: addonActivities,
+                amenities: addonAmenities
+            })
         };
         onSave(newAddon);
     };
@@ -154,36 +203,32 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                     <div>
                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider mb-3">ADD-ON TYPE</p>
                         <div className="flex bg-[#F4F4F5] rounded-[12px] p-1 relative">
-                            <button
-                                onClick={() => setAddonType('Service')}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Service' ? 'text-white' : 'text-[#71717B]'}`}
-                            >
-                                Service
-                            </button>
-                            <button
-                                onClick={() => setAddonType('Product')}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Product' ? 'text-white' : 'text-[#71717B]'}`}
-                            >
-                                Product
-                            </button>
-                            <div
-                                className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#030303] rounded-[10px] transition-transform duration-300 ease-in-out"
-                                style={{ transform: addonType === 'Service' ? 'translateX(0)' : 'translateX(100%)' }}
-                            />
+                            {vendorType === 'VEN' ? (
+                                <>
+                                    <button onClick={() => setAddonType('Service')} style={{ fontFamily: 'Figtree, sans-serif' }} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Service' ? 'text-white' : 'text-[#71717B]'}`}>Service</button>
+                                    <button onClick={() => setAddonType('Space')} style={{ fontFamily: 'Figtree, sans-serif' }} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Space' ? 'text-white' : 'text-[#71717B]'}`}>Space</button>
+                                    <button onClick={() => setAddonType('Assets')} style={{ fontFamily: 'Figtree, sans-serif' }} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Assets' ? 'text-white' : 'text-[#71717B]'}`}>Assets</button>
+                                    <div className="absolute top-1 bottom-1 w-[calc(33.333%-2px)] bg-[#030303] rounded-[10px] transition-transform duration-300 ease-in-out" style={{ transform: addonType === 'Service' ? 'translateX(0)' : addonType === 'Space' ? 'translateX(100%)' : 'translateX(200%)' }} />
+                                </>
+                            ) : (
+                                <>
+                                    <button onClick={() => setAddonType('Service')} style={{ fontFamily: 'Figtree, sans-serif' }} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Service' ? 'text-white' : 'text-[#71717B]'}`}>Service</button>
+                                    <button onClick={() => setAddonType('Product')} style={{ fontFamily: 'Figtree, sans-serif' }} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonType === 'Product' ? 'text-white' : 'text-[#71717B]'}`}>Product</button>
+                                    <div className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-[#030303] rounded-[10px] transition-transform duration-300 ease-in-out" style={{ transform: addonType === 'Service' ? 'translateX(0)' : 'translateX(100%)' }} />
+                                </>
+                            )}
                         </div>
                     </div>
 
                     {/* Basic Details */}
                     <div className="bg-[#FAFAFA] p-5 rounded-[16px] border border-[#E4E4E7] flex flex-col gap-4">
-                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-2">Basic Details</h3>
+                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-2">{addonType === 'Space' ? 'Add-on Space 1' : addonType === 'Assets' ? 'Asset Name' : 'Basic Details'}</h3>
                         
                         <div>
-                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">{addonType === 'Service' ? 'Service Name' : 'Product Name'}</label>
+                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">{addonType === 'Space' || addonType === 'Assets' ? 'Space Name' : addonType === 'Service' ? 'Service Name' : 'Product Name'}</label>
                             <input
                                 type="text"
-                                placeholder={addonType === 'Service' ? "Package Name" : "Product Name"}
+                                placeholder={addonType === 'Space' ? "Product Name" : addonType === 'Assets' ? "Product Name" : addonType === 'Service' ? "Package Name" : "Product Name"}
                                 value={addonName}
                                 onChange={(e) => setAddonName(e.target.value)}
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
@@ -191,55 +236,156 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                             />
                         </div>
 
-                        <div className="flex gap-4">
-                            <div className="flex-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
+                        {(addonType === 'Space' || addonType === 'Assets') && (
+                            <div className="relative">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">{addonType === 'Space' ? 'Space Type' : 'Asset Type'}</label>
+                                <button type="button" onClick={() => setActiveDropdown(activeDropdown === 'spaceType' ? null : 'spaceType')} className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-normal text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-gray-300" style={{ color: addonSpaceType ? '#030303' : '#9F9FA9' }}>
+                                    {addonSpaceType || 'Placeholder'}
+                                    <ChevronDown size={20} className="text-[#9F9FA9]" />
+                                </button>
+                                {activeDropdown === 'spaceType' && (
+                                    <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 py-2">
+                                        {['Type 1', 'Type 2', 'Type 3'].map(opt => (
+                                            <div key={opt} onClick={() => { setAddonSpaceType(opt); setActiveDropdown(null); }} className="px-4 py-3 cursor-pointer text-[14px] hover:bg-gray-50">{opt}</div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {addonType === 'Space' && (
+                            <div className="relative mt-2">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Layout</label>
+                                <button type="button" onClick={() => setActiveDropdown(activeDropdown === 'layout' ? null : 'layout')} className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-normal text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-gray-300" style={{ color: addonLayout ? '#030303' : '#9F9FA9' }}>
+                                    {addonLayout || 'Placeholder'}
+                                    <ChevronDown size={20} className="text-[#9F9FA9]" />
+                                </button>
+                                {activeDropdown === 'layout' && (
+                                    <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 py-2">
+                                        {['Theater', 'Classroom', 'Banquet'].map(opt => (
+                                            <div key={opt} onClick={() => { setAddonLayout(opt); setActiveDropdown(null); }} className="px-4 py-3 cursor-pointer text-[14px] hover:bg-gray-50">{opt}</div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {addonType === 'Space' && (
+                            <div className="grid grid-cols-3 gap-2 mt-2">
+                                <div className="flex flex-col items-center p-3 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase mb-1">STANDING</span>
+                                    <input type="text" placeholder="300" value={addonCapacityStanding} onChange={e => setAddonCapacityStanding(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-[16px] font-bold text-[#030303] focus:outline-none bg-transparent" />
+                                </div>
+                                <div className="flex flex-col items-center p-3 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase mb-1">SITTING</span>
+                                    <input type="text" placeholder="150" value={addonCapacitySitting} onChange={e => setAddonCapacitySitting(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-[16px] font-bold text-[#030303] focus:outline-none bg-transparent" />
+                                </div>
+                                <div className="flex flex-col items-center p-3 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase mb-1">DINNING</span>
+                                    <input type="text" placeholder="120" value={addonCapacityDining} onChange={e => setAddonCapacityDining(e.target.value.replace(/\D/g, ''))} className="w-full text-center text-[16px] font-bold text-[#030303] focus:outline-none bg-transparent" />
+                                </div>
+                            </div>
+                        )}
+
+                        {(addonType === 'Space' || addonType === 'Assets') && (
+                            <div className="flex flex-col gap-2 mt-4">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#3F3F47]">Space environment</label>
+                                <div className="flex items-center gap-6">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" checked={addonEnvironment === 'Indoor'} onChange={() => setAddonEnvironment('Indoor')} className="w-4 h-4 accent-[#030303]" />
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#3F3F47] font-medium">Indoor</span>
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" checked={addonEnvironment === 'Outdoor'} onChange={() => setAddonEnvironment('Outdoor')} className="w-4 h-4 accent-[#030303]" />
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#3F3F47] font-medium">Outdoor</span>
+                                    </label>
+                                </div>
+                            </div>
+                        )}
+
+                        {(addonType === 'Space' || addonType === 'Assets') && (
+                            <div className="flex flex-col gap-2 mt-4">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#3F3F47]">What can be done in this Space</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['Weddings', 'Corporate Events', 'Workshops', 'Product Launches', 'Art Gallery'].map(opt => {
+                                        const isSel = addonActivities.includes(opt);
+                                        return (
+                                            <button key={opt} type="button" onClick={() => setAddonActivities(prev => isSel ? prev.filter(v => v !== opt) : [...prev, opt])} className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors border ${isSel ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-[#F4F4F5] text-[#3F3F47] border-[#E4E4E7]'}`}>{opt}</button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {addonType === 'Space' && (
+                            <div className="flex flex-col gap-2 mt-4">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#3F3F47]">Amenities</label>
+                                <div className="flex flex-wrap gap-2">
+                                    {['Power', 'AC', 'Stage', 'Lighting', 'Security'].map(opt => {
+                                        const isSel = addonAmenities.includes(opt);
+                                        return (
+                                            <button key={opt} type="button" onClick={() => setAddonAmenities(prev => isSel ? prev.filter(v => v !== opt) : [...prev, opt])} className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors border ${isSel ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-[#F4F4F5] text-[#3F3F47] border-[#E4E4E7] flex items-center gap-1'}`}>{isSel && <Check size={14}/>}{opt}</button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {(addonType === 'Service' || addonType === 'Product') && (
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Name Category"
+                                        value={addonCategory}
+                                        onChange={(e) => setAddonCategory(e.target.value)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                    />
+                                </div>
+                                <div className="flex-1">
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Sub-Category</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Sub Category"
+                                        value={addonSubCategory}
+                                        onChange={(e) => setAddonSubCategory(e.target.value)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {addonType !== 'Space' && (
+                            <div>
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Quantity</label>
                                 <input
                                     type="text"
-                                    placeholder="Name Category"
-                                    value={addonCategory}
-                                    onChange={(e) => setAddonCategory(e.target.value)}
+                                    placeholder={addonType === 'Assets' ? "Enter quantity" : "No. of Products"}
+                                    value={addonQuantity}
+                                    onChange={(e) => setAddonQuantity(e.target.value)}
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
                                     className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
                                 />
                             </div>
-                            <div className="flex-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Sub-Category</label>
-                                <input
-                                    type="text"
-                                    placeholder="Sub Category"
-                                    value={addonSubCategory}
-                                    onChange={(e) => setAddonSubCategory(e.target.value)}
+                        )}
+
+                        {(addonType === 'Service' || addonType === 'Product') && (
+                            <div>
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Description</label>
+                                <textarea
+                                    rows={4}
+                                    placeholder="Add Description"
+                                    value={addonDescription}
+                                    onChange={(e) => setAddonDescription(e.target.value)}
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                    className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9] resize-none"
                                 />
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] mt-2">Helper Text according to Input field.</p>
                             </div>
-                        </div>
-
-                        <div>
-                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Quantity</label>
-                            <input
-                                type="text"
-                                placeholder="No. of Products"
-                                value={addonQuantity}
-                                onChange={(e) => setAddonQuantity(e.target.value)}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                            />
-                        </div>
-
-                        <div>
-                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Description</label>
-                            <textarea
-                                rows={4}
-                                placeholder="Add Description"
-                                value={addonDescription}
-                                onChange={(e) => setAddonDescription(e.target.value)}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9] resize-none"
-                            />
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] mt-2">Helper Text according to Input field.</p>
-                        </div>
+                        )}
                     </div>
 
                     {/* Choose Type (Product Only, Caterer flow only) */}
