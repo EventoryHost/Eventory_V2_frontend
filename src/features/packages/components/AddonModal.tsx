@@ -39,7 +39,7 @@ interface AddonModalProps {
 }
 
 export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: AddonModalProps) {
-    const [addonType, setAddonType] = React.useState<'Service' | 'Product'>('Service');
+    const [addonType, setAddonType] = React.useState<Addon['type']>('Service');
     const [addonName, setAddonName] = React.useState('');
     const [addonCategory, setAddonCategory] = React.useState('');
     const [addonSubCategory, setAddonSubCategory] = React.useState('');

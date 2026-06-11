@@ -140,7 +140,7 @@ export default function VenueFlow() {
                                     description: a.description || '',
                                     price: String(a.price || ''),
                                     billingUnit: a.billingUnit || 'Per hour',
-                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl } as any] : [],
+                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
                                     media: (a.mediaUrls || []).map((url: string) => ({ name: 'Media File', size: 0, file: null, preview: url })),
                                     productType: a.productType || 'Product'
                                 });
@@ -179,16 +179,14 @@ export default function VenueFlow() {
                                     setLastMinuteDocs(s3.policies.lastMinuteChangePolicy.map((doc: any) => ({
                                         name: doc.name || 'Policy Document',
                                         size: 0,
-                                        preview: doc.url,
-                                        url: doc.url
+                                        preview: doc.url
                                     })));
                                 }
                                 if (s3.policies.cancellationPolicy) {
                                     setPolicyDocs(s3.policies.cancellationPolicy.map((doc: any) => ({
                                         name: doc.name || 'Policy Document',
                                         size: 0,
-                                        preview: doc.url,
-                                        url: doc.url
+                                        preview: doc.url
                                     })));
                                 }
                             }
@@ -331,12 +329,12 @@ export default function VenueFlow() {
                 for (const addon of allAddons) {
                     let policyUrl = '';
                     if (addon.policies && addon.policies.length > 0) {
-                        const pf = addon.policies[0] as any;
+                        const pf = addon.policies[0];
                         if (pf.file) {
                             const formData = new FormData(); formData.append('file', pf.file);
                             const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
                             if (uploadRes.ok) { const data = await uploadRes.json(); policyUrl = data.url || ''; }
-                        } else if (pf.url) { policyUrl = pf.url; }
+                        } else if (pf.preview) { policyUrl = pf.preview; }
                     }
                     const mediaUrls = [];
                     if (addon.media && addon.media.length > 0) {
@@ -404,8 +402,8 @@ export default function VenueFlow() {
                             const fd = new FormData(); fd.append('file', f.file);
                             const res = await fetch('/api/upload', { method: 'POST', body: fd });
                             if (res.ok) { const data = await res.json(); if (data.url) urls.push({ url: data.url, name: f.name }); }
-                        } else if (f.url || f.preview) {
-                            urls.push({ url: f.url || f.preview, name: f.name });
+                        } else if (f.preview) {
+                            urls.push({ url: f.preview, name: f.name });
                         }
                     }
                     return urls;
