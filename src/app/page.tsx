@@ -1,13 +1,21 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import SplashScreen from '@/components/SplashScreen';
 
 export default function LandingPage() {
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+
+    useEffect(() => {
+        // App initial load animation
+        const timer = setTimeout(() => {
+            setIsLoading(false);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, []);
 
     const handleStartOnboarding = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -15,7 +23,7 @@ export default function LandingPage() {
         // Simulate loading/splash screen
         setTimeout(() => {
             router.push('/login');
-        }, 2000);
+        }, 1000);
     };
 
     return (
