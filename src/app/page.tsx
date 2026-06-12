@@ -1,55 +1,38 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import SplashScreen from '@/components/SplashScreen';
+import LottieSplashScreen from '@/components/LottieSplashScreen';
 
 export default function LandingPage() {
-    const [isLoading, setIsLoading] = useState(true);
     const router = useRouter();
+    const [isChecking, setIsChecking] = useState(true);
 
     useEffect(() => {
-        // App initial load animation
-        const timer = setTimeout(() => {
-            setIsLoading(false);
-        }, 2000);
-        return () => clearTimeout(timer);
-    }, []);
+        // Check if user is already logged in
+        if (typeof window !== 'undefined') {
+            const token = localStorage.getItem('vendor_token');
+            if (token) {
+                // If logged in, skip splash and go straight to dashboard
+                router.push('/dashboard');
+            } else {
+                // Not logged in -> show splash screen
+                setIsChecking(false);
+            }
+        }
+    }, [router]);
 
-    const handleStartOnboarding = (e: React.MouseEvent) => {
-        e.preventDefault();
-        setIsLoading(true);
-        // Simulate loading/splash screen
-        setTimeout(() => {
-            router.push('/login');
-        }, 1000);
+    const handleSplashComplete = () => {
+        router.push('/login');
     };
 
+    if (isChecking) {
+        return null; // or a tiny spinner
+    }
+
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-            {isLoading && <SplashScreen />}
-            
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-rose-500 to-orange-500 mb-6">
-                Eventory V2
-            </h1>
-            <p className="text-lg text-gray-600 mb-8 max-w-lg">
-                The ultimate platform for event vendors to manage bookings, inventory, and more.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-                <button
-                    onClick={handleStartOnboarding}
-                    className="px-8 py-4 bg-[#0D2531] text-white rounded-2xl font-bold shadow-lg hover:bg-opacity-90 transition-all active:scale-95 min-w-[200px]"
-                >
-                    Become a Vendor
-                </button>
-                <Link
-                    href="/dashboard"
-                    className="px-8 py-4 bg-white border-2 border-[#0D2531] text-[#0D2531] rounded-2xl font-bold shadow-sm hover:bg-gray-50 transition-all active:scale-95 min-w-[200px]"
-                >
-                    Vendor Dashboard
-                </Link>
-            </div>
+        <div className="min-h-screen bg-[#FAF9F6]">
+            <LottieSplashScreen onComplete={handleSplashComplete} />
         </div>
     );
 }

@@ -18,8 +18,8 @@ export default function BottomNav() {
     const pathname = usePathname();
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    // Hide BottomNav on document verification pages to prevent UI overlap
-    if (pathname.includes('/documents')) return null;
+    // Hide BottomNav on document verification pages and setup profile to prevent UI overlap
+    if (pathname.includes('/documents') || pathname.includes('/setup-profile')) return null;
 
     return (
         <>

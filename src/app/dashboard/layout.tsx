@@ -13,7 +13,7 @@ export default function DashboardLayout({
     const pathname = usePathname();
     const router = useRouter();
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const isDocumentPage = pathname.includes('/documents');
+    const isDocumentPage = pathname.includes('/documents') || pathname.includes('/setup-profile');
 
     useEffect(() => {
         // Protect dashboard routes

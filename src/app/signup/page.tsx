@@ -282,7 +282,7 @@ export default function SignupFlow() {
                                 </p>
                                 
                                 <button
-                                    onClick={() => router.push('/dashboard')}
+                                    onClick={() => router.push('/dashboard/setup-profile')}
                                     className="w-full py-4 bg-[#04222D] text-white rounded-lg font-bold text-lg active:scale-[0.98] transition-all"
                                 >
                                     Continue
