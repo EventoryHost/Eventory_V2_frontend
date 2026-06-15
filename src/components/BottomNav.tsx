@@ -2,16 +2,15 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ClipboardList, Box, Calendar, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CreateServiceModal from './CreateServiceModal';
 
 const navItems = [
-    { name: 'Home', href: '/dashboard', icon: Home },
-    { name: 'Bookings', href: '/dashboard/bookings', icon: ClipboardList },
-    { name: 'Inventory', href: '/dashboard/inventory', icon: Box },
-    { name: 'Calendar', href: '/dashboard/calendar', icon: Calendar },
-    { name: 'Menu', icon: Menu, isAction: true },
+    { name: 'Home', href: '/dashboard', iconUrl: 'https://dkuacgndftndz.cloudfront.net/inventory-page/home_iconhome.svg' },
+    { name: 'Calendar', href: '/dashboard/calendar', iconUrl: 'https://dkuacgndftndz.cloudfront.net/inventory-page/calendericonhome.svg' },
+    { name: 'Inventory', href: '/dashboard/inventory', iconUrl: 'https://dkuacgndftndz.cloudfront.net/inventory-page/inventoryiconhome.svg' },
+    { name: 'Bookings', href: '/dashboard/bookings', iconUrl: 'https://dkuacgndftndz.cloudfront.net/inventory-page/bookingsiconhome.svg' },
+    { name: 'Menu', iconUrl: 'https://dkuacgndftndz.cloudfront.net/inventory-page/menuiconhome.svg', isAction: true },
 ];
 
 export default function BottomNav() {
@@ -26,7 +25,6 @@ export default function BottomNav() {
             <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-100 px-2 py-2 flex justify-around items-center z-50 pb-safe">
                 {navItems.map((item) => {
                     const isActive = !item.isAction && pathname === item.href;
-                    const Icon = item.icon;
 
                     if (item.isAction) {
                         return (
@@ -37,10 +35,16 @@ export default function BottomNav() {
                                 className="flex flex-col items-center gap-1 transition-colors relative cursor-pointer"
                                 style={{ WebkitTapHighlightColor: 'transparent' }}
                             >
-                                <div className="p-1 rounded-lg text-[#3F3F47]">
-                                    <Icon size={24} strokeWidth={2} />
-                                </div>
-                                <span className="text-[11px] font-medium leading-none text-[#3F3F47]">
+                                <img 
+                                    src={item.iconUrl}
+                                    alt={item.name}
+                                    style={{
+                                        width: '24px',
+                                        height: '24px',
+                                        objectFit: 'contain'
+                                    }}
+                                />
+                                <span className="text-[11px] font-medium leading-none text-[#3F3F47] font-figtree">
                                     {item.name}
                                 </span>
                             </div>
@@ -53,10 +57,19 @@ export default function BottomNav() {
                             href={item.href!}
                             className="flex flex-col items-center gap-1 transition-colors relative"
                         >
-                            <div className={`p-1 rounded-lg ${isActive ? 'text-[#F0596F]' : 'text-[#3F3F47]'}`}>
-                                <Icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-                            </div>
-                            <span className={`text-[11px] font-medium leading-none ${isActive ? 'text-[#F0596F]' : 'text-[#3F3F47]'}`}>
+                            <img 
+                                src={item.iconUrl}
+                                alt={item.name}
+                                style={{
+                                    width: '24px',
+                                    height: '24px',
+                                    objectFit: 'contain',
+                                    filter: isActive 
+                                        ? 'brightness(0) invert(53%) sepia(55%) saturate(3731%) hue-rotate(324deg) brightness(96%) contrast(93%)' 
+                                        : 'none'
+                                }}
+                            />
+                            <span className={`text-[11px] font-medium leading-none font-figtree ${isActive ? 'text-[#F0596F]' : 'text-[#3F3F47]'}`}>
                                 {item.name}
                             </span>
                             {isActive && (

@@ -93,7 +93,19 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
         setSelectedVendor(vendorName);
         const prefix = packageVendorPrefixes[vendorName];
         if (prefix) {
-            localStorage.setItem('service_id', `${prefix}${crypto.randomUUID().slice(0, 8).toUpperCase()}`);
+            // crypto.randomUUID is only available in secure contexts (HTTPS/localhost)
+            let randomPart = '';
+            if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+                try {
+                    randomPart = crypto.randomUUID().slice(0, 8).toUpperCase();
+                } catch (e) {
+                    randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+                }
+            } else {
+                randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+            }
+
+            localStorage.setItem('service_id', `${prefix}${randomPart}`);
             setTimeout(() => {
                 onClose();
                 router.push('/dashboard/packages/new');

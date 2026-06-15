@@ -1,8 +1,8 @@
 'use client';
-import { apiUrl } from '@/lib/api';
 
+import { apiUrl } from '@/lib/api';
 import { Suspense, useState, useEffect } from 'react';
-import { Bell, Edit3, Eye, FileText, Loader2 } from 'lucide-react';
+import { Bell, Edit3, FileText, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import CreateServiceModal from '@/components/CreateServiceModal';
 
@@ -22,7 +22,7 @@ function InventoryContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const [activeTab, setActiveTab] = useState<'Created' | 'Drafts' | 'Deleted'>('Created');
+    const [activeTab, setActiveTab] = useState<'Drafts' | 'Live' | 'Submitted'>('Drafts');
     const [packages, setPackages] = useState<PackageData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -60,15 +60,13 @@ function InventoryContent() {
 
     // Filter packages based on active tab
     const displayedPackages = packages.filter(pkg => {
-        if (activeTab === 'Created') return pkg.packageStatus === 'Live' || pkg.packageStatus === 'Under Review';
         if (activeTab === 'Drafts') return pkg.packageStatus === 'Draft';
-        if (activeTab === 'Deleted') return pkg.packageStatus === 'Deleted';
+        if (activeTab === 'Live') return pkg.packageStatus === 'Live';
+        if (activeTab === 'Submitted') return pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted';
         return false;
     });
 
     const handleResumeDraft = (pkg: PackageData) => {
-        // We can just open the flow for that vendor type. 
-        // The flow component will automatically load the draft for that vendor.
         router.push(`/dashboard/packages/flows?vendorType=${pkg.vendorType}&bookingType=${pkg.bookingType}&draftId=${pkg._id}`);
     };
 
@@ -77,9 +75,14 @@ function InventoryContent() {
             {/* Top Bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 24px 16px' }}>
                 <img
-                    src="https://dkuacgndftndz.cloudfront.net/inventory-page/new-logo.jpg"
-                    alt="Eventory"
-                    style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '50%' }}
+                    src="https://dkuacgndftndz.cloudfront.net/inventory-page/clearLogoeventoryV2.svg"
+                    alt="Eventory Logo"
+                    style={{
+                        width: '40px',
+                        height: '40px',
+                        objectFit: 'contain',
+                        filter: 'brightness(0) invert(53%) sepia(55%) saturate(3731%) hue-rotate(324deg) brightness(96%) contrast(93%)'
+                    }}
                 />
                 <button style={{ padding: '8px', borderRadius: '50%', border: 'none', backgroundColor: 'transparent', cursor: 'pointer' }}>
                     <Bell size={24} color="#111" />
@@ -87,29 +90,21 @@ function InventoryContent() {
             </div>
 
             {/* Page Title */}
-            <div style={{ padding: '0 24px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#000', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px' }}>Services</h1>
-                    <p style={{ fontSize: '18px', color: '#9f9fa9', fontWeight: 400 }}>View and manage your services</p>
-                </div>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    style={{ backgroundColor: '#09090b', color: 'white', padding: '10px 20px', borderRadius: '8px', fontWeight: 600, fontSize: '14px', cursor: 'pointer', border: 'none' }}
-                >
-                    Add New
-                </button>
+            <div style={{ padding: '0 24px 24px' }}>
+                <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#000', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px', fontFamily: 'Figtree, sans-serif' }}>Inventory</h1>
+                <p style={{ fontSize: '18px', color: '#9f9fa9', fontWeight: 400, fontFamily: 'Figtree, sans-serif' }}>View and manage your Inventories.</p>
             </div>
 
             {/* Segmented Control Tabs */}
             <div style={{ padding: '0 24px 24px' }}>
                 <div style={{ display: 'flex', backgroundColor: '#f4f4f5', borderRadius: '10px', padding: '6px', gap: '2px' }}>
-                    {(['Created', 'Drafts', 'Deleted'] as const).map((tab) => (
+                    {(['Drafts', 'Live', 'Submitted'] as const).map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             style={{
                                 flex: 1,
-                                backgroundColor: activeTab === tab ? '#0a0a0a' : 'transparent',
+                                backgroundColor: activeTab === tab ? '#04222D' : 'transparent',
                                 color: activeTab === tab ? 'white' : '#a1a1aa',
                                 padding: '10px',
                                 borderRadius: '8px',
@@ -117,7 +112,8 @@ function InventoryContent() {
                                 fontWeight: 500,
                                 border: 'none',
                                 cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                fontFamily: 'Figtree, sans-serif'
                             }}
                         >
                             {tab}
@@ -165,32 +161,38 @@ function InventoryContent() {
                     ))}
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 24px 48px', textAlign: 'center' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 48px', textAlign: 'center' }}>
                     <img
-                        src="https://dkuacgndftndz.cloudfront.net/inventory-page/services_home_page.jpg"
-                        alt="Welcome"
-                        style={{ width: '200px', height: '180px', objectFit: 'contain', marginBottom: '24px' }}
+                        src="https://dkuacgndftndz.cloudfront.net/inventory-page/cardbox_home.png"
+                        alt="Create first Package"
+                        style={{ width: '220px', height: '220px', objectFit: 'contain', marginBottom: '32px' }}
                     />
-                    <h2 style={{ fontSize: '22px', fontWeight: 700, color: '#030303', marginBottom: '12px', lineHeight: 1.3 }}>
-                        No {activeTab} Found
+                    <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#030303', marginBottom: '8px', fontFamily: 'Figtree, sans-serif' }}>
+                        Create first Package
                     </h2>
-                    <p style={{ fontSize: '14px', color: '#3f3f47', marginBottom: '32px', lineHeight: 1.6, maxWidth: '280px' }}>
-                        {activeTab === 'Created' 
-                            ? "To Start getting your bookings you will have to list your service" 
-                            : `You don't have any ${activeTab.toLowerCase()} right now.`}
+                    <p style={{ fontSize: '14px', color: '#71717B', marginBottom: '32px', lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Figtree, sans-serif' }}>
+                        Launch your first package, start receiving orders, and kickstart your business.
                     </p>
-                    {activeTab === 'Created' && (
-                        <button
-                            onClick={() => setIsCreateModalOpen(true)}
-                            style={{
-                                width: '280px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                backgroundColor: '#09090b', color: '#fafafa', border: 'none', borderRadius: '8px',
-                                fontSize: '16px', fontWeight: 500, cursor: 'pointer'
-                            }}
-                        >
-                            Create Package
-                        </button>
-                    )}
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        style={{
+                            width: '280px',
+                            height: '56px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#04222D',
+                            color: '#ffffff',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontSize: '16px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: 'Figtree, sans-serif'
+                        }}
+                    >
+                        Add
+                    </button>
                 </div>
             )}
 

@@ -60,6 +60,9 @@ function AadhaarContent() {
             return;
         }
 
+        // Open a blank tab synchronously to bypass Safari's popup blocker
+        const newTab = window.open('about:blank', '_blank');
+
         try {
             const res = await fetch(`${API_BASE}/verification/digilocker/generate-url`, {
                 method: 'POST',
@@ -70,15 +73,19 @@ function AadhaarContent() {
                 })
             });
             const data = await res.json();
-            if (data.url) {
+            if (data.url && newTab) {
                 setLastVerificationId(data.verification_id);
-                window.open(data.url, '_blank');
+                newTab.location.href = data.url;
                 setLoading(false);
                 setError('Verification started in a new tab. Please complete it and click "Already Verified" below.');
+            } else {
+                if (newTab) newTab.close();
+                setError('Failed to start verification');
+                setLoading(false);
             }
         } catch (err) {
+            if (newTab) newTab.close();
             setError('Failed to start verification');
-        } finally {
             setLoading(false);
         }
     };
@@ -199,12 +206,12 @@ function AadhaarContent() {
                                         For easy form filling process
                                     </h2>
                                     <p className="text-[15px] text-[#71717B] font-medium">
-                                        You keep the following documents handy
+                                        Please keep the following documents handy
                                     </p>
                                 </div>
                                 <div className="w-16 h-16">
                                     <img 
-                                        src="https://cdn-icons-png.flaticon.com/512/4201/4201971.png" 
+                                        src="https://dkuacgndftndz.cloudfront.net/inventory-page/step_2_checklist.png" 
                                         alt="Checklist" 
                                         className="w-full h-full object-contain"
                                     />

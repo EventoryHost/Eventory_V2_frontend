@@ -79,11 +79,28 @@ export default function DashboardHome() {
         const name = localStorage.getItem('vendor_name');
         if (name) setUserName(name);
 
-        const checkOnboardingStatus = async () => {
-            const vendorId = localStorage.getItem('vendor_id');
-            const success = localStorage.getItem('onboarding_success');
-            const savedStep = localStorage.getItem('dashboard_step');
+        const success = localStorage.getItem('onboarding_success');
+        const savedStep = localStorage.getItem('dashboard_step');
 
+        if (savedStep === '3') {
+            setDashboardStep(3);
+        } else if (success === 'true' || savedStep === '2') {
+            setDashboardStep(2);
+            localStorage.setItem('dashboard_step', '2');
+            if (success === 'true') {
+                setShowStep2Popup(true);
+                import('canvas-confetti').then((confetti) => {
+                    confetti.default({
+                        particleCount: 150,
+                        spread: 80,
+                        origin: { y: 0.6 }
+                    });
+                });
+            }
+            localStorage.removeItem('onboarding_success');
+        }
+
+        const checkOnboardingStatus = async () => {
             if (vendorId) {
                 try {
                     const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
@@ -158,24 +175,6 @@ export default function DashboardHome() {
                     console.error('Error fetching packages:', err);
                 }
             }
-
-            if (savedStep === '3') {
-                setDashboardStep(3);
-            } else if (success === 'true' || savedStep === '2') {
-                setDashboardStep(2);
-                localStorage.setItem('dashboard_step', '2');
-                if (success === 'true') {
-                    setShowStep2Popup(true);
-                    import('canvas-confetti').then((confetti) => {
-                        confetti.default({
-                            particleCount: 150,
-                            spread: 80,
-                            origin: { y: 0.6 }
-                        });
-                    });
-                }
-                localStorage.removeItem('onboarding_success');
-            }
         };
 
         checkOnboardingStatus();
@@ -190,8 +189,10 @@ export default function DashboardHome() {
                         <svg viewBox="0 0 24 24" fill="none" className="w-full h-full text-gray-400 mt-2"><path d="M24 20.993V24H0v-2.996A14.977 14.977 0 0112.004 15c4.904 0 9.26 2.354 11.996 5.993zM16.002 8.999a4 4 0 11-8 0 4 4 0 018 0z" fill="currentColor"/></svg>
                     </div>
                     <div>
-                        <h1 className="text-[16px] font-bold text-[#030303] leading-tight font-figtree">Hello {userName}</h1>
-                        <p className="text-[12px] font-medium text-[#9F9FA9] leading-tight mt-0.5">Good Morning</p>
+                        <h1 className="text-[16px] font-bold text-[#030303] leading-tight font-figtree">Hi, {userName}</h1>
+                        <p className="text-[12px] font-medium text-[#9F9FA9] leading-tight mt-0.5">
+                            {dashboardStep < 3 ? 'Have get more packages today' : 'Good Morning'}
+                        </p>
                     </div>
                 </div>
                 <div className="relative">
@@ -205,24 +206,26 @@ export default function DashboardHome() {
             {dashboardStep < 3 ? (
                 <div className="px-6 py-4 pb-24 flex flex-col gap-4">
                     {/* Step 1 Card */}
-                    <div className="bg-white rounded-[16px] border border-[#F4F4F5] overflow-hidden shadow-sm">
-                        <div className="p-5 flex flex-col gap-3">
-                            <div className="inline-flex h-[24px] min-h-[24px] px-[12px] py-[2px] justify-center items-center gap-[8px] rounded-full border border-[#E6E9EA] bg-[#E6E9EA] text-[12px] font-bold text-[#030303] w-fit">Step 1</div>
-                            <h2 className="text-[20px] font-bold text-[#030303] leading-tight font-figtree">Set up Business Profile</h2>
-                            <p className="text-[#A1A1AA] text-[14px] leading-snug font-figtree">
-                                Highlight your skills and set your availability to start attracting clients.
-                            </p>
-                        </div>
-                        <div 
-                            className="bg-[#04222D] p-5 flex justify-between items-center cursor-pointer active:bg-opacity-90 transition-all"
-                            onClick={() => router.push('/dashboard/setup-profile')}
-                        >
-                            <span className="text-white font-bold text-[16px]">{dashboardStep >= 2 ? 'Edit Profile' : 'Start Now'}</span>
-                            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
-                                <ArrowRight size={18} className="text-[#030303]" />
+                    {dashboardStep === 1 && (
+                        <div className="bg-white rounded-[16px] border border-[#F4F4F5] overflow-hidden shadow-sm">
+                            <div className="p-5 flex flex-col gap-3">
+                                <div className="inline-flex h-[24px] min-h-[24px] px-[12px] py-[2px] justify-center items-center gap-[8px] rounded-full border border-[#E6E9EA] bg-[#E6E9EA] text-[12px] font-bold text-[#030303] w-fit">Step 1</div>
+                                <h2 className="text-[20px] font-bold text-[#030303] leading-tight font-figtree">Set up Business Profile</h2>
+                                <p className="text-[#A1A1AA] text-[14px] leading-snug font-figtree">
+                                    Highlight your skills and set your availability to start attracting clients.
+                                </p>
+                            </div>
+                            <div 
+                                className="bg-[#04222D] p-5 flex justify-between items-center cursor-pointer active:bg-opacity-90 transition-all"
+                                onClick={() => router.push('/dashboard/setup-profile')}
+                            >
+                                <span className="text-white font-bold text-[16px]">Start Now</span>
+                                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
+                                    <ArrowRight size={18} className="text-[#030303]" />
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Step 2 Card */}
                     {dashboardStep >= 2 ? (
