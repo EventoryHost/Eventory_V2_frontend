@@ -13,12 +13,12 @@ interface CreateServiceModalProps {
 type ModalStep = 'MAIN' | 'SELECT_VENDOR';
 
 const vendors = [
-    { name: "Photographer", icon: Camera },
-    { name: "Decorator", icon: Flower2 },
-    { name: "DJ Artist", icon: Music },
-    { name: "Venue Provider", icon: Home },
-    { name: "Caterer", icon: CookingPot },
-    { name: "Makeup Artist", icon: Sparkles },
+    { name: "Photographer", imageUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/photographer.png" },
+    { name: "Decorator", imageUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/decorator.png" },
+    { name: "DJ Artist", imageUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/dj%20artist.png" },
+    { name: "Venue Provider", imageUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/venue%20provider.png" },
+    { name: "Caterer", imageUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/caterer.png" },
+    { name: "Makeup Artist", imageUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/makeup.png" },
 ];
 
 const packageVendorPrefixes: Record<string, string> = {
@@ -32,28 +32,28 @@ const packageVendorPrefixes: Record<string, string> = {
 
 const options = [
     {
+        title: "Create a package",
+        description: "Bundled services and products",
+        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create%20package%20pop%20up%20/package.png",
+        isPackageTrigger: true,
+        action: () => console.log("Create package")
+    },
+    {
         title: "Create a product",
         description: "Physical or digital goods to sell",
-        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create-product-icon.jpg",
+        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create%20package%20pop%20up%20/product.png",
         action: () => console.log("Create product")
     },
     {
         title: "Create a service",
         description: "Bookable time-based expertise",
-        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create-service-icon.jpg",
+        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create%20package%20pop%20up%20/service.png",
         action: () => console.log("Create service")
-    },
-    {
-        title: "Create a package",
-        description: "Bundled services and products",
-        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create-package-icon.jpg",
-        isPackageTrigger: true,
-        action: () => console.log("Create package")
     },
     {
         title: "Use a template",
         description: "Start with a pre-made design",
-        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/use-template-icon.jpg",
+        iconUrl: "https://dkuacgndftndz.cloudfront.net/inventory-page/create%20package%20pop%20up%20/template.png",
         isDashed: true,
         action: () => console.log("Use template")
     }
@@ -68,6 +68,8 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
     const [mounted, setMounted] = React.useState(false);
     // Separate visible state so we can animate out before unmounting
     const [visible, setVisible] = React.useState(false);
+    const [hoveredIdx, setHoveredIdx] = React.useState<number | null>(null);
+    const [hoveredGridIdx, setHoveredGridIdx] = React.useState<number | null>(null);
 
     React.useEffect(() => {
         setMounted(true);
@@ -197,6 +199,8 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
                                 <button
                                     key={idx}
                                     onClick={() => handleOptionClick(option)}
+                                    onMouseEnter={() => setHoveredIdx(idx)}
+                                    onMouseLeave={() => setHoveredIdx(null)}
                                     style={{
                                         width: '100%',
                                         display: 'flex',
@@ -205,19 +209,32 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
                                         padding: '20px 24px',
                                         borderRadius: '16px',
                                         border: option.isDashed
-                                            ? '1.5px dashed #d4d4d8'
-                                            : '1px solid #d4d4d8',
-                                        backgroundColor: option.isDashed ? '#fff' : '#fafafa',
+                                            ? (hoveredIdx === idx ? '1.5px dashed #04222D' : '1.5px dashed var(--Border-Neutral-default, #D4D4D8)')
+                                            : (hoveredIdx === idx ? '1px solid #04222D' : 'var(--Border-border-thin, 0.5px) solid var(--Border-Neutral-default, #D4D4D8)'),
+                                        backgroundColor: hoveredIdx === idx ? '#F4F4F5' : 'var(--surface-Neutral-subtle, #FAFAFA)',
                                         cursor: 'pointer',
                                         textAlign: 'left',
+                                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        transform: hoveredIdx === idx ? 'translateY(-2px)' : 'translateY(0)',
+                                        boxShadow: hoveredIdx === idx ? '0 8px 16px rgba(0, 0, 0, 0.04)' : 'none',
                                     }}
                                 >
-                                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, backgroundColor: '#f4f4f5' }}>
-                                        <img src={option.iconUrl} alt={option.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <img 
+                                            src={option.iconUrl} 
+                                            alt={option.title} 
+                                            style={{ 
+                                                width: '100%', 
+                                                height: '100%', 
+                                                objectFit: 'contain',
+                                                transition: 'transform 0.2s ease',
+                                                transform: hoveredIdx === idx ? 'scale(1.08)' : 'scale(1)'
+                                            }} 
+                                        />
                                     </div>
-                                    <div>
-                                        <div style={{ fontSize: '18px', fontWeight: 700, color: '#1a1c1c' }}>{option.title}</div>
-                                        <div style={{ fontSize: '14px', color: '#1a1c1c', opacity: 0.7, marginTop: '4px' }}>{option.description}</div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                        <div style={{ fontSize: '20px', fontWeight: 800, color: '#000', fontFamily: 'Figtree, sans-serif', letterSpacing: '-0.3px' }}>{option.title}</div>
+                                        <div style={{ fontSize: '14px', color: '#71717B', fontWeight: 400, fontFamily: 'Figtree, sans-serif' }}>{option.description}</div>
                                     </div>
                                 </button>
                             ))}
@@ -252,28 +269,53 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                             {vendors.map((vendor, idx) => {
                                 const isSelected = selectedVendor === vendor.name;
-                                const Icon = vendor.icon;
                                 return (
                                     <button
                                         key={idx}
                                         onClick={() => handleVendorSelect(vendor.name)}
+                                        onMouseEnter={() => setHoveredGridIdx(idx)}
+                                        onMouseLeave={() => setHoveredGridIdx(null)}
                                         style={{
-                                            borderRadius: '16px',
-                                            padding: '24px',
+                                            borderRadius: '24px',
+                                            padding: '32px 16px 24px',
                                             display: 'flex',
                                             flexDirection: 'column',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            gap: '12px',
-                                            border: isSelected ? '1.5px solid #1a2c2c' : '1.5px solid transparent',
-                                            backgroundColor: isSelected ? '#f0f4f8' : '#f9fafb',
+                                            gap: '16px',
+                                            border: isSelected 
+                                                ? '1.5px solid #000000' 
+                                                : (hoveredGridIdx === idx ? '1.5px solid #04222D' : 'var(--Border-border-thin, 0.5px) solid var(--Border-Neutral-default, #D4D4D8)'),
+                                            backgroundColor: isSelected 
+                                                ? '#EAECEF' 
+                                                : (hoveredGridIdx === idx ? '#F4F4F5' : 'var(--surface-Neutral-subtle, #FAFAFA)'),
                                             cursor: 'pointer',
+                                            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                            transform: hoveredGridIdx === idx ? 'translateY(-2px)' : 'translateY(0)',
+                                            boxShadow: hoveredGridIdx === idx ? '0 6px 12px rgba(0,0,0,0.03)' : 'none',
                                         }}
                                     >
-                                        <div style={{ color: isSelected ? '#1a2c2c' : '#9ca3af' }}>
-                                            <Icon size={32} strokeWidth={1.5} />
+                                        <div style={{ width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <img 
+                                                src={vendor.imageUrl} 
+                                                alt={vendor.name} 
+                                                style={{ 
+                                                    width: '100%', 
+                                                    height: '100%', 
+                                                    objectFit: 'contain',
+                                                    transition: 'transform 0.2s ease',
+                                                    transform: hoveredGridIdx === idx || isSelected ? 'scale(1.08)' : 'scale(1)'
+                                                }} 
+                                            />
                                         </div>
-                                        <span style={{ fontSize: '15px', fontWeight: 700, color: isSelected ? '#1a2c2c' : '#4b5563' }}>
+                                        <span style={{ 
+                                            fontSize: '16px', 
+                                            fontWeight: 800, 
+                                            color: '#000', 
+                                            fontFamily: 'Figtree, sans-serif',
+                                            letterSpacing: '-0.3px',
+                                            textAlign: 'center'
+                                        }}>
                                             {vendor.name}
                                         </span>
                                     </button>

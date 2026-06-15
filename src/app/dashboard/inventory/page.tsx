@@ -67,7 +67,17 @@ function InventoryContent() {
     });
 
     const handleResumeDraft = (pkg: PackageData) => {
-        router.push(`/dashboard/packages/flows?vendorType=${pkg.vendorType}&bookingType=${pkg.bookingType}&draftId=${pkg._id}`);
+        let prefix = 'MAK';
+        switch (pkg.vendorType) {
+            case 'Caterer': prefix = 'CAT'; break;
+            case 'Decorator': prefix = 'DEC'; break;
+            case 'MakeupArtist': prefix = 'MAK'; break;
+            case 'DJArtist': prefix = 'DJA'; break;
+            case 'PAV': prefix = 'PAV'; break;
+            case 'VenueProvider': prefix = 'VEN'; break;
+        }
+        localStorage.setItem('service_id', `${prefix}${pkg._id}`);
+        router.push('/dashboard/packages/new');
     };
 
     return (
@@ -90,9 +100,32 @@ function InventoryContent() {
             </div>
 
             {/* Page Title */}
-            <div style={{ padding: '0 24px 24px' }}>
-                <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#000', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px', fontFamily: 'Figtree, sans-serif' }}>Inventory</h1>
-                <p style={{ fontSize: '18px', color: '#9f9fa9', fontWeight: 400, fontFamily: 'Figtree, sans-serif' }}>View and manage your Inventories.</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0 24px 24px' }}>
+                <div>
+                    <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#000', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px', fontFamily: 'Figtree, sans-serif' }}>Inventory</h1>
+                    <p style={{ fontSize: '18px', color: '#9f9fa9', fontWeight: 400, fontFamily: 'Figtree, sans-serif' }}>View and manage your Inventories.</p>
+                </div>
+                {packages.length > 0 && (
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        style={{
+                            backgroundColor: '#04222D',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            padding: '8px 16px',
+                            fontSize: '14px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            fontFamily: 'Figtree, sans-serif',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                            flexShrink: 0,
+                            marginTop: '4px'
+                        }}
+                    >
+                        + Add
+                    </button>
+                )}
             </div>
 
             {/* Segmented Control Tabs */}

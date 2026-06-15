@@ -9,12 +9,17 @@ export interface MakeupServiceItem {
     allowCustomInput: 'Yes' | 'No';
 }
 
+export interface FoodItem {
+    name: string;
+    foodType: 'Veg' | 'Non-veg' | 'Egg';
+}
+
 export interface MenuData {
     id: string;
     name: string;
     type: string;
     serviceStyles: string[];
-    inventory: Record<string, string[]>;
+    inventory: Record<string, FoodItem[]>;
     priceModel: string;
     billingUnit: string;
     isExpanded: boolean;

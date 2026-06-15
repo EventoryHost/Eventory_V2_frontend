@@ -24,6 +24,7 @@ export default function CatererFlow() {
     const [eventCategories, setEventCategories] = React.useState('');
     const [minDuration, setMinDuration] = React.useState('');
     const [maxDuration, setMaxDuration] = React.useState('');
+    const [setupDuration, setSetupDuration] = React.useState('');
     const [minCrewSize, setMinCrewSize] = React.useState('');
     const [maxCrewSize, setMaxCrewSize] = React.useState('');
     const [minCapacity, setMinCapacity] = React.useState('');
@@ -41,7 +42,28 @@ export default function CatererFlow() {
     const deleteMenu = (id: string) => { setMenus(prev => prev.filter(m => m.id !== id)); setActiveMenuDropdown(null); };
     const handleAddMenu = () => {
         const newId = Math.random().toString(36).substring(7);
-        setMenus(prev => [...prev, { id: newId, name: `Menu ${prev.length + 1}`, type: 'Breakfast', serviceStyles: ['Buffet'], inventory: { Starters: [], 'Main Course': [], Dessert: [], Drinks: [] }, priceModel: '', billingUnit: 'Per Plate', isExpanded: true }]);
+        setMenus(prev => [...prev, {
+            id: newId,
+            name: `Menu ${prev.length + 1}`,
+            type: 'Breakfast',
+            serviceStyles: ['Buffet'],
+            inventory: {
+                'Salads': [],
+                'Breads': [],
+                'Rice': [],
+                'Starters': [],
+                'Main Course': [],
+                'Dessert': [],
+                'Beverages': [],
+                'Desserts': [],
+                'Chats': [],
+                'Miscellaneous': [],
+                'Drinks': []
+            },
+            priceModel: '',
+            billingUnit: 'Per Plate',
+            isExpanded: true
+        }]);
     };
 
     // Step 2 crockery & addOns states
@@ -50,15 +72,42 @@ export default function CatererFlow() {
     const [crockeryBoneChina, setCrockeryBoneChina] = React.useState(false);
     const [crockeryType, setCrockeryType] = React.useState('');
     const [addons, setAddons] = React.useState<Addon[]>([]);
+    const [includedText, setIncludedText] = React.useState('');
+    const [notIncludedText, setNotIncludedText] = React.useState('');
     const [isAddonModalOpen, setIsAddonModalOpen] = React.useState(false);
+    const [editingAddon, setEditingAddon] = React.useState<Addon | null>(null);
+
+    const handleOpenAddonForm = () => {
+        setEditingAddon(null);
+        setIsAddonModalOpen(true);
+    };
+
+    const handleEditAddon = (addon: Addon) => {
+        setEditingAddon(addon);
+        setIsAddonModalOpen(true);
+    };
+
+    const handleSaveAddon = (savedAddon: Addon) => {
+        setAddons((prev) => {
+            const exists = prev.some((a) => a.id === savedAddon.id);
+            if (exists) {
+                return prev.map((a) => (a.id === savedAddon.id ? savedAddon : a));
+            }
+            return [...prev, savedAddon];
+        });
+        setIsAddonModalOpen(false);
+    };
 
     // Step 3
     const [teamEquipmentPrice, setTeamEquipmentPrice] = React.useState('');
     const [teamEquipmentUnit, setTeamEquipmentUnit] = React.useState('Per hour');
+    const [overtimePrice, setOvertimePrice] = React.useState('');
+    const [lastMinuteChargesDescription, setLastMinuteChargesDescription] = React.useState('');
     const lastMinuteInputRef = React.useRef<HTMLInputElement>(null);
     const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '2000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '8000' }]);
     const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
     const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
+    const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(true);
     const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Fixed Price');
@@ -203,6 +252,7 @@ export default function CatererFlow() {
                             setMinDuration(String(s1.duration.minHours || ''));
                             setMaxDuration(String(s1.duration.maxHours || ''));
                         }
+                        if (s1.durationOfSetup !== undefined) setSetupDuration(String(s1.durationOfSetup));
                         if (s1.crewSize) {
                             setMinCrewSize(String(s1.crewSize.minPeople || ''));
                             setMaxCrewSize(String(s1.crewSize.maxPeople || ''));
@@ -242,22 +292,29 @@ export default function CatererFlow() {
                                 id: m._id || Math.random().toString(36).substring(7),
                                 name: m.name || `Menu ${idx + 1}`,
                                 type: m.type || 'Breakfast',
-                                serviceStyles: [m.serviceStyle || 'Buffet'],
-                                priceModel: m.priceModel || '',
+                                serviceStyles: Array.isArray(m.serviceStyle) ? m.serviceStyle : [m.serviceStyle || 'Buffet'],
+                                priceModel: String(m.perPlatePrice || m.priceModel || ''),
                                 billingUnit: m.billingUnit || 'Per Plate',
                                 isExpanded: false,
                                 inventory: {
-                                    Starters: (m.items?.starters || []).map((x: any) => x.name),
-                                    'Main Course': (m.items?.mainCourse || []).map((x: any) => x.name),
-                                    Dessert: (m.items?.dessert || []).map((x: any) => x.name),
-                                    Drinks: (m.items?.drinks || []).map((x: any) => x.name)
+                                    'Salads': (m.items?.salads || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Breads': (m.items?.breads || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Rice': (m.items?.rice || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Starters': (m.items?.starters || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Main Course': (m.items?.mainCourse || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Dessert': (m.items?.dessert || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Beverages': (m.items?.beverages || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Desserts': (m.items?.desserts || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Chats': (m.items?.chats || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Miscellaneous': (m.items?.miscillenous || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' })),
+                                    'Drinks': (m.items?.drinks || []).map((x: any) => ({ name: x.name || '', foodType: x.foodType || 'Veg' }))
                                 }
                             })));
                         }
                         if (s2.addOns) {
                             setAddons(s2.addOns.map((a: any) => ({
                                 id: a._id || Math.random().toString(36).substring(7),
-                                type: a.type === 'Food' || a.type === 'Drinks' ? 'Product' : 'Service',
+                                type: a.addOnType || (a.type === 'Food' || a.type === 'Drinks' ? 'Product' : 'Service'),
                                 name: a.name || '',
                                 category: a.category || '',
                                 subCategory: a.subCategory || '',
@@ -270,6 +327,8 @@ export default function CatererFlow() {
                                 productType: a.type || 'Food'
                             })));
                         }
+                        if (s2.included) setIncludedText(s2.included.join('\n'));
+                        if (s2.notIncluded) setNotIncludedText(s2.notIncluded.join('\n'));
                     }
 
                     // Populate Step 3 (Policies & Charges)
@@ -278,6 +337,12 @@ export default function CatererFlow() {
                         if (s3.teamAndEquipment) {
                             setTeamEquipmentPrice(String(s3.teamAndEquipment.price || ''));
                             setTeamEquipmentUnit(s3.teamAndEquipment.billingUnit || 'Per hour');
+                        }
+                        if (s3.overtimeCharges) {
+                            setOvertimePrice(String(s3.overtimeCharges.price || ''));
+                        }
+                        if (s3.lastMinuteChargesDescription) {
+                            setLastMinuteChargesDescription(s3.lastMinuteChargesDescription);
                         }
                         if (s3.guestTiers) {
                             setGuestTiers(s3.guestTiers.map((gt: any) => ({
@@ -469,6 +534,7 @@ export default function CatererFlow() {
                         minHours: parseInt(minDuration) || 0,
                         maxHours: parseInt(maxDuration) || 0
                     },
+                    durationOfSetup: parseInt(setupDuration) || 0,
                     crewSize: {
                         minPeople: parseInt(minCrewSize) || 0,
                         maxPeople: parseInt(maxCrewSize) || 0,
@@ -521,17 +587,26 @@ export default function CatererFlow() {
                     menus: menus.map(m => ({
                         name: m.name,
                         type: m.type,
-                        serviceStyle: m.serviceStyles[0] || 'Buffet',
+                        serviceStyle: m.serviceStyles,
+                        perPlatePrice: parseFloat(m.priceModel) || 0,
                         priceModel: m.priceModel || 'Per Plate',
                         billingUnit: m.billingUnit || 'Per Person',
                         items: {
-                            starters: (m.inventory.Starters || []).map(name => ({ name, price: 0 })),
-                            mainCourse: (m.inventory['Main Course'] || []).map(name => ({ name, price: 0 })),
-                            dessert: (m.inventory.Dessert || []).map(name => ({ name, price: 0 })),
-                            drinks: (m.inventory.Drinks || []).map(name => ({ name, price: 0 }))
+                            salads: (m.inventory['Salads'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            breads: (m.inventory['Breads'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            rice: (m.inventory['Rice'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            starters: (m.inventory['Starters'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            mainCourse: (m.inventory['Main Course'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            dessert: (m.inventory['Dessert'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            beverages: (m.inventory['Beverages'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            desserts: (m.inventory['Desserts'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            chats: (m.inventory['Chats'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            miscillenous: (m.inventory['Miscellaneous'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType })),
+                            drinks: (m.inventory['Drinks'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType }))
                         }
                     })),
                     addOns: addons.map(a => ({
+                        addOnType: a.type === 'Product' ? 'Product' : 'Service',
                         name: a.name,
                         type: a.productType === 'Food' || a.productType === 'Drinks' ? a.productType : 'Other',
                         category: a.category,
@@ -598,6 +673,11 @@ export default function CatererFlow() {
                         price: parseFloat(teamEquipmentPrice) || 0,
                         billingUnit: teamEquipmentUnit
                     },
+                    overtimeCharges: {
+                        price: parseFloat(overtimePrice) || 0,
+                        billingUnit: 'Per hour'
+                    },
+                    lastMinuteChargesDescription: lastMinuteChargesDescription,
                     guestTiers: guestTiers.map(tier => ({
                         maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
                         price: parseFloat(tier.price) || 0
@@ -711,6 +791,7 @@ export default function CatererFlow() {
         setEventCategories('Wedding, Corporate, Anniversary');
         setMinDuration('4');
         setMaxDuration('12');
+        setSetupDuration('2');
         setMinCrewSize('8');
         setMaxCrewSize('25');
         setMinCapacity('50');
@@ -730,10 +811,28 @@ export default function CatererFlow() {
                 billingUnit: 'Per Plate',
                 isExpanded: true,
                 inventory: {
-                    Starters: ['Paneer Tikka Shaslik', 'Hara Bhara Kebab', 'Crispy Corn Salt & Pepper'],
-                    'Main Course': ['Dal Makhani Bukhara', 'Kadhai Paneer', 'Malai Kofta', 'Butter Naan', 'Jeera Pulao'],
-                    Dessert: ['Hot Gulab Jamun', 'Kesari Rasmalai', 'Shahi Tukda'],
-                    Drinks: ['Fresh Lime Mint Cooler', 'Masala Butter Milk', 'Mocktails']
+                    Starters: [
+                        { name: 'Paneer Tikka Shaslik', foodType: 'Veg' },
+                        { name: 'Hara Bhara Kebab', foodType: 'Veg' },
+                        { name: 'Crispy Corn Salt & Pepper', foodType: 'Veg' }
+                    ],
+                    'Main Course': [
+                        { name: 'Dal Makhani Bukhara', foodType: 'Veg' },
+                        { name: 'Kadhai Paneer', foodType: 'Veg' },
+                        { name: 'Malai Kofta', foodType: 'Veg' },
+                        { name: 'Butter Naan', foodType: 'Veg' },
+                        { name: 'Jeera Pulao', foodType: 'Veg' }
+                    ],
+                    Dessert: [
+                        { name: 'Hot Gulab Jamun', foodType: 'Veg' },
+                        { name: 'Kesari Rasmalai', foodType: 'Veg' },
+                        { name: 'Shahi Tukda', foodType: 'Veg' }
+                    ],
+                    Drinks: [
+                        { name: 'Fresh Lime Mint Cooler', foodType: 'Veg' },
+                        { name: 'Masala Butter Milk', foodType: 'Veg' },
+                        { name: 'Mocktails', foodType: 'Veg' }
+                    ]
                 }
             }
         ]);
@@ -832,6 +931,7 @@ export default function CatererFlow() {
                 eventCategories={eventCategories} setEventCategories={setEventCategories}
                 minDuration={minDuration} setMinDuration={setMinDuration}
                 maxDuration={maxDuration} setMaxDuration={setMaxDuration}
+                setupDuration={setupDuration} setSetupDuration={setSetupDuration}
                 minCrewSize={minCrewSize} setMinCrewSize={setMinCrewSize}
                 maxCrewSize={maxCrewSize} setMaxCrewSize={setMaxCrewSize}
                 minCapacity={minCapacity} setMinCapacity={setMinCapacity}
@@ -848,12 +948,18 @@ export default function CatererFlow() {
                 crockeryDisposable={crockeryDisposable} setCrockeryDisposable={setCrockeryDisposable}
                 crockeryBoneChina={crockeryBoneChina} setCrockeryBoneChina={setCrockeryBoneChina}
                 crockeryType={crockeryType} setCrockeryType={setCrockeryType}
-                addons={addons} setAddons={setAddons} setIsAddonModalOpen={setIsAddonModalOpen}
+                addons={addons} setAddons={setAddons}
+                handleOpenAddonForm={handleOpenAddonForm}
+                handleEditAddon={handleEditAddon}
+                includedText={includedText} setIncludedText={setIncludedText}
+                notIncludedText={notIncludedText} setNotIncludedText={setNotIncludedText}
             />}
             {step === 3 && <CatererStep3PoliciesAndCharges
                 teamEquipmentPrice={teamEquipmentPrice} setTeamEquipmentPrice={setTeamEquipmentPrice}
                 teamEquipmentUnit={teamEquipmentUnit} setTeamEquipmentUnit={setTeamEquipmentUnit}
-                guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier}
+                overtimePrice={overtimePrice} setOvertimePrice={setOvertimePrice}
+                lastMinuteChargesDescription={lastMinuteChargesDescription} setLastMinuteChargesDescription={setLastMinuteChargesDescription}
+                guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier} removeGuestTier={removeGuestTier}
                 isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                 weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
                 weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
@@ -904,11 +1010,9 @@ export default function CatererFlow() {
         <AddonModal
             isOpen={isAddonModalOpen}
             onClose={() => setIsAddonModalOpen(false)}
-            onSave={(newAddon) => {
-                setAddons(prev => [...prev, newAddon]);
-                setIsAddonModalOpen(false);
-            }}
+            onSave={handleSaveAddon}
             vendorType="Caterer"
+            addon={editingAddon}
         />
         </>
     );

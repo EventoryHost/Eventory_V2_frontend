@@ -318,7 +318,11 @@ export default function DJStep2PackageAndItems({
                 ) : (
                     <div className="grid grid-cols-1 gap-4">
                         {addons.map((addon) => (
-                            <div key={addon.id} className="p-4 bg-white border border-[#FCE8EB] rounded-[16px] flex items-center justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                            <div 
+                                key={addon.id} 
+                                onClick={() => handleEditAddon(addon)}
+                                className="p-4 bg-white border border-[#FCE8EB] rounded-[16px] flex items-center justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-gray-50 transition-all"
+                            >
                                 <div className="flex items-center gap-4">
                                     <div className="w-[60px] h-[60px] rounded-[8px] bg-gray-200 overflow-hidden flex-shrink-0 relative">
                                          {addon.media && addon.media[0]?.preview ? (
@@ -333,7 +337,14 @@ export default function DJStep2PackageAndItems({
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mt-1">₹ {addon.price}</p>
                                     </div>
                                 </div>
-                                <button type="button" onClick={() => deleteAddon(addon.id)} className="w-6 h-6 rounded-full border border-[#9F9FA9] flex items-center justify-center text-[#3F3F47] hover:bg-gray-50 flex-shrink-0">
+                                <button 
+                                    type="button" 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteAddon(addon.id);
+                                    }} 
+                                    className="w-6 h-6 rounded-full border border-[#9F9FA9] flex items-center justify-center text-[#3F3F47] hover:bg-gray-50 flex-shrink-0"
+                                >
                                     <div className="w-[10px] h-[1.5px] bg-[#3F3F47]"></div>
                                 </button>
                             </div>

@@ -261,16 +261,20 @@ export default function MakeupStep2PackageAndItems({
                     {addons.length > 0 && (
                         <div className="w-full mb-4 flex flex-col gap-3">
                             {addons.map((addon) => (
-                                <div key={addon.id} className="p-4 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between">
+                                <div 
+                                    key={addon.id} 
+                                    onClick={() => handleEditAddon(addon)}
+                                    className="p-4 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-all"
+                                >
                                     <div className="flex flex-col">
                                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-medium text-[#030303] leading-[24px]">{addon.name}</span>
                                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#9F9FA9] leading-[18px]">{addon.type} • {addon.price ? `₹ ${addon.price}` : 'Free'} {addon.price && `• ${addon.billingUnit}`}</span>
                                     </div>
-                                    <div className="relative">
+                                    <div className="relative" onClick={(e) => e.stopPropagation()}>
                                         <button onClick={(e) => { e.stopPropagation(); setActiveMenuDropdown(activeMenuDropdown === addon.id ? null : addon.id); }} className="hover:bg-gray-100 p-2 rounded-full text-[#71717A]"><MoreHorizontal size={20} /></button>
                                         {activeMenuDropdown === addon.id && (
                                             <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-[12px] shadow-lg border border-[#E4E4E7] z-50 py-1" onClick={(e) => e.stopPropagation()}>
-                                                <button onClick={() => handleEditAddon(addon)} className="w-full text-left px-4 py-2 text-[14px] font-normal text-[#3F3F47] hover:bg-gray-50 flex items-center gap-2 border-b border-[#F4F4F5]">
+                                                <button onClick={() => { handleEditAddon(addon); setActiveMenuDropdown(null); }} className="w-full text-left px-4 py-2 text-[14px] font-normal text-[#3F3F47] hover:bg-gray-50 flex items-center gap-2 border-b border-[#F4F4F5]">
                                                     <Pencil size={16} /> Edit Add-on
                                                 </button>
                                                 <button onClick={() => { deleteAddon(addon.id); setActiveMenuDropdown(null); }} className="w-full text-left px-4 py-2 text-[14px] font-normal text-red-600 hover:bg-red-50 flex items-center gap-2">

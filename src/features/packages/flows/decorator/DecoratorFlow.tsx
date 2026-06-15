@@ -154,7 +154,8 @@ export default function DecoratorFlow() {
                             if (s1.eventCategories) setEventCategories(s1.eventCategories.join(', '));
                             setPoc(s1.poc || '');
                             if (s1.duration) {
-                                setSetupDuration(String(s1.duration.minHours || ''));
+                                const hrs = s1.duration.minHours;
+                                setSetupDuration(hrs ? `Upto ${hrs} hour${hrs > 1 ? 's' : ''}` : '');
                             }
                             if (s1.crewSize) {
                                 // Mongoose schemas map supervisors & workers to minPeople & maxPeople. Check both for full backwards compatibility
@@ -337,8 +338,8 @@ export default function DecoratorFlow() {
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Decoration'],
                     poc: poc || 'Rahul Sharma',
                     duration: {
-                        minHours: parseInt(setupDuration) || 0,
-                        maxHours: parseInt(setupDuration) || 0
+                        minHours: parseInt(setupDuration.replace(/\D/g, '')) || 0,
+                        maxHours: parseInt(setupDuration.replace(/\D/g, '')) || 0
                     },
                     crewSize: {
                         // Map supervisors and workers to minPeople & maxPeople as defined in the Mongoose schema (Package.js)

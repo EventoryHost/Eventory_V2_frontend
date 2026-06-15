@@ -51,6 +51,10 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
     const [addonMedia, setAddonMedia] = React.useState<SampleMediaFile[]>([]);
     const [addonProductType, setAddonProductType] = React.useState<string>('Food');
     const [previewFile, setPreviewFile] = React.useState<{ url: string | null; name: string } | null>(null);
+    const [isNonVeg, setIsNonVeg] = React.useState(false);
+    const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = React.useState(false);
+    const [isSubCategoryDropdownOpen, setIsSubCategoryDropdownOpen] = React.useState(false);
+    const isCaterer = vendorType === 'Caterer' || vendorType === 'CAT';
 
     // Venue Addon Specific
     const [addonSpaceType, setAddonSpaceType] = React.useState('');
@@ -76,11 +80,17 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonCategory(addon.category);
                 setAddonSubCategory(addon.subCategory);
                 setAddonQuantity(addon.quantity);
-                setAddonDescription(addon.description);
+                
+                // Parse isNonVeg out of description
+                const isNonVegDesc = addon.description.startsWith('[Non-Veg: Yes]');
+                setIsNonVeg(isNonVegDesc);
+                const cleanDesc = addon.description.replace(/^\[Non-Veg: (Yes|No)\]\s*/, '');
+                setAddonDescription(cleanDesc);
+
                 setAddonPrice(addon.price);
-                setAddonBillingUnit(addon.billingUnit);
-                setAddonPolicies(addon.policies);
-                setAddonMedia(addon.media);
+                setAddonBillingUnit(addon.billingUnit || 'Per hour');
+                setAddonPolicies(addon.policies || []);
+                setAddonMedia(addon.media || []);
                 setAddonProductType(addon.productType || 'Food');
                 setAddonSpaceType(addon.spaceType || '');
                 setAddonLayout(addon.layout || '');
@@ -98,7 +108,7 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonQuantity('');
                 setAddonDescription('');
                 setAddonPrice('');
-                setAddonBillingUnit('Per hour');
+                setAddonBillingUnit(isCaterer ? 'Per Event' : 'Per hour');
                 setAddonPolicies([]);
                 setAddonMedia([]);
                 setAddonProductType('Food');
@@ -110,13 +120,22 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonEnvironment('Indoor');
                 setAddonActivities([]);
                 setAddonAmenities([]);
+                setIsNonVeg(false);
             }
         }
-    }, [isOpen, addon]);
+    }, [isOpen, addon, vendorType]);
 
     if (!isOpen || typeof document === 'undefined') return null;
 
     const handleSaveAddon = () => {
+        const descriptionWithNonVeg = (isCaterer && addonType === 'Product')
+            ? `[Non-Veg: ${isNonVeg ? 'Yes' : 'No'}] ${addonDescription}`
+            : addonDescription;
+
+        const billingUnitVal = (isCaterer && addonType === 'Product')
+            ? 'Per Person'
+            : addonBillingUnit;
+
         const newAddon: Addon = {
             id: addon ? addon.id : Math.random().toString(36).substring(7),
             type: addonType,
@@ -124,9 +143,9 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
             category: addonCategory,
             subCategory: addonSubCategory,
             quantity: addonQuantity,
-            description: addonDescription,
+            description: descriptionWithNonVeg,
             price: addonPrice,
-            billingUnit: addonBillingUnit,
+            billingUnit: billingUnitVal,
             policies: addonPolicies,
             media: addonMedia,
             ...(addonType === 'Product' && { productType: addonProductType }),
@@ -332,30 +351,141 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         )}
 
                         {(addonType === 'Service' || addonType === 'Product') && (
-                            <div className="flex gap-4">
-                                <div className="flex-1">
-                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Name Category"
-                                        value={addonCategory}
-                                        onChange={(e) => setAddonCategory(e.target.value)}
-                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                        className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                                    />
+                            isCaterer ? (
+                                addonType === 'Service' ? (
+                                    <div className="relative">
+                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                                            }}
+                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                            style={{ color: addonCategory ? '#030303' : '#9F9FA9' }}
+                                        >
+                                            {addonCategory || 'Choose'}
+                                            <ChevronDown size={20} className="text-[#9F9FA9] transition-transform duration-200" style={{ transform: isCategoryDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+                                        </button>
+                                        {isCategoryDropdownOpen && (
+                                            <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 py-2">
+                                                {['Food', 'Drinks', 'Others'].map(opt => (
+                                                    <div
+                                                        key={opt}
+                                                        onClick={() => {
+                                                            setAddonCategory(opt);
+                                                            setIsCategoryDropdownOpen(false);
+                                                        }}
+                                                        className="px-4 py-3 cursor-pointer text-[14px] hover:bg-gray-50 font-semibold text-[#030303]"
+                                                    >
+                                                        {opt}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {/* Category Dropdown */}
+                                        <div className="relative">
+                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                                                    setIsSubCategoryDropdownOpen(false);
+                                                }}
+                                                className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                                style={{ color: addonCategory ? '#030303' : '#9F9FA9' }}
+                                            >
+                                                {addonCategory || 'Choose'}
+                                                <ChevronDown size={20} className="text-[#9F9FA9] transition-transform duration-200" style={{ transform: isCategoryDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+                                            </button>
+                                            {isCategoryDropdownOpen && (
+                                                <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 py-2">
+                                                    {['Food', 'Drinks', 'Other'].map(opt => (
+                                                        <div
+                                                            key={opt}
+                                                            onClick={() => {
+                                                                setAddonCategory(opt);
+                                                                setAddonProductType(opt);
+                                                                setAddonSubCategory('');
+                                                                setIsCategoryDropdownOpen(false);
+                                                            }}
+                                                            className="px-4 py-3 cursor-pointer text-[14px] hover:bg-gray-50 font-semibold text-[#030303]"
+                                                        >
+                                                            {opt}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Sub-Category Dropdown */}
+                                        <div className="relative">
+                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Sub- Category</label>
+                                            <button
+                                                type="button"
+                                                disabled={!addonCategory || addonCategory === 'Other'}
+                                                onClick={() => {
+                                                    setIsSubCategoryDropdownOpen(!isSubCategoryDropdownOpen);
+                                                    setIsCategoryDropdownOpen(false);
+                                                }}
+                                                className={`w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-gray-300 ${(!addonCategory || addonCategory === 'Other') ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}`}
+                                                style={{ color: addonSubCategory ? '#030303' : '#9F9FA9' }}
+                                            >
+                                                {addonSubCategory || 'Choose'}
+                                                <ChevronDown size={20} className="text-[#9F9FA9] transition-transform duration-200" style={{ transform: isSubCategoryDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
+                                            </button>
+                                            {isSubCategoryDropdownOpen && (
+                                                <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 py-2">
+                                                    {(addonCategory === 'Food' 
+                                                        ? ['Starter', 'Main Course', 'Dessert', 'Live Counter', 'Snacks'] 
+                                                        : addonCategory === 'Drinks' 
+                                                        ? ['Soft Drinks', 'Alcoholic Beverages', 'Beverages', 'Live Counter', 'Snacks'] 
+                                                        : []
+                                                    ).map(opt => (
+                                                        <div
+                                                            key={opt}
+                                                            onClick={() => {
+                                                                setAddonSubCategory(opt);
+                                                                setIsSubCategoryDropdownOpen(false);
+                                                            }}
+                                                            className="px-4 py-3 cursor-pointer text-[14px] hover:bg-gray-50 font-semibold text-[#030303]"
+                                                        >
+                                                            {opt}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex gap-4">
+                                    <div className="flex-1">
+                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Name Category"
+                                            value={addonCategory}
+                                            onChange={(e) => setAddonCategory(e.target.value)}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Sub-Category</label>
+                                        <input
+                                            type="text"
+                                            placeholder="Sub Category"
+                                            value={addonSubCategory}
+                                            onChange={(e) => setAddonSubCategory(e.target.value)}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                        />
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Sub-Category</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Sub Category"
-                                        value={addonSubCategory}
-                                        onChange={(e) => setAddonSubCategory(e.target.value)}
-                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                        className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                                    />
-                                </div>
-                            </div>
+                            )
                         )}
 
                         {addonType !== 'Space' && (
@@ -369,6 +499,30 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
                                     className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
                                 />
+                            </div>
+                        )}
+
+                        {isCaterer && addonType === 'Product' && (
+                            <div className="flex items-center justify-between border-t border-[#E4E4E7] pt-4 mt-2">
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-[#3F3F47]">Non Veg Product</span>
+                                <div className="flex bg-[#F4F4F5] rounded-full p-0.5 border border-[#D4D4D8]">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsNonVeg(false)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-colors ${!isNonVeg ? 'bg-[#030303] text-white shadow-xs' : 'text-[#71717B]'}`}
+                                    >
+                                        No
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsNonVeg(true)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-colors ${isNonVeg ? 'bg-[#030303] text-white shadow-xs' : 'text-[#71717B]'}`}
+                                    >
+                                        Yes
+                                    </button>
+                                </div>
                             </div>
                         )}
 
@@ -388,8 +542,8 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         )}
                     </div>
 
-                    {/* Choose Type (Product Only, Caterer flow only) */}
-                    {addonType === 'Product' && vendorType === 'CAT' && (
+                    {/* Choose Type (Product Only, non-caterer flow) */}
+                    {addonType === 'Product' && !isCaterer && (
                         <div className="bg-[#FAFAFA] p-5 rounded-[16px] border border-[#E4E4E7] flex flex-col gap-4">
                             <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Choose Type</h3>
                             
@@ -414,34 +568,87 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                     <div className="bg-[#FAFAFA] p-5 rounded-[16px] border border-[#E4E4E7] flex flex-col gap-4">
                         <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-2">Pricing Model</h3>
                         
-                        <div>
-                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Add-on Price</label>
-                            <input
-                                type="text"
-                                placeholder="$ 0.0"
-                                value={addonPrice}
-                                onChange={(e) => setAddonPrice(e.target.value)}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                            />
-                        </div>
+                        {isCaterer ? (
+                            addonType === 'Service' ? (
+                                <div className="flex flex-col gap-4">
+                                    <div>
+                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">How do you charge?</label>
+                                        <div className="flex bg-[#F4F4F5] rounded-[12px] p-1 relative border border-[#D4D4D8]">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setAddonBillingUnit('Per Event')} 
+                                                style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                className={`flex-1 py-2.5 text-[13px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonBillingUnit === 'Per Event' ? 'bg-white text-[#030303] shadow-xs font-bold' : 'text-[#71717B]'}`}
+                                            >
+                                                Per Event
+                                            </button>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setAddonBillingUnit('Per Hour')} 
+                                                style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                className={`flex-1 py-2.5 text-[13px] font-semibold rounded-[10px] transition-colors relative z-10 ${addonBillingUnit === 'Per Hour' ? 'bg-white text-[#030303] shadow-xs font-bold' : 'text-[#71717B]'}`}
+                                            >
+                                                Per Hour
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Add-on Price</label>
+                                        <input
+                                            type="text"
+                                            placeholder="₹ 0.0"
+                                            value={addonPrice}
+                                            onChange={(e) => setAddonPrice(e.target.value)}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                        />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Per Person Add-on Price</label>
+                                    <input
+                                        type="text"
+                                        placeholder="₹ 0.0"
+                                        value={addonPrice}
+                                        onChange={(e) => setAddonPrice(e.target.value)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                    />
+                                </div>
+                            )
+                        ) : (
+                            <>
+                                <div>
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Add-on Price</label>
+                                    <input
+                                        type="text"
+                                        placeholder="$ 0.0"
+                                        value={addonPrice}
+                                        onChange={(e) => setAddonPrice(e.target.value)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                    />
+                                </div>
 
-                        <div>
-                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Billing Unit</label>
-                            <div className="relative">
-                                <select
-                                    value={addonBillingUnit}
-                                    onChange={(e) => setAddonBillingUnit(e.target.value)}
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-[#9F9FA9] appearance-none focus:outline-none focus:ring-1 focus:ring-gray-300"
-                                >
-                                    <option>Per hour</option>
-                                    <option>Per day</option>
-                                    <option>Per piece</option>
-                                </select>
-                                <ChevronDown size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
+                                <div>
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Billing Unit</label>
+                                    <div className="relative">
+                                        <select
+                                            value={addonBillingUnit}
+                                            onChange={(e) => setAddonBillingUnit(e.target.value)}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-[#9F9FA9] appearance-none focus:outline-none focus:ring-1 focus:ring-gray-300"
+                                        >
+                                            <option>Per hour</option>
+                                            <option>Per day</option>
+                                            <option>Per piece</option>
+                                        </select>
+                                        <ChevronDown size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* POLICIES & RULES */}
@@ -541,14 +748,14 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         <button
                             onClick={onClose}
                             style={{ fontFamily: 'Figtree, sans-serif', padding: '16px 0' }}
-                            className="flex-1 flex justify-center items-center bg-white border border-[#E4E4E7] text-[#030303] rounded-[12px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
+                            className="flex-1 flex justify-center items-center bg-[#FAFAFA] border border-[#D4D4D8] text-[#030303] rounded-[16px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
                         >
                             Back
                         </button>
                         <button
                             onClick={handleSaveAddon}
                             style={{ fontFamily: 'Figtree, sans-serif', padding: '16px 0' }}
-                            className="flex-[2_2_0%] flex justify-center items-center gap-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
+                            className="flex-[2_2_0%] flex justify-center items-center gap-4 bg-[#031b24] text-white rounded-[16px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
                         >
                             Save Add-on
                         </button>
