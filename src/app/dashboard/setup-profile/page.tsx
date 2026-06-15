@@ -7,7 +7,7 @@ import { ChevronLeft, ArrowLeft, ArrowRight, X, Search, Check, Upload, CheckCirc
 import { useRouter } from 'next/navigation';
 import { StepTerms } from './StepTerms';
 import { StepBusinessName, StepPOCName, StepEmail, StepSingleChoice, StepDescription } from './StepBasics';
-import { StepVendorType } from './StepVendorType';
+import { StepVendorType, StepVendorCategories } from './StepVendorType';
 import { StepServiceArea } from './StepServiceArea';
 import { StepProfileCover } from './StepProfileCover';
 import { StepGuidelines, StepCarousel } from './StepMedia';
@@ -15,6 +15,7 @@ import { StepSummary } from './StepSummary';
 
 const API_BASE = apiUrl('');
 const CONTINUE_BUTTON_COLOR = 'rgba(4, 34, 45, 1)';
+const SETUP_FLOW_VERSION = '2';
 
 export default function SetupBusinessProfile() {
     const router = useRouter();
@@ -28,7 +29,7 @@ export default function SetupBusinessProfile() {
         teamSize: '',
         bookingsPerYear: '',
         experience: '',
-        vendorType: '',
+        vendorType: [] as string[],
         categories: [] as string[],
         city: '',
         serviceAreas: [] as string[],
@@ -48,7 +49,6 @@ export default function SetupBusinessProfile() {
     const [photosProgress, setPhotosProgress] = useState(0);
     const [vendorId, setVendorId] = useState<string | null>(null);
     const [eventSearch, setEventSearch] = useState('');
-    const [showEventDropdown, setShowEventDropdown] = useState(false);
     const [locationSearch, setLocationSearch] = useState('');
     const [showLocationDropdown, setShowLocationDropdown] = useState(false);
     const [showProfileSheet, setShowProfileSheet] = useState(false);
@@ -78,14 +78,6 @@ export default function SetupBusinessProfile() {
         "12+ years"
     ];
 
-    const vendorTypes = [
-        'Caterer', 'Decorator', 'DJ Artist', 'Makeup Artist', 'Photography and Videography', 'Venue Provider'
-    ];
-
-    const eventCategories = [
-        'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Conference', 'Workshop', 'Exhibition', 'Engagement', 'Anniversary'
-    ];
-
     const cityLocalities: Record<string, string[]> = {
         "Ghaziabad": ["Indirapuram", "Vasundhara", "Vaishali"],
         "Delhi": ["Connaught Place", "South Delhi", "North Delhi", "Dwarka", "Saket"],
@@ -106,7 +98,11 @@ export default function SetupBusinessProfile() {
         if (typeof window !== 'undefined') {
             const id = localStorage.getItem('vendor_id');
             setVendorId(id);
-
+            // Clear stale dashboard_step if onboarding wizard is still in progress
+            const _existingSetupStep = localStorage.getItem('vendor_setup_step');
+            if (_existingSetupStep && _existingSetupStep !== '15') {
+                localStorage.removeItem('dashboard_step');
+            }
             // Pre-fill from localStorage if available
             const savedName = localStorage.getItem('vendor_name');
             const savedPoc = localStorage.getItem('vendor_poc');
@@ -149,7 +145,12 @@ export default function SetupBusinessProfile() {
             if (savedTeamSize) setFormData(prev => ({ ...prev, teamSize: savedTeamSize }));
             if (savedBookings) setFormData(prev => ({ ...prev, bookingsPerYear: savedBookings }));
             if (savedExperience) setFormData(prev => ({ ...prev, experience: savedExperience }));
-            if (savedVendorType) setFormData(prev => ({ ...prev, vendorType: savedVendorType }));
+            if (savedVendorType) {
+                const parsedVendorTypes = savedVendorType.trim().startsWith('[')
+                    ? JSON.parse(savedVendorType)
+                    : savedVendorType.split(',').map((item) => item.trim()).filter(Boolean);
+                setFormData(prev => ({ ...prev, vendorType: parsedVendorTypes }));
+            }
             if (savedCategories) setFormData(prev => ({ ...prev, categories: JSON.parse(savedCategories) }));
             if (savedCity) setFormData(prev => ({ ...prev, city: savedCity }));
             if (savedServiceAreas) setFormData(prev => ({ ...prev, serviceAreas: JSON.parse(savedServiceAreas) }));
@@ -160,7 +161,30 @@ export default function SetupBusinessProfile() {
             if (savedDescription) setFormData(prev => ({ ...prev, description: savedDescription }));
             if (savedPhotos) setFormData(prev => ({ ...prev, businessPhotos: JSON.parse(savedPhotos) }));
             if (savedCover) setFormData(prev => ({ ...prev, coverImage: savedCover }));
-            if (savedStep) setStep(parseInt(savedStep));
+            if (savedStep) {
+                const savedFlowVersion = localStorage.getItem('vendor_setup_flow_version');
+                const parsedStep = parseInt(savedStep);
+                const nextStep = savedFlowVersion === SETUP_FLOW_VERSION
+                    ? parsedStep
+                    : parsedStep >= 8
+                        ? parsedStep + 1
+                        : parsedStep;
+
+                // Auto-reset to step 10 (ProfileCover) if we're past it but images are missing.
+                // This lets you re-test step 10 just by deleting images from the DB.
+                const hasCover = !!(savedCover && savedCover.trim());
+                const hasProfilePic = !!(savedProfilePic && savedProfilePic.trim());
+                if (nextStep >= 10 && (!hasCover || !hasProfilePic)) {
+                    console.log('[Dev] Images missing — resetting to step 10 (ProfileCover)');
+                    setStep(10);
+                    localStorage.setItem('vendor_setup_step', '10');
+                    localStorage.removeItem('vendor_cover_image');
+                    localStorage.removeItem('vendor_profile_picture');
+                } else {
+                    setStep(nextStep);
+                    localStorage.setItem('vendor_setup_flow_version', SETUP_FLOW_VERSION);
+                }
+            }
         }
     }, []);
 
@@ -199,7 +223,7 @@ export default function SetupBusinessProfile() {
         router.push('/dashboard');
     };
 
-    const handleUpdate = async () => {
+    const handleUpdate = async (): Promise<boolean> => {
         setLoading(true);
         try {
             const vendorId = localStorage.getItem('vendor_id');
@@ -207,7 +231,7 @@ export default function SetupBusinessProfile() {
 
             if (!vendorId) {
                 console.error('No vendor ID found in localStorage');
-                return;
+                return false;
             }
 
             const response = await fetch(`${API_BASE}/vendors/${vendorId}`, {
@@ -220,7 +244,7 @@ export default function SetupBusinessProfile() {
                     teamSize: formData.teamSize,
                     bookingsPerYear: formData.bookingsPerYear,
                     experience: formData.experience,
-                    vendorType: formData.vendorType,
+                    vendorType: formData.vendorType.join(', '),
                     categories: formData.categories,
                     city: formData.city,
                     serviceAreas: formData.serviceAreas,
@@ -243,8 +267,9 @@ export default function SetupBusinessProfile() {
                 localStorage.setItem('vendor_team_size', formData.teamSize);
                 localStorage.setItem('vendor_bookings', formData.bookingsPerYear);
                 localStorage.setItem('vendor_experience', formData.experience);
-                localStorage.setItem('vendor_type', formData.vendorType);
+                localStorage.setItem('vendor_type', JSON.stringify(formData.vendorType));
                 localStorage.setItem('vendor_categories', JSON.stringify(formData.categories));
+                localStorage.setItem('vendor_setup_flow_version', SETUP_FLOW_VERSION);
                 localStorage.setItem('vendor_city', formData.city);
                 localStorage.setItem('vendor_service_areas', JSON.stringify(formData.serviceAreas));
                 if (formData.profilePicture) localStorage.setItem('vendor_profile_picture', formData.profilePicture);
@@ -252,19 +277,23 @@ export default function SetupBusinessProfile() {
                 localStorage.setItem('vendor_business_photos', JSON.stringify(formData.businessPhotos));
                 if (formData.coverImage) localStorage.setItem('vendor_cover_image', formData.coverImage);
 
-                 if (step === 14) {
+                if (step === 15) {
                     console.log('Final step reached. Redirecting...');
                     localStorage.removeItem('vendor_setup_step');
+                    localStorage.removeItem('dashboard_step'); // force dashboard to re-evaluate
                     localStorage.setItem('onboarding_success', 'true');
                     router.push('/dashboard');
                 }
+                return true;
             } else {
                 console.error('Server error:', data);
                 alert(`Error: ${data.message || 'Failed to save data'}`);
+                return false;
             }
         } catch (error) {
             console.error('Network or client error:', error);
             alert('Connection error. Please check your internet or if the server is running.');
+            return false;
         } finally {
             setLoading(false);
         }
@@ -276,8 +305,11 @@ export default function SetupBusinessProfile() {
             setShowZoomView(false);
             return;
         }
-        await handleUpdate();
-        if (step < 14) {
+        const success = await handleUpdate();
+        // Only advance when the API call actually succeeded.
+        // Previously this always advanced even on failure, causing
+        // localStorage step to get ahead of what was saved.
+        if (success && step < 15) {
             const nextStep = step + 1;
             setStep(nextStep);
             localStorage.setItem('vendor_setup_step', nextStep.toString());
@@ -300,22 +332,26 @@ export default function SetupBusinessProfile() {
     };
 
     const isButtonDisabled = () => {
+        if (showZoomView) return !tempImage;
         if (step === 1) return formData.businessName.trim().length < 2;
         if (step === 2) return formData.pocName.trim().length < 2;
-        if (step === 3) return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+        if (step === 3) return formData.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
         if (step === 4) return !formData.teamSize;
         if (step === 5) return !formData.bookingsPerYear;
         if (step === 6) return !formData.experience;
-        if (step === 7) return !formData.vendorType || formData.categories.length === 0;
-        if (step === 8) return formData.serviceAreas.length === 0;
-        if (step === 9) return !formData.profilePicture || !formData.coverImage;
-        if (step === 10) return formData.description.length < 200 || formData.description.length > 400;
-        if (step === 11) return false; // Guidelines — always enabled
-        if (step === 12) return formData.businessPhotos.length < 3;
-        if (step === 13) return !hasAcceptedTerms;
-        if (step === 14) return false;
+        if (step === 7) return formData.vendorType.length === 0;
+        if (step === 8) return formData.categories.length === 0;
+        if (step === 9) return formData.serviceAreas.length === 0;
+        if (step === 10) return !formData.profilePicture || !formData.coverImage;
+        if (step === 11) return formData.description.length < 200 || formData.description.length > 400;
+        if (step === 12) return false; // Guidelines — always enabled
+        if (step === 13) return formData.businessPhotos.length < 3;
+        if (step === 14) return !hasAcceptedTerms;
+        if (step === 15) return false;
         return true;
     };
+
+    const isContinueDisabled = showZoomView ? !tempImage : isButtonDisabled() || loading;
 
     const toggleCategory = (category: string) => {
         setFormData(prev => {
@@ -427,19 +463,19 @@ export default function SetupBusinessProfile() {
     };
 
     return (
-        <div className="min-h-screen bg-white flex flex-col font-figtree">
+        <div className="min-h-[100dvh] bg-white flex flex-col font-figtree">
             {/* Top Bar */}
-            {step < 14 && (
-                <div className="px-6 pt-12">
+            {step < 15 && (
+                <div className={`${step === 1 ? 'px-[22px] pt-[61px] pb-[10px] border-b border-[#F0F0F1]' : 'px-6 pt-12'}`}>
                     {/* Progress Bar */}
                     <div
-                        className="w-full h-[12px] rounded-[12px] overflow-hidden mb-6"
+                        className={`${step === 1 ? 'w-full h-[10px] rounded-[10px] mb-[21px]' : 'w-full h-[12px] rounded-[12px] mb-6'} overflow-hidden`}
                         style={{ backgroundColor: 'rgba(230, 233, 234, 1)' }}
                     >
                         <div
-                            className="h-full rounded-[12px] transition-all duration-500"
+                            className={`${step === 1 ? 'rounded-[10px]' : 'rounded-[12px]'} h-full transition-all duration-500`}
                             style={{
-                                width: `${(step / 14) * 98}%`,
+                                width: step === 1 ? '31px' : `${(step / 15) * 98}%`,
                                 backgroundColor: 'rgba(3, 27, 36, 1)'
                             }}
                         />
@@ -448,16 +484,16 @@ export default function SetupBusinessProfile() {
                     {/* Save & Exit */}
                     <button
                         onClick={handleSaveAndExit}
-                        className="flex items-center gap-1 text-[#030303] text-[14px] font-medium py-2 active:opacity-60 transition-all"
+                        className={`${step === 1 ? 'py-0' : 'py-2'} flex items-center gap-1 text-[#030303] text-[14px] font-medium active:opacity-60 transition-all`}
                     >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={step === 1 ? 18 : 20} />
                         <span>Save & Exit</span>
                     </button>
                 </div>
             )}
 
             {/* Main Content */}
-            <div className={`flex-1 ${step < 14 ? 'overflow-y-auto px-6 pt-10 pb-24' : 'flex flex-col overflow-hidden'}`}>
+            <div className={`flex-1 ${step === 15 ? 'flex flex-col overflow-hidden' : step === 1 ? 'overflow-y-auto px-[22px] pt-[29px] pb-[128px]' : 'overflow-y-auto px-6 pt-10 pb-[140px]'}`}>
                 <AnimatePresence mode="wait">
                     {step === 1 && (
                         <StepBusinessName
@@ -497,8 +533,8 @@ export default function SetupBusinessProfile() {
                     {step === 5 && (
                         <StepSingleChoice
                             stepKey="step5"
-                            title="How many bookings do you handle in a year?"
-                            subtitle="This helps us recommend the right bookings for you."
+                            title="How many bookings do you handle in a year ?"
+                            subtitle="This helps us recommend bookings that match your capacity."
                             options={bookingsOptions}
                             value={formData.bookingsPerYear}
                             onChange={(val) => setFormData(prev => ({ ...prev, bookingsPerYear: val }))}
@@ -520,17 +556,20 @@ export default function SetupBusinessProfile() {
                         <StepVendorType
                             formData={formData}
                             setFormData={setFormData}
-                            eventSearch={eventSearch}
-                            setEventSearch={setEventSearch}
-                            showEventDropdown={showEventDropdown}
-                            setShowEventDropdown={setShowEventDropdown}
-                            toggleCategory={toggleCategory}
-                            isButtonDisabled={isButtonDisabled}
-                            handleContinue={handleContinue}
                         />
                     )}
 
                     {step === 8 && (
+                        <StepVendorCategories
+                            formData={formData}
+                            setFormData={setFormData}
+                            eventSearch={eventSearch}
+                            setEventSearch={setEventSearch}
+                            toggleCategory={toggleCategory}
+                        />
+                    )}
+
+                    {step === 9 && (
                         <StepServiceArea
                             formData={formData}
                             activeCity={activeCity}
@@ -543,7 +582,7 @@ export default function SetupBusinessProfile() {
                         />
                     )}
 
-                    {step === 9 && (
+                    {step === 10 && (
                         <StepProfileCover
                             formData={formData}
                             setFormData={setFormData}
@@ -560,18 +599,18 @@ export default function SetupBusinessProfile() {
                             handleCoverUpload={handleCoverUpload}
                         />
                     )}
-                    {step === 10 && (
+                    {step === 11 && (
                         <StepDescription
                             formData={formData}
                             setFormData={setFormData}
                         />
                     )}
 
-                    {step === 11 && (
-                        <StepGuidelines stepKey="step11" />
+                    {step === 12 && (
+                        <StepGuidelines stepKey="step12" />
                     )}
 
-                    {step === 12 && (
+                    {step === 13 && (
                         <StepCarousel
                             businessPhotos={formData.businessPhotos}
                             uploadingPhotos={uploadingPhotos}
@@ -581,19 +620,19 @@ export default function SetupBusinessProfile() {
                         />
                     )}
 
-                    {step === 13 && (
+                    {step === 14 && (
                         <StepTerms
                             hasAcceptedTerms={hasAcceptedTerms}
                             setHasAcceptedTerms={setHasAcceptedTerms}
                         />
                     )}
 
-                    {step === 14 && (
+                    {step === 15 && (
                         <StepSummary
                             formData={formData}
                             onBack={() => {
-                                setStep(13);
-                                localStorage.setItem('vendor_setup_step', '13');
+                                setStep(14);
+                                localStorage.setItem('vendor_setup_step', '14');
                             }}
                             onSubmit={handleContinue}
                             onEdit={() => {
@@ -607,31 +646,31 @@ export default function SetupBusinessProfile() {
             </div>
 
             {/* Bottom Controls */}
-            {step < 14 && (
-                <div className="p-6 flex items-center gap-4 border-t border-gray-50">
+            {step < 15 && (
+                <div className={`fixed bottom-0 left-1/2 z-50 w-full max-w-md -translate-x-1/2 bg-white ${step === 1 ? 'px-[22px] pt-[14px] pb-[calc(17px+env(safe-area-inset-bottom))]' : 'px-6 pt-6 pb-[calc(24px+env(safe-area-inset-bottom))]'} flex items-center gap-4 border-t border-gray-50`}>
                     <button
                         onClick={handleBack}
-                        className="flex items-center justify-center border border-[#04222D] bg-[#E6E9EA] rounded-lg active:scale-95 transition-all flex-shrink-0"
-                        style={{ width: '56px', height: '56px' }}
+                        className={`flex items-center justify-center border border-[#04222D] ${step === 1 ? 'bg-[#F8FAFA] rounded-[6px]' : 'bg-[#E6E9EA] rounded-lg'} active:scale-95 transition-all flex-shrink-0`}
+                        style={{ width: step === 1 ? '50px' : '56px', height: step === 1 ? '50px' : '56px' }}
                     >
-                        <ArrowLeft size={24} className="text-[#04222D]" />
+                        <ArrowLeft size={step === 1 ? 20 : 24} className="text-[#04222D]" />
                     </button>
 
                     <div className="flex-1 flex flex-col items-center gap-2">
                         <button
-                            disabled={isButtonDisabled() || loading}
+                            disabled={isContinueDisabled}
                             onClick={handleContinue}
-                            className={`w-full h-[56px] rounded-lg font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 ${isButtonDisabled() || loading
+                            className={`w-full ${step === 1 ? 'h-[50px] rounded-[6px] text-[15px]' : 'h-[56px] rounded-lg text-lg'} font-bold flex items-center justify-center gap-2 transition-all duration-300 ${isContinueDisabled
                                     ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                                     : 'text-white active:scale-[0.98]'
                                 }`}
                             style={{
-                                backgroundColor: isButtonDisabled() || loading ? '#E5E7EB' : CONTINUE_BUTTON_COLOR
+                                backgroundColor: isContinueDisabled ? '#E5E7EB' : CONTINUE_BUTTON_COLOR
                             }}
                         >
                             {loading ? 'Saving...' : 'Continue'}
                         </button>
-                        {step === 12 && isButtonDisabled() && !loading && (
+                        {step === 13 && isButtonDisabled() && !loading && (
                             <p className="text-[12px] font-medium text-rose-500 animate-pulse">
                                 {!formData.coverImage ? 'Please add a cover image' : 'Please upload at least 3 carousel images'}
                             </p>
@@ -639,9 +678,6 @@ export default function SetupBusinessProfile() {
                     </div>
                 </div>
             )}
-
-            {/* Home Indicator Spacer */}
-            {step < 14 && <div className="h-6" />}
         </div>
     );
 }

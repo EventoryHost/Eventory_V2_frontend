@@ -16,39 +16,42 @@ const stepVariants = {
 
 export function StepBusinessName({ formData, setFormData }: Props) {
     return (
-        <motion.div key="step1" {...stepVariants} className="space-y-6 pb-10">
-            <div className="space-y-2">
-                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">
-                    What&apos;s your business name?
+        <motion.div key="step1" {...stepVariants} className="pb-10">
+            <div>
+                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] tracking-[0] font-figtree max-w-[315px]">
+                    What&apos;s your business or brand name
                 </h1>
-                <p className="text-[#3F3F47] text-[15px] font-normal font-figtree">
-                    This will be displayed on your profile and visible to clients.
-                </p>
             </div>
-            <div className="space-y-3">
-                <div className="flex items-center gap-3 p-4 rounded-[8px] border border-[#71717B] bg-[#E6E9EA] cursor-pointer"
-                    onClick={() => setFormData((prev: FormData) => ({ ...prev, isIndividual: false }))}
-                >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${!formData.isIndividual ? 'border-[#04222D]' : 'border-gray-300'}`}>
-                        {!formData.isIndividual && <div className="w-2.5 h-2.5 rounded-full bg-[#04222D]" />}
-                    </div>
-                    <span className="text-[15px] font-medium font-figtree text-[#030303]">Business / Company</span>
-                </div>
-                <div className="flex items-center gap-3 p-4 rounded-[8px] border border-[#71717B] bg-[#E6E9EA] cursor-pointer"
-                    onClick={() => setFormData((prev: FormData) => ({ ...prev, isIndividual: true }))}
-                >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.isIndividual ? 'border-[#04222D]' : 'border-gray-300'}`}>
-                        {formData.isIndividual && <div className="w-2.5 h-2.5 rounded-full bg-[#04222D]" />}
-                    </div>
-                    <span className="text-[15px] font-medium font-figtree text-[#030303]">Individual / Freelancer</span>
-                </div>
+
+            <div className="mt-4 space-y-[18px]">
                 <input
                     type="text"
                     value={formData.businessName}
                     onChange={(e) => setFormData((prev: FormData) => ({ ...prev, businessName: e.target.value }))}
-                    placeholder={formData.isIndividual ? 'Your Name' : 'Business Name'}
-                    className="w-full px-5 py-4 border border-gray-300 rounded-[8px] bg-white outline-none focus:border-[#04222D] focus:ring-1 focus:ring-[#04222D] font-figtree text-[15px] text-[#030303] placeholder:text-gray-400 shadow-sm transition-all"
+                    placeholder={formData.isIndividual ? 'Your name' : 'Business name'}
+                    className="flex w-full items-center gap-4 self-stretch rounded-[8px] border border-[#D4D4D8] bg-white px-[14px] py-4 outline-none focus:border-[#04222D] focus:ring-1 focus:ring-[#04222D] font-figtree text-[16px] leading-[24px] font-normal tracking-[0] text-[#030303] placeholder:text-[#9F9FA9] transition-all"
                 />
+
+                <div className="space-y-[10px]">
+                    <p className="text-[#3F3F47] text-[14px] leading-[20px] font-normal tracking-[0] font-figtree max-w-[306px]">
+                        Enter your business name. If you&apos;re an individual/Freelancer, you can use your own name.
+                    </p>
+
+                    <label className="flex items-center gap-2 text-[#030303] text-[13px] font-medium font-figtree cursor-pointer select-none">
+                        <input
+                            type="checkbox"
+                            checked={formData.isIndividual}
+                            onChange={(e) => setFormData((prev: FormData) => ({ ...prev, isIndividual: e.target.checked }))}
+                            className="peer sr-only"
+                        />
+                        <span className={`w-[13px] h-[13px] rounded-[2px] border flex items-center justify-center ${formData.isIndividual ? 'border-[#04222D] bg-[#04222D]' : 'border-[#030303] bg-white'}`}>
+                            {formData.isIndividual && (
+                                <span className="block w-[7px] h-[4px] border-l border-b border-white -rotate-45 translate-y-[-1px]" />
+                            )}
+                        </span>
+                        <span>I operate as an individual</span>
+                    </label>
+                </div>
             </div>
         </motion.div>
     );
@@ -56,22 +59,26 @@ export function StepBusinessName({ formData, setFormData }: Props) {
 
 export function StepPOCName({ formData, setFormData }: Props) {
     return (
-        <motion.div key="step2" {...stepVariants} className="space-y-6 pb-10">
-            <div className="space-y-2">
-                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">
-                    Point of Contact Name
+        <motion.div key="step2" {...stepVariants} className="pb-10">
+            <div>
+                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] tracking-[0] font-figtree">
+                    Primary Point of Contact (POC)
                 </h1>
-                <p className="text-[#3F3F47] text-[15px] font-normal font-figtree">
-                    Who should clients reach out to?
+            </div>
+
+            <div className="mt-4 space-y-[18px]">
+                <input
+                    type="text"
+                    value={formData.pocName}
+                    onChange={(e) => setFormData((prev: FormData) => ({ ...prev, pocName: e.target.value }))}
+                    placeholder="Enter full name"
+                    className="flex w-full items-center gap-4 self-stretch rounded-[8px] border border-[#D4D4D8] bg-white px-[14px] py-4 outline-none focus:border-[#04222D] focus:ring-1 focus:ring-[#04222D] font-figtree text-[16px] leading-[24px] font-normal tracking-[0] text-[#030303] placeholder:text-[#9F9FA9] transition-all"
+                />
+
+                <p className="text-[#3F3F47] text-[14px] leading-[20px] font-normal tracking-[0] font-figtree max-w-[306px]">
+                    Customers and Eventory will reach out to this person for booking-related communication.
                 </p>
             </div>
-            <input
-                type="text"
-                value={formData.pocName}
-                onChange={(e) => setFormData((prev: FormData) => ({ ...prev, pocName: e.target.value }))}
-                placeholder="Full Name"
-                className="w-full px-5 py-4 border border-gray-300 rounded-[8px] bg-white outline-none focus:border-[#04222D] focus:ring-1 focus:ring-[#04222D] font-figtree text-[15px] text-[#030303] placeholder:text-gray-400 shadow-sm transition-all"
-            />
         </motion.div>
     );
 }
@@ -105,20 +112,33 @@ export function StepSingleChoice({
     options: string[]; value: string;
     onChange: (v: string) => void;
 }) {
+    const isTeamStep = stepKey === 'step4';
+    const isBookingsStep = stepKey === 'step5';
+    const isExperienceStep = stepKey === 'step6';
+    const useChipLayout = isTeamStep || isBookingsStep || isExperienceStep;
+    const hasSelection = value.length > 0;
+
     return (
-        <motion.div key={stepKey} {...stepVariants} className="space-y-6 pb-10">
-            <div className="space-y-2">
-                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">{title}</h1>
-                <p className="text-[#3F3F47] text-[15px] font-normal font-figtree">{subtitle}</p>
+        <motion.div key={stepKey} {...stepVariants} className={`${useChipLayout ? 'pb-10' : 'space-y-6 pb-10'}`}>
+            <div className={useChipLayout ? 'space-y-3' : 'space-y-2'}>
+                <h1 className={`text-[#030303] font-semibold font-figtree ${useChipLayout ? 'text-[24px] leading-[32px] tracking-[0] max-w-[320px]' : 'text-[24px] leading-[32px]'}`}>{title}</h1>
+                <p className={`text-[#3F3F47] font-normal font-figtree ${useChipLayout ? 'text-[14px] leading-[20px] tracking-[0] max-w-[320px]' : 'text-[15px]'}`}>{subtitle}</p>
             </div>
-            <div className="space-y-3">
+
+            <div className={useChipLayout ? 'mt-8 flex flex-wrap gap-x-[10px] gap-y-4' : 'space-y-3'}>
                 {options.map((opt) => (
                     <button
                         key={opt}
                         onClick={() => onChange(opt)}
-                        className={`w-full px-5 py-4 rounded-[8px] border text-left font-figtree text-[15px] font-medium transition-all ${value === opt
-                            ? 'border-[#04222D] bg-[#04222D]/5 text-[#04222D]'
-                            : 'border-[#71717B] bg-[#E6E9EA] text-[#030303]'}`}
+                        className={`font-figtree transition-all ${useChipLayout
+                            ? `inline-flex w-fit whitespace-nowrap rounded-[9999px] border px-4 py-2 text-[14px] leading-[20px] font-medium ${value === opt
+                                ? 'border-[#04222D] bg-white text-[#04222D]'
+                                : hasSelection
+                                    ? 'border-[#D4D4D8] bg-white text-[#D4D4D8]'
+                                    : 'border-[#04222D] bg-white text-[#04222D]'}` 
+                            : `px-5 py-4 rounded-[8px] border text-[15px] font-medium ${value === opt
+                                ? 'border-[#04222D] bg-[#04222D]/5 text-[#04222D]'
+                                : 'border-[#71717B] bg-[#E6E9EA] text-[#030303]'}`}`}
                     >
                         {opt}
                     </button>
@@ -152,11 +172,14 @@ export function StepDescription({
 
             <div className="space-y-2 relative">
                 <div className="flex justify-end pr-1">
-                    <span className={`text-[12px] font-medium font-figtree transition-colors ${formData.description.length > 400
+                    <span className={`text-[12px] font-medium font-figtree transition-colors ${
+                        formData.description.length > 400
                             ? 'text-rose-500'
-                            : 'text-gray-400'
+                            : formData.description.length >= 200
+                                ? 'text-emerald-500'
+                                : 'text-gray-400'
                         }`}>
-                        {formData.description.length}/400
+                        {formData.description.length} / 400
                     </span>
                 </div>
                 <textarea
@@ -168,8 +191,15 @@ export function StepDescription({
                             : 'border-gray-300 focus:border-[#04222D] bg-white focus:ring-1 focus:ring-[#04222D]'
                         }`}
                 />
-                <p className="text-[13px] font-medium font-figtree text-gray-400">
-                    A minimum of 200 characters is required
+                <p className={`text-[13px] font-medium font-figtree transition-colors ${
+                    formData.description.length > 400
+                        ? 'text-rose-500'
+                        : 'text-gray-400'
+                }`}>
+                    {formData.description.length > 400
+                        ? `Too long — trim ${formData.description.length - 400} character${formData.description.length - 400 === 1 ? '' : 's'}`
+                        : 'Between 200 and 400 characters required'
+                    }
                 </p>
             </div>
         </motion.div>

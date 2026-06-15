@@ -80,25 +80,29 @@ export default function DashboardHome() {
         if (name) setUserName(name);
 
         const success = localStorage.getItem('onboarding_success');
+        // Only trust dashboard_step=3 from cache (doc-verified state is hard to fake).
+        // dashboard_step=2 is NOT trusted from cache — it's always re-verified by the
+        // API call below to prevent it from sticking after the user goes back into the wizard.
         const savedStep = localStorage.getItem('dashboard_step');
 
         if (savedStep === '3') {
             setDashboardStep(3);
-        } else if (success === 'true' || savedStep === '2') {
+        } else if (success === 'true') {
+            // Show confetti only on the fresh completion redirect
             setDashboardStep(2);
             localStorage.setItem('dashboard_step', '2');
-            if (success === 'true') {
-                setShowStep2Popup(true);
-                import('canvas-confetti').then((confetti) => {
-                    confetti.default({
-                        particleCount: 150,
-                        spread: 80,
-                        origin: { y: 0.6 }
-                    });
+            setShowStep2Popup(true);
+            import('canvas-confetti').then((confetti) => {
+                confetti.default({
+                    particleCount: 150,
+                    spread: 80,
+                    origin: { y: 0.6 }
                 });
-            }
+            });
             localStorage.removeItem('onboarding_success');
         }
+        // Note: savedStep==='2' is intentionally NOT used here — the API check below
+        // is the single source of truth for step 1 vs step 2.
 
         const checkOnboardingStatus = async () => {
             if (vendorId) {
@@ -118,9 +122,19 @@ export default function DashboardHome() {
                             setDashboardStep(3);
                             localStorage.setItem('dashboard_step', '3');
                         } else {
-                            if (vendor.coverImage) {
+                            // Onboarding is complete only when:
+                            // 1. vendor_setup_step has been cleared (wizard fully submitted)
+                            // 2. The vendor has all required fields: coverImage, description, ≥3 businessPhotos
+                            const savedSetupStep = localStorage.getItem('vendor_setup_step');
+                            const onboardingDone = !savedSetupStep || savedSetupStep === '15';
+                            if (onboardingDone && vendor.coverImage && vendor.description && vendor.businessPhotos?.length >= 3) {
                                 setDashboardStep(2);
                                 localStorage.setItem('dashboard_step', '2');
+                            } else {
+                                // Onboarding is still in progress — reset to Step 1 and clear
+                                // any stale dashboard_step so it doesn't get stuck on Step 2.
+                                setDashboardStep(1);
+                                localStorage.removeItem('dashboard_step');
                             }
                         }
                     }
