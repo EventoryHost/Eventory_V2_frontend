@@ -1,10 +1,10 @@
 'use client';
 import { apiUrl } from '@/lib/api';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ArrowRight, RefreshCcw, ChevronLeft } from 'lucide-react';
+import { Sparkles, ArrowRight, ChevronLeft } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const API_BASE = apiUrl('');
@@ -38,6 +38,7 @@ const HERO_SLIDES = [
 
 export default function LoginPage() {
     const router = useRouter();
+    const otpInputRefs = useRef<Array<HTMLInputElement | null>>([]);
     const [step, setStep] = useState(0); // 0: Hero, 1: Phone, 2: OTP
     const [formData, setFormData] = useState({
         phone: '',
@@ -50,7 +51,13 @@ export default function LoginPage() {
         session: '',
     });
     const [timer, setTimer] = useState(0);
-    const [loggedInUser, setLoggedInUser] = useState<{ id: string | null; name: string | null } | null>(null);
+    const [loggedInUser, setLoggedInUser] = useState<{ id: string | null; name: string | null } | null>(() => {
+        if (typeof window === 'undefined') return null;
+        const token = localStorage.getItem('vendor_token');
+        const id = localStorage.getItem('vendor_id');
+        const name = localStorage.getItem('vendor_name');
+        return token && id ? { id, name } : null;
+    });
     const [heroIndex, setHeroIndex] = useState(0);
 
     useEffect(() => {
@@ -62,20 +69,9 @@ export default function LoginPage() {
         }
     }, [step]);
 
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const token = localStorage.getItem('vendor_token');
-            const id = localStorage.getItem('vendor_id');
-            const name = localStorage.getItem('vendor_name');
-            if (token && id) {
-                setLoggedInUser({ id, name });
-            }
-        }
-    }, []);
-
     // Timer for Resend OTP
     useEffect(() => {
-        let interval: any;
+        let interval: ReturnType<typeof setInterval>;
         if (timer > 0) {
             interval = setInterval(() => setTimer(prev => prev - 1), 1000);
         }
@@ -98,7 +94,7 @@ export default function LoginPage() {
             } else {
                 setStatus({ ...status, loading: false, error: data.message || 'Failed to send OTP' });
             }
-        } catch (err) {
+        } catch {
             setStatus({ ...status, loading: false, error: 'Server connection failed' });
         }
     };
@@ -127,7 +123,7 @@ export default function LoginPage() {
             } else {
                 setStatus({ ...status, loading: false, error: data.message || 'Invalid OTP' });
             }
-        } catch (err) {
+        } catch {
             setStatus({ ...status, loading: false, error: 'Verification failed' });
         }
     };
@@ -136,6 +132,35 @@ export default function LoginPage() {
         if (step === 1) return formData.phone.length !== 10;
         if (step === 2) return formData.otp.length !== 6;
         return false;
+    };
+
+    const updateOtpDigit = (index: number, value: string) => {
+        const digits = value.replace(/\D/g, '');
+
+        if (digits.length > 1) {
+            const nextOtp = digits.slice(0, 6);
+            setFormData({ ...formData, otp: nextOtp });
+            if (status.error) setStatus({ ...status, error: '' });
+            otpInputRefs.current[Math.min(nextOtp.length, 5)]?.focus();
+            return;
+        }
+
+        const otpDigits = formData.otp.padEnd(6, ' ').split('');
+        otpDigits[index] = digits;
+        const nextOtp = otpDigits.join('').replace(/\s/g, '');
+        setFormData({ ...formData, otp: nextOtp });
+        if (status.error) setStatus({ ...status, error: '' });
+        if (digits && index < 5) otpInputRefs.current[index + 1]?.focus();
+    };
+
+    const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Backspace' && !formData.otp[index] && index > 0) {
+            otpInputRefs.current[index - 1]?.focus();
+        }
+
+        if (event.key === 'Enter' && !isButtonDisabled()) {
+            handleVerifyOtp();
+        }
     };
 
     return (
@@ -320,36 +345,65 @@ export default function LoginPage() {
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 exit={{ opacity: 0, x: -20 }}
-                                className="space-y-6 flex-1 flex flex-col"
+                                className="space-y-3 flex-1 flex flex-col pt-2"
                             >
-                                <div className="space-y-2">
-                                    <h2 className="text-2xl font-bold text-[#030303]">Verify OTP</h2>
-                                    <p className="text-gray-500 text-sm">Code sent to ******{formData.phone.slice(-4)}</p>
+                                <div>
+                                    <h2 className="text-[17px] font-bold text-[#262634] leading-tight font-figtree">Enter Verification Code</h2>
+                                    <p className="text-[11px] leading-[16px] text-[#262634] mt-4 font-figtree max-w-[305px]">
+                                        Please Enter The 6 - Digit Verification Code Send To {formData.phone || '7895266687'}
+                                    </p>
                                 </div>
 
-                                <div className="space-y-4 flex-1">
-                                    <div className={`flex items-center w-full border rounded-xl px-4 transition-all bg-[#F9FAFB] ${status.error ? 'border-red-500' : 'border-gray-200 focus-within:border-[#04222D] focus-within:ring-1 focus-within:ring-[#04222D]'}`}>
-                                        <input 
-                                            autoFocus
-                                            type="text"
-                                            maxLength={6}
-                                            placeholder="Enter 6-digit OTP"
-                                            value={formData.otp}
-                                            onChange={(e) => setFormData({ ...formData, otp: e.target.value.replace(/\D/g, '') })}
-                                            className="w-full py-4 outline-none bg-transparent text-[#030303] font-bold tracking-[0.5em] placeholder:tracking-normal placeholder:font-normal"
-                                        />
+                                <div className="space-y-2 flex-1">
+                                    <div className="grid w-full grid-cols-6 gap-[7px] pt-1">
+                                        {Array.from({ length: 6 }).map((_, index) => (
+                                            <input
+                                                key={index}
+                                                ref={(element) => {
+                                                    otpInputRefs.current[index] = element;
+                                                }}
+                                                autoFocus={index === 0}
+                                                type="text"
+                                                inputMode="numeric"
+                                                maxLength={1}
+                                                value={formData.otp[index] || ''}
+                                                onChange={(event) => updateOtpDigit(index, event.target.value)}
+                                                onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                                                className={`h-10 w-full rounded-[6px] border bg-white text-center text-[12px] font-normal text-[#262634] outline-none transition-all font-figtree ${
+                                                    status.error
+                                                        ? 'border-red-500'
+                                                        : status.success
+                                                            ? 'border-green-500'
+                                                            : 'border-[#DFE2E7] focus:border-[#04222D] focus:ring-1 focus:ring-[#04222D]'
+                                                }`}
+                                            />
+                                        ))}
                                     </div>
-                                    <div className="flex justify-between items-center px-1">
-                                        <p className="text-red-500 text-xs font-medium">{status.error}</p>
-                                        {timer > 0 ? (
-                                            <p className="text-gray-400 text-xs">Resend in {timer}s</p>
-                                        ) : (
-                                            <button 
-                                                onClick={handleSendOtp}
-                                                className="text-[#04222D] text-xs font-bold flex items-center gap-1.5"
-                                            >
-                                                <RefreshCcw size={12} /> Resend
-                                            </button>
+
+                                    <div className="flex justify-between items-start min-h-[24px] font-figtree">
+                                        <div className="flex-1">
+                                            {status.error && <p className="text-red-500 text-sm font-medium">{status.error}</p>}
+                                            {status.success && <p className="text-green-500 text-sm font-bold">{status.success}</p>}
+                                            {!status.error && !status.success && timer > 0 && (
+                                                <p className="text-[#A8A9B3] text-[10px] leading-[14px]">Resend in {timer}s</p>
+                                            )}
+                                        </div>
+                                        {!status.success && (
+                                            timer > 0 ? (
+                                                <button
+                                                    disabled
+                                                    className="text-[#A8A9B3] text-[10px] leading-[14px] font-medium cursor-not-allowed"
+                                                >
+                                                    Resend
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    onClick={handleSendOtp}
+                                                    className="text-[#04222D] text-[10px] leading-[14px] font-medium"
+                                                >
+                                                    Resend
+                                                </button>
+                                            )
                                         )}
                                     </div>
                                 </div>
@@ -359,8 +413,7 @@ export default function LoginPage() {
                                     onClick={handleVerifyOtp}
                                     className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all ${isButtonDisabled() || status.loading ? 'bg-gray-100 text-gray-400' : 'bg-[#04222D] text-white shadow-lg shadow-[#04222D]/20 active:scale-[0.98]'}`}
                                 >
-                                    {status.loading ? 'Verifying...' : 'Sign In'}
-                                    <ArrowRight size={20} />
+                                    {status.loading ? 'Verifying...' : 'Verify'}
                                 </button>
                             </motion.div>
                         )}

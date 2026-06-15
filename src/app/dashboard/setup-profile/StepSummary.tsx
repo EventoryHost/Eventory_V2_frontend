@@ -119,9 +119,17 @@ export function StepSummary({ formData, onBack, onSubmit, onEdit, loading }: Pro
                             </h2>
                             
                             <div className="flex flex-wrap gap-1.5 pt-0.5">
-                                <span className="px-3 py-1 rounded-full text-[12px] font-semibold bg-[#04222D]/5 text-[#04222D]">
-                                    {formData.vendorType || 'Vendor Type'}
-                                </span>
+                                {formData.vendorType.length > 0 ? (
+                                    formData.vendorType.map((type) => (
+                                        <span key={type} className="px-3 py-1 rounded-full text-[12px] font-semibold bg-[#04222D]/5 text-[#04222D]">
+                                            {type}
+                                        </span>
+                                    ))
+                                ) : (
+                                    <span className="px-3 py-1 rounded-full text-[12px] font-semibold bg-[#04222D]/5 text-[#04222D]">
+                                        Vendor Type
+                                    </span>
+                                )}
                                 {formData.categories.slice(0, 2).map((cat) => (
                                     <span key={cat} className="px-3 py-1 rounded-full text-[12px] font-medium bg-gray-100 text-gray-600">
                                         {cat}
@@ -224,6 +232,12 @@ export function StepSummary({ formData, onBack, onSubmit, onEdit, loading }: Pro
                                 formData.categories.map((cat) => (
                                     <span key={cat} className="px-3.5 py-1.5 rounded-full text-[13px] font-medium bg-[#EBF0F2] text-[#3F3F47]">
                                         {cat}
+                                    </span>
+                                ))
+                            ) : formData.vendorType.length > 0 ? (
+                                formData.vendorType.map((type) => (
+                                    <span key={type} className="px-3.5 py-1.5 rounded-full text-[13px] font-medium bg-[#EBF0F2] text-[#3F3F47]">
+                                        {type}
                                     </span>
                                 ))
                             ) : (

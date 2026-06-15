@@ -6,7 +6,7 @@ export interface FormData {
     teamSize: string;
     bookingsPerYear: string;
     experience: string;
-    vendorType: string;
+    vendorType: string[];
     categories: string[];
     city: string;
     serviceAreas: string[];
@@ -24,7 +24,7 @@ export const INITIAL_FORM_DATA: FormData = {
     teamSize: '',
     bookingsPerYear: '',
     experience: '',
-    vendorType: '',
+    vendorType: [],
     categories: [],
     city: '',
     serviceAreas: [],

@@ -1,6 +1,6 @@
 'use client';
 import { motion } from 'framer-motion';
-import { X, Search, Check } from 'lucide-react';
+import { Check, Search, X } from 'lucide-react';
 import { FormData, VENDOR_TYPES, EVENT_CATEGORIES } from './types';
 
 const sv = { initial: { x: 20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: -20, opacity: 0 } };
@@ -8,84 +8,154 @@ const sv = { initial: { x: 20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit
 interface Props {
     formData: FormData;
     setFormData: React.Dispatch<React.SetStateAction<FormData>>;
-    eventSearch: string;
-    setEventSearch: (v: string) => void;
-    showEventDropdown: boolean;
-    setShowEventDropdown: (v: boolean) => void;
-    toggleCategory: (cat: string) => void;
-    isButtonDisabled: () => boolean;
-    handleContinue: () => void;
 }
 
-export function StepVendorType({
-    formData, setFormData, eventSearch, setEventSearch,
-    showEventDropdown, setShowEventDropdown, toggleCategory,
-}: Props) {
+export function StepVendorType({ formData, setFormData }: Props) {
+    const toggleVendorType = (type: string) => {
+        setFormData((prev: FormData) => ({
+            ...prev,
+            vendorType: prev.vendorType.includes(type)
+                ? prev.vendorType.filter((item) => item !== type)
+                : [...prev.vendorType, type],
+        }));
+    };
+
     return (
-        <motion.div key="step7" {...sv} className="space-y-6">
-            <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">
+        <motion.div key="step7" {...sv} className="pb-10">
+            <h1 className="max-w-[320px] text-[#030303] text-[24px] font-semibold leading-[32px] tracking-[0] font-figtree">
                 What vendor type and services you provide?
             </h1>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap gap-x-[10px] gap-y-4">
                 {VENDOR_TYPES.map((type) => (
                     <button
                         key={type}
-                        onClick={() => setFormData((prev: FormData) => ({ ...prev, vendorType: type }))}
-                        className={`px-4 py-2 rounded-full border transition-all font-medium text-[14px] font-figtree flex items-center gap-2 ${formData.vendorType === type
-                            ? 'bg-[#04222D] border-[#04222D] text-white'
-                            : 'bg-white border-[#D4D4D8] text-[#3F3F47] hover:bg-gray-50'}`}
+                        onClick={() => toggleVendorType(type)}
+                        className={`inline-flex w-fit whitespace-nowrap rounded-[9999px] px-4 py-2 text-[14px] leading-[20px] font-medium font-figtree transition-all ${
+                            formData.vendorType.includes(type)
+                                ? 'bg-[#04222D] border border-[#04222D] text-white'
+                                : 'bg-[#ECEFF0] border border-[#ECEFF0] text-[#17313B]'
+                        }`}
                     >
                         {type}
-                        {formData.vendorType === type && (
-                            <div className="bg-white rounded-full p-0.5"
-                                onClick={(e) => { e.stopPropagation(); setFormData((prev: FormData) => ({ ...prev, vendorType: '' })); }}>
-                                <X size={12} className="text-[#04222D]" />
-                            </div>
-                        )}
                     </button>
                 ))}
             </div>
 
-            <p className="text-[#3F3F47] text-[14px] font-figtree">Specify the type of vendor you are.</p>
+            <p className="mt-6 max-w-[306px] text-[#3F3F47] text-[14px] leading-[20px] tracking-[0] font-figtree">
+                Specify the type of vendor you are.
+            </p>
+        </motion.div>
+    );
+}
 
-            {formData.vendorType && (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pt-4 border-t border-gray-100">
-                    <p className="text-[#3F3F47] text-[14px] font-figtree italic">
-                        Events which you provide with a wide category Ex. Tent, Catering, Decorations etc.
+interface StepVendorCategoriesProps {
+    formData: FormData;
+    setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+    eventSearch: string;
+    setEventSearch: (value: string) => void;
+    toggleCategory: (category: string) => void;
+}
+
+export function StepVendorCategories({
+    formData,
+    setFormData,
+    eventSearch,
+    setEventSearch,
+    toggleCategory,
+}: StepVendorCategoriesProps) {
+    const filteredCategories = EVENT_CATEGORIES.filter((category) =>
+        category.toLowerCase().includes(eventSearch.toLowerCase())
+    );
+
+    const removeVendorType = (type: string) => {
+        setFormData((prev: FormData) => ({
+            ...prev,
+            vendorType: prev.vendorType.filter((item) => item !== type),
+        }));
+    };
+
+    return (
+        <motion.div key="step8" {...sv} className="pb-10">
+            <div className="space-y-4">
+                <div className="space-y-2">
+                    <p className="text-[#5F6670] text-[12px] leading-[16px] tracking-[0] uppercase font-medium font-figtree">
+                        Your vendor type
                     </p>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                        {formData.categories.map(cat => (
-                            <button key={cat} onClick={() => toggleCategory(cat)}
-                                className="bg-[#04222D] text-white px-3 py-1.5 rounded-full text-[13px] flex items-center gap-2 font-medium">
-                                {cat}<X size={14} />
+                    <div className="flex flex-wrap gap-2">
+                        {formData.vendorType.map((type) => (
+                            <button
+                                key={type}
+                                onClick={() => removeVendorType(type)}
+                                className="inline-flex items-center gap-2 rounded-[9999px] border border-[#04222D] bg-[#04222D] px-4 py-2 text-[14px] leading-[20px] font-medium text-white font-figtree"
+                            >
+                                <span>{type}</span>
+                                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/70">
+                                    <X size={10} />
+                                </span>
                             </button>
                         ))}
                     </div>
-                    <div className="relative w-full max-w-[361px]">
-                        <div className="text-[12px] font-semibold text-[#030303] mb-2 uppercase tracking-wider">All Categories</div>
-                        <div className="relative">
-                            <input type="text" placeholder="Search Events" value={eventSearch}
-                                onFocus={() => setShowEventDropdown(true)}
-                                onChange={(e) => setEventSearch(e.target.value)}
-                                className="w-full pl-4 pr-10 py-3.5 border border-[#D4D4D8] rounded-xl outline-none focus:border-[#030303] font-figtree text-[15px]"
-                            />
-                            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                </div>
+
+                <div className="space-y-3">
+                    <h1 className="max-w-[320px] text-[#030303] text-[24px] font-semibold leading-[32px] tracking-[0] font-figtree">
+                        Which events do you cover?
+                    </h1>
+                    <p className="max-w-[320px] text-[#3F3F47] text-[14px] leading-[20px] tracking-[0] font-figtree">
+                        Select all the event types you can work - you can choose more than one
+                    </p>
+                </div>
+            </div>
+
+            <div className="mt-8 space-y-4">
+                <p className="text-[#5F6670] text-[12px] leading-[16px] tracking-[0] uppercase font-medium font-figtree">
+                    All Categories
+                </p>
+
+                <div className="rounded-[8px] border border-[#D4D4D8] bg-white px-[14px] py-3">
+                    {formData.categories.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                            {formData.categories.map((category) => (
+                                <button
+                                    key={category}
+                                    onClick={() => toggleCategory(category)}
+                                    className="inline-flex items-center gap-2 rounded-[9999px] border border-[#04222D] bg-[#04222D] px-3 py-1.5 text-[13px] leading-[18px] font-medium text-white font-figtree"
+                                >
+                                    <span>{category}</span>
+                                    <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/70">
+                                        <X size={10} />
+                                    </span>
+                                </button>
+                            ))}
                         </div>
-                        {showEventDropdown && (
-                            <div className="absolute z-10 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-[250px] overflow-y-auto py-2">
-                                {EVENT_CATEGORIES.filter(cat => cat.toLowerCase().includes(eventSearch.toLowerCase())).map(cat => (
-                                    <button key={cat} onClick={() => { toggleCategory(cat); setEventSearch(''); }}
-                                        className="w-full px-5 py-3 text-left hover:bg-gray-50 flex items-center justify-between">
-                                        <span className={`text-[15px] ${formData.categories.includes(cat) ? 'font-semibold text-[#030303]' : 'text-[#3F3F47]'}`}>{cat}</span>
-                                        {formData.categories.includes(cat) && <Check size={18} className="text-[#030303]" />}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                    )}
+
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={eventSearch}
+                            onChange={(e) => setEventSearch(e.target.value)}
+                            placeholder="Search Events"
+                            className="w-full border-0 bg-transparent pr-8 py-1 text-[14px] leading-[20px] text-[#030303] placeholder:text-[#9F9FA9] outline-none font-figtree"
+                        />
+                        <Search size={16} className="absolute right-0 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
                     </div>
-                </motion.div>
-            )}
+                </div>
+
+                <div className="overflow-hidden rounded-[16px] bg-white shadow-[0_12px_32px_rgba(15,23,42,0.12)]">
+                    {filteredCategories.map((category) => (
+                        <button
+                            key={category}
+                            onClick={() => toggleCategory(category)}
+                            className="flex w-full items-center justify-between px-4 py-4 text-left text-[16px] leading-[24px] font-normal text-[#030303] font-figtree"
+                        >
+                            <span>{category}</span>
+                            {formData.categories.includes(category) && <Check size={18} className="text-[#030303]" />}
+                        </button>
+                    ))}
+                </div>
+            </div>
         </motion.div>
     );
 }

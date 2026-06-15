@@ -24,7 +24,7 @@ export function StepServiceArea({
     toggleServiceArea,
 }: Props) {
     return (
-        <motion.div key="step8" {...sv} className="space-y-8">
+        <motion.div key="step9" {...sv} className="space-y-8">
             <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">
                 What is your Service area?
             </h1>
@@ -62,7 +62,7 @@ export function StepServiceArea({
 
                 {/* Search */}
                 <div className="space-y-4 pt-4 border-t border-gray-100">
-                    <p className="text-gray-400 text-[14px] font-figtree">Couldn't find your location</p>
+                    <p className="text-gray-400 text-[14px] font-figtree">Couldn&apos;t find your location</p>
                     <div className="relative w-full max-w-[361px]">
                         <div className="relative">
                             <input type="text" placeholder="Search Locations" value={locationSearch}
