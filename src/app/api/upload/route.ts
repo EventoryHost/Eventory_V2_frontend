@@ -10,13 +10,19 @@ const awsSecretAccessKey =
 const awsBucketName =
   process.env.APP_AWS_S3_BUCKET_NAME || process.env.AWS_S3_BUCKET_NAME || "eventory-bucket";
 
-// Initialize S3 Client
+// Only supply explicit credentials when they are present (local dev with .env.local).
+// On AWS Amplify / Lambda the SDK automatically picks up the IAM execution role —
+// passing undefined credentials explicitly causes "Resolved credential object is not valid".
 const s3Client = new S3Client({
   region: awsRegion,
-  credentials: {
-    accessKeyId: awsAccessKeyId as string,
-    secretAccessKey: awsSecretAccessKey as string,
-  },
+  ...(awsAccessKeyId && awsSecretAccessKey
+    ? {
+        credentials: {
+          accessKeyId: awsAccessKeyId,
+          secretAccessKey: awsSecretAccessKey,
+        },
+      }
+    : {}),
 });
 
 export async function POST(request: NextRequest) {
