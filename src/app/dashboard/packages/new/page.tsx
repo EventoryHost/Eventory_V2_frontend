@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import PackageFlowManager from '@/features/packages/PackageFlowManager';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { apiUrl } from '@/lib/api';
 
 export default function NewPackagePage() {
     const router = useRouter();
@@ -11,10 +12,12 @@ export default function NewPackagePage() {
     const [showStepsOverview, setShowStepsOverview] = useState(true);
     const [hoveredStep1, setHoveredStep1] = useState(false);
     const [clickAttemptedStep2, setClickAttemptedStep2] = useState(false);
+    const [completedStepsCount, setCompletedStepsCount] = useState(0);
 
     useEffect(() => {
         // Read service id from local storage
         const serviceId = localStorage.getItem('service_id');
+        const vendorId = localStorage.getItem('vendor_id');
 
         if (serviceId) {
             // Extrapolate vendor type from standard ID format e.g. CAT384728943 -> CAT
@@ -23,6 +26,25 @@ export default function NewPackagePage() {
             // Provide a mockup ID to help the flow if it's missing (for local testing purposes)
             console.warn("No service_id found in localStorage. Using fallback 'MAK' locally.");
             setVendorType("MAK");
+        }
+
+        // Fetch draft package progress
+        if (vendorId) {
+            const fetchProgress = async () => {
+                try {
+                    const res = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
+                    const data = await res.json();
+                    if (data.status === 'SUCCESS' && data.packages && data.packages.length > 0) {
+                        const pkg = data.packages[0];
+                        if (pkg.completedSteps) {
+                            setCompletedStepsCount(pkg.completedSteps.length);
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch package draft progress:", err);
+                }
+            };
+            fetchProgress();
         }
     }, []);
 
@@ -165,7 +187,7 @@ export default function NewPackagePage() {
                             {/* Progress Track */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ height: '6px', backgroundColor: '#EAECEF', borderRadius: '100px', width: '100%' }}>
-                                    <div style={{ height: '100%', backgroundColor: '#04222D', borderRadius: '100px', width: '0%' }}></div>
+                                    <div style={{ height: '100%', backgroundColor: '#04222D', borderRadius: '100px', width: `${(completedStepsCount / 4) * 100}%` }}></div>
                                 </div>
                                 <span style={{ 
                                     fontSize: '11.5px', 
@@ -174,7 +196,7 @@ export default function NewPackagePage() {
                                     alignSelf: 'flex-end', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    0 of 4 steps done
+                                    {completedStepsCount} of 4 steps done
                                 </span>
                             </div>
 
