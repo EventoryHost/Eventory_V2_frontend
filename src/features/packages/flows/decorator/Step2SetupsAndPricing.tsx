@@ -472,7 +472,11 @@ export default function DecoratorStep2SetupsAndPricing({
                     {addons.length > 0 && (
                         <div className="flex flex-col gap-3">
                             {addons.map((addon) => (
-                                <div key={addon.id} className="p-4 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between shadow-sm">
+                                <div 
+                                    key={addon.id} 
+                                    onClick={() => handleEditAddon(addon)}
+                                    className="p-4 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-all"
+                                >
                                     <div className="flex flex-col">
                                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">
                                             {addon.name}
@@ -481,7 +485,7 @@ export default function DecoratorStep2SetupsAndPricing({
                                             {addon.type} • {addon.price ? `₹${addon.price}` : 'Free'} {addon.price && `• ${addon.billingUnit}`}
                                         </span>
                                     </div>
-                                    <div className="relative">
+                                    <div className="relative" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             type="button"
                                             onClick={() => handleEditAddon(addon)}
@@ -503,7 +507,7 @@ export default function DecoratorStep2SetupsAndPricing({
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className="w-full py-6 rounded-[12px] border-[2px] border-dashed border-[#D4D4D8] text-[#9F9FA9] text-[16px] font-normal leading-[24px] bg-white hover:bg-gray-50 transition-colors"
                         >
-                            Entre Add-on +
+                            Enter Add-on +
                         </button>
                     </div>
                 </div>
@@ -517,13 +521,13 @@ export default function DecoratorStep2SetupsAndPricing({
                         </div>
                     </div>
                     <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px] mb-2">
-                        Enter the things that wil not be provided by you
+                        Enter the things that will not be provided by you
                     </p>
                     <textarea
                         value={notProvidedDetails}
                         onChange={(e) => handleBulletChange(e, setNotProvidedDetails)}
                         onKeyDown={(e) => handleBulletKeyDown(e, notProvidedDetails, setNotProvidedDetails)}
-                        placeholder="Entre Details..."
+                        placeholder="Enter Details..."
                         style={INPUT_STYLE}
                         className={`${INPUT_CLASS} w-full h-28 resize-none`}
                     />
@@ -533,13 +537,13 @@ export default function DecoratorStep2SetupsAndPricing({
                 <div className="bg-white rounded-[12px] border border-[#E4E4E7] p-6 shadow-sm flex flex-col gap-2">
                     <h4 style={FOOTNOTE_STYLE}>Part of This Package</h4>
                     <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px] mb-2">
-                        Enter the things that wil be provided by you
+                        Enter the things that will be provided by you
                     </p>
                     <textarea
                         value={providedDetails}
                         onChange={(e) => handleBulletChange(e, setProvidedDetails)}
                         onKeyDown={(e) => handleBulletKeyDown(e, providedDetails, setProvidedDetails)}
-                        placeholder="Entre Details..."
+                        placeholder="Enter Details..."
                         style={INPUT_STYLE}
                         className={`${INPUT_CLASS} w-full h-28 resize-none`}
                     />
@@ -1036,13 +1040,13 @@ export default function DecoratorStep2SetupsAndPricing({
                                             </div>
                                         </div>
                                         <p style={SUBTEXT_STYLE}>
-                                            Choose the things that wil not be provided by you
+                                            Choose the things that will not be provided by you
                                         </p>
                                         <textarea
                                             value={setupNotPartOfSetup}
                                             onChange={(e) => handleBulletChange(e, setSetupNotPartOfSetup)}
                                             onKeyDown={(e) => handleBulletKeyDown(e, setupNotPartOfSetup, setSetupNotPartOfSetup)}
-                                            placeholder="Entre Details.."
+                                            placeholder="Enter Details.."
                                             rows={3}
                                             style={INPUT_STYLE}
                                             className={`${INPUT_CLASS} text-[14px] resize-none`}
@@ -1055,13 +1059,13 @@ export default function DecoratorStep2SetupsAndPricing({
                                             Part of this Setup
                                         </label>
                                         <p style={SUBTEXT_STYLE}>
-                                            Choose the things that wil be provided by you
+                                            Choose the things that will be provided by you
                                         </p>
                                         <textarea
                                             value={setupPartOfSetup}
                                             onChange={(e) => handleBulletChange(e, setSetupPartOfSetup)}
                                             onKeyDown={(e) => handleBulletKeyDown(e, setupPartOfSetup, setSetupPartOfSetup)}
-                                            placeholder="Entre Details.."
+                                            placeholder="Enter Details.."
                                             rows={3}
                                             style={INPUT_STYLE}
                                             className={`${INPUT_CLASS} text-[14px] resize-none`}

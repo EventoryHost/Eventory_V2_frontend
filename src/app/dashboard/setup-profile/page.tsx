@@ -335,7 +335,10 @@ export default function SetupBusinessProfile() {
         if (showZoomView) return !tempImage;
         if (step === 1) return formData.businessName.trim().length < 2;
         if (step === 2) return formData.pocName.trim().length < 2;
-        if (step === 3) return formData.email.length > 0 && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+        if (step === 3) {
+            if (formData.email.trim() === '') return false;
+            return !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email);
+        }
         if (step === 4) return !formData.teamSize;
         if (step === 5) return !formData.bookingsPerYear;
         if (step === 6) return !formData.experience;
@@ -668,7 +671,7 @@ export default function SetupBusinessProfile() {
                                 backgroundColor: isContinueDisabled ? '#E5E7EB' : CONTINUE_BUTTON_COLOR
                             }}
                         >
-                            {loading ? 'Saving...' : 'Continue'}
+                            {loading ? 'Saving...' : (step === 3 && formData.email.trim() === '') ? 'Skip' : 'Continue'}
                         </button>
                         {step === 13 && isButtonDisabled() && !loading && (
                             <p className="text-[12px] font-medium text-rose-500 animate-pulse">
