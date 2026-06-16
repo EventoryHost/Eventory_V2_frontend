@@ -51,3 +51,9 @@ yarn-error.log*
 next-env.d.ts
 
 InstaArchive/
+
+# Dev-only scratch scripts and data files
+update_dj_pricing.js
+dynamic_pricing_block.txt
+sample_playlist.csv
+sample_playlist.txt

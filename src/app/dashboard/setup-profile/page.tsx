@@ -193,11 +193,12 @@ export default function SetupBusinessProfile() {
         if (uploadingCover) {
             setCoverProgress(0);
             interval = setInterval(() => {
-                setCoverProgress(prev => prev >= 90 ? prev : prev + Math.floor(Math.random() * 15 + 5));
+                // Cap at 92 so it never prematurely shows 100% before the real upload finishes
+                setCoverProgress(prev => prev >= 92 ? 92 : prev + Math.floor(Math.random() * 12 + 4));
             }, 300);
         } else {
             setCoverProgress(100);
-            const to = setTimeout(() => setCoverProgress(0), 500);
+            const to = setTimeout(() => setCoverProgress(0), 600);
             return () => { clearInterval(interval); clearTimeout(to); };
         }
         return () => clearInterval(interval);
@@ -208,11 +209,11 @@ export default function SetupBusinessProfile() {
         if (uploadingPhotos) {
             setPhotosProgress(0);
             interval = setInterval(() => {
-                setPhotosProgress(prev => prev >= 90 ? prev : prev + Math.floor(Math.random() * 10 + 5));
+                setPhotosProgress(prev => prev >= 92 ? 92 : prev + Math.floor(Math.random() * 8 + 4));
             }, 400);
         } else {
             setPhotosProgress(100);
-            const to = setTimeout(() => setPhotosProgress(0), 500);
+            const to = setTimeout(() => setPhotosProgress(0), 600);
             return () => { clearInterval(interval); clearTimeout(to); };
         }
         return () => clearInterval(interval);
@@ -393,10 +394,11 @@ export default function SetupBusinessProfile() {
             method: 'POST',
             body: formData,
         });
-        if (!response.ok) {
-            throw new Error('Failed to upload file');
-        }
         const data = await response.json();
+        if (!response.ok || !data.url) {
+            const reason = data?.details || data?.error || 'Unknown upload error';
+            throw new Error(reason);
+        }
         return data.url;
     };
 
@@ -425,9 +427,10 @@ export default function SetupBusinessProfile() {
             try {
                 const url = await uploadToS3(file);
                 setFormData(prev => ({ ...prev, coverImage: url }));
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to upload cover image:", err);
-                alert("Failed to upload cover image. Please try again.");
+                alert(`Cover image upload failed: ${err?.message || 'Please try again.'}`);
+                setCoverProgress(0);
             } finally {
                 setUploadingCover(false);
             }
@@ -449,9 +452,10 @@ export default function SetupBusinessProfile() {
                     }
                     return { ...prev, businessPhotos: newPhotos };
                 });
-            } catch (err) {
+            } catch (err: any) {
                 console.error("Failed to upload business photos:", err);
-                alert("Failed to upload some business photos. Please try again.");
+                alert(`Photo upload failed: ${err?.message || 'Please try again.'}`);
+                setPhotosProgress(0);
             } finally {
                 setUploadingPhotos(false);
             }
