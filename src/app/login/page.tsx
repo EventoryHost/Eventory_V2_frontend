@@ -153,6 +153,17 @@ export default function LoginPage() {
         if (digits && index < 5) otpInputRefs.current[index + 1]?.focus();
     };
 
+    const handleOtpPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+        event.preventDefault();
+        const pastedText = event.clipboardData.getData('text');
+        const digits = pastedText.replace(/\D/g, '').slice(0, 6);
+        if (digits) {
+            setFormData({ ...formData, otp: digits });
+            if (status.error) setStatus({ ...status, error: '' });
+            otpInputRefs.current[Math.min(digits.length, 5)]?.focus();
+        }
+    };
+
     const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Backspace' && !formData.otp[index] && index > 0) {
             otpInputRefs.current[index - 1]?.focus();
@@ -369,6 +380,7 @@ export default function LoginPage() {
                                                 value={formData.otp[index] || ''}
                                                 onChange={(event) => updateOtpDigit(index, event.target.value)}
                                                 onKeyDown={(event) => handleOtpKeyDown(index, event)}
+                                                onPaste={handleOtpPaste}
                                                 className={`h-10 w-full rounded-[6px] border bg-white text-center text-[12px] font-normal text-[#262634] outline-none transition-all font-figtree ${
                                                     status.error
                                                         ? 'border-red-500'

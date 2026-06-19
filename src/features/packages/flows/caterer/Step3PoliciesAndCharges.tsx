@@ -764,9 +764,9 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                 {p.lastMinuteFiles && p.lastMinuteFiles.length > 0 && (
                     <div className="flex flex-col gap-3">
                         {p.lastMinuteFiles.map((file, idx) => (
-                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#D4D4D8] rounded-[6px] bg-white">
+                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7] gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#D4D4D8] rounded-[6px] bg-white">
                                         <FileText size={16} className="text-[#3F3F47]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -774,7 +774,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
                                     </div>
                                 </div>
-                                <button type="button" onClick={() => p.removeLastMinuteFile(idx)} className="text-gray-400 hover:text-[#030303]"><X size={20} /></button>
+                                <button type="button" onClick={() => p.removeLastMinuteFile(idx)} className="text-gray-400 hover:text-[#030303] flex-shrink-0"><X size={20} /></button>
                             </div>
                         ))}
                     </div>
@@ -822,9 +822,9 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                 {p.policyFiles && p.policyFiles.length > 0 && (
                     <div className="flex flex-col gap-3">
                         {p.policyFiles.map((file, idx) => (
-                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#D4D4D8] rounded-[6px] bg-white">
+                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7] gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#D4D4D8] rounded-[6px] bg-white">
                                         <FileText size={16} className="text-[#3F3F47]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -832,7 +832,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
                                     </div>
                                 </div>
-                                <button type="button" onClick={() => p.removePolicyFile(idx)} className="text-gray-400 hover:text-[#030303]"><X size={20} /></button>
+                                <button type="button" onClick={() => p.removePolicyFile(idx)} className="text-gray-400 hover:text-[#030303] flex-shrink-0"><X size={20} /></button>
                             </div>
                         ))}
                     </div>

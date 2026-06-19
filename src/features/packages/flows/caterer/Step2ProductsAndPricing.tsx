@@ -552,9 +552,14 @@ export default function CatererStep2ProductsAndPricing({
                                             />
                                             <button
                                                 type="button"
+                                                disabled={!currentInput.trim()}
                                                 onClick={() => handleAddFoodItem(menu.id, currentTab, currentInput)}
                                                 style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                className="bg-[#8A9A9F] text-white font-bold px-6 py-4 rounded-[16px] text-[14px] hover:opacity-90 active:scale-[0.98] transition-colors"
+                                                className={`text-white font-bold px-6 py-4 rounded-[16px] text-[14px] transition-colors ${
+                                                    currentInput.trim() 
+                                                        ? 'bg-[#030303] hover:opacity-90 active:scale-[0.98] cursor-pointer' 
+                                                        : 'bg-[#8A9A9F] cursor-not-allowed'
+                                                }`}
                                             >
                                                 Add
                                             </button>

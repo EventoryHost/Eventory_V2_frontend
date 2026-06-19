@@ -667,9 +667,9 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         {addonPolicies.length > 0 && (
                             <div className="flex flex-col gap-3">
                                 {addonPolicies.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px]">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px] gap-3">
+                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
                                                 <FileText size={16} className="text-[#3F3F47] stroke-2" />
                                             </div>
                                             <div 
@@ -679,11 +679,11 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                                                     if (url) setPreviewFile({ url, name: file.name });
                                                 }}
                                             >
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] break-all">{file.name}</p>
+                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] truncate">{file.name}</p>
                                                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSizeLocal(file.size)}</p>
                                             </div>
                                         </div>
-                                        <button onClick={() => removeAddonPolicy(idx)} className="text-[#3F3F47] hover:text-[#030303]">
+                                        <button onClick={() => removeAddonPolicy(idx)} className="text-[#3F3F47] hover:text-[#030303] flex-shrink-0">
                                             <X size={20} />
                                         </button>
                                     </div>

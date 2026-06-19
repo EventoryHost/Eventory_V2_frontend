@@ -45,6 +45,7 @@ export default function DecoratorFlow() {
     const [teamEquipmentUnit, setTeamEquipmentUnit] = React.useState('Per hour');
     const [lastMinuteFiles, setLastMinuteFiles] = React.useState<PolicyFile[]>([]);
     const [policyFiles, setPolicyFiles] = React.useState<PolicyFile[]>([]);
+    const [lastMinuteChargesDescription, setLastMinuteChargesDescription] = React.useState('');
 
     // Step 4 States
     const [sampleMediaFiles, setSampleMediaFiles] = React.useState<SampleMediaFile[]>([]);
@@ -170,8 +171,12 @@ export default function DecoratorFlow() {
                             if (s1.venueNeeds?.security) needs.push('Security');
                             if (s1.venueNeeds?.customText) {
                                 const customs = s1.venueNeeds.customText.split(',').map((s: string) => s.trim()).filter(Boolean);
-                                // If "Camera" is stored inside customText, we parse it into needs array so it highlights "Camera" in the UI
-                                needs.push(...customs);
+                                const options = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
+                                needs.push(...customs.filter((c: string) => options.includes(c)));
+                                const nonOptions = customs.filter((c: string) => !options.includes(c));
+                                if (nonOptions.length > 0) {
+                                    setVenueRequest(nonOptions.join(', '));
+                                }
                             }
                             setVenueNeeds(needs);
                         }
@@ -204,8 +209,8 @@ export default function DecoratorFlow() {
                                     description: a.description || '',
                                     price: String(a.price || ''),
                                     billingUnit: a.billingUnit || 'Per hour',
-                                    policies: [],
-                                    media: [],
+                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
+                                    media: (a.mediaUrls || []).map((url: string, i: number) => ({ name: `Media ${i+1}`, size: 0, preview: url })),
                                 })));
                             }
                             if (s2.included && s2.included.length > 0) {
@@ -238,6 +243,9 @@ export default function DecoratorFlow() {
                                     size: 0,
                                     preview: url
                                 })));
+                            }
+                            if (s3.lastMinuteChargesDescription) {
+                                setLastMinuteChargesDescription(s3.lastMinuteChargesDescription);
                             }
                         }
 
@@ -390,6 +398,57 @@ export default function DecoratorFlow() {
 
                 const totalPackagePrice = setups.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
 
+                // Upload addOn files
+                const processedAddons = [];
+                for (const a of addons) {
+                    let policyDocUrl = '';
+                    if (a.policies && a.policies.length > 0) {
+                        const pf = a.policies[0];
+                        if (pf.file) {
+                            const formData = new FormData();
+                            formData.append('file', pf.file);
+                            formData.append('uploadType', 'policies');
+                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                            if (uploadRes.ok) {
+                                const uploadData = await uploadRes.json();
+                                if (uploadData.url) policyDocUrl = uploadData.url;
+                            }
+                        } else if (pf.preview) {
+                            policyDocUrl = pf.preview;
+                        }
+                    }
+
+                    const mediaUrls: string[] = [];
+                    if (a.media && a.media.length > 0) {
+                        for (const m of a.media) {
+                            if (m.file) {
+                                const formData = new FormData();
+                                formData.append('file', m.file);
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) mediaUrls.push(uploadData.url);
+                                }
+                            } else if (m.preview) {
+                                mediaUrls.push(m.preview);
+                            }
+                        }
+                    }
+
+                    processedAddons.push({
+                        addOnType: a.type,
+                        name: a.name,
+                        category: a.category,
+                        subCategory: a.subCategory,
+                        quantity: parseInt(a.quantity) || 0,
+                        description: a.description,
+                        price: parseFloat(a.price) || 0,
+                        billingUnit: a.billingUnit,
+                        policyDocUrl,
+                        mediaUrls
+                    });
+                }
+
                 const payload = {
                     totalPackagePrice,
                     setups: setups.map(s => ({
@@ -408,18 +467,7 @@ export default function DecoratorFlow() {
                         partOfSetup: s.partOfSetup,
                         notPartOfSetup: s.notPartOfSetup
                     })),
-                    addOns: addons.map(a => ({
-                        addOnType: a.type,
-                        name: a.name,
-                        category: a.category,
-                        subCategory: a.subCategory,
-                        quantity: parseInt(a.quantity) || 0,
-                        description: a.description,
-                        price: parseFloat(a.price) || 0,
-                        billingUnit: a.billingUnit,
-                        policyDocUrl: '',
-                        mediaUrls: []
-                    })),
+                    addOns: processedAddons,
                     included: cleanIncluded,
                     notIncluded: cleanNotIncluded
                 };
@@ -477,7 +525,8 @@ export default function DecoratorFlow() {
                         billingUnit: teamEquipmentUnit
                     },
                     policiesDocUrl: policyUrls.join(', '),
-                    lastMinuteChargesDocUrl: lastMinuteUrls.join(', ')
+                    lastMinuteChargesDocUrl: lastMinuteUrls.join(', '),
+                    lastMinuteChargesDescription: lastMinuteChargesDescription
                 };
 
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/3`), {
@@ -798,6 +847,8 @@ export default function DecoratorFlow() {
                         policyInputRef={policyInputRef}
                         onPolicyUpload={onPolicyUpload}
                         removePolicyFile={removePolicyFile}
+                        lastMinuteChargesDescription={lastMinuteChargesDescription}
+                        setLastMinuteChargesDescription={setLastMinuteChargesDescription}
                     />
                 )}
                 {step === 4 && (

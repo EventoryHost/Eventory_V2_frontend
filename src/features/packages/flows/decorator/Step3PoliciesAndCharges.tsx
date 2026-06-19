@@ -19,6 +19,9 @@ interface Props {
     policyInputRef: React.RefObject<HTMLInputElement | null>;
     onPolicyUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     removePolicyFile: (i: number) => void;
+
+    lastMinuteChargesDescription: string;
+    setLastMinuteChargesDescription: (v: string) => void;
 }
 
 // ── Figma Design Tokens & Typography Styles ──
@@ -68,6 +71,8 @@ export default function DecoratorStep3PoliciesAndCharges({
     policyInputRef,
     onPolicyUpload,
     removePolicyFile,
+    lastMinuteChargesDescription,
+    setLastMinuteChargesDescription,
 }: Props) {
 
     const formatFileSizeLocal = (bytes: number) => {
@@ -160,13 +165,13 @@ export default function DecoratorStep3PoliciesAndCharges({
                 {lastMinuteFiles.length > 0 && (
                     <div className="flex flex-col gap-3">
                         {lastMinuteFiles.map((file, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
+                            <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px] gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
                                         <FileText size={16} className="text-[#3F3F47]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p style={INPUT_STYLE} className="font-bold text-[#030303] break-all text-[13px]">
+                                        <p style={INPUT_STYLE} className="font-bold text-[#030303] truncate text-[13px]">
                                             {file.name}
                                         </p>
                                         <p style={SUBTEXT_STYLE} className="text-[11px] text-[#71717B]">
@@ -177,7 +182,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                                 <button 
                                     type="button" 
                                     onClick={() => removeLastMinuteFile(idx)} 
-                                    className="text-[#3F3F47] hover:text-red-500 transition-colors"
+                                    className="text-[#3F3F47] hover:text-red-500 transition-colors flex-shrink-0"
                                 >
                                     <X size={20} />
                                 </button>
@@ -185,6 +190,26 @@ export default function DecoratorStep3PoliciesAndCharges({
                         ))}
                     </div>
                 )}
+
+                <div className="flex items-center my-2 select-none">
+                    <div className="flex-1 h-[1px] bg-gray-200" />
+                    <span className="px-4 text-[12px] font-bold text-gray-400 uppercase">or</span>
+                    <div className="flex-1 h-[1px] bg-gray-200" />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <label style={{ ...INPUT_STYLE, fontWeight: 600, color: '#3F3F47' }}>
+                        Describe Them Instead
+                    </label>
+                    <textarea
+                        rows={4}
+                        placeholder="Describe last-minute charges..."
+                        value={lastMinuteChargesDescription}
+                        onChange={(e) => setLastMinuteChargesDescription(e.target.value)}
+                        style={INPUT_STYLE}
+                        className={`${INPUT_CLASS} resize-none`}
+                    />
+                </div>
             </div>
 
             {/* POLICIES & RULES zone */}
@@ -218,13 +243,13 @@ export default function DecoratorStep3PoliciesAndCharges({
                 {policyFiles.length > 0 && (
                     <div className="flex flex-col gap-3">
                         {policyFiles.map((file, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
+                            <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px] gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
                                         <FileText size={16} className="text-[#3F3F47]" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p style={INPUT_STYLE} className="font-bold text-[#030303] break-all text-[13px]">
+                                        <p style={INPUT_STYLE} className="font-bold text-[#030303] truncate text-[13px]">
                                             {file.name}
                                         </p>
                                         <p style={SUBTEXT_STYLE} className="text-[11px] text-[#71717B]">
@@ -235,7 +260,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                                 <button 
                                     type="button" 
                                     onClick={() => removePolicyFile(idx)} 
-                                    className="text-[#3F3F47] hover:text-red-500 transition-colors"
+                                    className="text-[#3F3F47] hover:text-red-500 transition-colors flex-shrink-0"
                                 >
                                     <X size={20} />
                                 </button>

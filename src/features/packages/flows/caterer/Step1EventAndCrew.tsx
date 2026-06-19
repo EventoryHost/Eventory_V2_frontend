@@ -70,14 +70,7 @@ export default function CatererStep1EventAndCrew({
         setEventCategories(categories.filter((category) => category !== categoryToRemove).join(', '));
     };
 
-    const addVenueRequest = () => {
-        const request = venueRequest.trim();
-        if (!request) return;
-        if (!venueNeeds.includes(request)) {
-            toggleVenueNeed(request);
-        }
-        setVenueRequest('');
-    };
+
 
     return (
         <div className="flex flex-col gap-6 pb-32">
@@ -304,7 +297,6 @@ export default function CatererStep1EventAndCrew({
                         placeholder="Anything else you need from the venue?"
                         value={venueRequest}
                         onChange={(e) => setVenueRequest(e.target.value)}
-                        onBlur={addVenueRequest}
                         rows={4}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
                         className={`${INPUT} resize-none rounded-[12px]`}

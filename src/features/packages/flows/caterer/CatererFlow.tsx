@@ -207,7 +207,8 @@ export default function CatererFlow() {
                 lastMinuteBooking,
                 lastMinuteDays,
                 lastMinuteIncreaseType,
-                lastMinuteValue
+                lastMinuteValue,
+                lastMinuteChargesDescription
             };
             localStorage.setItem(`caterer_step3_draft_${packageId}`, JSON.stringify(step3Draft));
         }
@@ -218,7 +219,8 @@ export default function CatererFlow() {
         festivalPricing, festivalIncreaseType, festivalValue, selectedFestivals,
         customDatesPricing, customDatesIncreaseType, customDatesValue,
         customDatesStartDate, customDatesEndDate, festivalPrices,
-        lastMinuteBooking, lastMinuteDays, lastMinuteIncreaseType, lastMinuteValue
+        lastMinuteBooking, lastMinuteDays, lastMinuteIncreaseType, lastMinuteValue,
+        lastMinuteChargesDescription
     ]);
 
     // Auto-initialize or restore draft package on mount
@@ -271,7 +273,12 @@ export default function CatererFlow() {
                         if (s1.venueNeeds?.security) needs.push('Security');
                         if (s1.venueNeeds?.customText) {
                             const customs = s1.venueNeeds.customText.split(',').map((s: string) => s.trim()).filter(Boolean);
-                            needs.push(...customs);
+                            const options = ['Power', 'Camera', 'Stage', 'Lighting', 'Security', 'AC'];
+                            needs.push(...customs.filter((c: string) => options.includes(c)));
+                            const nonOptions = customs.filter((c: string) => !options.includes(c));
+                            if (nonOptions.length > 0) {
+                                setVenueRequest(nonOptions.join(', '));
+                            }
                         }
                         setVenueNeeds(needs);
                     }
@@ -281,10 +288,13 @@ export default function CatererFlow() {
                         const s2 = pkg.step2_productsAndPricing;
                         if (s2.crockery) {
                             setCrockeryIncluded(!!s2.crockery.included);
-                            const cType = s2.crockery.type || '';
-                            setCrockeryDisposable(cType.includes('Disposable'));
-                            setCrockeryBoneChina(cType.includes('Bone china'));
-                            const textParts = cType.split(',').map((s: string) => s.trim()).filter((s: string) => s !== 'Disposable' && s !== 'Bone china' && s !== '');
+                            const cType = s2.crockery.type || [];
+                            const cTypeArray = (Array.isArray(cType) ? cType : (typeof cType === 'string' ? [cType] : []))
+                                .flatMap(s => typeof s === 'string' ? s.split(',').map(part => part.trim()) : [])
+                                .filter(Boolean);
+                            setCrockeryDisposable(cTypeArray.includes('Disposable'));
+                            setCrockeryBoneChina(cTypeArray.includes('Bone china'));
+                            const textParts = cTypeArray.filter((s: string) => s !== 'Disposable' && s !== 'Bone china' && s !== '');
                             setCrockeryType(textParts.join(', '));
                         }
                         if (s2.menus) {
@@ -322,8 +332,8 @@ export default function CatererFlow() {
                                 description: a.description || '',
                                 price: String(a.price || ''),
                                 billingUnit: a.billingUnit || 'Per hour',
-                                policies: [],
-                                media: [],
+                                policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
+                                media: (a.mediaUrls || []).map((url: string, i: number) => ({ name: `Media ${i+1}`, size: 0, preview: url })),
                                 productType: a.type || 'Food'
                             })));
                         }
@@ -448,6 +458,7 @@ export default function CatererFlow() {
                             if (ld.lastMinuteDays !== undefined) setLastMinuteDays(ld.lastMinuteDays);
                             if (ld.lastMinuteIncreaseType !== undefined) setLastMinuteIncreaseType(ld.lastMinuteIncreaseType);
                             if (ld.lastMinuteValue !== undefined) setLastMinuteValue(ld.lastMinuteValue);
+                            if (ld.lastMinuteChargesDescription !== undefined) setLastMinuteChargesDescription(ld.lastMinuteChargesDescription);
                         } catch (e) {
                             console.error("Error restoring step 3 draft:", e);
                         }
@@ -576,13 +587,65 @@ export default function CatererFlow() {
                 const selectedCrockeryTypes = [
                     ...(crockeryDisposable ? ['Disposable'] : []),
                     ...(crockeryBoneChina ? ['Bone china'] : []),
-                    ...(crockeryType.trim() ? [crockeryType.trim()] : [])
-                ].join(', ');
+                    ...(crockeryType.trim() ? crockeryType.split(',').map(s => s.trim()).filter(Boolean) : [])
+                ];
+
+                // Upload addOn files
+                const processedAddons = [];
+                for (const a of addons) {
+                    let policyDocUrl = '';
+                    if (a.policies && a.policies.length > 0) {
+                        const pf = a.policies[0];
+                        if (pf.file) {
+                            const formData = new FormData();
+                            formData.append('file', pf.file);
+                            formData.append('uploadType', 'policies');
+                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                            if (uploadRes.ok) {
+                                const uploadData = await uploadRes.json();
+                                if (uploadData.url) policyDocUrl = uploadData.url;
+                            }
+                        } else if (pf.preview) {
+                            policyDocUrl = pf.preview;
+                        }
+                    }
+
+                    const mediaUrls: string[] = [];
+                    if (a.media && a.media.length > 0) {
+                        for (const m of a.media) {
+                            if (m.file) {
+                                const formData = new FormData();
+                                formData.append('file', m.file);
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) mediaUrls.push(uploadData.url);
+                                }
+                            } else if (m.preview) {
+                                mediaUrls.push(m.preview);
+                            }
+                        }
+                    }
+
+                    processedAddons.push({
+                        addOnType: a.type === 'Product' ? 'Product' : 'Service',
+                        name: a.name,
+                        type: a.productType === 'Food' || a.productType === 'Drinks' ? a.productType : 'Other',
+                        category: a.category,
+                        subCategory: a.subCategory,
+                        quantity: a.quantity,
+                        description: a.description,
+                        price: parseFloat(a.price) || 0,
+                        billingUnit: a.billingUnit,
+                        policyDocUrl,
+                        mediaUrls
+                    });
+                }
 
                 const payload = {
                     crockery: {
                         included: crockeryIncluded,
-                        type: selectedCrockeryTypes || 'Standard'
+                        type: selectedCrockeryTypes.length > 0 ? selectedCrockeryTypes : ['Standard']
                     },
                     menus: menus.map(m => ({
                         name: m.name,
@@ -605,19 +668,9 @@ export default function CatererFlow() {
                             drinks: (m.inventory['Drinks'] || []).map(x => ({ name: x.name, price: 0, foodType: x.foodType }))
                         }
                     })),
-                    addOns: addons.map(a => ({
-                        addOnType: a.type === 'Product' ? 'Product' : 'Service',
-                        name: a.name,
-                        type: a.productType === 'Food' || a.productType === 'Drinks' ? a.productType : 'Other',
-                        category: a.category,
-                        subCategory: a.subCategory,
-                        quantity: a.quantity,
-                        description: a.description,
-                        price: parseFloat(a.price) || 0,
-                        billingUnit: a.billingUnit,
-                        policyDocUrl: '',
-                        mediaUrls: []
-                    }))
+                    addOns: processedAddons,
+                    included: includedText.split('\n').filter(s => s.trim()),
+                    notIncluded: notIncludedText.split('\n').filter(s => s.trim())
                 };
 
                 const res = await fetch(apiUrl(`/packages/${packageId}/step/2`), {
