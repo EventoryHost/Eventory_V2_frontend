@@ -25,7 +25,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.variable} ${figtree.variable} font-sans antialiased text-gray-900 bg-white`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark')
+                } else {
+                  document.documentElement.classList.remove('dark')
+                }
+              } catch (_) {}
+            `,
+          }}
+        />
+      </head>
+      <body className={`${inter.variable} ${figtree.variable} font-sans antialiased text-gray-900 bg-white dark:bg-[#09090B] dark:text-white transition-colors duration-300`}>
         {children}
       </body>
     </html>
