@@ -93,6 +93,7 @@ export default function ViewProfilePage() {
 
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
+    const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
     
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
@@ -193,6 +194,12 @@ export default function ViewProfilePage() {
                                 <path d="M6 21V19C6 16.7909 7.79086 15 10 15H14C16.2091 15 18 16.7909 18 19V21" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                         )}
+                        {/* Upload in-progress overlay */}
+                        {isUploadingPhoto && (
+                            <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center">
+                                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            </div>
+                        )}
                     </div>
                     
                     <input 
@@ -200,36 +207,58 @@ export default function ViewProfilePage() {
                         id="profile-upload" 
                         className="hidden" 
                         accept="image/*"
-                        onChange={(e) => {
+                        disabled={isUploadingPhoto}
+                        onChange={async (e) => {
                             const file = e.target.files?.[0];
-                            if (file) {
-                                // Create a local preview URL immediately for snappy UX
-                                const previewUrl = URL.createObjectURL(file);
-                                setVendor({ ...vendor, profilePicture: previewUrl });
-                                
-                                // Convert to base64 and save to backend so it persists
-                                const reader = new FileReader();
-                                reader.onloadend = async () => {
-                                    const base64String = reader.result;
-                                    try {
-                                        const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-                                        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-                                        await fetch(`${baseUrl}/vendors/${vendorId}`, {
-                                            method: 'PATCH',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ profilePicture: base64String })
-                                        });
-                                    } catch (err) {
-                                        console.error("Failed to save profile picture to database", err);
-                                    }
-                                };
-                                reader.readAsDataURL(file);
+                            if (!file) return;
+
+                            // Show instant local preview
+                            const previewUrl = URL.createObjectURL(file);
+                            setVendor({ ...vendor, profilePicture: previewUrl });
+                            setIsUploadingPhoto(true);
+
+                            try {
+                                // 1. Upload file to S3 via the existing /api/upload route
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                const uploadRes = await fetch('/api/upload', {
+                                    method: 'POST',
+                                    body: formData,
+                                });
+
+                                if (!uploadRes.ok) {
+                                    throw new Error('S3 upload failed');
+                                }
+
+                                const { url: s3Url } = await uploadRes.json();
+
+                                // 2. Save the S3/CloudFront URL to the vendor profile
+                                const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
+                                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+                                await fetch(`${baseUrl}/vendors/${vendorId}`, {
+                                    method: 'PATCH',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ profilePicture: s3Url }),
+                                });
+
+                                // Update state with the permanent URL
+                                setVendor((v: any) => ({ ...v, profilePicture: s3Url }));
+                            } catch (err) {
+                                console.error('Failed to upload profile picture:', err);
+                                // Revert preview on failure
+                                setVendor((v: any) => ({ ...v, profilePicture: vendor.profilePicture }));
+                            } finally {
+                                setIsUploadingPhoto(false);
+                                // Release the blob URL to free memory
+                                URL.revokeObjectURL(previewUrl);
                             }
                         }}
                     />
                     <label 
                         htmlFor="profile-upload"
-                        className="absolute bottom-0 right-0 w-8 h-8 bg-[#18181B] dark:bg-white rounded-full border-[3px] border-[#FAFAFA] dark:border-[#09090B] flex items-center justify-center active:scale-95 transition-transform cursor-pointer"
+                        className={`absolute bottom-0 right-0 w-8 h-8 bg-[#18181B] dark:bg-white rounded-full border-[3px] border-[#FAFAFA] dark:border-[#09090B] flex items-center justify-center transition-transform cursor-pointer ${
+                            isUploadingPhoto ? 'opacity-50 pointer-events-none' : 'active:scale-95'
+                        }`}
                     >
                         <Camera className="w-[14px] h-[14px] text-white dark:text-[#09090B]" />
                     </label>
