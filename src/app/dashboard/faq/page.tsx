@@ -6,39 +6,48 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
 
 const FAQ_DATA = [
-    {
-        id: '1',
-        question: 'What happens if a client cancels?',
-        answer: "When a new request arrives, you'll receive a notification. Go to the 'Bookings' tab, review the details, and tap 'Accept' to confirm. You can also message the client first if you have questions.",
-        category: 'All'
-    },
-    {
-        id: '2',
-        question: 'How can I change my subscription plan?',
-        answer: 'You can change your subscription plan by navigating to the Settings page and selecting "Billing & Plans". From there, you can view available options and upgrade or downgrade your account.',
-        category: 'Items related issue'
-    },
-    {
-        id: '3',
-        question: 'Where do I find my billing history?',
-        answer: 'Your billing history is located under the "Billing & Plans" section in your Settings. You can view and download all past invoices from there.',
-        category: 'Payment related issue'
-    },
-    {
-        id: '4',
-        question: 'Is there a trial period available?',
-        answer: 'Yes, we offer a 14-day free trial for all new vendors joining the platform. You will not be charged until the trial period ends.',
-        category: 'All'
-    },
-    {
-        id: '5',
-        question: 'What payment methods do you accept?',
-        answer: 'We accept all major credit cards, UPI, and bank transfers for payouts. You can configure these in the Bank Accounts section of your dashboard.',
-        category: 'Payment related issue'
-    }
+    // Packages & Services
+    { id: '1', question: 'How do I create a service package?', answer: 'Select “inventory” and tap \'Create first package\'. Add your service details, pricing, and variants. Packages are saved as drafts if your document verification is incomplete; they go live once verification is done.', category: 'Packages & Services' },
+    { id: '2', question: 'Why is my package showing as a draft?', answer: 'A package stays in draft if your document verification is pending. Complete the verification step, and your packages will be published. You can view all your draft packages in the Drafts section in Inventory.', category: 'Packages & Services' },
+    { id: '3', question: 'What documents do I need to submit for verification?', answer: 'Required documents depend on your service category. Generally, you\'ll need a PAN card and Aadhaar. A food license is required for catering vendors. GST registration is required for select categories. You can resubmit documents if verification fails; there is no limit on attempts.', category: 'Packages & Services' },
+    { id: '4', question: 'How long does document verification take?', answer: 'Verification is completed within 24 hours of submission. You\'ll be notified once it\'s done. If your documents are rejected, you can resubmit immediately.', category: 'Packages & Services' },
+    { id: '5', question: 'Can I add variants to my package?', answer: 'Yes. You can create multiple variants for a package (e.g. Basic, Premium). Clients will book a specific variant, and that variant\'s inclusions are locked in at the time of booking; any edits you make later won\'t affect existing bookings.', category: 'Packages & Services' },
+    { id: '6', question: 'Can I edit a package that has already been booked?', answer: 'You can edit the package, but the client who booked will always receive the exact inclusions and variant that were shown at the time of their booking. Edits only affect new bookings going forward.', category: 'Packages & Services' },
+    { id: '7', question: 'Is there a limit on how many packages I can create?', answer: 'No. You can create as many packages as you need across your listed service categories.', category: 'Packages & Services' },
+    { id: '8', question: 'Can I offer multiple services under one account?', answer: 'Yes. A single Eventory vendor account can list services across multiple categories; for example, you can offer both photography and decor under the same account.', category: 'Packages & Services' },
+
+    // Payments & Earnings
+    { id: '9', question: 'How does payment work on Eventory?', answer: 'Payments are split across two or three stages: an optional token amount, an advance payment collected before the event, and a final payment collected after event completion. The commission is deducted from the total booking amount.', category: 'Payments & Earnings' },
+    { id: '10', question: 'When do I receive my payout?', answer: 'Payouts are processed immediately after the client makes each payment. Funds are transferred to your registered bank account via Cashfree Payouts.', category: 'Payments & Earnings' },
+    { id: '11', question: 'What are the commission charges, and how is it calculated?', answer: 'Eventory charges a commission between 3% and 12% of the total booking amount. The exact percentage depends on your service category and how far in advance the event is booked. This fee is deducted from the total.', category: 'Payments & Earnings' },
+    { id: '12', question: 'Where can I see my earnings?', answer: 'Select Earnings in the Menu section. You\'ll find a full breakdown including booking amount, payment timeline, and net payout for every transaction.', category: 'Payments & Earnings' },
+    { id: '13', question: 'What bank account details do I need to add for payouts?', answer: 'You\'ll need to add your bank account number and IFSC code during profile setup. Payouts are processed through Cashfree directly to this account. Make sure the account is in the name of the business or individual registered on the platform.', category: 'Payments & Earnings' },
+
+    // Bookings & Enquiries
+    { id: '14', question: 'How will I know when I receive a new booking request?', answer: 'You\'ll receive an in-app notification whenever a new booking request is assigned to you. You can view all pending requests in the Bookings section.', category: 'Bookings & Enquiries' },
+    { id: '15', question: 'How do I communicate with clients?', answer: 'All communication happens through Eventory\'s in-app chat. Direct contact with clients outside the platform is not supported. An event manager is assigned to every booking and acts as a mediator between you and the client.', category: 'Bookings & Enquiries' },
+    { id: '16', question: 'How long do I have to accept or reject a booking request?', answer: 'You have 12 hours to accept or reject an incoming booking request. If you don\'t respond within this window, the request will auto-expire.', category: 'Bookings & Enquiries' },
+    { id: '17', question: 'What happens after I accept a booking?', answer: 'Once accepted, the booking is confirmed, and the client will be notified. An event manager may coordinate further event requirements and communication.', category: 'Bookings & Enquiries' },
+    { id: '18', question: 'What happens if a client cancels a booking?', answer: 'The booking status will be updated automatically. Cancellation policies and applicable charges will be processed according to Eventory\'s cancellation terms.', category: 'Bookings & Enquiries' },
+    { id: '19', question: 'Are there charges if I cancel a booking?', answer: 'Yes. Vendor cancellation charges apply and can go up to 80% depending on how close to the event date the cancellation is made. We recommend only accepting bookings you are confident you can fulfil. [To be confirmed]', category: 'Bookings & Enquiries' },
+    { id: '20', question: 'How can I block dates on my calendar?', answer: 'Use our smart event calendar to block dates when you\'re unavailable or already booked. Tap on the date you want to block with your booking or unavailability and fill in the details. Your listings will only appear to clients for dates you have not blocked.', category: 'Bookings & Enquiries' },
+    { id: '21', question: 'Why am I seeing a date conflict warning?', answer: 'The warning appears when the booking overlaps with another confirmed event or blocked date on your calendar.', category: 'Bookings & Enquiries' },
+    { id: '22', question: 'How can I check the status of my enquiries?', answer: 'You can view all your enquiries under Enquiries in the app\'s Menu section. Each enquiry will display its current status, such as New Enquiry, Awaiting Response, Accepted, Declined, or Expired, helping you track every request easily.', category: 'Bookings & Enquiries' },
+    { id: '23', question: 'Why am I not receiving enquiries?', answer: 'This may happen if your profile is incomplete, your services are under review, your availability is limited, or there is currently low demand for your category.', category: 'Bookings & Enquiries' },
+    { id: '24', question: 'Can clients leave a review after an event?', answer: 'Yes. Clients can rate and review your service after the event. Maintaining a good rating improves your visibility and booking chances on the platform. You can check your reviews at “My Ratings” in the Menu section.', category: 'Bookings & Enquiries' },
+
+    // App Support
+    { id: '25', question: 'I\'m unable to log in to my account. What should I do?', answer: 'Verify your registered mobile number and OTP. If the issue persists, contact support through the Help & Support section.', category: 'App Support' },
+    { id: '26', question: 'I am not receiving OTPs or notifications. How can I fix this?', answer: 'Check your network connection, SMS permissions, and notification settings. If the issue continues, report it through App Support.', category: 'App Support' },
+    { id: '27', question: 'How do I report a technical issue or bug?', answer: 'Go to Menu > Help & Support and submit a support request with screenshots and details of the issue for faster resolution.', category: 'App Support' },
+    { id: '28', question: 'My package changes are not showing live. Why?', answer: 'A package stays in draft if your document verification is pending. Complete the verification step, and your packages will be published within 24 hours of review. You can view all your draft packages in the Drafts section in Inventory.', category: 'App Support' },
+    { id: '29', question: 'How do I update my profile information?', answer: 'Navigate to Profile Settings and edit the required details. Some changes may require verification before they are updated.', category: 'App Support' },
+    { id: '30', question: 'Can I change my registered phone number or email address?', answer: 'Yes. Contact the support team through Help & Support available in the Menu section for assistance with updating registered account information.', category: 'App Support' },
+    { id: '31', question: 'How can I contact the Eventory support team?', answer: 'You can raise a support ticket through the Help & Support section in the app. Our team will review and respond as soon as possible.', category: 'App Support' },
+    { id: '32', question: 'Can I use the same account on multiple devices?', answer: 'Yes. However, additional authentication may be required when signing in from a new device.', category: 'App Support' }
 ];
 
-const TABS = ['All', 'Items related issue', 'Payment related issue'];
+const TABS = ['All', 'Packages & Services', 'Payments & Earnings', 'Bookings & Enquiries', 'App Support'];
 
 export default function FAQPage() {
     const router = useRouter();

@@ -25,6 +25,11 @@ export default function BankAccountsPage() {
     const [isCheckingIfsc, setIsCheckingIfsc] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
 
+    // Validation errors
+    const [accError, setAccError] = useState('');
+    const [confirmError, setConfirmError] = useState('');
+    const [ifscError, setIfscError] = useState('');
+
     useEffect(() => {
         const fetchVendor = async () => {
             try {
@@ -112,7 +117,13 @@ export default function BankAccountsPage() {
         }
     };
 
-    const isFormValid = accountNumber.length > 5 && confirmAccount === accountNumber && ifsc.length === 11 && !isVerifying;
+    const isFormValid =
+        accountNumber.length >= 9 &&
+        accountNumber.length <= 18 &&
+        /^\d+$/.test(accountNumber) &&
+        confirmAccount === accountNumber &&
+        /^[A-Z]{4}0[A-Z0-9]{6}$/.test(ifsc) &&
+        !isVerifying;
 
     // Helper to mask account number
     const maskAccount = (acc: string) => {
@@ -295,43 +306,102 @@ export default function BankAccountsPage() {
                             <div className="space-y-4">
                                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#3F3F47] dark:text-[#E4E4E7] mb-2">Account Number</h3>
                                 
-                                <input 
-                                    type={accountNumber.length > 0 && confirmAccount.length > 0 ? "password" : "text"}
-                                    value={accountNumber}
-                                    onChange={(e) => setAccountNumber(e.target.value)}
-                                    placeholder="Bank account Number"
-                                    className="w-full h-[52px] px-4 rounded-[12px] border border-[#E4E4E7] dark:border-[#3F3F47] bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] placeholder:text-[#A1A1AA]"
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                />
-                                
-                                <input 
-                                    type="text"
-                                    value={confirmAccount}
-                                    onChange={(e) => setConfirmAccount(e.target.value)}
-                                    placeholder="Confirm account number"
-                                    className="w-full h-[52px] px-4 rounded-[12px] border border-[#E4E4E7] dark:border-[#3F3F47] bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] placeholder:text-[#A1A1AA]"
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                />
+                                {/* Account Number */}
+                                <div>
+                                    <input 
+                                        type={accountNumber.length > 0 && confirmAccount.length > 0 ? "password" : "text"}
+                                        value={accountNumber}
+                                        inputMode="numeric"
+                                        onChange={(e) => {
+                                            // Strip all non-digit characters
+                                            const digits = e.target.value.replace(/\D/g, '');
+                                            setAccountNumber(digits);
+                                            if (digits.length > 0 && digits.length < 9)
+                                                setAccError('Account number must be at least 9 digits');
+                                            else if (digits.length > 18)
+                                                setAccError('Account number cannot exceed 18 digits');
+                                            else
+                                                setAccError('');
+                                            // Re-validate confirm if already filled
+                                            if (confirmAccount && confirmAccount !== digits)
+                                                setConfirmError('Account numbers do not match');
+                                            else
+                                                setConfirmError('');
+                                        }}
+                                        placeholder="Bank account number"
+                                        maxLength={18}
+                                        className={`w-full h-[52px] px-4 rounded-[12px] border ${
+                                            accError ? 'border-red-400 dark:border-red-500' : 'border-[#E4E4E7] dark:border-[#3F3F47]'
+                                        } bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] placeholder:text-[#A1A1AA]`}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    />
+                                    {accError && (
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-red-500 mt-1.5 pl-1">{accError}</p>
+                                    )}
+                                </div>
+
+                                {/* Confirm Account */}
+                                <div>
+                                    <input 
+                                        type="text"
+                                        value={confirmAccount}
+                                        inputMode="numeric"
+                                        onChange={(e) => {
+                                            const digits = e.target.value.replace(/\D/g, '');
+                                            setConfirmAccount(digits);
+                                            if (digits && digits !== accountNumber)
+                                                setConfirmError('Account numbers do not match');
+                                            else
+                                                setConfirmError('');
+                                        }}
+                                        placeholder="Confirm account number"
+                                        maxLength={18}
+                                        className={`w-full h-[52px] px-4 rounded-[12px] border ${
+                                            confirmError ? 'border-red-400 dark:border-red-500' : 'border-[#E4E4E7] dark:border-[#3F3F47]'
+                                        } bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] placeholder:text-[#A1A1AA]`}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    />
+                                    {confirmError && (
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-red-500 mt-1.5 pl-1">{confirmError}</p>
+                                    )}
+                                </div>
                                 
                                 <div className="relative">
                                     <input 
                                         type="text"
                                         value={ifsc}
-                                        onChange={(e) => setIfsc(e.target.value.toUpperCase())}
+                                        onChange={(e) => {
+                                            // Allow only uppercase alphanumeric chars
+                                            const val = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+                                            setIfsc(val);
+                                            if (val.length === 11) {
+                                                if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(val))
+                                                    setIfscError('Invalid IFSC format (e.g. SBIN0001234)');
+                                                else
+                                                    setIfscError('');
+                                            } else if (val.length > 0) {
+                                                setIfscError('');
+                                            }
+                                        }}
                                         placeholder="IFSC Code"
                                         maxLength={11}
-                                        className="w-full h-[52px] px-4 rounded-[12px] border border-[#E4E4E7] dark:border-[#3F3F47] bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] placeholder:text-[#A1A1AA] uppercase"
+                                        className={`w-full h-[52px] px-4 rounded-[12px] border ${
+                                            ifscError ? 'border-red-400 dark:border-red-500' : 'border-[#E4E4E7] dark:border-[#3F3F47]'
+                                        } bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] placeholder:text-[#A1A1AA] uppercase`}
                                         style={{ fontFamily: 'Figtree, sans-serif' }}
                                     />
                                     {ifsc.length > 0 && (
                                         <button 
-                                            onClick={() => setIfsc('')}
+                                            onClick={() => { setIfsc(''); setIfscError(''); setIfscResult(null); }}
                                             className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[#71717B] dark:text-[#A1A1AA]"
                                         >
                                             <XCircle className="w-5 h-5" strokeWidth={1.5} />
                                         </button>
                                     )}
                                 </div>
+                                {ifscError && (
+                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-red-500 mt-1.5 pl-1">{ifscError}</p>
+                                )}
 
                                 {/* IFSC Result */}
                                 <AnimatePresence>

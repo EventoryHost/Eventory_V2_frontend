@@ -8,27 +8,31 @@ import BottomNav from '@/components/BottomNav';
 const VIDEO_DATA = [
     {
         id: '1',
-        title: 'What payment methods do you accept?',
-        subtitle: 'Learn how to customize your brand and listing',
-        category: 'All'
+        title: 'Platform Overview & Introduction',
+        subtitle: 'Learn the basics of Eventory platform',
+        category: 'All',
+        url: 'https://v2-assets-bucket.s3.ap-south-1.amazonaws.com/Menu_Components/Text%20Animated.mp4'
     },
     {
         id: '2',
-        title: 'What payment methods do you accept?',
-        subtitle: 'Learn how to customize your brand and listing',
-        category: 'Items related issue'
+        title: 'How to manage your inventory',
+        subtitle: 'Learn how to create and edit packages',
+        category: 'Items related issue',
+        url: 'https://v2-assets-bucket.s3.ap-south-1.amazonaws.com/Menu_Components/Text%20Animated.mp4'
     },
     {
         id: '3',
-        title: 'What payment methods do you accept?',
-        subtitle: 'Learn how to customize your brand and listing',
-        category: 'Payment related issue'
+        title: 'Understanding payouts and earnings',
+        subtitle: 'Everything about your bank account & payments',
+        category: 'Payment related issue',
+        url: 'https://v2-assets-bucket.s3.ap-south-1.amazonaws.com/Menu_Components/Text%20Animated.mp4'
     },
     {
         id: '4',
-        title: 'What payment methods do you accept?',
-        subtitle: 'Learn how to customize your brand and listing',
-        category: 'All'
+        title: 'Managing customer enquiries',
+        subtitle: 'How to respond to and confirm bookings',
+        category: 'All',
+        url: 'https://v2-assets-bucket.s3.ap-south-1.amazonaws.com/Menu_Components/Text%20Animated.mp4'
     }
 ];
 
@@ -38,6 +42,7 @@ export default function VideoGuidePage() {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('All');
+    const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
 
     const filteredVideos = VIDEO_DATA.filter(video => {
         const matchesSearch = video.title.toLowerCase().includes(searchQuery.toLowerCase());
@@ -103,6 +108,7 @@ export default function VideoGuidePage() {
                     {filteredVideos.map((video) => (
                         <div 
                             key={video.id}
+                            onClick={() => setPlayingVideoUrl(video.url)}
                             className="bg-white dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[12px] p-4 flex gap-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#27272A]/50 transition-colors"
                         >
                             <div className="w-[100px] h-[72px] shrink-0 bg-[#F4F4F5] dark:bg-[#27272A] rounded-[8px] flex items-center justify-center">
@@ -128,6 +134,28 @@ export default function VideoGuidePage() {
                     )}
                 </div>
             </div>
+
+            {/* Video Player Modal */}
+            {playingVideoUrl && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+                    <button 
+                        onClick={() => setPlayingVideoUrl(null)}
+                        className="absolute top-6 right-6 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                    >
+                        <X className="w-6 h-6 text-white" />
+                    </button>
+                    <div className="w-full max-w-4xl aspect-video bg-black rounded-lg overflow-hidden shadow-2xl">
+                        <video 
+                            src={playingVideoUrl} 
+                            controls 
+                            autoPlay 
+                            className="w-full h-full object-contain"
+                        >
+                            Your browser does not support the video tag.
+                        </video>
+                    </div>
+                </div>
+            )}
 
             <BottomNav />
         </div>

@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, ShieldAlert, FileCheck, FileText, Upload, ChevronUp, ChevronDown, User } from 'lucide-react';
+import { X, ShieldAlert, FileCheck, FileText, Upload, ChevronUp, ChevronDown, User, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
 
@@ -9,7 +9,7 @@ export default function PersonalDocumentsPage() {
     const router = useRouter();
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedDocumentToUpload, setSelectedDocumentToUpload] = useState<string | null>(null);
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [inputValue, setInputValue] = useState('');
     const [isReferenceOpen, setIsReferenceOpen] = useState(true);
     
     const [vendor, setVendor] = useState<any>(null);
@@ -37,12 +37,12 @@ export default function PersonalDocumentsPage() {
     const handleUploadClick = (docName: string) => {
         setSelectedDocumentToUpload(docName);
         setIsUploadModalOpen(true);
-        setSelectedFile(null);
+        setInputValue('');
     };
 
     const submitDocument = async () => {
-        if (!selectedFile || !selectedDocumentToUpload) {
-            alert("Please select a document first.");
+        if (!inputValue || !selectedDocumentToUpload) {
+            alert("Please enter the document number first.");
             return;
         }
 
@@ -50,12 +50,10 @@ export default function PersonalDocumentsPage() {
             const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
             
-            // Generate dummy field updates for optimistic UI update and backend save
-            // Realistically you'd upload the file and set the URL, and maybe isVerified = false to trigger review
             let updatePayload: any = {};
-            if (selectedDocumentToUpload === 'Aadhaar Card') updatePayload.aadharNumber = 'Uploaded';
-            if (selectedDocumentToUpload === 'GST Number') updatePayload.gstNumber = 'Uploaded';
-            if (selectedDocumentToUpload === 'PAN Card') updatePayload.panNumber = 'Uploaded';
+            if (selectedDocumentToUpload === 'Aadhaar Card') updatePayload.aadharNumber = inputValue;
+            if (selectedDocumentToUpload === 'GST Number') updatePayload.gstNumber = inputValue;
+            if (selectedDocumentToUpload === 'PAN Card') updatePayload.panNumber = inputValue;
 
             // Optimistic update
             setVendor({ ...vendor, ...updatePayload });
@@ -67,7 +65,7 @@ export default function PersonalDocumentsPage() {
             });
             
             setIsUploadModalOpen(false);
-            setSelectedFile(null);
+            setInputValue('');
             alert(`${selectedDocumentToUpload} submitted successfully for review!`);
         } catch (error) {
             console.error("Failed to submit document", error);
@@ -83,61 +81,67 @@ export default function PersonalDocumentsPage() {
         );
     }
 
-    // Determine missing documents
+    // Determine missing docs based on document numbers (ignoring legacy 'Uploaded' dummy string)
     const missingDocs = [];
-    if (!vendor?.aadharNumber && !vendor?.isAadharVerified) missingDocs.push("Aadhaar Card");
-    if (!vendor?.gstNumber && !vendor?.isGstVerified) missingDocs.push("GST Number");
-    if (!vendor?.panNumber && !vendor?.isPanVerified) missingDocs.push("PAN Card");
+    if ((!vendor?.aadharNumber || vendor?.aadharNumber === 'Uploaded') && !vendor?.isAadharVerified) missingDocs.push("Aadhaar Card");
+    if ((!vendor?.gstNumber || vendor?.gstNumber === 'Uploaded') && !vendor?.isGstVerified) missingDocs.push("GST Number");
+    if ((!vendor?.panNumber || vendor?.panNumber === 'Uploaded') && !vendor?.isPanVerified) missingDocs.push("PAN Card");
 
     const getDocStatus = (docName: string) => {
+        const baseCloudfrontUrl = 'https://dkuacgndftndz.cloudfront.net/Menu_Components';
+        let imgSrc = '';
+        if (docName === 'Aadhaar Card') imgSrc = `${baseCloudfrontUrl}/adhaar.png`;
+        if (docName === 'GST Number') imgSrc = `${baseCloudfrontUrl}/gst%20number.png`;
+        if (docName === 'PAN Card') imgSrc = `${baseCloudfrontUrl}/pan.png`;
+
         if (docName === 'Aadhaar Card') {
-            if (vendor?.isAadharVerified) return { status: 'VERIFIED', color: 'text-[#10B981]', bg: 'bg-[#ECFDF5] dark:bg-[#064E3B]', icon: FileCheck };
-            if (vendor?.aadharNumber) return { status: 'UNDER REVIEW', color: 'text-[#E85D04]', bg: 'bg-[#FFF7ED] dark:bg-[#78350F]/30', icon: FileText };
-            return { status: 'REQUIRED DOCUMENT', color: 'text-[#71717B] dark:text-[#A1A1AA]', bg: 'bg-[#F4F4F5] dark:bg-[#27272A]', icon: FileText };
+            if (vendor?.isAadharVerified) return { status: 'VERIFIED', color: 'text-[#10B981]', imgSrc };
+            if (vendor?.aadharNumber && vendor.aadharNumber !== 'Uploaded') return { status: 'UNDER REVIEW', color: 'text-[#E85D04]', imgSrc };
+            return { status: 'REQUIRED', color: 'text-[#71717B] dark:text-[#A1A1AA]', imgSrc };
         }
         if (docName === 'GST Number') {
-            if (vendor?.isGstVerified) return { status: 'VERIFIED', color: 'text-[#10B981]', bg: 'bg-[#ECFDF5] dark:bg-[#064E3B]', icon: FileCheck };
-            if (vendor?.gstNumber) return { status: 'UNDER REVIEW', color: 'text-[#E85D04]', bg: 'bg-[#FFF7ED] dark:bg-[#78350F]/30', icon: FileText };
-            return { status: 'REQUIRED DOCUMENT', color: 'text-[#71717B] dark:text-[#A1A1AA]', bg: 'bg-[#F4F4F5] dark:bg-[#27272A]', icon: FileText };
+            if (vendor?.isGstVerified) return { status: 'VERIFIED', color: 'text-[#10B981]', imgSrc };
+            if (vendor?.gstNumber && vendor.gstNumber !== 'Uploaded') return { status: 'UNDER REVIEW', color: 'text-[#E85D04]', imgSrc };
+            return { status: 'REQUIRED', color: 'text-[#71717B] dark:text-[#A1A1AA]', imgSrc };
         }
         if (docName === 'PAN Card') {
-            if (vendor?.isPanVerified) return { status: 'VERIFIED', color: 'text-[#10B981]', bg: 'bg-[#ECFDF5] dark:bg-[#064E3B]', icon: FileCheck };
-            if (vendor?.panNumber) return { status: 'UNDER REVIEW', color: 'text-[#E85D04]', bg: 'bg-[#FFF7ED] dark:bg-[#78350F]/30', icon: FileText };
-            return { status: 'REQUIRED DOCUMENT', color: 'text-[#71717B] dark:text-[#A1A1AA]', bg: 'bg-[#F4F4F5] dark:bg-[#27272A]', icon: FileText };
+            if (vendor?.isPanVerified) return { status: 'VERIFIED', color: 'text-[#10B981]', imgSrc };
+            if (vendor?.panNumber && vendor.panNumber !== 'Uploaded') return { status: 'UNDER REVIEW', color: 'text-[#E85D04]', imgSrc };
+            return { status: 'REQUIRED', color: 'text-[#71717B] dark:text-[#A1A1AA]', imgSrc };
         }
-        return { status: 'UNKNOWN', color: 'text-gray-500', bg: 'bg-gray-100', icon: FileText };
+        return { status: 'UNKNOWN', color: 'text-gray-500', imgSrc };
     };
 
     const renderDocCard = (docName: string) => {
-        const { status, color, bg, icon: Icon } = getDocStatus(docName);
+        const { status, color, imgSrc } = getDocStatus(docName);
         
         return (
-            <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] p-4 flex items-center justify-between mb-4 shadow-sm">
+            <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[8px] p-4 flex items-center justify-between mb-3 shadow-[0_2px_8px_rgba(0,0,0,0.04)]">
                 <div className="flex items-center gap-4">
-                    <div className={`w-[42px] h-[42px] rounded-full flex items-center justify-center ${bg}`}>
-                        <Icon className={`w-5 h-5 ${status === 'REQUIRED DOCUMENT' ? 'text-[#3F3F47] dark:text-[#A1A1AA]' : color}`} strokeWidth={1.5} />
+                    <div className="w-[44px] h-[44px] flex items-center justify-center shrink-0">
+                        <img src={imgSrc} alt={docName} className="w-full h-full object-contain mix-blend-multiply drop-shadow-sm" />
                     </div>
                     <div>
-                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-0.5">{docName}</h4>
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={`text-[10px] font-bold uppercase tracking-wider ${color}`}>{status}</span>
+                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white mb-0.5">{docName}</h4>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={`text-[10px] font-bold uppercase ${color}`}>{status}</span>
                     </div>
                 </div>
                 
-                {status === 'REQUIRED DOCUMENT' ? (
+                {status === 'REQUIRED' && docName === 'PAN Card' ? (
                     <button 
                         onClick={() => handleUploadClick(docName)}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold px-5 py-2.5 rounded-[8px] active:scale-95 transition-transform"
+                        className="bg-[#031B24] dark:bg-[#E95A6E] text-white text-[12px] font-bold px-4 py-2 rounded-lg active:scale-95 transition-transform whitespace-nowrap shadow-sm"
                     >
-                        Upload
+                        Link {docName.split(' ')[0]}
                     </button>
                 ) : (
-                    <button className="w-8 h-8 flex items-center justify-center">
-                        <div className="flex flex-col gap-1">
-                            <div className="w-1 h-1 bg-[#3F3F47] dark:bg-[#A1A1AA] rounded-full"></div>
-                            <div className="w-1 h-1 bg-[#3F3F47] dark:bg-[#A1A1AA] rounded-full"></div>
-                            <div className="w-1 h-1 bg-[#3F3F47] dark:bg-[#A1A1AA] rounded-full"></div>
-                        </div>
+                    <button 
+                        onClick={() => handleUploadClick(docName)}
+                        className="flex items-center gap-1.5 active:scale-95 transition-transform"
+                    >
+                        <RefreshCcw className="w-[14px] h-[14px] text-[#030303] dark:text-white" strokeWidth={2} />
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] dark:text-white">Update</span>
                     </button>
                 )}
             </div>
@@ -181,8 +185,8 @@ export default function PersonalDocumentsPage() {
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-medium text-[#030303] dark:text-white mb-4">Personal Documents</h3>
 
                 {renderDocCard('Aadhaar Card')}
-                {renderDocCard('GST Number')}
                 {renderDocCard('PAN Card')}
+                {renderDocCard('GST Number')}
 
                 {/* Document Reference Image Accordion */}
                 <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] shadow-sm overflow-hidden mb-4 mt-8">
@@ -253,85 +257,115 @@ export default function PersonalDocumentsPage() {
                 </div>
             </div>
 
-            {/* Upload Modal */}
+            {/* Bottom Sheet Modal */}
             <AnimatePresence>
                 {isUploadModalOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center p-5 bg-black/40 dark:bg-black/70 backdrop-blur-sm"
-                    >
+                    <>
                         <motion.div 
-                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                            className="bg-white dark:bg-[#1E1E1B] w-full max-w-[340px] rounded-[28px] p-6 flex flex-col items-center shadow-2xl relative"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsUploadModalOpen(false)}
+                            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-[2px]"
+                        />
+                        <motion.div 
+                            initial={{ y: "100%" }}
+                            animate={{ y: 0 }}
+                            exit={{ y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="fixed bottom-0 left-0 right-0 z-[101] bg-white dark:bg-[#1E1E1B] rounded-t-[24px] p-6 pb-10 flex flex-col"
+                            style={{ maxHeight: '90vh' }}
                         >
-                            <button 
-                                onClick={() => setIsUploadModalOpen(false)}
-                                className="absolute right-6 top-6 text-[#A1A1AA] hover:text-[#030303] dark:hover:text-white transition-colors"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
-
-                            <div className="w-16 h-16 bg-[#FAFAFA] dark:bg-[#27272A] rounded-full flex items-center justify-center mb-4 mt-2">
-                                <Upload className="w-6 h-6 text-[#3F3F47] dark:text-[#A1A1AA]" strokeWidth={1.5} />
-                            </div>
-                            
-                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-2 text-center w-full block">Action Required</span>
-                            <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] dark:text-white mb-6 leading-tight text-center">Upload Requires Documents</h3>
-                            
-                            <div className="w-full">
-                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#A1A1AA] uppercase tracking-wider block mb-2 pl-1">{selectedDocumentToUpload || 'DOCUMENT NAME'}</span>
-                                
-                                <label 
-                                    htmlFor="document-upload"
-                                    className="border-[1.5px] border-dashed border-[#3B82F6] dark:border-[#60A5FA] bg-[#EFF6FF]/50 dark:bg-[#1E3A8A]/10 rounded-[4px] p-8 flex flex-col items-center justify-center mb-6 hover:bg-[#EFF6FF] dark:hover:bg-[#1E3A8A]/20 transition-colors cursor-pointer group relative overflow-hidden"
-                                >
-                                    <input 
-                                        type="file" 
-                                        id="document-upload" 
-                                        className="hidden" 
-                                        accept=".pdf,.doc,.docx,image/*"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) setSelectedFile(file);
-                                        }}
-                                    />
-                                    {selectedFile ? (
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-12 h-12 bg-[#ECFDF5] dark:bg-[#064E3B] shadow-sm border border-[#A7F3D0] dark:border-[#047857] rounded-full flex items-center justify-center mb-4">
-                                                <Upload className="w-5 h-5 text-[#10B981]" strokeWidth={2} />
-                                            </div>
-                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#10B981] mb-1 text-center truncate max-w-[200px]">
-                                                {selectedFile.name}
-                                            </p>
-                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] text-[#A1A1AA] mb-4">Ready to submit</p>
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303] dark:text-white uppercase tracking-wide">CHANGE FILE</span>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div className="w-12 h-12 bg-white dark:bg-[#1E1E1B] shadow-sm border border-[#F4F4F5] dark:border-[#27272A] rounded-full flex items-center justify-center mb-4 group-hover:scale-105 transition-transform">
-                                                <Upload className="w-5 h-5 text-[#3F3F47] dark:text-[#A1A1AA]" strokeWidth={1.5} />
-                                            </div>
-                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#030303] dark:text-[#FAFAFA] mb-1 text-center">Upload Required Documents</p>
-                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] text-[#A1A1AA] mb-4 text-center">PDF, DOC up to 10MB</p>
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303] dark:text-white uppercase tracking-wide">BROWSE FILES</span>
-                                        </>
-                                    )}
-                                </label>
-                                
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] dark:text-white">
+                                    Add {selectedDocumentToUpload === 'GST Number' ? 'GST number' : selectedDocumentToUpload === 'Aadhaar Card' ? 'Aadhaar card number' : 'Pan card number'}
+                                </h2>
                                 <button 
-                                    onClick={submitDocument}
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className="w-full py-[16px] bg-[#04222D] dark:bg-[#E95A6E] text-white font-bold rounded-[12px] text-[15px] active:scale-[0.98] transition-transform"
+                                    onClick={() => setIsUploadModalOpen(false)}
+                                    className="w-[36px] h-[36px] bg-[#F4F4F5] dark:bg-[#27272A] rounded-full flex items-center justify-center hover:bg-[#E4E4E7] dark:hover:bg-[#3F3F47] transition-colors"
                                 >
-                                    Submit Document
+                                    <X className="w-5 h-5 text-[#030303] dark:text-white" />
                                 </button>
                             </div>
+
+                            <div className="w-full aspect-[1.6/1] bg-[#F8F9FA] dark:bg-[#27272A] rounded-[24px] border border-[#E5E7EB] dark:border-[#3F3F47] mb-8 relative flex items-center justify-center overflow-hidden shadow-sm">
+                                {selectedDocumentToUpload === 'PAN Card' && (
+                                    <>
+                                        <img 
+                                            src="/images/pan_card_template.png" 
+                                            alt="PAN Card" 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => (e.target as HTMLImageElement).src = 'https://placehold.co/400x250/F8F9FA/999?text=PAN+Card'}
+                                        />
+                                        <div className="absolute bottom-6 bg-white/95 dark:bg-[#1E1E1B]/95 backdrop-blur-md px-5 py-2.5 rounded-xl border border-[#E5E7EB] dark:border-[#3F3F47] shadow-lg">
+                                            <p className="text-[14px] font-bold tracking-[3px] text-[#030303] dark:text-white flex items-center gap-3">
+                                                <span className="text-[10px] font-medium tracking-normal text-[#71717B] dark:text-[#A1A1AA] uppercase opacity-80">PAN no.</span>
+                                                {inputValue ? inputValue.toUpperCase().padEnd(10, '•') : 'ABCDE1234F'}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                                {selectedDocumentToUpload === 'Aadhaar Card' && (
+                                    <>
+                                        <img 
+                                            src="/images/aadhar_card_template.png" 
+                                            alt="Aadhar Card" 
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => (e.target as HTMLImageElement).src = 'https://placehold.co/400x250/F8F9FA/999?text=Aadhaar+Card'}
+                                        />
+                                        <div className="absolute bottom-6 bg-white/95 dark:bg-[#1E1E1B]/95 backdrop-blur-md px-5 py-2.5 rounded-xl border border-[#E5E7EB] dark:border-[#3F3F47] shadow-lg">
+                                            <p className="text-[14px] font-bold tracking-[3px] text-[#030303] dark:text-white flex items-center gap-3">
+                                                <span className="text-[10px] font-medium tracking-normal text-[#71717B] dark:text-[#A1A1AA] uppercase opacity-80">Aadhar no.</span>
+                                                {inputValue ? inputValue.replace(/(.{4})/g, '$1 ').trim().padEnd(14, '•') : '0000 1111 2222'}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                                {selectedDocumentToUpload === 'GST Number' && (
+                                    <>
+                                        <img 
+                                            src="/images/gst_certificate_template.png" 
+                                            alt="GST Certificate" 
+                                            className="w-full h-full object-cover opacity-70"
+                                            onError={(e) => (e.target as HTMLImageElement).src = 'https://placehold.co/400x250/F8F9FA/999?text=GST+Certificate'}
+                                        />
+                                        <div className="absolute bottom-6 bg-white/95 dark:bg-[#1E1E1B]/95 backdrop-blur-md px-5 py-2.5 rounded-xl border border-[#E5E7EB] dark:border-[#3F3F47] shadow-lg">
+                                            <p className="text-[14px] font-bold tracking-[2px] text-[#030303] dark:text-white flex items-center gap-3">
+                                                <span className="text-[10px] font-medium tracking-normal text-[#71717B] dark:text-[#A1A1AA] uppercase opacity-80">GSTIN</span>
+                                                {inputValue ? inputValue.toUpperCase().padEnd(15, '•') : '12ABCD345E6F7'}
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#3F3F47] dark:text-[#E4E4E7] mb-2 block">
+                                {selectedDocumentToUpload === 'GST Number' ? 'GST number' : selectedDocumentToUpload === 'Aadhaar Card' ? 'Aadhaar card number' : 'PAN card number'}
+                            </label>
+                            
+                            <input 
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value.toUpperCase())}
+                                placeholder={selectedDocumentToUpload === 'GST Number' ? '29GGGGG1314R9Z6' : selectedDocumentToUpload === 'Aadhaar Card' ? '0000 0000 0000' : 'ABCDE1234F'}
+                                className="w-full h-[52px] px-4 rounded-[12px] border border-[#E4E4E7] dark:border-[#3F3F47] bg-white dark:bg-[#18181B] text-[#030303] dark:text-white focus:outline-none focus:border-[#030303] dark:focus:border-[#E4E4E7] mb-6 uppercase"
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                            />
+
+                            <button 
+                                onClick={submitDocument}
+                                disabled={!inputValue}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className={`w-full h-[52px] rounded-[12px] text-[16px] font-bold transition-all active:scale-[0.98] flex items-center justify-center
+                                    ${inputValue 
+                                        ? 'bg-[#829197] text-white' 
+                                        : 'bg-[#829197]/60 text-white cursor-not-allowed'
+                                    }`}
+                            >
+                                Continue
+                            </button>
                         </motion.div>
-                    </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 

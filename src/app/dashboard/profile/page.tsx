@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { X, Camera, Upload, Edit3, ChevronRight, Bell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import BottomNav from '@/components/BottomNav';
+
+const AVATARS = ['/images/male-avatar.png', '/images/female-avatar.png'];
 
 const ProfileField = ({ 
     label, 
@@ -10,6 +13,7 @@ const ProfileField = ({
     value, 
     hasVerifyLink = false,
     isEditing,
+    globalEditingField,
     editValue,
     setEditValue,
     onEditClick,
@@ -17,8 +21,11 @@ const ProfileField = ({
     onUpdate,
     onUploadClick
 }: any) => {
+    const isUpdateDisabled = !editValue?.trim() || editValue.trim() === (value || '').trim();
+    const isDisabled = globalEditingField && globalEditingField !== fieldKey;
+
     return (
-        <div className="mb-6">
+        <div className={`mb-6 transition-opacity duration-200 ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
             <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[11px] font-bold text-[#71717B] dark:text-[#A1A1AA] uppercase tracking-wider mb-2">
                 {label}
             </label>
@@ -46,9 +53,10 @@ const ProfileField = ({
 
                     <div className="flex items-center gap-4">
                         <button 
+                            disabled={isUpdateDisabled}
                             onClick={fieldKey === 'businessName' ? onUploadClick : onUpdate}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="px-6 py-2.5 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-[8px] active:scale-95 transition-transform"
+                            className={`px-6 py-2.5 text-white text-[13px] font-bold rounded-[8px] transition-all ${isUpdateDisabled ? 'bg-[#84949A] dark:bg-[#3F3F47] cursor-not-allowed' : 'bg-[#04222D] dark:bg-[#E95A6E] active:scale-95'}`}
                         >
                             Update
                         </button>
@@ -86,14 +94,51 @@ const ProfileField = ({
     );
 };
 
+// ─── Onboarding progress helpers ─────────────────────────────────────────────
+const TOTAL_STEPS = 15;
+
+/**
+ * Derive how many setup steps are meaningfully completed from vendor fields.
+ * We map each of the 15 setup steps to a vendor field and check if it has data.
+ */
+function computeOnboardingStep(vendor: any): number {
+    if (!vendor) return 1;
+    const checks = [
+        !!vendor.businessName,                                                // step 1
+        !!vendor.pocName,                                                     // step 2
+        true,                                                                 // step 3 email (optional)
+        !!vendor.teamSize,                                                    // step 4
+        !!vendor.bookingsPerYear,                                             // step 5
+        !!vendor.experience,                                                  // step 6
+        !!(vendor.vendorType && vendor.vendorType.length > 0),                // step 7
+        !!(vendor.eventCategories && vendor.eventCategories.length > 0),     // step 8
+        !!(vendor.serviceAreas && vendor.serviceAreas.length > 0),           // step 9
+        !!(vendor.profilePicture && vendor.coverImage),                      // step 10
+        !!(vendor.description && vendor.description.length >= 200),          // step 11
+        true,                                                                 // step 12 guidelines
+        !!(vendor.businessPhotos && vendor.businessPhotos.length >= 3),      // step 13
+        false,                                                                // step 14 terms (can't derive)
+        false,                                                                // step 15 summary
+    ];
+    // Return the index (1-based) of the first uncompleted step
+    const firstIncomplete = checks.findIndex(c => !c);
+    return firstIncomplete === -1 ? TOTAL_STEPS : firstIncomplete + 1;
+}
+
 export default function ViewProfilePage() {
     const router = useRouter();
     const [vendor, setVendor] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [onboardingComplete, setOnboardingComplete] = useState(false);
+    const [resumeStep, setResumeStep] = useState(1);
 
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+    // Avatar picker sheet
+    const [showProfileSheet, setShowProfileSheet] = useState(false);
+    const [tempProfileImage, setTempProfileImage] = useState<string | null>(null);
     
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
     const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
@@ -106,25 +151,31 @@ export default function ViewProfilePage() {
                 const res = await fetch(`${baseUrl}/vendors/${vendorId}`);
                 if (res.ok) {
                     const responseJson = await res.json();
-                    setVendor(responseJson.data || responseJson);
+                    const data = responseJson.data || responseJson;
+                    setVendor(data);
+
+                    // Determine onboarding status
+                    const savedStep = localStorage.getItem('vendor_setup_step');
+                    const fieldStep = computeOnboardingStep(data);
+                    
+                    // Prefer the localStorage step, fallback to field-based derivation
+                    const lsStep = savedStep ? parseInt(savedStep, 10) : 1;
+                    // Take the higher of the two to avoid regressing
+                    const actualStep = Math.max(lsStep, fieldStep);
+                    
+                    // It is finished only if they actually reached step 15
+                    const isFinished = actualStep >= 15;
+                    
+                    setOnboardingComplete(isFinished);
+                    if (!isFinished) {
+                        setResumeStep(actualStep);
+                    }
                 } else {
-                    setVendor({
-                        businessName: '',
-                        pocName: '',
-                        email: '',
-                        phone: '',
-                        city: ''
-                    });
+                    setVendor({ businessName: '', pocName: '', email: '', phone: '', city: '' });
                 }
             } catch (error) {
                 console.error("Failed to fetch vendor", error);
-                setVendor({
-                    businessName: '',
-                    pocName: '',
-                    email: '',
-                    phone: '',
-                    city: ''
-                });
+                setVendor({ businessName: '', pocName: '', email: '', phone: '', city: '' });
             } finally {
                 setIsLoading(false);
             }
@@ -173,7 +224,7 @@ export default function ViewProfilePage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#09090B] pb-10 transition-colors duration-300">
+        <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#09090B] pb-32 transition-colors duration-300">
             {/* Header */}
             <div className="sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center border-b border-transparent">
                 <h1 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[24px] font-bold text-[#030303] dark:text-white">View Profile</h1>
@@ -254,14 +305,20 @@ export default function ViewProfilePage() {
                             }
                         }}
                     />
-                    <label 
-                        htmlFor="profile-upload"
-                        className={`absolute bottom-0 right-0 w-8 h-8 bg-[#18181B] dark:bg-white rounded-full border-[3px] border-[#FAFAFA] dark:border-[#09090B] flex items-center justify-center transition-transform cursor-pointer ${
-                            isUploadingPhoto ? 'opacity-50 pointer-events-none' : 'active:scale-95'
+                    {/* Camera button — opens avatar picker sheet */}
+                    <button
+                        onClick={() => { setTempProfileImage(vendor.profilePicture || null); setShowProfileSheet(true); }}
+                        disabled={isUploadingPhoto}
+                        className={`absolute bottom-0 right-0 w-8 h-8 bg-[#030303] dark:bg-white rounded-full border-[2.5px] border-[#FAFAFA] dark:border-[#09090B] flex items-center justify-center transition-transform ${
+                            isUploadingPhoto ? 'opacity-50 pointer-events-none' : 'active:scale-95 cursor-pointer'
                         }`}
                     >
-                        <Camera className="w-[14px] h-[14px] text-white dark:text-[#09090B]" />
-                    </label>
+                        <img 
+                            src="https://dkuacgndftndz.cloudfront.net/Menu_Components/white_edit.svg" 
+                            alt="Edit" 
+                            className="w-[14px] h-[14px] object-contain dark:invert" 
+                        />
+                    </button>
                 </div>
                 
                 <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[24px] font-bold text-[#030303] dark:text-white mb-1.5">{vendor.businessName || vendor.pocName || 'Vendor Partner'}</h2>
@@ -281,6 +338,7 @@ export default function ViewProfilePage() {
                     fieldKey="businessName" 
                     value={vendor.businessName} 
                     isEditing={editingField === 'businessName'}
+                    globalEditingField={editingField}
                     editValue={editValue}
                     setEditValue={setEditValue}
                     onEditClick={handleEditClick}
@@ -293,6 +351,7 @@ export default function ViewProfilePage() {
                     fieldKey="pocName" 
                     value={vendor.pocName} 
                     isEditing={editingField === 'pocName'}
+                    globalEditingField={editingField}
                     editValue={editValue}
                     setEditValue={setEditValue}
                     onEditClick={handleEditClick}
@@ -305,6 +364,7 @@ export default function ViewProfilePage() {
                     value={vendor.email} 
                     hasVerifyLink 
                     isEditing={editingField === 'email'}
+                    globalEditingField={editingField}
                     editValue={editValue}
                     setEditValue={setEditValue}
                     onEditClick={handleEditClick}
@@ -316,6 +376,7 @@ export default function ViewProfilePage() {
                     fieldKey="phone" 
                     value={vendor.phone} 
                     isEditing={editingField === 'phone'}
+                    globalEditingField={editingField}
                     editValue={editValue}
                     setEditValue={setEditValue}
                     onEditClick={handleEditClick}
@@ -327,6 +388,7 @@ export default function ViewProfilePage() {
                     fieldKey="city" 
                     value={vendor.city} 
                     isEditing={editingField === 'city'}
+                    globalEditingField={editingField}
                     editValue={editValue}
                     setEditValue={setEditValue}
                     onEditClick={handleEditClick}
@@ -335,39 +397,55 @@ export default function ViewProfilePage() {
                 />
             </div>
 
-            {/* Action Required Section */}
-            <div className="px-5 mb-8">
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#A1A1AA] uppercase tracking-wider mb-4 pl-1">Action Required</h3>
-                
-                <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[24px] p-6 shadow-sm">
-                    <div className="bg-[#F4F4F5] dark:bg-[#27272A] inline-block px-3 py-1 rounded-full mb-3">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#3F3F47] dark:text-[#E4E4E7]">Step 1</span>
-                    </div>
-                    
-                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303] dark:text-white mb-2">Set up Business Profile</h4>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] leading-relaxed mb-6">
-                        Highlight your skills and set your availability to start attracting clients.
-                    </p>
-                    
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="flex-1 h-2 bg-[#F4F4F5] dark:bg-[#27272A] rounded-full overflow-hidden">
-                            <div className="h-full bg-[#04222D] dark:bg-[#E95A6E]" style={{ width: '30%' }}></div>
+            {/* Action Required Section — only shown while onboarding is in progress */}
+            {!onboardingComplete && (() => {
+                const progressPct = Math.round(((resumeStep - 1) / TOTAL_STEPS) * 100);
+                return (
+                    <div className="px-5 mb-8">
+                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#A1A1AA] uppercase tracking-wider mb-4 pl-1">Action Required</h3>
+
+                        <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[24px] p-6 shadow-sm">
+                            <div className="bg-[#F4F4F5] dark:bg-[#27272A] inline-block px-3 py-1 rounded-full mb-3">
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#3F3F47] dark:text-[#E4E4E7]">
+                                    Step {resumeStep} of {TOTAL_STEPS}
+                                </span>
+                            </div>
+
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303] dark:text-white mb-2">Set up Business Profile</h4>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] leading-relaxed mb-6">
+                                Highlight your skills and set your availability to start attracting clients.
+                            </p>
+
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="flex-1 h-2 bg-[#F4F4F5] dark:bg-[#27272A] rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-[#04222D] dark:bg-[#E95A6E] transition-all duration-500"
+                                        style={{ width: `${progressPct}%` }}
+                                    />
+                                </div>
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303] dark:text-white">
+                                    {progressPct}%
+                                </span>
+                            </div>
+
+                            <button
+                                onClick={() => {
+                                    // Save the resume step so setup-profile picks it up from localStorage
+                                    localStorage.setItem('vendor_setup_step', String(resumeStep));
+                                    router.push('/dashboard/setup-profile');
+                                }}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className="w-full bg-[#04222D] dark:bg-[#E95A6E] text-white flex justify-between items-center p-4 rounded-[16px] active:scale-[0.98] transition-transform"
+                            >
+                                <span className="font-bold text-[15px] ml-2">Continue</span>
+                                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                                    <ChevronRight className="w-5 h-5 text-[#04222D] dark:text-[#E95A6E]" strokeWidth={2.5} />
+                                </div>
+                            </button>
                         </div>
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303] dark:text-white">30%</span>
                     </div>
-                    
-                    <button 
-                        onClick={() => router.push('/dashboard/business-profile')}
-                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="w-full bg-[#04222D] dark:bg-[#E95A6E] text-white flex justify-between items-center p-4 rounded-[16px] active:scale-98 transition-transform"
-                    >
-                        <span className="font-bold text-[15px] ml-2">Continue</span>
-                        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                            <ChevronRight className="w-5 h-5 text-[#04222D] dark:text-[#E95A6E]" strokeWidth={2.5} />
-                        </div>
-                    </button>
-                </div>
-            </div>
+                );
+            })()}
 
             {/* Upload Document Modal */}
             <AnimatePresence>
@@ -458,6 +536,141 @@ export default function ViewProfilePage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {/* ── Profile Picture Bottom Sheet ── */}
+            <AnimatePresence>
+                {showProfileSheet && (
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/40 z-40"
+                            onClick={() => setShowProfileSheet(false)}
+                        />
+                        <motion.div
+                            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                            className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-[#1E1E1B] rounded-t-[24px] p-6 pb-12 shadow-2xl"
+                        >
+                            <div className="w-10 h-1 bg-[#E4E4E7] dark:bg-[#3F3F47] rounded-full mx-auto mb-6" />
+                            <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303] dark:text-white mb-5">Edit Profile Picture</h2>
+
+                            {/* Gallery / Camera row */}
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#71717B] dark:text-[#A1A1AA] mb-3">Choose from Gallery</p>
+                            <div className="flex gap-3 mb-4">
+                                {/* Camera tile */}
+                                <label className="flex flex-col items-center gap-1.5 cursor-pointer">
+                                    <div className="w-[64px] h-[64px] rounded-[12px] bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
+                                        {isUploadingPhoto ? (
+                                            <div className="w-5 h-5 border-2 border-[#04222D] dark:border-[#E95A6E] border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#71717B" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                                            </svg>
+                                        )}
+                                    </div>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#71717B] dark:text-[#A1A1AA]">Camera</span>
+                                    <input type="file" accept="image/*" capture="user" className="hidden" id="profile-upload" onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const previewUrl = URL.createObjectURL(file);
+                                        setTempProfileImage(previewUrl);
+                                        setIsUploadingPhoto(true);
+                                        try {
+                                            const fd = new FormData(); fd.append('file', file);
+                                            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                                            if (!res.ok) throw new Error();
+                                            const { url } = await res.json();
+                                            setTempProfileImage(url);
+                                        } catch { alert('Upload failed.'); } finally {
+                                            setIsUploadingPhoto(false);
+                                            URL.revokeObjectURL(previewUrl);
+                                        }
+                                    }} />
+                                </label>
+                                {/* Gallery tile */}
+                                <label className="flex flex-col items-center gap-1.5 cursor-pointer">
+                                    <div className="w-[64px] h-[64px] rounded-[12px] bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C4C4C4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                                        </svg>
+                                    </div>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#71717B] dark:text-[#A1A1AA]">Gallery</span>
+                                    <input type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        const previewUrl = URL.createObjectURL(file);
+                                        setTempProfileImage(previewUrl);
+                                        setIsUploadingPhoto(true);
+                                        try {
+                                            const fd = new FormData(); fd.append('file', file);
+                                            const res = await fetch('/api/upload', { method: 'POST', body: fd });
+                                            if (!res.ok) throw new Error();
+                                            const { url } = await res.json();
+                                            setTempProfileImage(url);
+                                        } catch { alert('Upload failed.'); } finally {
+                                            setIsUploadingPhoto(false);
+                                            URL.revokeObjectURL(previewUrl);
+                                        }
+                                    }} />
+                                </label>
+                            </div>
+
+                            <div className="flex items-center gap-3 my-4">
+                                <div className="flex-1 h-[1px] bg-[#E4E4E7] dark:bg-[#3F3F47]" />
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#A1A1AA] font-medium">or</span>
+                                <div className="flex-1 h-[1px] bg-[#E4E4E7] dark:bg-[#3F3F47]" />
+                            </div>
+
+                            {/* Avatars */}
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#71717B] dark:text-[#A1A1AA] mb-3">Choose an Avatar</p>
+                            <div className="flex gap-4 mb-6">
+                                {AVATARS.map((url, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setTempProfileImage(url)}
+                                        className={`w-[72px] h-[72px] rounded-full overflow-hidden border-[3px] transition-all ${tempProfileImage === url ? 'border-[#04222D] dark:border-[#E95A6E]' : 'border-transparent'}`}
+                                    >
+                                        <img src={url} alt={`Avatar ${idx + 1}`} className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Preview */}
+                            {tempProfileImage && (
+                                <div className="flex items-center gap-3 mb-5 p-3 bg-[#F4F4F5] dark:bg-[#27272A] rounded-[12px]">
+                                    <img src={tempProfileImage} className="w-10 h-10 rounded-full object-cover" alt="Selected" />
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#030303] dark:text-white">Selected — tap Save to apply</span>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={async () => {
+                                    if (!tempProfileImage) return;
+                                    setVendor((v: any) => ({ ...v, profilePicture: tempProfileImage }));
+                                    setShowProfileSheet(false);
+                                    try {
+                                        const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
+                                        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+                                        await fetch(`${baseUrl}/vendors/${vendorId}`, {
+                                            method: 'PATCH',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ profilePicture: tempProfileImage }),
+                                        });
+                                    } catch (err) { console.error('Failed to save profile picture', err); }
+                                    setTempProfileImage(null);
+                                }}
+                                disabled={!tempProfileImage || isUploadingPhoto}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className={`w-full h-[56px] rounded-[12px] font-bold text-[16px] transition-all ${tempProfileImage && !isUploadingPhoto ? 'bg-[#04222D] dark:bg-[#E95A6E] text-white' : 'bg-[#E6E9EA] dark:bg-[#27272A] text-[#A1A1AA]'}`}
+                            >
+                                {isUploadingPhoto ? 'Uploading…' : 'Save'}
+                            </button>
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+            
+            <BottomNav />
         </div>
     );
 }

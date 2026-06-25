@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
-    Key, Bell, Mail, Globe, Moon, FileText, BookOpen, Trash2, ChevronRight, ChevronDown, X 
+    /* Key, -- Commented out: Change Password feature disabled (OTP-only login, no sign-up) */
+    Bell, Mail, Globe, Moon, FileText, BookOpen, Trash2, ChevronRight, ChevronDown, X 
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
@@ -98,11 +99,14 @@ export default function SettingsPage() {
                 </button>
             </div>
 
-            {/* Account Section */}
+            {/* Account Section — Commented out: Change Password disabled.
+                 Sign-up is not available; only OTP-based login is active.
+                 Re-enable when password-based auth is introduced.
             <div className="mb-7">
                 <SectionHeader title="Account" />
                 <SettingsItem icon={Key} label="Change Password" href="/dashboard/settings/change-password" />
             </div>
+            */}
 
             {/* Notifications Section */}
             <div className="mb-7">
