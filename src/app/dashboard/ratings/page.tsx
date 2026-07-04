@@ -1,7 +1,8 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, Star, Filter } from 'lucide-react';
+import { X, Star, Filter, Check } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
 
 export default function RatingsPage() {
@@ -9,6 +10,19 @@ export default function RatingsPage() {
     const [showMockData, setShowMockData] = useState(false);
     const [ratingsData, setRatingsData] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [activeFilter, setActiveFilter] = useState('Newest');
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const filterRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+                setIsFilterOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
 
     const mockData = {
         average: 4.9,
@@ -52,6 +66,24 @@ export default function RatingsPage() {
 
     const data = showMockData ? mockData : (ratingsData || emptyData);
 
+    const processedReviews = React.useMemo(() => {
+        let result = [...(data?.reviews || [])];
+        
+        // Filter by star
+        if (activeFilter.includes('star')) {
+            const star = parseInt(activeFilter.charAt(0));
+            result = result.filter(r => Math.round(r.rating) === star);
+        }
+        
+        // Sort by Newest/Oldest
+        // We'll just reverse for Oldest since default is Newest
+        if (activeFilter === 'Oldest') {
+            result.reverse();
+        }
+        
+        return result;
+    }, [data.reviews, activeFilter]);
+
     // Helper to calculate percentage for progress bars
     const getPercentage = (count: number) => {
         if (!data.totalReviews) return 0;
@@ -78,6 +110,28 @@ export default function RatingsPage() {
             {isLoading && !showMockData ? (
                 <div className="flex justify-center items-center h-64">
                     <div className="animate-spin w-8 h-8 border-4 border-[#E95A6E] border-t-transparent rounded-full"></div>
+                </div>
+            ) : data.totalReviews === 0 && !showMockData ? (
+                <div className="px-5 mt-4">
+                    <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[24px] font-bold text-[#030303] dark:text-white mb-2">Your Ratings</h2>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] leading-relaxed mb-6">
+                        See what clients are saying about your services and track your business reputation over time
+                    </p>
+                    
+                    <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
+                        <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/ratings.png" alt="No Ratings" className="w-[247px] h-[247px] object-contain mb-6" />
+                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No reviews yet</h3>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
+                            Your ratings and customer feedback will appear here once you complete your first few bookings.
+                        </p>
+                        <button 
+                            onClick={() => router.push('/dashboard/packages')} 
+                            style={{ fontFamily: 'Figtree, sans-serif' }} 
+                            className="px-6 py-3 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-[8px] active:scale-95 transition-transform"
+                        >
+                            Create Package
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <>
@@ -120,46 +174,88 @@ export default function RatingsPage() {
 
                     {/* Customer Feedback */}
                     <div className="px-5 mb-6">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex justify-between items-center mb-6 relative">
                             <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-medium text-[#030303] dark:text-white">Customer Feedback</h3>
-                            <button className="w-[36px] h-[36px] border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[10px] flex items-center justify-center bg-white dark:bg-[#18181B] active:scale-95 transition-transform">
-                                <Filter className="w-[18px] h-[18px] text-[#3F3F47] dark:text-[#A1A1AA]" strokeWidth={1.5} />
-                            </button>
+                            <div ref={filterRef}>
+                                <button 
+                                    onClick={() => setIsFilterOpen(!isFilterOpen)}
+                                    className={`w-[36px] h-[36px] border rounded-[10px] flex items-center justify-center transition-all ${isFilterOpen || activeFilter !== 'Newest' ? 'bg-[#F4F4F5] dark:bg-[#27272A] border-[#D4D4D8] dark:border-[#3F3F47]' : 'bg-white dark:bg-[#18181B] border-[#E4E4E7] dark:border-[#3F3F47]'} active:scale-95`}
+                                >
+                                    <Filter className={`w-[18px] h-[18px] ${isFilterOpen || activeFilter !== 'Newest' ? 'text-[#030303] dark:text-white' : 'text-[#3F3F47] dark:text-[#A1A1AA]'}`} strokeWidth={1.5} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {isFilterOpen && (
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="absolute right-0 top-11 z-50 w-[160px] bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[12px] shadow-lg overflow-hidden py-1"
+                                        >
+                                            {['Newest', 'Oldest', '5 star', '4 star', '3 star', '2 star', '1 star'].map((opt) => (
+                                                <button
+                                                    key={opt}
+                                                    onClick={() => {
+                                                        setActiveFilter(opt);
+                                                        setIsFilterOpen(false);
+                                                    }}
+                                                    className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] transition-colors"
+                                                >
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className={`text-[14px] ${activeFilter === opt ? 'font-bold text-[#030303] dark:text-white' : 'font-medium text-[#71717B] dark:text-[#A1A1AA]'}`}>
+                                                        {opt}
+                                                    </span>
+                                                    {activeFilter === opt && (
+                                                        <Check className="w-4 h-4 text-[#030303] dark:text-white" strokeWidth={2} />
+                                                    )}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
 
                         <div className="flex flex-col">
-                            {data.reviews.map((review: any, index: number) => (
-                                <React.Fragment key={review.id}>
-                                    <div className="py-5">
-                                        <div className="flex justify-between items-start mb-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-[42px] h-[42px] rounded-full bg-[#18181B] dark:bg-[#27272A] flex items-center justify-center text-white font-serif text-[18px]">
-                                                    {review.avatar}
+                            {processedReviews.length > 0 ? (
+                                processedReviews.map((review: any, index: number) => (
+                                    <React.Fragment key={review.id}>
+                                        <div className="py-5">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-[42px] h-[42px] rounded-full bg-[#18181B] dark:bg-[#27272A] flex items-center justify-center text-white font-serif text-[18px]">
+                                                        {review.avatar}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-medium text-[#030303] dark:text-white">{review.name}</span>
+                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">{review.date}</span>
+                                                    </div>
                                                 </div>
-                                                <div className="flex flex-col">
-                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-medium text-[#030303] dark:text-white">{review.name}</span>
-                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">{review.date}</span>
+                                                <div className="flex items-center gap-0.5 mt-1">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <Star 
+                                                            key={star} 
+                                                            className={`w-[14px] h-[14px] ${star <= review.rating ? 'text-[#FBBF24] fill-[#FBBF24]' : 'text-[#FBBF24]'}`} 
+                                                            strokeWidth={1.5}
+                                                        />
+                                                    ))}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-0.5 mt-1">
-                                                {[1, 2, 3, 4, 5].map((star) => (
-                                                    <Star 
-                                                        key={star} 
-                                                        className={`w-[14px] h-[14px] ${star <= review.rating ? 'text-[#FBBF24] fill-[#FBBF24]' : 'text-[#FBBF24]'}`} 
-                                                        strokeWidth={1.5}
-                                                    />
-                                                ))}
-                                            </div>
+                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] text-[#3F3F47] dark:text-[#E4E4E7] leading-relaxed ml-[54px]">
+                                                "{review.text}"
+                                            </p>
                                         </div>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] text-[#3F3F47] dark:text-[#E4E4E7] leading-relaxed ml-[54px]">
-                                            "{review.text}"
-                                        </p>
-                                    </div>
-                                    {index < data.reviews.length - 1 && (
-                                        <div className="w-full h-[1px] bg-[#F4F4F5] dark:bg-[#27272A]"></div>
-                                    )}
-                                </React.Fragment>
-                            ))}
+                                        {index < processedReviews.length - 1 && (
+                                            <div className="w-full h-[1px] bg-[#F4F4F5] dark:bg-[#27272A]"></div>
+                                        )}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                <div className="py-10 text-center flex flex-col items-center justify-center">
+                                    <Star className="w-8 h-8 text-[#E4E4E7] dark:text-[#3F3F47] mb-2" />
+                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] dark:text-[#A1A1AA]">No reviews match this filter.</p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>

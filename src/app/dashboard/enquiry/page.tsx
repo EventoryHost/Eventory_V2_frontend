@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Calendar, AlertCircle, RefreshCw, Inbox,
-  ChevronRight, IndianRupee, Zap, TrendingUp, Minus
+  ChevronRight, IndianRupee, Zap, TrendingUp, Minus, Star, Info
 } from 'lucide-react';
 import BottomNav from '@/components/BottomNav';
 
@@ -74,7 +74,7 @@ function formatTime(t?: string) {
 
 function formatBudget(min?: number, max?: number) {
   if (!min && !max) return null;
-  const fmt = (n: number) => n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : `₹${(n / 1000).toFixed(0)}K`;
+  const fmt = (n: number) => n >= 100000 ? `₹${(n / 100000).toFixed(1).replace('.0', '')}L` : `₹${(n / 1000).toFixed(0)}K`;
   if (min && max) return `${fmt(min)} – ${fmt(max)}`;
   if (min) return `From ${fmt(min)}`;
   return `Up to ${fmt(max!)}`;
@@ -316,9 +316,7 @@ export default function EnquiryPage() {
                         </p>
                         {enq.eventType && (
                           <div className="flex items-center gap-1.5 mb-0.5">
-                            <div className="w-3.5 h-3.5 rounded-sm bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
-                              <div className="w-1.5 h-1.5 rounded-full bg-[#A1A1AA]" />
-                            </div>
+                            <Star className="w-4 h-4 text-[#3F3F47] dark:text-[#E4E4E7]" strokeWidth={1.5} />
                             <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47] dark:text-[#E4E4E7]">
                               {enq.eventType}
                             </span>
@@ -344,10 +342,9 @@ export default function EnquiryPage() {
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-semibold text-[#A1A1AA] uppercase tracking-wider mb-1">
                               BUDGET
                             </p>
-                            <div className="flex items-center gap-1">
-                              <IndianRupee className="w-3 h-3 text-[#3F3F47] dark:text-[#E4E4E7]" strokeWidth={2} />
-                              <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#3F3F47] dark:text-[#E4E4E7]">
-                                {budget.replace('₹', '')}
+                            <div className="flex items-center">
+                              <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#000] dark:text-white">
+                                {budget}
                               </span>
                             </div>
                             {match && (
@@ -379,43 +376,22 @@ export default function EnquiryPage() {
                     {/* Conflict warning */}
                     {enq.conflictDetected && (
                       <div className="flex items-center gap-1.5 mb-3">
-                        <AlertCircle className="w-3.5 h-3.5 text-[#EF4444] shrink-0" strokeWidth={2} />
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#EF4444] font-medium">
-                          Dates conflicting with another event.{' '}
-                          <button className="underline">Check</button>
+                        <Info className="w-4 h-4 text-[#E11D48] shrink-0" strokeWidth={2} />
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#E11D48] font-medium flex items-center gap-1">
+                          Dates conflicting with another event.
+                          <button style={{ color: '#1447E6' }} className="text-[14px] font-semibold underline">Check</button>
                         </span>
                       </div>
                     )}
 
                     {/* Quick status change + view */}
                     <div className="flex gap-2 mt-1">
-                      {!isTerminal && enq.status === 'NewEnquiry' && (
-                        <button
-                          onClick={() => updateStatus(enq.enquiryId, 'AwaitingResponse')}
-                          disabled={isUpdating}
-                          style={{ fontFamily: 'Figtree, sans-serif' }}
-                          className="flex-none px-3 h-[42px] bg-[#04222D] dark:bg-[#E95A6E] text-white text-[12px] font-bold rounded-[10px] active:scale-[0.98] transition-transform disabled:opacity-60 flex items-center justify-center"
-                        >
-                          {isUpdating ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Respond'}
-                        </button>
-                      )}
-                      {!isTerminal && enq.status === 'AwaitingResponse' && (
-                        <button
-                          onClick={() => updateStatus(enq.enquiryId, 'ProposalSent')}
-                          disabled={isUpdating}
-                          style={{ fontFamily: 'Figtree, sans-serif' }}
-                          className="flex-none px-3 h-[42px] bg-[#04222D] dark:bg-[#E95A6E] text-white text-[12px] font-bold rounded-[10px] active:scale-[0.98] transition-transform disabled:opacity-60 flex items-center justify-center"
-                        >
-                          {isUpdating ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : 'Send Proposal'}
-                        </button>
-                      )}
                       <button
                         onClick={() => router.push(`/dashboard/enquiry/${enq.enquiryId}`)}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
                         className="flex-1 h-[42px] border border-[#E4E4E7] dark:border-[#3F3F47] bg-white dark:bg-[#18181B] text-[#3F3F47] dark:text-[#E4E4E7] text-[13px] font-bold rounded-[10px] flex items-center justify-center gap-1 active:scale-[0.98] transition-transform"
                       >
                         View Details
-                        <ChevronRight className="w-3.5 h-3.5" strokeWidth={2} />
                       </button>
                     </div>
                   </motion.div>

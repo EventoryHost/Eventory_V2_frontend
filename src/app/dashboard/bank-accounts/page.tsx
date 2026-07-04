@@ -1,11 +1,99 @@
 'use client';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { X, CreditCard, Plus, Info, ArrowLeft, XCircle, CheckCircle2 } from 'lucide-react';
+import { X, CreditCard, Plus, Info, ArrowLeft, XCircle, CheckCircle2, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
+import BankIcon from '@/components/BankIcon';
 
 type ViewState = 'LIST' | 'ADD';
+
+function BankAccountCard({ account, isPrimary, onSetPrimary, onRemove }: any) {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const last4 = account.accountNumber?.slice(-4) || 'XXXX';
+    const masked = `•••• ${last4}`;
+    const bankName = account.bankName || 'Your Bank';
+
+    return (
+        <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] p-4 flex items-center justify-between mb-3 shadow-sm">
+            <div className="flex items-center gap-4">
+                <BankIcon 
+                    bankName={bankName} 
+                    className="w-[42px] h-[42px] bg-white border border-[#F4F4F5] dark:border-[#27272A] rounded-full shadow-sm p-1" 
+                />
+                <div className="flex flex-col justify-center">
+                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white mb-0.5">
+                        {bankName} {masked}
+                    </h4>
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">
+                        {isPrimary && (
+                            <><span className="text-[#3B82F6] font-semibold tracking-wide uppercase">PRIMARY</span> - </>
+                        )}
+                        Account XXX {last4}
+                    </span>
+                </div>
+            </div>
+            
+            <div ref={menuRef} className="relative">
+                <button 
+                    onClick={() => setIsMenuOpen(!isMenuOpen)}
+                    className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] transition-colors active:scale-95"
+                >
+                    <MoreVertical className="w-5 h-5 text-[#71717B] dark:text-[#A1A1AA]" strokeWidth={1.5} />
+                </button>
+
+                <AnimatePresence>
+                    {isMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -5 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -5 }}
+                            transition={{ duration: 0.12 }}
+                            className="absolute right-0 top-10 z-50 w-[200px] bg-[#2E2E2E] dark:bg-[#1E1E1B] border border-[#404040] dark:border-[#3F3F47] rounded-[12px] shadow-xl overflow-hidden py-1"
+                        >
+                            {!isPrimary && (
+                                <button
+                                    onClick={() => {
+                                        setIsMenuOpen(false);
+                                        onSetPrimary?.();
+                                    }}
+                                    className="w-full flex items-center px-4 py-3 text-left hover:bg-[#404040] dark:hover:bg-[#27272A] transition-colors"
+                                >
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-medium text-white">
+                                        Set as Primary
+                                    </span>
+                                </button>
+                            )}
+                            <button
+                                onClick={() => {
+                                    setIsMenuOpen(false);
+                                    onRemove?.();
+                                }}
+                                className="w-full flex items-center px-4 py-3 text-left hover:bg-[#404040] dark:hover:bg-[#27272A] transition-colors"
+                            >
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-medium text-[#F87171]">
+                                    Remove Bank Account
+                                </span>
+                            </button>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        </div>
+    );
+}
 
 export default function BankAccountsPage() {
     const router = useRouter();
@@ -17,6 +105,10 @@ export default function BankAccountsPage() {
 
     const [showMockData, setShowMockData] = useState(false);
     
+    const bankAccounts = Array.isArray(vendor?.bankDetails) 
+        ? vendor.bankDetails 
+        : (vendor?.bankDetails?.accountNumber ? [vendor.bankDetails] : []);
+
     // Add View State
     const [accountNumber, setAccountNumber] = useState('');
     const [confirmAccount, setConfirmAccount] = useState('');
@@ -91,15 +183,28 @@ export default function BankAccountsPage() {
             const data = await response.json();
             
             if (response.ok && data.status === "SUCCESS") {
-                const bankDetails = {
+                const newBankAccount = {
                     accountNumber: accountNumber,
                     ifscCode: ifsc,
                     bankName: data.accountDetails?.bank_name || "Verified Bank",
                     branchName: data.accountDetails?.branch || ifscResult || "Unknown Branch"
                 };
                 
+                const currentBankAccounts = Array.isArray(vendor?.bankDetails) 
+                    ? vendor.bankDetails 
+                    : (vendor?.bankDetails?.accountNumber ? [vendor.bankDetails] : []);
+                
+                // Check if updating existing or adding new
+                const existingIndex = currentBankAccounts.findIndex((acc: any) => acc.accountNumber === accountNumber && acc.ifscCode === ifsc);
+                let updatedAccounts = [...currentBankAccounts];
+                if (existingIndex >= 0) {
+                    updatedAccounts[existingIndex] = { ...updatedAccounts[existingIndex], ...newBankAccount };
+                } else {
+                    updatedAccounts.push(newBankAccount);
+                }
+                
                 // Optimistic update
-                setVendor({ ...vendor, bankDetails });
+                setVendor({ ...vendor, bankDetails: updatedAccounts });
                 setView('LIST');
                 
                 // Clear form
@@ -131,6 +236,43 @@ export default function BankAccountsPage() {
         return `•••• ${acc.slice(-4)}`;
     };
 
+    const updateVendorBankDetails = async (newBankAccounts: any[]) => {
+        try {
+            const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
+            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+            
+            // Optimistic update
+            setVendor({ ...vendor, bankDetails: newBankAccounts });
+            
+            const res = await fetch(`${baseUrl}/vendors/${vendorId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bankDetails: newBankAccounts })
+            });
+            
+            if (!res.ok) throw new Error("Failed to update");
+        } catch (error) {
+            console.error("Error updating bank details:", error);
+            alert("Failed to update bank account. Please try again.");
+        }
+    };
+
+    const handleSetPrimary = (index: number) => {
+        if (index === 0 || index >= bankAccounts.length) return;
+        const newBankAccounts = [...bankAccounts];
+        const [selected] = newBankAccounts.splice(index, 1);
+        newBankAccounts.unshift(selected); // Put at front
+        updateVendorBankDetails(newBankAccounts);
+    };
+
+    const handleRemoveAccount = (index: number) => {
+        const confirmDelete = window.confirm("Are you sure you want to remove this bank account?");
+        if (!confirmDelete) return;
+        
+        const newBankAccounts = bankAccounts.filter((_: any, i: number) => i !== index);
+        updateVendorBankDetails(newBankAccounts);
+    };
+
     if (isLoading && view === 'LIST') {
         return (
             <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#09090B] flex items-center justify-center">
@@ -142,7 +284,7 @@ export default function BankAccountsPage() {
     return (
         <div className="min-h-screen bg-[#FAFAFA] dark:bg-[#09090B] pb-32 transition-colors duration-300">
             {/* Header */}
-            <div className="sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center border-b border-transparent">
+            <div className="sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center border-b border-[#E4E4E7] dark:border-[#27272A]">
                 <h1 
                     onDoubleClick={() => setShowMockData(!showMockData)}
                     style={{ fontFamily: 'Figtree, sans-serif' }} 
@@ -173,100 +315,50 @@ export default function BankAccountsPage() {
                             Your confirmed booking payouts are currently directed to your selected primary account.
                         </p>
 
-                        {/* Real DB Bank Account (if exists) */}
-                        {vendor?.bankDetails?.accountNumber && (
-                            <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] p-4 flex items-center justify-between mb-3 shadow-sm">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-[42px] h-[42px] rounded-[12px] bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
-                                        <CreditCard className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" strokeWidth={1.5} />
-                                    </div>
-                                    <div>
-                                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white mb-0.5">
-                                            {vendor.bankDetails.bankName || "Your Bank"} {maskAccount(vendor.bankDetails.accountNumber)}
-                                        </h4>
-                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">
-                                            Account {maskAccount(vendor.bankDetails.accountNumber)}
-                                        </span>
-                                    </div>
-                                </div>
-                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="bg-[#EFF6FF] dark:bg-[#1E3A8A]/30 text-[#3B82F6] dark:text-[#60A5FA] text-[10px] font-bold px-2 py-1 rounded-[4px] uppercase tracking-wider">
-                                    PRIMARY
-                                </span>
-                            </div>
-                        )}
+                        {/* Real DB Bank Accounts (if exists) */}
+                        {bankAccounts.length > 0 && bankAccounts.map((acc: any, index: number) => (
+                            <BankAccountCard 
+                                key={index} 
+                                account={acc} 
+                                isPrimary={index === 0} 
+                                onSetPrimary={() => handleSetPrimary(index)}
+                                onRemove={() => handleRemoveAccount(index)}
+                            />
+                        ))}
 
                         {/* Empty State when no bank account exists and mock data is off */}
-                        {!vendor?.bankDetails?.accountNumber && !showMockData && (
-                            <div className="bg-white dark:bg-[#1E1E1B] border border-dashed border-[#E4E4E7] dark:border-[#3F3F47] rounded-[16px] p-8 flex flex-col items-center justify-center mb-6 text-center">
-                                <div className="w-12 h-12 bg-[#F4F4F5] dark:bg-[#27272A] rounded-full flex items-center justify-center mb-4">
-                                    <CreditCard className="w-6 h-6 text-[#A1A1AA]" strokeWidth={1.5} />
-                                </div>
-                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No bank accounts yet</h3>
-                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[200px]">
-                                    Add a bank account to receive your payouts securely.
+                        {bankAccounts.length === 0 && !showMockData && (
+                            <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
+                                <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/no%20bank.png" alt="No Bank Account" className="w-[247px] h-[247px] object-contain mb-6" />
+                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No bank account linked yet</h3>
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
+                                    Link your bank account to start receiving your confirmed booking payouts automatically.
                                 </p>
+                                <button 
+                                    onClick={() => setView('ADD')} 
+                                    style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                    className="px-6 py-3 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-[8px] active:scale-95 transition-transform"
+                                >
+                                    Link Bank Account
+                                </button>
                             </div>
                         )}
 
                         {/* Mock Accounts from screenshot */}
                         {showMockData && (
                             <>
-                                <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] p-4 flex items-center justify-between mb-3 shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-[42px] h-[42px] rounded-[12px] bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
-                                            <CreditCard className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" strokeWidth={1.5} />
-                                        </div>
-                                        <div>
-                                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white mb-0.5">
-                                                HDFC Bank •••• 8829
-                                            </h4>
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">
-                                                Account •••• 8829
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="bg-[#F4F4F5] dark:bg-[#27272A] text-[#71717B] dark:text-[#A1A1AA] text-[10px] font-bold px-2 py-1 rounded-[4px] uppercase tracking-wider">
-                                        {!vendor?.bankDetails?.accountNumber ? 'PRIMARY' : 'LINKED'}
-                                    </span>
-                                </div>
-
-                                <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] p-4 flex items-center justify-between mb-3 shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-[42px] h-[42px] rounded-[12px] bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
-                                            <CreditCard className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" strokeWidth={1.5} />
-                                        </div>
-                                        <div>
-                                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white mb-0.5">
-                                                PNB Bank •••• 4593
-                                            </h4>
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">
-                                                Account •••• 4593
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="bg-[#F4F4F5] dark:bg-[#27272A] text-[#71717B] dark:text-[#A1A1AA] text-[10px] font-bold px-2 py-1 rounded-[4px] uppercase tracking-wider">
-                                        LINKED
-                                    </span>
-                                </div>
-
-                                <div className="bg-white dark:bg-[#1E1E1B] border border-[#F4F4F5] dark:border-[#27272A] rounded-[16px] p-4 flex items-center justify-between mb-6 shadow-sm">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-[42px] h-[42px] rounded-[12px] bg-[#F4F4F5] dark:bg-[#27272A] flex items-center justify-center">
-                                            <CreditCard className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" strokeWidth={1.5} />
-                                        </div>
-                                        <div>
-                                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white mb-0.5">
-                                                SBI Bank •••• 2168
-                                            </h4>
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] dark:text-[#A1A1AA]">
-                                                Account •••• 2168
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="bg-[#F4F4F5] dark:bg-[#27272A] text-[#71717B] dark:text-[#A1A1AA] text-[10px] font-bold px-2 py-1 rounded-[4px] uppercase tracking-wider">
-                                        LINKED
-                                    </span>
-                                </div>
+                                <BankAccountCard 
+                                    account={{ bankName: 'HDFC Bank', accountNumber: 'XXXX8829' }} 
+                                    isPrimary={bankAccounts.length === 0} 
+                                />
+                                <BankAccountCard 
+                                    account={{ bankName: 'HDFC Bank', accountNumber: 'XXXX8829' }} 
+                                    isPrimary={false} 
+                                />
+                                <BankAccountCard 
+                                    account={{ bankName: 'HDFC Bank', accountNumber: 'XXXX8829' }} 
+                                    isPrimary={false} 
+                                />
                             </>
                         )}
 

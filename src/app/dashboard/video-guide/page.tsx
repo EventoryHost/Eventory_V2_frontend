@@ -126,10 +126,19 @@ export default function VideoGuidePage() {
                     ))}
 
                     {filteredVideos.length === 0 && (
-                        <div className="text-center py-10">
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] dark:text-[#A1A1AA]">
-                                No tutorials found matching your search.
+                        <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
+                            <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/video_guide.png" alt="No tutorials" className="w-[247px] h-[247px] object-contain mb-6" />
+                            <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No tutorials found on this topic</h3>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
+                                We don't have a video walkthrough for this topic just yet.
                             </p>
+                            <button 
+                                onClick={() => router.push('/dashboard/faq')} 
+                                style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                className="px-6 py-3 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-[8px] active:scale-95 transition-transform"
+                            >
+                                Read FAQs instead
+                            </button>
                         </div>
                     )}
                 </div>

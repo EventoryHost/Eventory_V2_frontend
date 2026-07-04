@@ -19,9 +19,13 @@ const ProfileField = ({
     onEditClick,
     onCancel,
     onUpdate,
-    onUploadClick
+    onUploadClick,
+    errorMessage,
+    customDisable
 }: any) => {
-    const isUpdateDisabled = !editValue?.trim() || editValue.trim() === (value || '').trim();
+    const isUpdateDisabled = customDisable !== undefined 
+        ? customDisable 
+        : (!editValue?.trim() || editValue.trim() === (value || '').trim());
     const isDisabled = globalEditingField && globalEditingField !== fieldKey;
 
     return (
@@ -38,8 +42,18 @@ const ProfileField = ({
                         onChange={(e) => setEditValue(e.target.value)}
                         autoFocus
                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="w-full p-4 bg-white dark:bg-[#1E1E1B] border border-[#E4E4E7] dark:border-[#27272A] rounded-[12px] text-[15px] font-medium text-[#030303] dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600 mb-3 transition-colors"
+                        className={`w-full p-4 bg-white dark:bg-[#1E1E1B] border rounded-[12px] text-[15px] font-medium text-[#030303] dark:text-white focus:outline-none mb-3 transition-colors ${
+                            errorMessage 
+                            ? 'border-[#E11D48] focus:border-[#E11D48] focus:ring-1 focus:ring-[#E11D48]' 
+                            : 'border-[#E4E4E7] dark:border-[#27272A] focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600'
+                        }`}
                     />
+                    
+                    {errorMessage && (
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[#E11D48] text-[11px] mb-3 -mt-1 font-medium">
+                            {errorMessage}
+                        </p>
+                    )}
                     
                     {/* Special document required note for legal name edit */}
                     {fieldKey === 'businessName' && (
@@ -134,6 +148,7 @@ export default function ViewProfilePage() {
 
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
+    const [fieldError, setFieldError] = useState<string | null>(null);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
     // Avatar picker sheet
@@ -186,32 +201,43 @@ export default function ViewProfilePage() {
     const handleEditClick = (field: string, currentValue: string) => {
         setEditingField(field);
         setEditValue(currentValue || '');
+        setFieldError(null);
     };
 
     const handleCancelEdit = () => {
         setEditingField(null);
         setEditValue('');
+        setFieldError(null);
     };
 
     const handleUpdate = async () => {
         if (!editingField || !vendor) return;
 
-        // Optimistic update
-        const updatedVendor = { ...vendor, [editingField]: editValue };
-        setVendor(updatedVendor);
-        setEditingField(null);
+        setFieldError(null);
 
         try {
             const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
             const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-            await fetch(`${baseUrl}/vendors/${vendorId}`, {
+            const res = await fetch(`${baseUrl}/vendors/${vendorId}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ [editingField]: editValue })
             });
+
+            if (!res.ok) {
+                if (editingField === 'phone') {
+                    setFieldError("This mobile number is already linked to another account.");
+                    return; // keep edit field open
+                }
+                throw new Error("Update failed");
+            }
+
+            // Success
+            const updatedVendor = { ...vendor, [editingField]: editValue };
+            setVendor(updatedVendor);
+            setEditingField(null);
         } catch (error) {
             console.error("Failed to update profile field", error);
-            // In a real app, we'd revert the optimistic update here
         }
     };
 
@@ -378,10 +404,12 @@ export default function ViewProfilePage() {
                     isEditing={editingField === 'phone'}
                     globalEditingField={editingField}
                     editValue={editValue}
-                    setEditValue={setEditValue}
+                    setEditValue={(val: string) => { setEditValue(val); setFieldError(null); }}
                     onEditClick={handleEditClick}
                     onCancel={handleCancelEdit}
                     onUpdate={handleUpdate}
+                    errorMessage={editingField === 'phone' ? fieldError : null}
+                    customDisable={editingField === 'phone' ? (editValue === vendor.phone || editValue.length !== 10 || !/^\d+$/.test(editValue)) : undefined}
                 />
                 <ProfileField 
                     label="ADDRESS" 

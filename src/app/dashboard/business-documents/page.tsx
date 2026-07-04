@@ -13,12 +13,13 @@ interface DocDef {
     label: string;
     /** optional: field that stores a document URL when uploaded via file */
     urlKey?: string;
+    iconUrl: string;
 }
 
 const DOCS: DocDef[] = [
-    { key: 'fssaiNumber',    verifiedKey: 'isFssaiVerified',   label: 'FSSAI License',    urlKey: 'fssaiDocUrl' },
-    { key: 'gstNumber',      verifiedKey: 'isGstVerified',     label: 'GST Certificate',  urlKey: 'gstDocUrl'   },
-    { key: 'tradeLicense',   verifiedKey: 'isTradeLicVerified',label: 'Trade License',    urlKey: 'tradeLicUrl' },
+    { key: 'fssaiNumber',    verifiedKey: 'isFssaiVerified',   label: 'FSSAI License',    urlKey: 'fssaiDocUrl', iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/fssai_liscence.svg' },
+    { key: 'gstNumber',      verifiedKey: 'isGstVerified',     label: 'GST Certificate',  urlKey: 'gstDocUrl',   iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/gst_cert.svg' },
+    { key: 'tradeLicense',   verifiedKey: 'isTradeLicVerified',label: 'Trade License',    urlKey: 'tradeLicUrl', iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/trade_lisc.svg' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -269,7 +270,7 @@ export default function BusinessDocumentsPage() {
                             <div className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className={`w-[42px] h-[42px] rounded-full flex items-center justify-center ${bg}`}>
-                                        <Icon className={`w-5 h-5 ${color}`} strokeWidth={1.5} />
+                                        <img src={doc.iconUrl} alt={doc.label} className="w-5 h-5 object-contain" />
                                     </div>
                                     <div>
                                         <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-0.5">{doc.label}</h4>
@@ -322,9 +323,15 @@ export default function BusinessDocumentsPage() {
                                 <X className="w-5 h-5" />
                             </button>
 
-                            <div className="w-16 h-16 bg-[#FAFAFA] dark:bg-[#27272A] rounded-full flex items-center justify-center mb-4 mt-2">
-                                <Upload className="w-6 h-6 text-[#3F3F47] dark:text-[#A1A1AA]" strokeWidth={1.5} />
-                            </div>
+                            {selectedDocKey?.iconUrl ? (
+                                <div className="w-16 h-16 bg-[#FAFAFA] dark:bg-[#27272A] rounded-full flex items-center justify-center mb-4 mt-2">
+                                    <img src={selectedDocKey.iconUrl} alt={selectedDocKey.label} className="w-8 h-8 object-contain" />
+                                </div>
+                            ) : (
+                                <div className="w-16 h-16 bg-[#FAFAFA] dark:bg-[#27272A] rounded-full flex items-center justify-center mb-4 mt-2">
+                                    <Upload className="w-6 h-6 text-[#3F3F47] dark:text-[#A1A1AA]" strokeWidth={1.5} />
+                                </div>
+                            )}
 
                             <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-2 text-center w-full block">Action Required</span>
                             <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] dark:text-white mb-6 leading-tight text-center">Upload Required Documents</h3>

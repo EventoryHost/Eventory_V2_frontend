@@ -34,10 +34,10 @@ const STATUS_TABS: { label: string; value: string }[] = [
   { label: 'Completed', value: 'Completed' },
 ];
 
-const PAYMENT_BADGE: Record<PaymentType, { label: string; color: string; bg: string }> = {
-  FreeBooking:  { label: 'FREE BOOKING',  color: '#64748B', bg: '#F1F5F9' },
-  AdvancePaid:  { label: 'ADVANCE PAID',  color: '#16A34A', bg: '#DCFCE7' },
-  FullPaid:     { label: 'FULL PAID',     color: '#7C3AED', bg: '#EDE9FE' },
+const PAYMENT_BADGE: Record<PaymentType, { label: string; color: string; bg: string; border: string }> = {
+  FreeBooking:  { label: 'FREE BOOKING',  color: '#000000', bg: '#E6E9EA', border: '#000000' },
+  AdvancePaid:  { label: 'ADVANCE PAID',  color: '#16A34A', bg: '#DCFCE7', border: '#16A34A' },
+  FullPaid:     { label: 'FULL PAID',     color: '#7C3AED', bg: '#EDE9FE', border: '#7C3AED' },
 };
 
 const STATUS_BADGE: Record<BookingStatus, { label: string; color: string; bg: string }> = {
@@ -268,12 +268,17 @@ export default function BookingsPage() {
                           {booking.customer.name}
                         </h3>
                       </div>
-                      <span
-                        style={{ fontFamily: 'Figtree, sans-serif', color: payBadge.color, backgroundColor: payBadge.bg }}
-                        className="text-[10px] font-bold px-2 py-1 rounded-[6px] uppercase tracking-wider"
+                      <div
+                        style={{ 
+                          fontFamily: 'Figtree, sans-serif', 
+                          color: payBadge.color, 
+                          backgroundColor: payBadge.bg,
+                          border: `1px solid ${payBadge.border}`
+                        }}
+                        className="flex min-h-[24px] px-[12px] py-[4px] justify-end items-end gap-1 rounded-[999px] text-[10px] font-bold uppercase tracking-wider"
                       >
                         {payBadge.label}
-                      </span>
+                      </div>
                     </div>
 
                     {/* Event details */}

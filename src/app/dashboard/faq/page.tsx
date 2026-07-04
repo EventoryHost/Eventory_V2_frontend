@@ -47,7 +47,7 @@ const FAQ_DATA = [
     { id: '32', question: 'Can I use the same account on multiple devices?', answer: 'Yes. However, additional authentication may be required when signing in from a new device.', category: 'App Support' }
 ];
 
-const TABS = ['All', 'Packages & Services', 'Payments & Earnings', 'Bookings & Enquiries', 'App Support'];
+const TABS = ['All', 'Payments & Earnings', 'Bookings & Enquiries', 'Packages & Services', 'App Support'];
 
 export default function FAQPage() {
     const router = useRouter();
@@ -57,9 +57,6 @@ export default function FAQPage() {
 
     const filteredFaqs = FAQ_DATA.filter(faq => {
         const matchesSearch = faq.question.toLowerCase().includes(searchQuery.toLowerCase());
-        const matchesTab = activeTab === 'All' || faq.category === activeTab || faq.category === 'All'; 
-        // Showing 'All' category items in all tabs for the sake of the mockup if needed, 
-        // but strictly matching tab is better. Let's strictly match tab unless it's "All"
         const strictMatchTab = activeTab === 'All' ? true : (faq.category === activeTab || faq.category === 'All');
         return matchesSearch && strictMatchTab;
     });
@@ -67,7 +64,7 @@ export default function FAQPage() {
     return (
         <div className="min-h-screen bg-white dark:bg-[#09090B] pb-32 transition-colors duration-300">
             {/* Header */}
-            <div className="sticky top-0 bg-white/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center">
+            <div className="sticky top-0 bg-white/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center border-b border-[#E4E4E7] dark:border-[#27272A]">
                 <h1 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] dark:text-white">Frequently asked questions</h1>
                 <button onClick={() => router.push('/dashboard/menu')} className="w-[36px] h-[36px] bg-[#F4F4F5] dark:bg-[#27272A] rounded-full flex items-center justify-center active:scale-95 transition-transform">
                     <X className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" />
@@ -162,10 +159,19 @@ export default function FAQPage() {
                     })}
 
                     {filteredFaqs.length === 0 && (
-                        <div className="text-center py-10">
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] dark:text-[#A1A1AA]">
-                                No questions found matching your search.
+                        <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
+                            <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/faq.png" alt="No FAQ" className="w-[247px] h-[247px] object-contain mb-6" />
+                            <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">Couldn't find that question</h3>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
+                                Try searching for keywords like "payout", "cancel", or "commission".
                             </p>
+                            <button 
+                                onClick={() => {/* Handle Chat logic */}} 
+                                style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                className="px-6 py-3 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-[8px] active:scale-95 transition-transform"
+                            >
+                                Chat with Support
+                            </button>
                         </div>
                     )}
                 </div>

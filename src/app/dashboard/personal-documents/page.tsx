@@ -127,7 +127,7 @@ export default function PersonalDocumentsPage() {
                     </div>
                 </div>
                 
-                {status === 'REQUIRED' && docName === 'PAN Card' ? (
+                {status === 'REQUIRED' ? (
                     <button 
                         onClick={() => handleUploadClick(docName)}
                         style={{ fontFamily: 'Figtree, sans-serif' }}

@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { X, Landmark, Info, ChevronRight, ChevronDown, TrendingUp, TrendingDown, Check, Circle, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BottomNav from '@/components/BottomNav';
+import BankIcon from '@/components/BankIcon';
 
 // Mock Data Fallbacks
 const MOCK_EARNINGS = {
@@ -163,8 +164,31 @@ export default function EarningsPage() {
                 </button>
             </div>
 
-            <div className="px-5">
-                {/* Time Filters */}
+            {(!earnings || earnings.totalRevenue === 0) && !isMockDataVisible ? (
+                <div className="px-5 mt-4">
+                    <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[24px] font-bold text-[#030303] dark:text-white mb-2">Your Earnings</h2>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] leading-relaxed mb-6">
+                        See what clients are saying about your services and track your business reputation over time
+                    </p>
+                    
+                    <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
+                        <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/earnings.png" alt="No Earnings" className="w-[247px] h-[247px] object-contain mb-6" />
+                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No earnings yet</h3>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
+                            Your earning breakdowns will appear here as soon as you complete your first booking.
+                        </p>
+                        <button 
+                            onClick={() => router.push('/dashboard/packages')} 
+                            style={{ fontFamily: 'Figtree, sans-serif' }} 
+                            className="px-6 py-3 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-[8px] active:scale-95 transition-transform"
+                        >
+                            Create Package
+                        </button>
+                    </div>
+                </div>
+            ) : (
+                <div className="px-5">
+                    {/* Time Filters */}
                 <div className="flex justify-center mb-6">
                     <div className="flex bg-[#F4F4F5] dark:bg-[#27272A] p-1 rounded-full">
                         {['1W', '1M', '6M', '1Y'].map(p => (
@@ -212,9 +236,10 @@ export default function EarningsPage() {
                 {/* Bank Account */}
                 <div className="bg-white dark:bg-[#1E1E1B] p-5 rounded-[20px] border border-[#F4F4F5] dark:border-[#27272A] shadow-sm mb-8">
                     <div className="flex items-center gap-4 mb-4">
-                        <div className="w-[42px] h-[42px] bg-[#F0F9FF] dark:bg-[#0C4A6E] rounded-full flex items-center justify-center text-[#0EA5E9]">
-                            <Landmark className="w-5 h-5" strokeWidth={2} />
-                        </div>
+                        <BankIcon 
+                            bankName={earnings?.bankDetails?.bankName} 
+                            className="w-[42px] h-[42px] bg-white border border-[#F4F4F5] dark:border-[#27272A] dark:bg-[#0C4A6E] rounded-full text-[#0EA5E9] shadow-sm p-1.5" 
+                        />
                         <div>
                             <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-1">
                                 {earnings?.bankDetails?.bankName} •••• {earnings?.bankDetails?.accountNumber}
@@ -236,48 +261,56 @@ export default function EarningsPage() {
                 </div>
 
                 {/* Analytics Chart */}
-                <div className="bg-white dark:bg-[#1E1E1B] p-5 rounded-[20px] border border-[#F4F4F5] dark:border-[#27272A] shadow-sm mb-8">
+                <div className="bg-[#F4F4F5] dark:bg-[#1E1E1B] p-5 rounded-[16px] mb-8">
                     <div className="flex justify-between items-center mb-6">
-                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] dark:text-white">Analytics</h3>
-                        <div className="flex gap-3 text-[10px] font-bold text-[#A1A1AA]">
+                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white">Analytics</h3>
+                        <div className="flex gap-1 text-[11px] font-bold text-[#71717B] dark:text-[#A1A1AA]">
                             {['1W', '1M', '6M', '1Y'].map(p => (
-                                <span key={p} className={period === p ? 'text-[#04222D] dark:text-[#E95A6E] px-2 py-1 bg-[#F4F4F5] dark:bg-[#27272A] rounded-md' : 'px-2 py-1'}>{p}</span>
+                                <span 
+                                    key={p} 
+                                    className={`px-3 py-1.5 rounded-[8px] cursor-pointer transition-colors ${period === p ? 'text-white bg-[#04222D] dark:bg-[#E95A6E]' : 'hover:bg-gray-200 dark:hover:bg-[#27272A]'}`}
+                                    onClick={() => setPeriod(p)}
+                                >
+                                    {p}
+                                </span>
                             ))}
                         </div>
                     </div>
                     
                     {/* Simplified Bar Chart */}
-                    <div className="h-[180px] flex items-end justify-between relative mt-8 border-b border-dashed border-[#E4E4E7] dark:border-[#3F3F47] pb-2">
+                    <div className="h-[180px] flex items-end justify-between relative mt-8 border-b-0 pb-0">
                         {/* Y-axis labels */}
-                        <div className="absolute left-0 bottom-2 flex flex-col justify-between h-[150px] text-[10px] text-[#A1A1AA] font-medium z-0 pointer-events-none">
+                        <div className="absolute left-0 bottom-6 flex flex-col justify-between h-[150px] text-[10px] text-[#71717B] dark:text-[#A1A1AA] font-medium z-0 pointer-events-none">
                             <span>150k</span>
                             <span>100k</span>
                             <span>50k</span>
                             <span>0</span>
                         </div>
                         {/* Threshold line */}
-                        <div className="absolute left-6 right-0 bottom-[100px] border-b border-dashed border-[#E0F2FE] dark:border-[#0C4A6E] z-0"></div>
+                        <div className="absolute left-8 right-0 bottom-[106px] border-b border-dashed border-[#D4D4D8] dark:border-[#3F3F47] z-0"></div>
                         
-                        {analytics.map((item, idx) => {
-                            const maxAmt = 150000;
-                            const heightPct = Math.min(100, (item.totalAmount / maxAmt) * 100);
-                            return (
-                                <div key={idx} className="flex flex-col items-center gap-2 z-10 w-full ml-6">
-                                    <div className="w-[100%] max-w-[32px] h-[150px] flex items-end group relative">
-                                        {/* Tooltip */}
-                                        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#04222D] dark:bg-white text-white dark:text-[#04222D] text-[10px] font-bold px-2 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                            {formatCurrency(item.totalAmount)}
+                        <div className="flex items-end justify-between w-full pl-9 pr-1 gap-1.5 h-full relative z-10 pb-6">
+                            {analytics.map((item, idx) => {
+                                const maxAmt = 150000;
+                                const heightPct = Math.min(100, (item.totalAmount / maxAmt) * 100);
+                                return (
+                                    <div key={idx} className="flex flex-col items-center gap-3 w-full h-full justify-end group">
+                                        <div className="w-full max-w-[36px] h-[150px] flex items-end relative">
+                                            {/* Tooltip */}
+                                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#04222D] dark:bg-white text-white dark:text-[#04222D] text-[10px] font-bold px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20">
+                                                {formatCurrency(item.totalAmount)}
+                                            </div>
+                                            {/* Bar */}
+                                            <div 
+                                                className="w-full bg-[#1447E6] dark:bg-[#3B82F6] rounded-t-[32px] transition-all duration-500 ease-out relative z-10 hover:opacity-90" 
+                                                style={{ height: `${heightPct}%` }}
+                                            />
                                         </div>
-                                        {/* Bar */}
-                                        <div 
-                                            className="w-full bg-[#1D4ED8] dark:bg-[#3B82F6] rounded-t-[8px] transition-all duration-500 ease-out" 
-                                            style={{ height: `${heightPct}%` }}
-                                        />
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] text-[#A1A1AA] font-bold absolute bottom-0">{item.day}</span>
                                     </div>
-                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] text-[#A1A1AA] font-bold">{item.day}</span>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
@@ -304,6 +337,7 @@ export default function EarningsPage() {
                     </div>
                 </div>
             </div>
+            )}
 
             {/* Upcoming Payment Details Modal Overlay */}
             <AnimatePresence>
