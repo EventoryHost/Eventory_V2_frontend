@@ -11,6 +11,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1046.0",
     "canvas-confetti": "^1.9.4",
+    "date-fns": "^4.4.0",
     "framer-motion": "^12.38.0",
     "lottie-react": "^2.4.1",
     "lucide-react": "^1.8.0",
