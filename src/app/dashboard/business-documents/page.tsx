@@ -17,9 +17,9 @@ interface DocDef {
 }
 
 const DOCS: DocDef[] = [
-    { key: 'fssaiNumber',    verifiedKey: 'isFssaiVerified',   label: 'FSSAI License',    urlKey: 'fssaiDocUrl', iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/fssai_liscence.svg' },
-    { key: 'gstNumber',      verifiedKey: 'isGstVerified',     label: 'GST Certificate',  urlKey: 'gstDocUrl',   iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/gst_cert.svg' },
-    { key: 'tradeLicense',   verifiedKey: 'isTradeLicVerified',label: 'Trade License',    urlKey: 'tradeLicUrl', iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/trade_lisc.svg' },
+    { key: 'fssaiDoc',    verifiedKey: 'isFssaiVerified',   label: 'FSSAI License',    urlKey: 'fssaiDocUrl', iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/fssai_liscence.svg' },
+    { key: 'gstDoc',      verifiedKey: 'isGstVerified',     label: 'GST Certificate',  urlKey: 'gstDocUrl',   iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/gst_cert.svg' },
+    { key: 'tradeLicDoc',   verifiedKey: 'isTradeLicVerified',label: 'Trade License',    urlKey: 'tradeLicUrl', iconUrl: 'https://dkuacgndftndz.cloudfront.net/Menu_Components/trade_lisc.svg' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -156,7 +156,6 @@ export default function BusinessDocumentsPage() {
     // ── Delete a document ────────────────────────────────────────────────────
     const handleDelete = async (doc: DocDef) => {
         const payload: Record<string, any> = {
-            [doc.key]: null,
             [doc.verifiedKey]: false,
         };
         if (doc.urlKey) payload[doc.urlKey] = null;
@@ -187,17 +186,20 @@ export default function BusinessDocumentsPage() {
             const form = new FormData();
             form.append('file', selectedFile);
             const uploadRes = await fetch('/api/upload', { method: 'POST', body: form });
-            let fileUrl: string | undefined;
-            if (uploadRes.ok) {
-                const uploadJson = await uploadRes.json();
-                fileUrl = uploadJson.url;
+            if (!uploadRes.ok) {
+                const errJson = await uploadRes.json().catch(() => ({}));
+                throw new Error(errJson.error || 'Upload failed');
             }
+            
+            const uploadJson = await uploadRes.json();
+            const fileUrl = uploadJson.url;
 
             const payload: Record<string, any> = {
-                [selectedDocKey.key]: selectedFile.name, // store filename as identifier
                 [selectedDocKey.verifiedKey]: false,      // triggers "under review"
             };
-            if (selectedDocKey.urlKey && fileUrl) payload[selectedDocKey.urlKey] = fileUrl;
+            if (selectedDocKey.urlKey && fileUrl) {
+                payload[selectedDocKey.urlKey] = fileUrl;
+            }
 
             // Optimistic update
             setVendor((v: any) => ({ ...v, ...payload }));

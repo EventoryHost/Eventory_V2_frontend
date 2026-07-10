@@ -127,7 +127,7 @@ export default function VideoGuidePage() {
 
                     {filteredVideos.length === 0 && (
                         <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
-                            <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/video_guide.png" alt="No tutorials" className="w-[247px] h-[247px] object-contain mb-6" />
+                            <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/video_guide.png" alt="No tutorials" className="w-[247px] h-[247px] object-contain mb-6 mix-blend-multiply dark:mix-blend-normal" />
                             <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No tutorials found on this topic</h3>
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
                                 We don't have a video walkthrough for this topic just yet.

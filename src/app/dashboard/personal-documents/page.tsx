@@ -358,8 +358,8 @@ export default function PersonalDocumentsPage() {
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
                                 className={`w-full h-[52px] rounded-[12px] text-[16px] font-bold transition-all active:scale-[0.98] flex items-center justify-center
                                     ${inputValue 
-                                        ? 'bg-[#829197] text-white' 
-                                        : 'bg-[#829197]/60 text-white cursor-not-allowed'
+                                        ? 'bg-[#04222D] dark:bg-[#E95A6E] text-white' 
+                                        : 'bg-[#94A3B8] dark:bg-[#475569] text-white/90 cursor-not-allowed'
                                     }`}
                             >
                                 Continue

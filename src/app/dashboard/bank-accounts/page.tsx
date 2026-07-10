@@ -329,7 +329,7 @@ export default function BankAccountsPage() {
                         {/* Empty State when no bank account exists and mock data is off */}
                         {bankAccounts.length === 0 && !showMockData && (
                             <div className="flex flex-col items-center justify-center mt-[60px] pb-10 text-center">
-                                <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/no%20bank.png" alt="No Bank Account" className="w-[247px] h-[247px] object-contain mb-6" />
+                                <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/no%20bank.png" alt="No Bank Account" className="w-[247px] h-[247px] object-contain mb-6 mix-blend-multiply dark:mix-blend-normal" />
                                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">No bank account linked yet</h3>
                                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] max-w-[260px] mb-6 leading-relaxed">
                                     Link your bank account to start receiving your confirmed booking payouts automatically.

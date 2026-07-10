@@ -12,6 +12,8 @@ export default function BusinessProfilePage() {
     const [isLoading, setIsLoading] = useState(true);
     const [activeTab, setActiveTab] = useState('About');
     const isManualScrolling = useRef(false);
+    const [editingField, setEditingField] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState<any>('');
 
     // Profile picture sheet
     const [showProfileSheet, setShowProfileSheet] = useState(false);
@@ -24,6 +26,7 @@ export default function BusinessProfilePage() {
     const [showCoverSheet, setShowCoverSheet] = useState(false);
     const [tempCoverFile, setTempCoverFile] = useState<File | null>(null);
     const [tempCoverPreview, setTempCoverPreview] = useState<string | null>(null);
+    const [showGalleryModal, setShowGalleryModal] = useState(false);
 
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
@@ -128,6 +131,11 @@ export default function BusinessProfilePage() {
         }
     };
 
+    const handleUpdateField = async (field: string, value: any) => {
+        await patchVendor({ [field]: value });
+        setEditingField(null);
+    };
+
     // Save selected avatar or uploaded profile picture
     const handleProfileSave = async () => {
         if (!tempImage) return;
@@ -210,8 +218,8 @@ export default function BusinessProfilePage() {
             {/* Header */}
             <div className="sticky top-0 bg-[#FAFAFA]/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center border-b border-[#F4F4F5] dark:border-[#27272A]">
                 <h1 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] dark:text-white">Business Profile</h1>
-                <button onClick={() => router.push('/dashboard/menu')} className="w-[36px] h-[36px] bg-[#F4F4F5] dark:bg-[#27272A] rounded-full flex items-center justify-center active:scale-95 transition-transform">
-                    <X className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" />
+                <button onClick={() => router.push('/dashboard/profile')} style={{ fontFamily: 'Figtree, sans-serif' }} className="px-5 py-1.5 bg-[#04222D] dark:bg-[#E95A6E] text-white text-[13px] font-bold rounded-full active:scale-95 transition-transform tracking-wide">
+                    Edit
                 </button>
             </div>
 
@@ -237,9 +245,9 @@ export default function BusinessProfilePage() {
                         {/* Clickable edit button for cover */}
                         <button 
                             onClick={() => setShowCoverSheet(true)}
-                            className="absolute bottom-3 right-3 w-7 h-7 bg-white dark:bg-[#18181B] rounded-full shadow-md flex items-center justify-center active:scale-95 cursor-pointer"
+                            className="absolute bottom-3 right-3 w-7 h-7 flex items-center justify-center active:scale-95 cursor-pointer hover:opacity-80 transition-opacity"
                         >
-                            <Edit3 className="w-3.5 h-3.5 text-[#3F3F47] dark:text-[#A1A1AA]" />
+                            <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/white_edit.svg" alt="Edit" className="w-4 h-4 invert dark:invert-0 opacity-80 dark:opacity-100 drop-shadow-md" />
                         </button>
                     </div>
 
@@ -255,11 +263,11 @@ export default function BusinessProfilePage() {
                                         <User className="w-8 h-8 text-[#A1A1AA]" />
                                     )}
                                 </div>
-                                <button
+                                <button 
                                     onClick={() => { setTempImage(vendor.profilePicture || null); setShowProfileSheet(true); }}
-                                    className="absolute bottom-0 right-0 w-6 h-6 bg-white dark:bg-[#18181B] border border-[#F4F4F5] dark:border-[#27272A] rounded-full shadow-md flex items-center justify-center active:scale-95"
+                                    className="absolute bottom-0 right-0 w-6 h-6 flex items-center justify-center active:scale-95 cursor-pointer hover:opacity-80 transition-opacity"
                                 >
-                                    <Edit3 className="w-3 h-3 text-[#3F3F47] dark:text-[#A1A1AA]" />
+                                    <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/white_edit.svg" alt="Edit" className="w-4 h-4 invert dark:invert-0 opacity-80 dark:opacity-100 drop-shadow-md" />
                                 </button>
                             </div>
                         </div>
@@ -329,15 +337,58 @@ export default function BusinessProfilePage() {
 
                         {/* About the Brand */}
                         <div>
-                            <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-2">About the Brand</h3>
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] leading-relaxed">
-                                {vendor.description || "Vendor description goes here. Update this in your profile settings."}
-                            </p>
+                            <div className="flex justify-between items-center mb-2">
+                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white">About the Brand</h3>
+                                {editingField !== 'description' && (
+                                    <button 
+                                        onClick={() => { setEditingField('description'); setEditValue(vendor.description || ''); }}
+                                        className="w-[28px] h-[28px] flex items-center justify-center cursor-pointer hover:opacity-80 transition-opacity"
+                                    >
+                                        <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/white_edit.svg" alt="Edit" className="w-[16px] h-[16px] invert dark:invert-0 opacity-80 dark:opacity-100 drop-shadow-md" />
+                                    </button>
+                                )}
+                            </div>
+                            
+                            {editingField === 'description' ? (
+                                <div className="animate-in fade-in zoom-in-95 duration-200">
+                                    <textarea
+                                        value={editValue}
+                                        onChange={(e) => setEditValue(e.target.value)}
+                                        autoFocus
+                                        rows={4}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 bg-white dark:bg-[#1E1E1B] border border-[#E4E4E7] dark:border-[#27272A] rounded-[12px] text-[14px] font-medium text-[#030303] dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600 mb-3 transition-colors resize-none"
+                                    />
+                                    <div className="flex items-center gap-4">
+                                        <button 
+                                            onClick={() => handleUpdateField('description', editValue)}
+                                            disabled={!editValue?.trim() || editValue === vendor.description}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className={`px-6 py-2.5 text-white text-[13px] font-bold rounded-[8px] transition-all ${(!editValue?.trim() || editValue === vendor.description) ? 'bg-[#84949A] dark:bg-[#3F3F47] cursor-not-allowed' : 'bg-[#04222D] dark:bg-[#E95A6E] active:scale-95'}`}
+                                        >
+                                            Update
+                                        </button>
+                                        <button 
+                                            onClick={() => setEditingField(null)}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="px-4 py-2.5 bg-transparent text-[#030303] dark:text-white text-[13px] font-medium rounded-[8px] active:scale-95 transition-transform"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#71717B] dark:text-[#A1A1AA] leading-relaxed">
+                                    {vendor.description || "Vendor description goes here. Update this in your profile settings."}
+                                </p>
+                            )}
                         </div>
 
                         {/* Point of Contact */}
                         <div>
-                            <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white mb-3">Point of Contact</h3>
+                            <div className="flex justify-between items-center mb-3">
+                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white">Point of Contact</h3>
+                            </div>
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center gap-3">
                                     <User className="w-[18px] h-[18px] text-[#71717B] dark:text-[#A1A1AA]" strokeWidth={1.5} />
@@ -380,8 +431,8 @@ export default function BusinessProfilePage() {
                     <div id="section-Gallery" className="flex flex-col gap-4 scroll-mt-32">
                         <div className="flex items-center justify-between">
                             <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] dark:text-white">Gallery</h3>
-                            <label className="p-1 active:scale-95 transition-transform cursor-pointer">
-                                <Plus className="w-6 h-6 text-[#030303] dark:text-white" strokeWidth={2} />
+                            <label className="w-6 h-6 flex items-center justify-center active:scale-95 transition-transform cursor-pointer">
+                                <img src="https://dkuacgndftndz.cloudfront.net/Menu_Components/white_edit.svg" alt="Edit" className="w-[14px] h-[14px] invert dark:invert-0 opacity-70 dark:opacity-100" />
                                 <input 
                                     type="file" 
                                     multiple 
@@ -398,7 +449,10 @@ export default function BusinessProfilePage() {
                                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#A1A1AA]">No images in gallery yet</p>
                             </div>
                         ) : (
-                            <div className={`grid gap-2 ${vendor.businessPhotos.length === 1 ? 'grid-cols-1' : vendor.businessPhotos.length === 2 ? 'grid-cols-2' : 'grid-cols-3'} h-[200px]`}>
+                            <div 
+                                className={`grid gap-2 ${vendor.businessPhotos.length >= 3 ? 'grid-cols-2 h-[240px]' : vendor.businessPhotos.length === 2 ? 'grid-cols-2 h-[160px]' : 'grid-cols-1 h-[200px]'} cursor-pointer hover:opacity-95 transition-opacity`}
+                                onClick={() => setShowGalleryModal(true)}
+                            >
                                 {vendor.businessPhotos.length === 1 ? (
                                     <div className="col-span-1 h-full rounded-[8px] overflow-hidden">
                                         <img src={vendor.businessPhotos[0]} className="w-full h-full object-cover" />
@@ -412,25 +466,43 @@ export default function BusinessProfilePage() {
                                             <img src={vendor.businessPhotos[1]} className="w-full h-full object-cover" />
                                         </div>
                                     </>
-                                ) : (
+                                ) : vendor.businessPhotos.length === 3 ? (
                                     <>
-                                        <div className="col-span-2 h-full rounded-[8px] overflow-hidden">
+                                        <div className="col-span-1 h-full rounded-[8px] overflow-hidden">
                                             <img src={vendor.businessPhotos[0]} className="w-full h-full object-cover" />
                                         </div>
                                         <div className="col-span-1 flex flex-col gap-2 h-full">
                                             <div className="flex-1 rounded-[8px] overflow-hidden">
                                                 <img src={vendor.businessPhotos[1]} className="w-full h-full object-cover" />
                                             </div>
-                                            <div className="flex-1 rounded-[8px] relative flex items-center justify-center overflow-hidden">
+                                            <div className="flex-1 rounded-[8px] overflow-hidden">
                                                 <img src={vendor.businessPhotos[2]} className="w-full h-full object-cover" />
-                                                {vendor.businessPhotos.length > 3 && (
-                                                    <>
-                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-white absolute z-10">
-                                                            {vendor.businessPhotos.length - 3}+
-                                                        </span>
-                                                        <div className="absolute inset-0 bg-black/40"></div>
-                                                    </>
-                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="col-span-1 h-full rounded-[8px] overflow-hidden">
+                                            <img src={vendor.businessPhotos[0]} className="w-full h-full object-cover" />
+                                        </div>
+                                        <div className="col-span-1 flex flex-col gap-2 h-full">
+                                            <div className="flex-1 rounded-[8px] overflow-hidden">
+                                                <img src={vendor.businessPhotos[1]} className="w-full h-full object-cover" />
+                                            </div>
+                                            <div className="flex-1 grid grid-cols-2 gap-2">
+                                                <div className="col-span-1 rounded-[8px] overflow-hidden">
+                                                    <img src={vendor.businessPhotos[2]} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="col-span-1 rounded-[8px] relative flex items-center justify-center overflow-hidden bg-[#F4F4F5] dark:bg-[#27272A]">
+                                                    <img src={vendor.businessPhotos[3]} className="w-full h-full object-cover" />
+                                                    {vendor.businessPhotos.length > 4 && (
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-white">
+                                                                {vendor.businessPhotos.length - 3}+
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </>
@@ -590,6 +662,34 @@ export default function BusinessProfilePage() {
                             </button>
                         </motion.div>
                     </>
+                )}
+            </AnimatePresence>
+            {/* ── Gallery Full Screen Modal ── */}
+            <AnimatePresence>
+                {showGalleryModal && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
+                        className="fixed inset-0 z-[100] bg-white dark:bg-[#09090B] flex flex-col"
+                    >
+                        {/* Header */}
+                        <div className="sticky top-0 bg-white/90 dark:bg-[#09090B]/90 backdrop-blur-md z-40 px-5 pt-8 pb-4 flex justify-between items-center border-b border-[#F4F4F5] dark:border-[#27272A]">
+                            <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] dark:text-white">All Photos</h2>
+                            <button onClick={() => setShowGalleryModal(false)} className="w-[36px] h-[36px] bg-[#F4F4F5] dark:bg-[#27272A] rounded-full flex items-center justify-center active:scale-95 transition-transform">
+                                <X className="w-5 h-5 text-[#3F3F47] dark:text-[#E4E4E7]" />
+                            </button>
+                        </div>
+                        
+                        {/* Scrollable Grid */}
+                        <div className="flex-1 overflow-y-auto px-5 py-6">
+                            <div className="grid grid-cols-2 gap-3 pb-20">
+                                {vendor.businessPhotos?.map((photo: string, index: number) => (
+                                    <div key={index} className="aspect-square rounded-[12px] overflow-hidden bg-[#F4F4F5] dark:bg-[#27272A]">
+                                        <img src={photo} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" />
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </>

@@ -92,9 +92,9 @@ const ProfileField = ({
                         <button 
                             onClick={() => onEditClick(fieldKey, value)}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="absolute right-4 text-[13px] font-bold text-[#E95A6E] active:scale-95 transition-transform uppercase tracking-wide"
+                            className="absolute right-4 text-[13px] font-bold text-[#04222D] dark:text-white active:scale-95 transition-transform"
                         >
-                            EDIT
+                            Edit
                         </button>
                     </div>
                     {hasVerifyLink && (
