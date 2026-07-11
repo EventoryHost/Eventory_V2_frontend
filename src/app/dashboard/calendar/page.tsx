@@ -856,18 +856,18 @@ export default function CalendarPage() {
                                         <button onClick={() => setSheetState('none')} className="w-8 h-8 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-gray-500">✕</button>
                                     </div>
 
-                                    <div className="flex gap-4 mb-4">
-                                        <div className="flex-1">
+                                    <div className="flex gap-3 mb-4">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">Start Date</label>
                                             <input type="date" value={oStartDate} onChange={e => setOStartDate(e.target.value)} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm dark:bg-[#121214] dark:text-white focus:ring-2 focus:ring-[#04222D] outline-none" />
                                         </div>
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">End Date</label>
                                             <input type="date" value={oEndDate} onChange={e => setOEndDate(e.target.value)} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm dark:bg-[#121214] dark:text-white focus:ring-2 focus:ring-[#04222D] outline-none" />
                                         </div>
                                     </div>
-                                    <div className="flex gap-4 mb-6">
-                                        <div className="flex-1">
+                                    <div className="flex gap-3 mb-6">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">Start Time</label>
                                             <select value={oStartTime} onChange={e => setOStartTime(e.target.value)} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm dark:bg-[#121214] dark:text-white focus:ring-2 focus:ring-[#04222D] outline-none">
                                                 <option value="10:00 AM">10:00 AM</option>
@@ -875,7 +875,7 @@ export default function CalendarPage() {
                                                 <option value="12:00 PM">12:00 PM</option>
                                             </select>
                                         </div>
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[10px] font-bold text-gray-500 dark:text-gray-400 mb-1.5 block">End Time</label>
                                             <select value={oEndTime} onChange={e => setOEndTime(e.target.value)} className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm dark:bg-[#121214] dark:text-white focus:ring-2 focus:ring-[#04222D] outline-none">
                                                 <option value="04:00 PM">04:00 PM</option>
@@ -932,8 +932,8 @@ export default function CalendarPage() {
                                         </button>
                                     </div>
                                     
-                                    <div className="flex gap-4 mb-6">
-                                        <div className="flex-1">
+                                    <div className="flex gap-3 mb-6">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 block uppercase tracking-wider">Start Date</label>
                                             <input 
                                                 type="date" 
@@ -942,7 +942,7 @@ export default function CalendarPage() {
                                                 className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm dark:bg-[#121214] dark:text-white font-medium focus:ring-2 focus:ring-[#04222D] outline-none"
                                             />
                                         </div>
-                                        <div className="flex-1">
+                                        <div className="flex-1 min-w-0">
                                             <label className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mb-2 block uppercase tracking-wider">End Date</label>
                                             <input 
                                                 type="date" 

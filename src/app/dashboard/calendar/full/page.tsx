@@ -35,6 +35,8 @@ export default function FullCalendarPage() {
     
     const [activeMonth, setActiveMonth] = useState(0);
     const monthRefs = useRef<(HTMLDivElement | null)[]>([]);
+    const monthScrollContainerRef = useRef<HTMLDivElement>(null);
+    const monthPillRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
@@ -77,6 +79,8 @@ export default function FullCalendarPage() {
 
     // Intersection observer for scrolling months
     useEffect(() => {
+        if (isLoading) return;
+
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -97,7 +101,22 @@ export default function FullCalendarPage() {
         });
 
         return () => observer.disconnect();
-    }, []);
+    }, [isLoading]);
+
+    // Scroll the pill container when activeMonth changes
+    useEffect(() => {
+        const container = monthScrollContainerRef.current;
+        const pill = monthPillRefs.current[activeMonth];
+        
+        if (container && pill) {
+            const containerCenter = container.clientWidth / 2;
+            const pillCenter = pill.offsetLeft + (pill.clientWidth / 2);
+            container.scrollTo({
+                left: pillCenter - containerCenter,
+                behavior: 'smooth'
+            });
+        }
+    }, [activeMonth]);
 
     const scrollToMonth = (index: number) => {
         setActiveMonth(index);
@@ -190,11 +209,12 @@ export default function FullCalendarPage() {
                 </div>
 
                 {/* Month Pill Scroll */}
-                <div className="flex items-center px-5 py-3 gap-3 overflow-x-auto scrollbar-hide border-b border-gray-100 dark:border-gray-800">
+                <div ref={monthScrollContainerRef} className="flex items-center px-5 py-3 gap-3 overflow-x-auto scrollbar-hide border-b border-gray-100 dark:border-gray-800">
                     <span className="font-bold text-sm text-gray-900 dark:text-white shrink-0 mr-2">{format(startMonthDate, 'yyyy')}</span>
                     {months.map((m, idx) => (
                         <button
                             key={idx}
+                            ref={el => { monthPillRefs.current[idx] = el }}
                             onClick={() => scrollToMonth(idx)}
                             className={`px-4 py-1.5 rounded-full text-[13px] font-bold whitespace-nowrap transition-colors shrink-0
                                 ${activeMonth === idx 

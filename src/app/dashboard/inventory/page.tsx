@@ -163,17 +163,36 @@ function InventoryContent() {
             ) : displayedPackages.length > 0 ? (
                 <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {displayedPackages.map((pkg) => (
-                        <div key={pkg._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', border: '1px solid #E4E4E7', borderRadius: '16px', backgroundColor: '#FAFAFA' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E4E4E7' }}>
+                        <div key={pkg._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', border: '1px solid #E4E4E7', borderRadius: '16px', backgroundColor: '#FAFAFA', gap: '12px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E4E4E7', flexShrink: 0 }}>
                                     <FileText size={24} color="#3F3F47" />
                                 </div>
-                                <div>
-                                    <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#030303', margin: '0 0 4px 0', fontFamily: 'Figtree, sans-serif' }}>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <h3 style={{ 
+                                        fontSize: '15px', 
+                                        fontWeight: 700, 
+                                        color: '#030303', 
+                                        margin: '0 0 4px 0', 
+                                        fontFamily: 'Figtree, sans-serif',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        lineHeight: '1.3'
+                                    }}>
                                         {pkg.step1_eventAndCrew?.packageName || 'Untitled Package'}
                                     </h3>
-                                    <p style={{ fontSize: '13px', color: '#71717B', margin: 0, fontFamily: 'Figtree, sans-serif' }}>
-                                        {pkg.vendorType} • {pkg.bookingType} • Last updated {new Date(pkg.updatedAt).toLocaleDateString()}
+                                    <p style={{ 
+                                        fontSize: '13px', 
+                                        color: '#71717B', 
+                                        margin: 0, 
+                                        fontFamily: 'Figtree, sans-serif',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                    }}>
+                                        {pkg.vendorType} • {pkg.bookingType} • {new Date(pkg.updatedAt).toLocaleDateString()}
                                     </p>
                                 </div>
                             </div>
@@ -181,12 +200,12 @@ function InventoryContent() {
                             {activeTab === 'Drafts' ? (
                                 <button 
                                     onClick={() => handleResumeDraft(pkg)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', border: '1px solid #E4E4E7', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: '#030303', cursor: 'pointer' }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', border: '1px solid #E4E4E7', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: '#030303', cursor: 'pointer', flexShrink: 0 }}
                                 >
                                     <Edit3 size={16} /> Resume
                                 </button>
                             ) : (
-                                <span style={{ padding: '6px 12px', backgroundColor: pkg.packageStatus === 'Live' ? '#dcfce7' : '#fef08a', color: pkg.packageStatus === 'Live' ? '#166534' : '#854d0e', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
+                                <span style={{ padding: '6px 12px', backgroundColor: pkg.packageStatus === 'Live' ? '#dcfce7' : '#fef08a', color: pkg.packageStatus === 'Live' ? '#166534' : '#854d0e', borderRadius: '20px', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>
                                     {pkg.packageStatus}
                                 </span>
                             )}
