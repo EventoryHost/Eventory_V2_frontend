@@ -14,7 +14,7 @@ import { PolicyFile, SampleMediaFile } from '../../shared/types';
 
 const FLOW_CONFIG = {
     vendorName: 'Photographer',
-    steps: ['Your Package & Team', 'Deliverables', 'Pricing', 'Sample Work'],
+    steps: ['Your Package & Team', 'Deliverables', 'Pricing', 'Sample & Media'],
 };
 
 const VENUE_NEEDS_OPTIONS = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
@@ -229,6 +229,7 @@ export default function PAVFlow() {
                                 setTeamPrice(String(s3.teamAndEquipment.price || ''));
                             }
                             if (s3.overtimeCharges) setOvertimeRate(String(s3.overtimeCharges.price || ''));
+                            if (typeof s3.gstInclusive === 'boolean') setIsGstInclusive(s3.gstInclusive);
                             
                             if (s3.dynamicPricing) {
                                 const dp = s3.dynamicPricing;
@@ -558,6 +559,7 @@ export default function PAVFlow() {
                     packagePricing: { price: parseFloat(packagePrice) || 0, billingUnit: packageChargeType },
                     teamAndEquipment: { price: parseFloat(teamPrice) || 0, billingUnit: teamChargeType },
                     overtimeCharges: { price: parseFloat(overtimeRate) || 0, billingUnit: 'Per Hour' },
+                    gstInclusive: isGstInclusive,
                     dynamicPricing: dpPayload,
                     lastMinuteChargesDocUrl: lastMinuteUrl,
                     policiesDocUrl: policyUrl,
@@ -584,7 +586,7 @@ export default function PAVFlow() {
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/4`), {
                     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
-                if (!res.ok) throw new Error("Failed to save Step 4 (Sample Work)");
+                if (!res.ok) throw new Error("Failed to save Step 4 (Sample & Media)");
                 
                 // Final submission
                 const submitRes = await fetch(apiUrl(`/packages/${currentPackageId}/submit`), { method: 'POST' });
