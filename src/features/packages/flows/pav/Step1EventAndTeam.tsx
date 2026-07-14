@@ -25,9 +25,12 @@ const HEAD = 'text-[20px] font-[600] text-[#030303] leading-[28px] tracking-[0px
 const SMALL_LABEL = 'text-[14px] font-[500] text-[#3F3F47] leading-[20px] text-left';
 
 const SUGGESTIONS = [
-    'Wedding', 'Corporate', 'Haldi', 'Birthday',
+    'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Baby shower', 'Anniversary'
+];
+const DROPDOWN_SUGGESTIONS = [
     'Gala', 'Workshop', 'Conference', 'Exhibition'
 ];
+const ALL_SUGGESTIONS = [...SUGGESTIONS, ...DROPDOWN_SUGGESTIONS];
 
 export default function PAVStep1EventAndTeam({
     packageName, setPackageName,
@@ -47,7 +50,7 @@ export default function PAVStep1EventAndTeam({
     const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
     const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
 
-    const filteredSuggestions = SUGGESTIONS.filter(s => 
+    const filteredSuggestions = ALL_SUGGESTIONS.filter(s => 
         !categories.includes(s) && s.toLowerCase().includes(categoryInput.toLowerCase())
     );
 
@@ -94,7 +97,7 @@ export default function PAVStep1EventAndTeam({
         <div className="flex flex-col gap-6 pb-32 w-full min-w-0">
             {/* ── Package Details ── */}
             <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Package Details <span className="text-red-500">*</span></h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Package and Event Details <span className="text-red-500">*</span></h3>
 
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Package name</label>
@@ -110,22 +113,39 @@ export default function PAVStep1EventAndTeam({
 
                 <div className="flex flex-col gap-2 relative">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Event Types</label>
-                    <div className={`flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
-                        {categories.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {categories.map(cat => (
-                                    <div key={cat} className="flex items-center gap-1.5 bg-[#04222D] text-white px-3 py-1.5 rounded-full text-[14px]">
+                    <div className={`flex flex-col gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
+                        <div className="flex flex-wrap gap-2">
+                            {Array.from(new Set([...SUGGESTIONS, ...categories])).map(cat => {
+                                const isSelected = categories.includes(cat);
+                                return (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => {
+                                            if (isSelected) handleRemoveCategory(cat);
+                                            else {
+                                                const newCategories = [...categories, cat];
+                                                setEventCategories(newCategories.join(', '));
+                                            }
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`px-3 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-1.5 transition-colors ${
+                                            isSelected 
+                                            ? 'bg-[#04222D] text-white' 
+                                            : 'bg-[#E6E9EA] text-[#3F3F47] hover:bg-gray-200'
+                                        }`}
+                                    >
                                         <span>{cat}</span>
-                                        <button type="button" onClick={() => handleRemoveCategory(cat)} className="hover:text-gray-300 flex items-center justify-center">
+                                        {isSelected && (
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                         <input
                             type="text"
-                            placeholder={categories.length === 0 ? "Enter your Event type" : "Type more events..."}
+                            placeholder="Type Events Categories"
                             value={categoryInput}
                             onChange={(e) => {
                                 setCategoryInput(e.target.value);
@@ -133,10 +153,10 @@ export default function PAVStep1EventAndTeam({
                                 setHighlightedIndex(-1);
                             }}
                             onFocus={() => setIsDropdownOpen(true)}
+                            onKeyDown={handleCategoryKeyDown}
                             onBlur={() => {
                                 setTimeout(() => handleAddCategoryFromInput(), 150);
                             }}
-                            onKeyDown={handleCategoryKeyDown}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className="w-full min-w-0 text-[16px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
                         />
@@ -162,42 +182,45 @@ export default function PAVStep1EventAndTeam({
                         </div>
                     )}
                 </div>
+
+                <div className="flex flex-col gap-2 mt-2">
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Event duration</label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Min Duration</span>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="hrs"
+                                    value={minDuration}
+                                    onChange={(e) => setMinDuration(e.target.value.replace(/\D/g, ''))}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`${INPUT} pr-10`}
+                                />
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Max Duration</span>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="hrs"
+                                    value={maxDuration}
+                                    onChange={(e) => setMaxDuration(e.target.value.replace(/\D/g, ''))}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`${INPUT} pr-10`}
+                                />
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* ── Your Team & Availability ── */}
             <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Your Team & Availability <span className="text-red-500">*</span></h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Min Duration</span>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="hrs"
-                                value={minDuration}
-                                onChange={(e) => setMinDuration(e.target.value.replace(/\D/g, ''))}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`${INPUT} pr-10`}
-                            />
-                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Max Duration</span>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="hrs"
-                                value={maxDuration}
-                                onChange={(e) => setMaxDuration(e.target.value.replace(/\D/g, ''))}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`${INPUT} pr-10`}
-                            />
-                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
-                        </div>
-                    </div>
-                </div>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Your Crew <span className="text-red-500">*</span></h3>
 
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Total crew size</label>
@@ -264,16 +287,11 @@ export default function PAVStep1EventAndTeam({
                                 type="button"
                                 onClick={() => toggleVenueNeed(opt)}
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`px-4 py-2 rounded-full text-[14px] font-normal flex items-center gap-2 transition-all leading-[20px] border ${isSelected
+                                className={`px-4 py-2 rounded-full text-[14px] font-normal flex items-center transition-all leading-[20px] border ${isSelected
                                     ? 'bg-[#04222D] text-white border-[#04222D]'
                                     : 'bg-[#E6E9EA] text-[#3F3F47] border-[#E6E9EA] hover:bg-gray-200'
                                     }`}
                             >
-                                {isSelected ? (
-                                    <Check size={14} className="text-white" />
-                                ) : (
-                                    <Plus size={14} className="text-[#3F3F47]" />
-                                )}
                                 <span>{opt}</span>
                             </button>
                         );

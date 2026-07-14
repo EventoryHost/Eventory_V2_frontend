@@ -38,7 +38,7 @@ export default function DashboardLayout({
 
     return (
         <>
-            <div className="bg-gray-50 dark:bg-[#09090B] min-h-screen transition-colors duration-300">
+            <div className="bg-white dark:bg-[#09090B] min-h-screen transition-colors duration-300">
                 <main className={`min-h-screen ${isDocumentPage ? 'pb-0' : 'pb-24'} max-w-md mx-auto bg-white dark:bg-[#09090B] shadow-xl min-[450px]:border-x border-gray-100 dark:border-[#27272A] relative transition-colors duration-300`}>
                     {children}
                 </main>

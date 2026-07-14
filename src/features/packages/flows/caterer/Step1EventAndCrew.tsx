@@ -30,7 +30,14 @@ const INPUT = 'w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[1
 const HEAD  = 'text-[18px] font-bold text-[#030303] leading-[24px]';
 const HELPER = 'text-[12px] font-normal text-[#9F9FA9] leading-[18px] ml-1';
 
-const categorySuggestions = ['Corporate', 'Haldi', 'Wedding', 'Birthday', 'Baby shower', 'Anniversary'];
+
+const SUGGESTIONS = [
+    'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Baby shower', 'Anniversary'
+];
+const DROPDOWN_SUGGESTIONS = [
+    'Gala', 'Workshop', 'Conference', 'Exhibition'
+];
+const ALL_SUGGESTIONS = [...SUGGESTIONS, ...DROPDOWN_SUGGESTIONS];
 
 export default function CatererStep1EventAndCrew({
     packageName, setPackageName,
@@ -47,27 +54,49 @@ export default function CatererStep1EventAndCrew({
     venueRequest, setVenueRequest,
     venueNeedsOptions,
 }: Props) {
-    const categories = eventCategories.split(',').map((category) => category.trim()).filter(Boolean);
+    const categories = eventCategories.split(',').map(c => c.trim()).filter(Boolean);
     const [categoryInput, setCategoryInput] = React.useState('');
+    const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+    const [highlightedIndex, setHighlightedIndex] = React.useState(-1);
 
-    const addCategory = (name: string) => {
-        const target = name.trim();
-        if (!target) return;
-        if (!categories.includes(target)) {
-            setEventCategories([...categories, target].join(', '));
+    const filteredSuggestions = ALL_SUGGESTIONS.filter(s => 
+        !categories.includes(s) && s.toLowerCase().includes(categoryInput.toLowerCase())
+    );
+
+    const handleAddCategoryFromInput = (val?: string) => {
+        const text = val !== undefined ? val : categoryInput;
+        if (text.trim() && !categories.includes(text.trim())) {
+            const newCategories = [...categories, text.trim()];
+            setEventCategories(newCategories.join(', '));
+        }
+        setCategoryInput('');
+        setIsDropdownOpen(false);
+        setHighlightedIndex(-1);
+    };
+
+    const handleCategoryKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (isDropdownOpen && highlightedIndex >= 0 && highlightedIndex < filteredSuggestions.length) {
+                handleAddCategoryFromInput(filteredSuggestions[highlightedIndex]);
+            } else {
+                handleAddCategoryFromInput();
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setIsDropdownOpen(true);
+            setHighlightedIndex(prev => (prev < filteredSuggestions.length - 1 ? prev + 1 : prev));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setHighlightedIndex(prev => (prev > 0 ? prev - 1 : -1));
+        } else if (e.key === 'Escape') {
+            setIsDropdownOpen(false);
         }
     };
 
-    const toggleCategory = (category: string) => {
-        if (categories.includes(category)) {
-            setEventCategories(categories.filter((c) => c !== category).join(', '));
-        } else {
-            addCategory(category);
-        }
-    };
-
-    const removeCategory = (categoryToRemove: string) => {
-        setEventCategories(categories.filter((category) => category !== categoryToRemove).join(', '));
+    const handleRemoveCategory = (catToRemove: string) => {
+        const newCategories = categories.filter(c => c !== catToRemove);
+        setEventCategories(newCategories.join(', '));
     };
 
 
@@ -94,52 +123,75 @@ export default function CatererStep1EventAndCrew({
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Event Types</label>
                     
-                    {/* Tag Box Display */}
-                    <div className="flex min-h-[140px] flex-col gap-3 rounded-[12px] border border-[#E4E4E7] bg-white p-4 focus-within:ring-1 focus-within:ring-gray-300">
-                        <div className="flex flex-wrap gap-2">
-                            {categorySuggestions.filter(s => !categories.includes(s)).map((suggestion) => (
-                                <button
-                                    key={suggestion}
-                                    type="button"
-                                    onClick={() => toggleCategory(suggestion)}
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className="px-4 py-2 rounded-[20px] text-[13px] font-medium transition-all bg-[#F4F4F5] text-[#3F3F47] border border-transparent hover:bg-[#E4E4E7]"
-                                >
-                                    {suggestion}
-                                </button>
-                            ))}
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2 mt-2">
-                            {categories.map((category) => (
-                                <span key={category} className="flex items-center gap-1.5 rounded-[20px] bg-[#04222D] px-4 py-2 text-[14px] font-medium leading-[20px] text-white">
-                                    {category}
-                                    <button
-                                        type="button"
-                                        onClick={() => removeCategory(category)}
-                                        aria-label={`Remove ${category}`}
-                                        className="flex items-center justify-center text-white hover:text-gray-300"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </span>
-                            ))}
+                    <div className="flex flex-col gap-2 relative">
+                        <div className={`flex flex-col gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
+                            <div className="flex flex-wrap gap-2">
+                                {Array.from(new Set([...SUGGESTIONS, ...categories])).map(cat => {
+                                    const isSelected = categories.includes(cat);
+                                    return (
+                                        <button
+                                            key={cat}
+                                            type="button"
+                                            onClick={() => {
+                                                if (isSelected) handleRemoveCategory(cat);
+                                                else {
+                                                    const newCategories = [...categories, cat];
+                                                    setEventCategories(newCategories.join(', '));
+                                                }
+                                            }}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className={`px-3 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-1.5 transition-colors ${
+                                                isSelected 
+                                                ? 'bg-[#04222D] text-white' 
+                                                : 'bg-[#E6E9EA] text-[#3F3F47] hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            <span>{cat}</span>
+                                            {isSelected && (
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                             <input
                                 type="text"
                                 placeholder="Type Events Categories"
                                 value={categoryInput}
-                                onChange={(e) => setCategoryInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addCategory(categoryInput);
-                                        setCategoryInput('');
-                                    }
+                                onChange={(e) => {
+                                    setCategoryInput(e.target.value);
+                                    setIsDropdownOpen(true);
+                                    setHighlightedIndex(-1);
+                                }}
+                                onFocus={() => setIsDropdownOpen(true)}
+                                onKeyDown={handleCategoryKeyDown}
+                                onBlur={() => {
+                                    setTimeout(() => handleAddCategoryFromInput(), 150);
                                 }}
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className="bg-transparent text-[16px] font-normal text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none flex-1 min-w-[120px]"
+                                className="w-full min-w-0 text-[16px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
                             />
                         </div>
+                        {isDropdownOpen && filteredSuggestions.length > 0 && (
+                            <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg overflow-hidden z-50 py-2">
+                                {filteredSuggestions.map((suggestion, index) => (
+                                    <div
+                                        key={suggestion}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAddCategoryFromInput(suggestion);
+                                        }}
+                                        onMouseEnter={() => setHighlightedIndex(index)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`px-4 py-3 cursor-pointer text-[15px] font-medium transition-colors ${
+                                            highlightedIndex === index ? 'bg-gray-200 text-gray-900' : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {suggestion}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

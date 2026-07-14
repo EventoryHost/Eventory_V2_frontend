@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Plus, ChevronDown, ChevronUp, Trash2, Info, Camera, Video, BookOpen, Aperture, X, MoreHorizontal } from 'lucide-react';
+import { Plus, PlusCircle, ChevronDown, ChevronUp, Trash2, ShieldAlert, Camera, Video, BookOpen, Aperture, X, MoreHorizontal } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AddonModal, Addon } from '../../components/AddonModal';
 
 export interface PAVItem {
@@ -22,6 +23,7 @@ export interface PAVItem {
     deliveryTimeline: string;
     isVisitingIncluded: boolean;
     resolution: string;
+    duration: string;
 }
 
 interface Props {
@@ -44,21 +46,45 @@ const DROPDOWN_BTN = 'w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] 
 const HELPER = 'text-[11px] text-[#9F9FA9] mt-1 pl-1';
 
 const ITEM_TYPES = [
-    { name: 'Photography', desc: 'Physical or digital goods to sell', icon: Camera },
-    { name: 'Videography', desc: 'Physical or digital goods to sell', icon: Video },
-    { name: 'Albums/Hardcopy', desc: 'Physical or digital goods to sell', icon: BookOpen },
-    { name: 'Others', desc: 'Physical or digital goods to sell', icon: Aperture },
+    { name: 'Photography', desc: 'Physical or digital goods to sell', image: 'https://dkuacgndftndz.cloudfront.net/inventory-page/camera.png' },
+    { name: 'Videography', desc: 'Physical or digital goods to sell', image: 'https://dkuacgndftndz.cloudfront.net/inventory-page/video.png' },
+    { name: 'Albums/Hardcopy', desc: 'Physical or digital goods to sell', image: 'https://dkuacgndftndz.cloudfront.net/inventory-page/album.png' },
 ];
 
 const OPTIONS = {
     coverType: ['Faux Leather', 'Acrylic Glass', 'Hardcover Image Wrap', 'Linen'],
     pageFinish: ['Lustre', 'Glossy', 'Matte', 'Silk'],
     bindingType: ['Lay-Flat Binding', 'Perfect Bound', 'Flush Mount', 'Saddle Stitch'],
-    deliveryTimeline: ['7 - 15 Days (Quick Turnaround)', '15 - 30 Days (Standard)', '45 - 60 Days (Detailed Post-Production)', '90+ Days (Premium Long-form)'],
-    photographyDeliveryFormat: ['JPEG', 'RAW', 'JPEG + RAW', 'TIFF'],
+    deliveryTimeline: ['2-5 Days (Rapid Delivery)', '7 - 15 Days (Quick Turnaround)', '15 - 30 Days (Standard)', '45 - 60 Days (Detailed Post-Production)', '90+ Days (Premium Long-form)'],
+    photographyDeliveryFormat: ['RAW & JPEG/JPG Format', 'CIF & JPEG/JPG Format', 'JPEG Format', 'Print Ready'],
     videographyDeliveryFormat: ['MP4', 'MOV', 'Apple ProRes'],
     deliveryMedium: ['USB drive', 'Google Drive', 'WeTransfer', 'Hard Drive'],
     resolution: ['Full HD', '4K', '2K', '8K']
+};
+
+const Section = ({ title, defaultExpanded = true, children, isCompleted = false, progress = '' }: any) => {
+    const [isExpanded, setIsExpanded] = React.useState(defaultExpanded);
+    return (
+        <div className="bg-white border border-[#E4E4E7] rounded-[12px] flex flex-col transition-all">
+            <div className={`p-5 flex items-center justify-between cursor-pointer hover:bg-gray-50 ${isExpanded ? 'rounded-t-[12px]' : 'rounded-[12px]'}`} onClick={() => setIsExpanded(!isExpanded)}>
+                <div className="flex items-center gap-3">
+                    <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${isCompleted ? 'bg-[#030303]' : 'bg-[#E4E4E7]'}`}>
+                        <svg width="10" height="8" viewBox="0 0 10 8" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M1 4.5L3.5 7L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    </div>
+                    <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{title}</h5>
+                </div>
+                <div className="flex items-center gap-3 text-[#9F9FA9]">
+                    {progress && <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium">{progress}</span>}
+                    {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                </div>
+            </div>
+            {isExpanded && (
+                <div className="px-5 pb-5 pt-0 flex flex-col gap-5">
+                    {children}
+                </div>
+            )}
+        </div>
+    );
 };
 
 export default function PAVStep2PackageAndItems({
@@ -69,7 +95,14 @@ export default function PAVStep2PackageAndItems({
     activeMenuDropdown, setActiveMenuDropdown
 }: Props) {
     const [isItemTypeModalOpen, setIsItemTypeModalOpen] = React.useState(false);
+    const [activeEditItemId, setActiveEditItemId] = React.useState<string | null>(null);
     const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
+    const [toast, setToast] = React.useState<{ title: string, message: string } | null>(null);
+
+    const showToast = (title: string, message: string) => {
+        setToast({ title, message });
+        setTimeout(() => setToast(null), 3000);
+    };
 
     React.useEffect(() => {
         const handleClickOutside = () => {
@@ -81,28 +114,30 @@ export default function PAVStep2PackageAndItems({
     }, [activeMenuDropdown, activeDropdown, setActiveMenuDropdown]);
 
     const handleAddItem = (type: string) => {
+        const typeCount = pavItems.filter(it => it.itemType === type).length + 1;
+        const displayName = type === 'Albums/Hardcopy' ? 'Album' : type;
         const newItem: PAVItem = {
             id: Math.random().toString(36).substr(2, 9),
             itemType: type,
-            name: `PAV Item ${pavItems.length + 1}`,
+            name: `${displayName} type ${typeCount}`,
             isExpanded: true,
-            categories: [], style: '', quantity: '', description: '',
+            categories: [], style: '', quantity: '', duration: '', description: '',
             coverType: '', pageCount: '', bindingType: '', pageFinish: '',
             deliveryFormat: '', deliveryMedium: '', deliveryTimeline: '', isVisitingIncluded: false, resolution: ''
         };
         setPavItems(prev => [...prev, newItem]);
+        setActiveEditItemId(newItem.id);
     };
 
     const updateItem = (id: string, field: keyof PAVItem, value: any) => {
         setPavItems(prev => prev.map(it => it.id === id ? { ...it, [field]: value } : it));
     };
 
-    const toggleItemExpand = (id: string) => {
-        setPavItems(prev => prev.map(it => it.id === id ? { ...it, isExpanded: !it.isExpanded } : it));
-    };
+
 
     const deleteItem = (id: string) => {
         setPavItems(prev => prev.filter(it => it.id !== id));
+        showToast('Item deleted !', 'Your item has been deleted successfully');
     };
 
     const DropdownField = ({ label, value, options, placeholder, onChange, dropdownId }: { label: string, value: string, options: string[], placeholder: string, onChange: (v: string) => void, dropdownId: string }) => (
@@ -134,7 +169,7 @@ export default function PAVStep2PackageAndItems({
         </div>
     );
 
-    const TagInput = ({ itemId, values, placeholder }: { itemId: string, values: string[], placeholder: string }) => {
+    const TagInput = ({ itemId, label, values, placeholder }: { itemId: string, label: string, values: string[], placeholder: string }) => {
         const [inputValue, setInputValue] = React.useState('');
         const handleAdd = () => {
             if (inputValue.trim() && !values.includes(inputValue.trim())) {
@@ -146,7 +181,7 @@ export default function PAVStep2PackageAndItems({
 
         return (
             <div className="flex flex-col gap-1">
-                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Categories of Albums</label>
+                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>{label}</label>
                 <div className="flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center">
                     {values.length > 0 && (
                         <div className="flex flex-wrap gap-2">
@@ -162,7 +197,7 @@ export default function PAVStep2PackageAndItems({
                     )}
                     <input
                         type="text"
-                        placeholder={values.length === 0 ? placeholder : ""}
+                        placeholder={placeholder}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
@@ -191,86 +226,101 @@ export default function PAVStep2PackageAndItems({
         const isVideo = item.itemType === 'Videography';
 
         return (
-            <div className="flex flex-col gap-4 mt-2">
+            <div className="flex flex-col gap-4">
                 {/* Section 1: Item / Content Details */}
-                <div className="bg-white border border-[#E4E4E7] rounded-[12px] p-5 flex flex-col gap-4">
-                    <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{isAlbum ? 'Content Details' : 'Item Details'}</h5>
-                    
+                <Section 
+                    title="Item Details" 
+                    isCompleted={isAlbum ? Boolean(item.categories.length > 0 && item.pageCount && item.description) : isVideo ? Boolean(item.categories.length > 0 && item.quantity && item.duration && item.resolution && item.description) : Boolean(item.categories.length > 0 && item.quantity && item.description)}
+                    progress={isAlbum ? `${[item.categories.length > 0, item.pageCount, item.description].filter(Boolean).length}/3` : isVideo ? `${[item.categories.length > 0, item.quantity, item.duration, item.resolution, item.description].filter(Boolean).length}/5` : `${[item.categories.length > 0, item.quantity, item.description].filter(Boolean).length}/3`}
+                >
                     {isAlbum && (
                         <>
-                            <TagInput itemId={item.id} values={item.categories} placeholder="e.g. Wedding, Birthday" />
+                            <TagInput itemId={item.id} label="Album Type" values={item.categories} placeholder="Enter Album Type" />
                             <div className="flex flex-col gap-1">
                                 <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of pages</label>
-                                <input type="text" placeholder="e.g. 40 Pages" value={item.pageCount} onChange={(e) => updateItem(item.id, 'pageCount', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
-                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Enter total number of print pages included.</p>
-                            </div>
-                        </>
-                    )}
-                    
-                    {isPhoto && (
-                        <>
-                            <DropdownField label="Photography Styles" value={item.style} options={['Candid', 'Traditional', 'Portrait', 'Photojournalistic', 'Fine Art']} placeholder="e.g., Candid, Traditional" onChange={(v) => updateItem(item.id, 'style', v)} dropdownId={`${item.id}-style`} />
-                            <div className="flex flex-col gap-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>No. of edited Photos</label>
-                                <input type="text" placeholder="Placeholder" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                                <input type="text" placeholder="Placeholder" value={item.pageCount} onChange={(e) => updateItem(item.id, 'pageCount', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
                                 <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to input field.</p>
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Description</label>
-                                <textarea placeholder="Placeholder" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} rows={3} className={`${INPUT} resize-none`} style={{ fontFamily: 'Figtree, sans-serif' }} />
-                            </div>
-                        </>
-                    )}
-
-                    {isVideo && (
-                        <>
-                            <DropdownField label="Video/Movie Type" value={item.style} options={['Cinematic', 'Traditional', 'Documentary', 'Short Story']} placeholder="e.g., Cinematic, Traditional" onChange={(v) => updateItem(item.id, 'style', v)} dropdownId={`${item.id}-style`} />
-                            <div className="flex flex-col gap-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of videos</label>
-                                <input type="text" placeholder="Number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
-                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to input field.</p>
-                            </div>
-                            <DropdownField label="Resolution" value={item.resolution} options={OPTIONS.resolution} placeholder="e.g., Full HD, 4K, 2K" onChange={(v) => updateItem(item.id, 'resolution', v)} dropdownId={`${item.id}-res`} />
-                            <div className="flex flex-col gap-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>About this</label>
-                                <textarea placeholder="Describe your filming style and what's included" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} rows={3} className={`${INPUT} resize-none`} style={{ fontFamily: 'Figtree, sans-serif' }} />
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Section 2: Album Details (Only for Albums) */}
-                {isAlbum && (
-                    <div className="bg-white border border-[#E4E4E7] rounded-[12px] p-5 flex flex-col gap-4">
-                        <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Album Details</h5>
-                        <DropdownField label="Cover Type" value={item.coverType} options={OPTIONS.coverType} placeholder="Select cover type" onChange={(v) => updateItem(item.id, 'coverType', v)} dropdownId={`${item.id}-cover`} />
-                        <DropdownField label="Page Finish" value={item.pageFinish} options={OPTIONS.pageFinish} placeholder="Dropdown" onChange={(v) => updateItem(item.id, 'pageFinish', v)} dropdownId={`${item.id}-finish`} />
-                        <DropdownField label="Binding Type" value={item.bindingType} options={OPTIONS.bindingType} placeholder="Dropdown" onChange={(v) => updateItem(item.id, 'bindingType', v)} dropdownId={`${item.id}-binding`} />
-                    </div>
-                )}
-
-                {/* Section 3: Logistics & Handover */}
-                <div className="bg-white border border-[#E4E4E7] rounded-[12px] p-5 flex flex-col gap-4">
-                    <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Logistics & Handover</h5>
-                    
-                    {isAlbum && (
-                        <>
-                            <div className="flex flex-col gap-1">
-                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of Revisions</label>
-                                <input type="text" placeholder="Number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
-                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>How many times a client can request changes to the final product without additional charges.</p>
-                            </div>
-                            <DropdownField label="Delivery Timeline" value={item.deliveryTimeline} options={OPTIONS.deliveryTimeline} placeholder="e.g., 2-3 weeks" onChange={(v) => updateItem(item.id, 'deliveryTimeline', v)} dropdownId={`${item.id}-timeline`} />
                             <div className="flex flex-col gap-1">
                                 <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Description</label>
                                 <textarea placeholder="Write Description..." value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} rows={3} className={`${INPUT} resize-none`} style={{ fontFamily: 'Figtree, sans-serif' }} />
                             </div>
                         </>
                     )}
+                    
+                    {isPhoto && (
+                        <>
+                            <TagInput itemId={item.id} label="Photography Styles" values={item.categories} placeholder="Enter Photography Styles" />
+                            <div className="flex flex-col gap-1">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>No. of edited Photos</label>
+                                <input type="number" placeholder="Placeholder" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} required />
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>The vendor enters the number of edited photos he is going to provide</p>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>About this</label>
+                                <textarea placeholder="Describe your photography style and what's included" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} rows={3} maxLength={400} className={`${INPUT} resize-none`} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Write Description...</p>
+                            </div>
+                        </>
+                    )}
+
+                    {isVideo && (
+                        <>
+                            <TagInput itemId={item.id} label="Videography Styles" values={item.categories} placeholder="Enter Videography Types" />
+                            <div className="flex flex-col gap-1">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of videos</label>
+                                <input type="text" placeholder="Enter Number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} required />
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to input field.</p>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Duration of Video</label>
+                                <input type="text" placeholder="Enter Number" value={item.duration} onChange={(e) => updateItem(item.id, 'duration', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} required />
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to input field.</p>
+                            </div>
+                            <DropdownField label="Resolution" value={item.resolution} options={OPTIONS.resolution} placeholder="e.g., Full HD, 4K, 2K" onChange={(v) => updateItem(item.id, 'resolution', v)} dropdownId={`${item.id}-res`} />
+                            <div className="flex flex-col gap-1">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>About this</label>
+                                <textarea placeholder="Describe your filming style and what's included" value={item.description} onChange={(e) => updateItem(item.id, 'description', e.target.value)} rows={3} maxLength={400} className={`${INPUT} resize-none`} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Write Description for this item</p>
+                            </div>
+                        </>
+                    )}
+                </Section>
+
+                {/* Section 2: Album Details (Only for Albums) */}
+                {isAlbum && (
+                    <Section 
+                        title="Album Details"
+                        defaultExpanded={false}
+                        isCompleted={Boolean(item.coverType && item.pageFinish && item.bindingType)}
+                        progress={`${[item.coverType, item.pageFinish, item.bindingType].filter(Boolean).length}/3`}
+                    >
+                        <DropdownField label="Cover Type" value={item.coverType} options={OPTIONS.coverType} placeholder="Dropdown" onChange={(v) => updateItem(item.id, 'coverType', v)} dropdownId={`${item.id}-cover`} />
+                        <DropdownField label="Page Finish" value={item.pageFinish} options={OPTIONS.pageFinish} placeholder="Dropdown" onChange={(v) => updateItem(item.id, 'pageFinish', v)} dropdownId={`${item.id}-finish`} />
+                        <DropdownField label="Binding Type" value={item.bindingType} options={OPTIONS.bindingType} placeholder="Dropdown" onChange={(v) => updateItem(item.id, 'bindingType', v)} dropdownId={`${item.id}-binding`} />
+                    </Section>
+                )}
+
+                {/* Section 3: Logistics & Handover */}
+                <Section 
+                    title="Logistics & Handover"
+                    defaultExpanded={false}
+                    isCompleted={isAlbum ? Boolean(item.quantity && item.deliveryTimeline) : Boolean(item.deliveryFormat && item.deliveryMedium && item.deliveryTimeline)}
+                    progress={isAlbum ? `${[item.quantity, item.deliveryTimeline].filter(Boolean).length}/2` : `${[item.deliveryFormat, item.deliveryMedium, item.deliveryTimeline].filter(Boolean).length}/3`}
+                >
+                    {isAlbum && (
+                        <>
+                            <div className="flex flex-col gap-1">
+                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Revision Included</label>
+                                <input type="text" placeholder="Enter Number" value={item.quantity} onChange={(e) => updateItem(item.id, 'quantity', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                            </div>
+                            <DropdownField label="Delivery Timeline" value={item.deliveryTimeline} options={OPTIONS.deliveryTimeline} placeholder="Dropdown + Text" onChange={(v) => updateItem(item.id, 'deliveryTimeline', v)} dropdownId={`${item.id}-timeline`} />
+                        </>
+                    )}
 
                     {(isPhoto || isVideo) && (
                         <>
-                            <DropdownField label="Delivery Format" value={item.deliveryFormat} options={isPhoto ? OPTIONS.photographyDeliveryFormat : OPTIONS.videographyDeliveryFormat} placeholder={isPhoto ? "e.g., JPEG, RAW..." : "e.g., MP4, MOV"} onChange={(v) => updateItem(item.id, 'deliveryFormat', v)} dropdownId={`${item.id}-format`} />
+                            <DropdownField label="Delivery Format" value={item.deliveryFormat} options={isPhoto ? OPTIONS.photographyDeliveryFormat : OPTIONS.videographyDeliveryFormat} placeholder={isPhoto ? "e.g., JPEG, RAW," : "e.g., MP4, MOV"} onChange={(v) => updateItem(item.id, 'deliveryFormat', v)} dropdownId={`${item.id}-format`} />
                             <DropdownField label="Delivery Medium" value={item.deliveryMedium} options={OPTIONS.deliveryMedium} placeholder="e.g., USB drive, Google Drive" onChange={(v) => updateItem(item.id, 'deliveryMedium', v)} dropdownId={`${item.id}-medium`} />
                             <DropdownField label="Delivery Timeline" value={item.deliveryTimeline} options={OPTIONS.deliveryTimeline} placeholder="e.g., 2-3 weeks" onChange={(v) => updateItem(item.id, 'deliveryTimeline', v)} dropdownId={`${item.id}-timeline`} />
                         </>
@@ -280,24 +330,8 @@ export default function PAVStep2PackageAndItems({
                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-medium text-[#3F3F47]">Visiting Provided</span>
                         <Toggle isOn={item.isVisitingIncluded} onToggle={() => updateItem(item.id, 'isVisitingIncluded', !item.isVisitingIncluded)} />
                     </div>
-                </div>
+                </Section>
 
-                <button 
-                    type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleItemExpand(item.id); }} 
-                    style={{ fontFamily: 'Figtree, sans-serif' }} 
-                    className={`w-full py-4 mt-2 text-white rounded-full font-semibold text-[16px] tracking-wide transition-colors shadow-sm ${
-                        (() => {
-                            let isFilled = false;
-                            if (isAlbum) isFilled = Boolean(item.categories.length > 0 && item.pageCount && item.coverType && item.pageFinish && item.bindingType && item.quantity && item.deliveryTimeline && item.description);
-                            else if (isPhoto) isFilled = Boolean(item.style && item.quantity && item.description && item.deliveryFormat && item.deliveryMedium && item.deliveryTimeline);
-                            else if (isVideo) isFilled = Boolean(item.style && item.quantity && item.resolution && item.description && item.deliveryFormat && item.deliveryMedium && item.deliveryTimeline);
-                            else isFilled = true;
-                            return isFilled ? 'bg-[#04222D] hover:bg-[#031820]' : 'bg-[#8B9A9F]';
-                        })()
-                    }`}>
-                    Save Item
-                </button>
             </div>
         );
     };
@@ -306,29 +340,28 @@ export default function PAVStep2PackageAndItems({
         <div className="flex flex-col gap-8 pb-32">
             {/* ── Items ── */}
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between px-2">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider">ITEMS</span>
-                    <button type="button" onClick={() => setIsItemTypeModalOpen(true)} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-[#030303] flex items-center gap-2 hover:text-[#04222D]">
-                        Add Item <Plus size={16} />
-                    </button>
+                <div className="flex items-center justify-between">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">Items <span className="text-[#E11D48]">*</span></h3>
                 </div>
 
                 {pavItems.length === 0 ? (
-                    <div onClick={() => setIsItemTypeModalOpen(true)} className="w-full h-[250px] bg-white border border-dashed border-[#E4E4E7] rounded-[24px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
-                        <div className="w-[100px] h-[100px] flex items-center justify-center mb-[-8px]">
-                            <img src="/images/pav/empty_camera.png" alt="No items" className="w-full h-full object-contain opacity-80 mix-blend-multiply" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <div onClick={() => setIsItemTypeModalOpen(true)} className="w-full py-10 bg-transparent border border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
+                        <div className="w-[80px] h-[80px] flex items-center justify-center">
+                            <img src="/images/pav/empty_camera.png" alt="No items" className="w-full h-full object-contain" style={{ mixBlendMode: 'darken', filter: 'grayscale(1) brightness(1.15) contrast(1.2)' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         </div>
-                        <div className="text-center flex flex-col gap-1.5">
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#3F3F47]">No items</p>
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-[18px]">To add an item click on Add Item on top<br />or in this box</p>
+                        <div className="text-center flex flex-col gap-1">
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#3F3F47]">No items</p>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9] leading-[18px]">To add an item click on Add Item on top<br />or in this box</p>
                         </div>
                     </div>
                 ) : (
                     <div className="flex flex-col gap-4">
                         {pavItems.map((item) => (
-                            <div key={item.id} className="bg-[#F9F9F9] border border-[#E4E4E7] rounded-[16px] flex flex-col transition-all">
-                                <div className="p-5 flex items-center justify-between cursor-pointer rounded-t-[16px]" onClick={() => toggleItemExpand(item.id)}>
-                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{item.name}</h4>
+                            <div key={item.id} className="bg-[#F9F9F9] border border-[#E4E4E7] rounded-[16px] flex flex-col transition-all cursor-pointer hover:border-gray-300" onClick={() => setActiveEditItemId(item.id)}>
+                                <div className="p-5 flex items-center justify-between">
+                                    <div className="flex flex-col gap-1">
+                                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{item.name}</h4>
+                                    </div>
                                     <div className="flex items-center gap-4 text-[#3F3F47]">
                                         <div className="relative">
                                             <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuDropdown(activeMenuDropdown === item.id ? null : item.id); }} className="hover:text-[#030303] transition-colors flex items-center justify-center">
@@ -347,39 +380,32 @@ export default function PAVStep2PackageAndItems({
                                                 </div>
                                             )}
                                         </div>
-                                        <button type="button" className="hover:text-[#030303] transition-colors flex items-center justify-center">
-                                            {item.isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                        </button>
                                     </div>
                                 </div>
-                                {item.isExpanded && (
-                                    <div className="px-4 pb-5 flex flex-col gap-4">
-                                        {renderItemForm(item)}
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>
                 )}
+                
+                <button type="button" onClick={() => setIsItemTypeModalOpen(true)} className="w-full py-3.5 bg-[#E6E9EA] hover:bg-gray-200 rounded-[12px] flex items-center justify-center gap-1.5 text-[15px] font-bold text-[#030303] transition-colors mt-2">
+                    Add <PlusCircle size={18} strokeWidth={2} />
+                </button>
             </div>
 
             {/* ── Add-Ons ── */}
             <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between px-2">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider">ADD-ONS</span>
-                    <button type="button" onClick={handleOpenAddonForm} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-[#030303] flex items-center gap-2 hover:text-[#04222D]">
-                        Add <Plus size={16} />
-                    </button>
+                <div className="flex items-center justify-between">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">Add-ons <span className="text-[#E11D48]">*</span></h3>
                 </div>
 
                 {addons.length === 0 ? (
-                    <div onClick={handleOpenAddonForm} className="w-full h-[250px] bg-white border border-dashed border-[#E4E4E7] rounded-[24px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
-                        <div className="w-[100px] h-[100px] flex items-center justify-center mb-[-8px]">
-                            <img src="/images/pav/empty_gimbal.png" alt="No Add-ons" className="w-full h-full object-contain opacity-80 mix-blend-multiply" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                    <div onClick={handleOpenAddonForm} className="w-full py-10 bg-transparent border border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
+                        <div className="w-[80px] h-[80px] flex items-center justify-center">
+                            <img src="/images/pav/empty_gimbal.png" alt="No Add-ons" className="w-full h-full object-contain" style={{ mixBlendMode: 'darken', filter: 'grayscale(1) brightness(1.15) contrast(1.2)' }} onError={(e) => { e.currentTarget.style.display = 'none'; }} />
                         </div>
-                        <div className="text-center flex flex-col gap-1.5">
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#3F3F47]">No Add-ons</p>
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-[18px]">To add an add-on click Add on top or in<br />this box</p>
+                        <div className="text-center flex flex-col gap-1">
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#3F3F47]">No Add-ons</p>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9] leading-[18px]">To add an add-on click Add on top or in<br />this box</p>
                         </div>
                     </div>
                 ) : (
@@ -409,6 +435,7 @@ export default function PAVStep2PackageAndItems({
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         deleteAddon(addon.id);
+                                        showToast('Item deleted !', 'Your item has been deleted successfully');
                                     }} 
                                     className="w-6 h-6 rounded-full border border-[#9F9FA9] flex items-center justify-center text-[#3F3F47] hover:bg-gray-50 flex-shrink-0"
                                 >
@@ -418,33 +445,57 @@ export default function PAVStep2PackageAndItems({
                         ))}
                     </div>
                 )}
+
+                <button type="button" onClick={handleOpenAddonForm} className="w-full py-3.5 bg-[#E6E9EA] hover:bg-gray-200 rounded-[12px] flex items-center justify-center gap-1.5 text-[15px] font-bold text-[#030303] transition-colors mt-2">
+                    Add <PlusCircle size={18} strokeWidth={2} />
+                </button>
             </div>
 
-            {/* ── Whats Included ── */}
-            <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider mb-[-12px]">WHATS INCLUDED</h3>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">List everything a customer gets when they book this package</p>
+            {/* ── About The Package ── */}
+            <div className="bg-white border border-[#E4E4E7] rounded-[16px] p-5 flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">About The Package</h3>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9]">List everything a customer gets when they book this package</p>
+                </div>
                 <textarea
                     placeholder="Enter details"
                     value={providedDetails}
                     onChange={(e) => setProvidedDetails(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = providedDetails || '';
+                            const toAppend = val.length === 0 ? '• ' : '\n• ';
+                            setProvidedDetails(val + toAppend);
+                        }
+                    }}
                     rows={4}
                     style={{ fontFamily: 'Figtree, sans-serif' }}
                     className={`${INPUT} resize-none`}
                 />
             </div>
 
-            {/* ── Whats Not Included ── */}
-            <div className={CARD}>
-                <div className="flex items-center gap-2 mb-[-12px]">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider">WHATS NOT INCLUDED</h3>
-                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center"><Info size={12} className="text-red-600" /></div>
+            {/* ── What's Not Included ── */}
+            <div className="bg-white border border-[#E4E4E7] rounded-[16px] p-5 flex flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">What's Not Included</h3>
+                        <ShieldAlert size={18} className="text-white fill-[#E11D48]" />
+                    </div>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9]">Help customers know what they'll need to arrange separately</p>
                 </div>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">Help customers know what they'll need to arrange separately</p>
                 <textarea
                     placeholder="Enter details"
                     value={notProvidedDetails}
                     onChange={(e) => setNotProvidedDetails(e.target.value)}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = notProvidedDetails || '';
+                            const toAppend = val.length === 0 ? '• ' : '\n• ';
+                            setNotProvidedDetails(val + toAppend);
+                        }
+                    }}
                     rows={4}
                     style={{ fontFamily: 'Figtree, sans-serif' }}
                     className={`${INPUT} resize-none`}
@@ -452,33 +503,115 @@ export default function PAVStep2PackageAndItems({
             </div>
 
             {/* Choose Item Type Modal */}
-            {isItemTypeModalOpen && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[100] p-4">
-                    <div className="bg-white w-full max-w-[400px] rounded-[24px] overflow-hidden flex flex-col shadow-xl p-6 relative">
-                        <div className="flex justify-between items-center mb-6">
-                            <div className="flex flex-col">
-                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider">ADD ITEM</span>
-                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303]">Choose Item Type</h3>
-                            </div>
-                            <button onClick={() => setIsItemTypeModalOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
-                                <X size={16} />
-                            </button>
-                        </div>
-                        
-                        <div className="flex flex-col gap-3">
-                            {ITEM_TYPES.map(type => (
-                                <div key={type.name} onClick={() => { handleAddItem(type.name); setIsItemTypeModalOpen(false); }} className="p-4 border border-[#E4E4E7] rounded-[16px] flex items-center gap-4 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-all">
-                                    <div className="w-12 h-12 flex items-center justify-center bg-[#F4F4F5] rounded-full">
-                                        <type.icon size={24} className="text-[#3F3F47]" strokeWidth={1.5} />
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{type.name}</span>
-                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-tight mt-1">{type.desc}</span>
-                                    </div>
+            <AnimatePresence>
+                {isItemTypeModalOpen && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-[#030303]/40 flex items-end justify-center z-[100] sm:items-center sm:p-4" onClick={() => setIsItemTypeModalOpen(false)}>
+                        <motion.div 
+                            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                            className="bg-white w-full sm:max-w-[400px] rounded-t-[24px] sm:rounded-[24px] overflow-hidden flex flex-col shadow-xl p-6 pb-12 sm:pb-6 relative" 
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="flex flex-col gap-1.5">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider">ADD ITEM</span>
+                                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[22px] font-bold text-[#030303] leading-none">Choose Item Type</h3>
                                 </div>
-                            ))}
+                                <button onClick={() => setIsItemTypeModalOpen(false)} className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] hover:bg-gray-200 transition-colors mt-[-4px]">
+                                    <X size={18} />
+                                </button>
+                            </div>
+                            
+                            <div className="flex flex-col gap-3">
+                                {ITEM_TYPES.map(type => (
+                                    <div key={type.name} onClick={() => { handleAddItem(type.name); setIsItemTypeModalOpen(false); }} className="px-5 py-5 border border-[#E4E4E7] rounded-[20px] flex items-center gap-5 cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                        <div className="flex items-center justify-center flex-shrink-0 w-[40px] h-[40px]">
+                                            <img src={type.image} alt={type.name} className="w-full h-full object-contain" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[17px] font-bold text-[#030303] leading-tight">{type.name}</span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9] leading-[18px] mt-1 pr-6">{type.desc}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Edit / Create Item Modal */}
+            <AnimatePresence>
+                {activeEditItemId && (() => {
+                    const item = pavItems.find(it => it.id === activeEditItemId);
+                    if (!item) return null;
+                    const isAlbum = item.itemType === 'Albums/Hardcopy';
+                    const isPhoto = item.itemType === 'Photography';
+                    const isVideo = item.itemType === 'Videography';
+                    let isFilled = false;
+                    if (isAlbum) isFilled = Boolean(item.categories.length > 0 && item.pageCount && item.coverType && item.pageFinish && item.bindingType && item.quantity && item.deliveryTimeline && item.description);
+                    else if (isPhoto) isFilled = Boolean(item.categories.length > 0 && item.quantity && item.description && item.deliveryFormat && item.deliveryMedium && item.deliveryTimeline);
+                    else if (isVideo) isFilled = Boolean(item.categories.length > 0 && item.quantity && item.duration && item.resolution && item.description && item.deliveryFormat && item.deliveryMedium && item.deliveryTimeline);
+                    else isFilled = true;
+                    
+                    return (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex flex-col sm:items-center sm:justify-center sm:bg-[#030303]/40 sm:p-4">
+                            <motion.div 
+                                initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                                className="bg-[#F9F9F9] w-full h-full sm:max-w-[480px] sm:h-auto sm:max-h-[90vh] sm:rounded-[24px] overflow-hidden flex flex-col sm:shadow-xl relative"
+                            >
+                                {/* Header */}
+                                <div className="px-6 py-6 flex items-start justify-between shrink-0 bg-white border-b border-[#F4F4F5]">
+                                    <div className="flex flex-col gap-1.5">
+                                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] leading-none">{item.name}</h3>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9]">Fill out the details about the item you chose.</p>
+                                    </div>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => { deleteItem(item.id); setActiveEditItemId(null); }}
+                                        className="text-[#E11D48] hover:bg-red-50 p-2 rounded-full transition-colors mt-[-4px] mr-[-8px]"
+                                    >
+                                        <Trash2 size={22} strokeWidth={1.5} />
+                                    </button>
+                                </div>
+
+                                {/* Content */}
+                                <div className="flex-1 overflow-y-auto p-5 sm:p-6 flex flex-col gap-4">
+                                    {renderItemForm(item)}
+                                </div>
+
+                                {/* Footer */}
+                                <div className="px-6 py-4 bg-white border-t border-[#F4F4F5] shrink-0">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setActiveEditItemId(null)}
+                                        disabled={!isFilled}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`w-full py-4 text-white rounded-full font-bold text-[16px] transition-colors ${isFilled ? 'bg-[#04222D] hover:bg-[#031820]' : 'bg-[#8B9A9F] cursor-not-allowed'}`}
+                                    >
+                                        Save Item
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    );
+                })()}
+            </AnimatePresence>
+
+            {/* Toast Notification */}
+            {toast && (
+                <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-[#FCF8F1] border border-[#F3E2C7] rounded-[12px] shadow-[0_4px_20px_rgba(0,0,0,0.08)] p-4 flex items-start justify-between z-[110] transition-all duration-300 transform translate-y-0 opacity-100">
+                    <div className="flex gap-3 items-start">
+                        <div className="w-[20px] h-[20px] rounded-[4px] bg-[#D45900] flex items-center justify-center mt-0.5 flex-shrink-0">
+                            <span className="text-white text-[14px] font-bold leading-none">!</span>
+                        </div>
+                        <div className="flex flex-col gap-0.5">
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#D45900]">{toast.title}</h4>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47]">{toast.message}</p>
                         </div>
                     </div>
+                    <button onClick={() => setToast(null)} className="text-[#3F3F47] hover:text-black transition-colors mt-0.5">
+                        <X size={18} strokeWidth={1.5} />
+                    </button>
                 </div>
             )}
         </div>

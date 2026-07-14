@@ -22,9 +22,12 @@ const HEAD = 'text-[20px] font-[600] text-[#030303] leading-[28px] tracking-[0px
 const SMALL_LABEL = 'text-[14px] font-[500] text-[#3F3F47] leading-[20px] text-left';
 
 const SUGGESTIONS = [
-    'Wedding', 'Corporate', 'Haldi', 'Birthday',
+    'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Baby shower', 'Anniversary'
+];
+const DROPDOWN_SUGGESTIONS = [
     'Gala', 'Workshop', 'Conference', 'Exhibition'
 ];
+const ALL_SUGGESTIONS = [...SUGGESTIONS, ...DROPDOWN_SUGGESTIONS];
 
 export default function VenueStep1PackageAndTeam({
     packageName, setPackageName,
@@ -76,7 +79,7 @@ export default function VenueStep1PackageAndTeam({
         setShowAddressDropdown(false);
     };
 
-    const filteredSuggestions = SUGGESTIONS.filter(s => 
+    const filteredSuggestions = ALL_SUGGESTIONS.filter(s => 
         !categories.includes(s) && s.toLowerCase().includes(categoryInput.toLowerCase())
     );
 
@@ -137,18 +140,35 @@ export default function VenueStep1PackageAndTeam({
                 <div className="flex flex-col gap-2 relative">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Events you host</label>
                     <div className={`flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
-                        {categories.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                                {categories.map(cat => (
-                                    <div key={cat} className="flex items-center gap-1.5 bg-[#04222D] text-white px-3 py-1.5 rounded-full text-[14px]">
+                        <div className="flex flex-wrap gap-2">
+                            {Array.from(new Set([...SUGGESTIONS, ...categories])).map(cat => {
+                                const isSelected = categories.includes(cat);
+                                return (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        onClick={() => {
+                                            if (isSelected) handleRemoveCategory(cat);
+                                            else {
+                                                const newCategories = [...categories, cat];
+                                                setEventCategories(newCategories.join(', '));
+                                            }
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`px-3 py-1.5 rounded-full text-[14px] font-medium flex items-center gap-1.5 transition-colors ${
+                                            isSelected 
+                                            ? 'bg-[#04222D] text-white' 
+                                            : 'bg-[#E6E9EA] text-[#3F3F47] hover:bg-gray-200'
+                                        }`}
+                                    >
                                         <span>{cat}</span>
-                                        <button type="button" onClick={() => handleRemoveCategory(cat)} className="hover:text-gray-300 flex items-center justify-center">
+                                        {isSelected && (
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                        )}
+                                    </button>
+                                );
+                            })}
+                        </div>
                         <input
                             type="text"
                             placeholder={categories.length === 0 ? "Enter your Event type" : "Type more events..."}

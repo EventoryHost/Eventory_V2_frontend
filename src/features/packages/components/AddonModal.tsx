@@ -19,6 +19,20 @@ export interface Addon {
     media: SampleMediaFile[];
     productType?: string;
     
+    // PAV Addon Specific
+    contentType?: string;
+    duration?: string;
+    pageCount?: string;
+    coverType?: string;
+    albumColors?: string[];
+    pageFinish?: string;
+    bindingType?: string;
+    revisions?: string;
+    noOfEditedPhotos?: string;
+    fileFormat?: string;
+    resolution?: string;
+    videoType?: string;
+    
     // Venue Addon Specific
     spaceType?: string;
     layout?: string;

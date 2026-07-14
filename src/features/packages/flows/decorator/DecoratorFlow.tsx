@@ -739,7 +739,7 @@ export default function DecoratorFlow() {
     };
 
     return (
-        <div className="min-h-screen bg-[#FDFDFD] relative">
+        <div className="min-h-screen bg-white relative">
             {/* Header */}
             <div className="sticky top-0 z-20 bg-white px-6 pt-6 pb-4">
                 <div className="max-w-md mx-auto flex items-center justify-between">

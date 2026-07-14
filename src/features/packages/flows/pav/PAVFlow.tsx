@@ -64,7 +64,42 @@ export default function PAVFlow() {
     const [teamChargeType, setTeamChargeType] = React.useState('Per Performance');
     const [teamPrice, setTeamPrice] = React.useState('');
     const [overtimeRate, setOvertimeRate] = React.useState('');
-    const [dynamicPrices, setDynamicPrices] = React.useState<DynamicPrice[]>([]);
+    const [isGstInclusive, setIsGstInclusive] = React.useState(false);
+    const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
+    const [weekendPricing, setWeekendPricing] = React.useState(false);
+    const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Percentage');
+    const [weekendValue, setWeekendValue] = React.useState('10');
+    const [weekendDays, setWeekendDays] = React.useState<string[]>(['Saturday', 'Sunday']);
+    
+    const [weekendSeason, setWeekendSeason] = React.useState(false);
+    const [seasonIncreaseType, setSeasonIncreaseType] = React.useState('Percentage');
+    const [seasonValue, setSeasonValue] = React.useState('15');
+    
+    const [festivalPricing, setFestivalPricing] = React.useState(false);
+    const [festivalIncreaseType, setFestivalIncreaseType] = React.useState('Percentage');
+    const [festivalValue, setFestivalValue] = React.useState('10');
+    const [selectedFestivals, setSelectedFestivals] = React.useState<string[]>([]);
+    const [availableFestivals, setAvailableFestivals] = React.useState<string[]>(['Diwali', 'Holi', 'New Year']);
+    const [isAddingFestival, setIsAddingFestival] = React.useState(false);
+    const [newFestivalName, setNewFestivalName] = React.useState('');
+    const [festivalPrices, setFestivalPrices] = React.useState<Record<string, { increaseType: string; value: string }>>({});
+    
+    const handleAddFestival = () => {
+        if (newFestivalName.trim() && !availableFestivals.includes(newFestivalName.trim())) {
+            setAvailableFestivals(prev => [...prev, newFestivalName.trim()]);
+            setSelectedFestivals(prev => [...prev, newFestivalName.trim()]);
+            setNewFestivalName('');
+            setIsAddingFestival(false);
+        }
+    };
+
+    const [customDatesPricing, setCustomDatesPricing] = React.useState(false);
+    const [customDatesIncreaseType, setCustomDatesIncreaseType] = React.useState('Percentage');
+    const [customDatesValue, setCustomDatesValue] = React.useState('10');
+    const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
+    const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+
+    const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
     const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
     const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
 
@@ -195,16 +230,66 @@ export default function PAVFlow() {
                             }
                             if (s3.overtimeCharges) setOvertimeRate(String(s3.overtimeCharges.price || ''));
                             
-                            if (s3.dateRangeDynamicPricing) {
-                                setDynamicPrices(s3.dateRangeDynamicPricing.map((dp: any) => ({
-                                    id: dp._id || Math.random().toString(),
-                                    fromDate: dp.fromDate ? new Date(dp.fromDate).toISOString().split('T')[0] : '',
-                                    toDate: dp.toDate ? new Date(dp.toDate).toISOString().split('T')[0] : '',
-                                    price: String(dp.price || '')
-                                })));
+                            if (s3.dynamicPricing) {
+                                const dp = s3.dynamicPricing;
+                                const enabled = dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled;
+                                setIsDynamicPricingEnabled(!!enabled);
+
+                                if (dp.weekends) {
+                                    setWeekendPricing(!!dp.weekends.enabled);
+                                    if (dp.weekends.percentage) {
+                                        setWeekendIncreaseType('Percentage');
+                                        setWeekendValue(String(dp.weekends.percentage));
+                                    } else if (dp.weekends.price) {
+                                        setWeekendIncreaseType('Fixed Price');
+                                        setWeekendValue(String(dp.weekends.price));
+                                    }
+                                }
+                                if (dp.weddingSeason) {
+                                    setWeekendSeason(!!dp.weddingSeason.enabled);
+                                    if (dp.weddingSeason.percentage) {
+                                        setSeasonIncreaseType('Percentage');
+                                        setSeasonValue(String(dp.weddingSeason.percentage));
+                                    } else if (dp.weddingSeason.price) {
+                                        setSeasonIncreaseType('Fixed Price');
+                                        setSeasonValue(String(dp.weddingSeason.price));
+                                    }
+                                }
+                                if (dp.festivals) {
+                                    setFestivalPricing(!!dp.festivals.enabled);
+                                    if (dp.festivals.details) {
+                                        const fNames = Object.keys(dp.festivals.details);
+                                        setSelectedFestivals(fNames);
+                                        const newAvail = [...availableFestivals];
+                                        const newPrices: Record<string, { increaseType: string; value: string }> = {};
+                                        fNames.forEach(fn => {
+                                            if (!newAvail.includes(fn)) newAvail.push(fn);
+                                            const fd = dp.festivals.details[fn];
+                                            if (fd.percentage) newPrices[fn] = { increaseType: 'Percentage', value: String(fd.percentage) };
+                                            else newPrices[fn] = { increaseType: 'Fixed Price', value: String(fd.price) };
+                                        });
+                                        setAvailableFestivals(newAvail);
+                                        setFestivalPrices(newPrices);
+                                    }
+                                }
+                                if (dp.customDates) {
+                                    setCustomDatesPricing(!!dp.customDates.enabled);
+                                    if (dp.customDates.percentage) {
+                                        setCustomDatesIncreaseType('Percentage');
+                                        setCustomDatesValue(String(dp.customDates.percentage));
+                                    } else if (dp.customDates.price) {
+                                        setCustomDatesIncreaseType('Fixed Price');
+                                        setCustomDatesValue(String(dp.customDates.price));
+                                    }
+                                    setCustomDatesStartDate(dp.customDates.startDate || '');
+                                    setCustomDatesEndDate(dp.customDates.endDate || '');
+                                }
+                            } else if (s3.dateRangeDynamicPricing && s3.dateRangeDynamicPricing.length > 0) {
+                                setIsDynamicPricingEnabled(true);
                             }
                             if (s3.lastMinuteChargesDocUrl) setLastMinuteDocs([{ name: 'Existing Document', size: 0, preview: s3.lastMinuteChargesDocUrl }] as any);
                             if (s3.policiesDocUrl) setPolicyDocs([{ name: 'Existing Policy', size: 0, preview: s3.policiesDocUrl }] as any);
+                            if (s3.cancellationDocUrl) setCancellationDocs([{ name: 'Existing Policy', size: 0, preview: s3.cancellationDocUrl }] as any);
                         }
 
                         // Populate Step 4
@@ -426,13 +511,57 @@ export default function PAVFlow() {
                     } else if (doc.preview) policyUrl = doc.preview;
                 }
 
+                // Upload Cancellation Doc
+                let cancellationUrl = '';
+                if (cancellationDocs.length > 0) {
+                    const doc = cancellationDocs[0];
+                    if (doc.file) {
+                        const formData = new FormData(); formData.append('file', doc.file);
+                        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                        if (res.ok) { const data = await res.json(); cancellationUrl = data.url; }
+                    } else if (doc.preview) cancellationUrl = doc.preview;
+                }
+
+                const festDetails: Record<string, any> = {};
+                selectedFestivals.forEach(f => {
+                    const spec = festivalPrices[f] || { increaseType: 'Percentage', value: '10' };
+                    festDetails[f] = spec.increaseType === 'Percentage' 
+                        ? { percentage: parseFloat(spec.value) || 0 }
+                        : { price: parseFloat(spec.value) || 0 };
+                });
+
+                const dpPayload = {
+                    weekends: {
+                        enabled: isDynamicPricingEnabled && weekendPricing,
+                        percentage: weekendIncreaseType === 'Percentage' ? (parseFloat(weekendValue) || 0) : undefined,
+                        price: weekendIncreaseType === 'Fixed Price' ? (parseFloat(weekendValue) || 0) : undefined
+                    },
+                    weddingSeason: {
+                        enabled: isDynamicPricingEnabled && weekendSeason,
+                        percentage: seasonIncreaseType === 'Percentage' ? (parseFloat(seasonValue) || 0) : undefined,
+                        price: seasonIncreaseType === 'Fixed Price' ? (parseFloat(seasonValue) || 0) : undefined
+                    },
+                    festivals: {
+                        enabled: isDynamicPricingEnabled && festivalPricing,
+                        details: festDetails
+                    },
+                    customDates: {
+                        enabled: isDynamicPricingEnabled && customDatesPricing,
+                        percentage: customDatesIncreaseType === 'Percentage' ? (parseFloat(customDatesValue) || 0) : undefined,
+                        price: customDatesIncreaseType === 'Fixed Price' ? (parseFloat(customDatesValue) || 0) : undefined,
+                        startDate: customDatesStartDate,
+                        endDate: customDatesEndDate
+                    }
+                };
+
                 const payload = {
                     packagePricing: { price: parseFloat(packagePrice) || 0, billingUnit: packageChargeType },
                     teamAndEquipment: { price: parseFloat(teamPrice) || 0, billingUnit: teamChargeType },
                     overtimeCharges: { price: parseFloat(overtimeRate) || 0, billingUnit: 'Per Hour' },
-                    dateRangeDynamicPricing: dynamicPrices.map(dp => ({ fromDate: new Date(dp.fromDate), toDate: new Date(dp.toDate), price: parseFloat(dp.price) || 0 })),
+                    dynamicPricing: dpPayload,
                     lastMinuteChargesDocUrl: lastMinuteUrl,
-                    policiesDocUrl: policyUrl
+                    policiesDocUrl: policyUrl,
+                    cancellationDocUrl: cancellationUrl
                 };
 
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/3`), {
@@ -530,9 +659,34 @@ export default function PAVFlow() {
                     teamChargeType={teamChargeType} setTeamChargeType={setTeamChargeType}
                     teamPrice={teamPrice} setTeamPrice={setTeamPrice}
                     overtimeRate={overtimeRate} setOvertimeRate={setOvertimeRate}
-                    dynamicPrices={dynamicPrices} setDynamicPrices={setDynamicPrices}
+                    isGstInclusive={isGstInclusive} setIsGstInclusive={setIsGstInclusive}
+                    isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                    weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
+                    weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
+                    weekendValue={weekendValue} setWeekendValue={setWeekendValue}
+                    weekendDays={weekendDays} setWeekendDays={setWeekendDays}
+                    weekendSeason={weekendSeason} setWeekendSeason={setWeekendSeason}
+                    seasonIncreaseType={seasonIncreaseType} setSeasonIncreaseType={setSeasonIncreaseType}
+                    seasonValue={seasonValue} setSeasonValue={setSeasonValue}
+                    festivalPricing={festivalPricing} setFestivalPricing={setFestivalPricing}
+                    festivalIncreaseType={festivalIncreaseType} setFestivalIncreaseType={setFestivalIncreaseType}
+                    festivalValue={festivalValue} setFestivalValue={setFestivalValue}
+                    selectedFestivals={selectedFestivals} setSelectedFestivals={setSelectedFestivals}
+                    availableFestivals={availableFestivals}
+                    isAddingFestival={isAddingFestival} setIsAddingFestival={setIsAddingFestival}
+                    newFestivalName={newFestivalName} setNewFestivalName={setNewFestivalName}
+                    handleAddFestival={handleAddFestival}
+                    festivalPrices={festivalPrices} setFestivalPrices={setFestivalPrices}
+                    customDatesPricing={customDatesPricing} setCustomDatesPricing={setCustomDatesPricing}
+                    customDatesIncreaseType={customDatesIncreaseType} setCustomDatesIncreaseType={setCustomDatesIncreaseType}
+                    customDatesValue={customDatesValue} setCustomDatesValue={setCustomDatesValue}
+                    customDatesStartDate={customDatesStartDate} setCustomDatesStartDate={setCustomDatesStartDate}
+                    customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
+                    cancellationDocs={cancellationDocs} setCancellationDocs={setCancellationDocs}
                     lastMinuteDocs={lastMinuteDocs} setLastMinuteDocs={setLastMinuteDocs}
                     policyDocs={policyDocs} setPolicyDocs={setPolicyDocs}
+                    pavItems={pavItems}
+                    addons={addons}
                 />
             )}
             {step === 4 && (
