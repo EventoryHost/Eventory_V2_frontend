@@ -1,7 +1,8 @@
 'use client';
-import React from 'react';
-import { ChevronDown, Check, PlusCircle, Upload, FileText, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, Check, PlusCircle, Plus, Info, RefreshCw, Upload, FileText, X } from 'lucide-react';
 import { GuestTier, PolicyFile, formatFileSize } from '../../shared/types';
+import PolicyBottomSheet from '../pav/PolicyBottomSheet';
 
 interface Props {
     packageChargeType: string; setPackageChargeType: (v: string) => void;
@@ -11,6 +12,7 @@ interface Props {
     teamEquipmentPrice: string; setTeamEquipmentPrice: (v: string) => void;
     
     overtimePrice: string; setOvertimePrice: (v: string) => void;
+    isGstInclusive: boolean; setIsGstInclusive: (v: boolean) => void;
 
     isDynamicPricingEnabled: boolean; setIsDynamicPricingEnabled: (v: boolean) => void;
     weekendPricing: boolean; setWeekendPricing: (v: boolean) => void;
@@ -41,16 +43,16 @@ interface Props {
 
     guestTiers: GuestTier[]; addGuestTierOption: () => void; updateGuestTier: (i: number, f: 'range' | 'price', v: string) => void;
 
-    lastMinuteFiles: PolicyFile[];
-    onLastMinuteUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    removeLastMinuteFile: (i: number) => void;
-
-    policyFiles: PolicyFile[];
-    onPolicyUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    removePolicyFile: (i: number) => void;
+    cancellationDocs: PolicyFile[]; setCancellationDocs: (docs: PolicyFile[]) => void;
+    lastMinuteDocs: PolicyFile[]; setLastMinuteDocs: (docs: PolicyFile[]) => void;
+    policyDocs: PolicyFile[]; setPolicyDocs: (docs: PolicyFile[]) => void;
+    djItems: any[];
+    addons: any[];
 }
 
 export default function DJStep3PricingAndPolicies(p: Props) {
+    const [activePolicySheet, setActivePolicySheet] = useState<'cancellation' | 'lastMinute' | 'general' | null>(null);
+
     // Helper to extract numeric value
     const getBasePrice = () => parseFloat(p.packagePrice) || 0;
 
@@ -58,112 +60,137 @@ export default function DJStep3PricingAndPolicies(p: Props) {
         <div className="flex flex-col gap-6 w-full pb-32">
             
             {/* Consolidated Pricing Container */}
-            <div className="p-6 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col gap-6">
+            <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col">
                 
                 {/* Package Pricing */}
-                <div className="flex flex-col gap-5">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Package Pricing</h3>
+                <div className="flex flex-col gap-4">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">Package Pricing <span className="text-red-500">*</span></h3>
                     
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">How do you charge?</label>
-                        <div className="flex p-1 bg-[#F4F4F5] rounded-[8px]">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[14px] font-[500] text-[#3F3F47] leading-[20px] tracking-[0px] pl-1">How do you charge?</label>
+                        <div className="flex p-1 bg-[#F4F4F5] rounded-[12px] relative">
                             <button 
                                 type="button"
                                 onClick={() => p.setPackageChargeType('Per Performance')}
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[6px] transition-colors ${p.packageChargeType === 'Per Performance' ? 'bg-white shadow-sm text-[#030303]' : 'text-[#71717B]'}`}
+                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] relative z-10 transition-colors ${p.packageChargeType === 'Per Performance' ? 'text-[#030303]' : 'text-[#71717B]'}`}
                             >
-                                Per Performance
+                                Per Event
                             </button>
                             <button 
                                 type="button"
                                 onClick={() => p.setPackageChargeType('Per Hour')}
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[6px] transition-colors ${p.packageChargeType === 'Per Hour' ? 'bg-white shadow-sm text-[#030303]' : 'text-[#71717B]'}`}
+                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] relative z-10 transition-colors ${p.packageChargeType === 'Per Hour' ? 'text-[#030303]' : 'text-[#71717B]'}`}
                             >
                                 Per Hour
                             </button>
+                            <div className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white shadow-sm border border-[#E4E4E7] rounded-[10px] transition-transform duration-300 ease-in-out" style={{ transform: p.packageChargeType === 'Per Performance' ? 'translateX(0)' : 'translateX(100%)' }} />
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Package Pricing</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#030303] font-normal">Rs</span>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[14px] font-[500] text-[#3F3F47] leading-[20px] tracking-[0px] pl-1">Price</label>
+                        <div className="flex border border-[#E4E4E7] rounded-[8px] overflow-hidden focus-within:border-gray-400 transition-colors">
+                            <div className="flex items-center justify-center bg-[#F4F4F5] px-5 border-r border-[#E4E4E7]">
+                                <span className="text-[#3F3F47] text-[15px] font-medium">₹</span>
+                            </div>
                             <input 
-                                type="text" 
-                                placeholder="5,000" 
-                                value={p.packagePrice ? new Intl.NumberFormat('en-IN').format(parseFloat(p.packagePrice.replace(/[^0-9]/g, '')) || 0) : ''} 
-                                onChange={(e) => p.setPackagePrice(e.target.value.replace(/[^0-9]/g, ''))} 
+                                type="number" 
+                                min="0" step="any"
+                                placeholder="5000" 
+                                value={p.packagePrice} 
+                                onChange={(e) => p.setPackagePrice(e.target.value)} 
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className="w-full pl-12 p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[16px] font-normal text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                                className="flex-1 w-full min-w-0 p-4 bg-white text-[15px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9]" 
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="w-full h-[1px] bg-[#E4E4E7]"></div>
+                <div className="w-full border-t border-dashed border-[#E4E4E7] my-6"></div>
 
                 {/* Team & Equipment Charges */}
-                <div className="flex flex-col gap-5">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Team & Equipment Charges</h3>
+                <div className="flex flex-col gap-4">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">Team & Equipment Charges <span className="text-red-500">*</span></h3>
                     
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">How do you charge?</label>
-                        <div className="flex p-1 bg-[#F4F4F5] rounded-[8px]">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[14px] font-[500] text-[#3F3F47] leading-[20px] tracking-[0px] pl-1">How do you charge?</label>
+                        <div className="flex p-1 bg-[#F4F4F5] rounded-[12px] relative">
                             <button 
                                 type="button"
                                 onClick={() => p.setTeamEquipmentChargeType('Per Performance')}
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[6px] transition-colors ${p.teamEquipmentChargeType === 'Per Performance' ? 'bg-white shadow-sm text-[#030303]' : 'text-[#71717B]'}`}
+                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] relative z-10 transition-colors ${p.teamEquipmentChargeType === 'Per Performance' ? 'text-[#030303]' : 'text-[#71717B]'}`}
                             >
-                                Per Performance
+                                Per Event
                             </button>
                             <button 
                                 type="button"
                                 onClick={() => p.setTeamEquipmentChargeType('Per Hour')}
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[6px] transition-colors ${p.teamEquipmentChargeType === 'Per Hour' ? 'bg-white shadow-sm text-[#030303]' : 'text-[#71717B]'}`}
+                                className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] relative z-10 transition-colors ${p.teamEquipmentChargeType === 'Per Hour' ? 'text-[#030303]' : 'text-[#71717B]'}`}
                             >
                                 Per Hour
                             </button>
+                            <div className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white shadow-sm border border-[#E4E4E7] rounded-[10px] transition-transform duration-300 ease-in-out" style={{ transform: p.teamEquipmentChargeType === 'Per Performance' ? 'translateX(0)' : 'translateX(100%)' }} />
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Price</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#030303] font-normal">Rs</span>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[14px] font-[500] text-[#3F3F47] leading-[20px] tracking-[0px] pl-1">Price</label>
+                        <div className="flex border border-[#E4E4E7] rounded-[8px] overflow-hidden focus-within:border-gray-400 transition-colors">
+                            <div className="flex items-center justify-center bg-[#F4F4F5] px-5 border-r border-[#E4E4E7]">
+                                <span className="text-[#3F3F47] text-[15px] font-medium">₹</span>
+                            </div>
                             <input 
-                                type="text" 
-                                placeholder="3,000" 
-                                value={p.teamEquipmentPrice ? new Intl.NumberFormat('en-IN').format(parseFloat(p.teamEquipmentPrice.replace(/[^0-9]/g, '')) || 0) : ''} 
-                                onChange={(e) => p.setTeamEquipmentPrice(e.target.value.replace(/[^0-9]/g, ''))} 
+                                type="number" 
+                                min="0" step="any"
+                                placeholder="3000" 
+                                value={p.teamEquipmentPrice} 
+                                onChange={(e) => p.setTeamEquipmentPrice(e.target.value)} 
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className="w-full pl-12 p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[16px] font-normal text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                                className="flex-1 w-full min-w-0 p-4 bg-white text-[15px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9]" 
                             />
                         </div>
                     </div>
                 </div>
 
-                <div className="w-full h-[1px] bg-[#E4E4E7]"></div>
+                <div className="w-full border-t border-dashed border-[#E4E4E7] my-6"></div>
 
                 {/* Overtime Rate */}
-                <div className="flex flex-col gap-5">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Overtime Rate</h3>
+                <div className="flex flex-col gap-4">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">Overtime Charges <span className="text-red-500">*</span></h3>
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Price Per Hour</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] text-[#030303] font-normal">Rs</span>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[14px] font-[500] text-[#3F3F47] leading-[20px] tracking-[0px] pl-1">Price Per Hour</label>
+                        <div className="flex border border-[#E4E4E7] rounded-[8px] overflow-hidden focus-within:border-gray-400 transition-colors">
+                            <div className="flex items-center justify-center bg-[#F4F4F5] px-5 border-r border-[#E4E4E7]">
+                                <span className="text-[#3F3F47] text-[15px] font-medium">₹</span>
+                            </div>
                             <input 
-                                type="text" 
-                                placeholder="3,000" 
-                                value={p.overtimePrice ? new Intl.NumberFormat('en-IN').format(parseFloat(p.overtimePrice.replace(/[^0-9]/g, '')) || 0) : ''} 
-                                onChange={(e) => p.setOvertimePrice(e.target.value.replace(/[^0-9]/g, ''))} 
+                                type="number" 
+                                min="0" step="any"
+                                placeholder="3000" 
+                                value={p.overtimePrice} 
+                                onChange={(e) => p.setOvertimePrice(e.target.value)} 
                                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                className="w-full pl-12 p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[16px] font-normal text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                                className="flex-1 w-full min-w-0 p-4 bg-white text-[15px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9]" 
                             />
                         </div>
+                    </div>
+                </div>
+
+                <div className="w-full border-t border-dashed border-[#E4E4E7] my-6"></div>
+                
+                {/* GST Inclusive */}
+                <div className="flex items-center justify-between">
+                    <div className="flex flex-col max-w-[65%]">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">GST Inclusive</span>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] mt-0.5 leading-tight">Is GST already included in the prices you entered?</span>
+                    </div>
+                    <div className="flex bg-[#E4E4E7] rounded-full p-1 border border-[#D4D4D8]">
+                        <button type="button" onClick={() => p.setIsGstInclusive(false)} className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-colors ${!p.isGstInclusive ? 'bg-white text-[#030303] shadow-sm' : 'text-[#71717B]'}`}>No</button>
+                        <button type="button" onClick={() => p.setIsGstInclusive(true)} className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-colors ${p.isGstInclusive ? 'bg-white text-[#030303] shadow-sm' : 'text-[#71717B]'}`}>Yes</button>
                     </div>
                 </div>
             </div>
@@ -541,7 +568,7 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                                                         return (
                                                             <div key={f} className="p-4 bg-white border border-[#E4E4E7]/60 rounded-[12px] flex flex-col gap-3">
                                                                 <div className="flex items-center justify-between">
-                                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">{f}</span>
+                                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">{f}</span>
                                                                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B]">
                                                                         Total: ₹{new Intl.NumberFormat('en-IN').format(fPrice)}
                                                                     </span>
@@ -744,74 +771,127 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                 })()}
             </div>
 
-            {/* Last Minute Change Charges */}
-            <div className="mt-8">
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mb-3">Last Minute Charges</p>
-                <label className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4 cursor-pointer block text-center">
-                    <div className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto"><Upload size={20} className="text-[#3F3F47]" /></div>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-1">Upload your last-minute change policy</p>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#3F3F47] uppercase tracking-wide">Browse Files</span>
-                    <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx"
-                        multiple
-                        onChange={p.onLastMinuteUpload}
-                    />
-                </label>
-                
-                {p.lastMinuteFiles && p.lastMinuteFiles.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                        {p.lastMinuteFiles.map((file, idx) => (
-                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-3 bg-[#F4F4F5] rounded-[8px]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white"><FileText size={16} className="text-[#3F3F47]" /></div>
-                                    <div className="flex-1 min-w-0">
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] break-all">{file.name}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
-                                    </div>
-                                </div>
-                                <button type="button" onClick={() => p.removeLastMinuteFile(idx)} className="text-[#3F3F47] hover:text-[#030303]"><X size={18} /></button>
-                            </div>
-                        ))}
+            {/* ── Policies and other documents ── */}
+            <div className="flex flex-col gap-3">
+                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">
+                    Policies and other documents <span className="text-red-500">*</span>
+                </span>
+
+                {/* Cancellation Policy row */}
+                {p.cancellationDocs.length === 0 ? (
+                    <button onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">Cancellation Policy</span>
+                            <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                        </div>
+                        <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                    </button>
+                ) : (
+                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{p.cancellationDocs[0].name}</span></div>
+                        <button onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                        <button onClick={() => p.setCancellationDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
                     </div>
                 )}
+
+                {/* Last Minute Charges row */}
+                {p.lastMinuteDocs.length === 0 ? (
+                    <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">Last Minute Charges</span>
+                            <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                        </div>
+                        <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                    </button>
+                ) : (
+                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{p.lastMinuteDocs[0].name}</span></div>
+                        <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                        <button onClick={() => p.setLastMinuteDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    </div>
+                )}
+
+                {/* General Policy row */}
+                {p.policyDocs.length === 0 ? (
+                    <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[16px] font-[600] text-[#030303] leading-[24px] tracking-[0px]">General Policy</span>
+                            <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                        </div>
+                        <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                    </button>
+                ) : (
+                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </div>
+                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{p.policyDocs[0].name}</span></div>
+                        <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                        <button onClick={() => p.setPolicyDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    </div>
+                )}
+
+                {/* Add button */}
+                <button style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center justify-center gap-2 w-full py-4 bg-[#F4F4F5] rounded-[12px] text-[15px] font-bold text-[#030303] hover:bg-[#E4E4E7] transition-colors">
+                    Add
+                    <div className="w-6 h-6 rounded-full border-2 border-[#030303] flex items-center justify-center">
+                        <Plus size={14} strokeWidth={3} />
+                    </div>
+                </button>
             </div>
 
-            {/* Policies & Documents */}
-            <div>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mb-3">Policies & Documents</p>
-                <label className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4 cursor-pointer block text-center">
-                    <div className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto"><Upload size={20} className="text-[#3F3F47]" /></div>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-1">Upload Policy Documents</p>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#3F3F47] uppercase tracking-wide">Browse Files</span>
-                    <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx"
-                        multiple
-                        onChange={p.onPolicyUpload}
-                    />
-                </label>
-                {p.policyFiles && p.policyFiles.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                        {p.policyFiles.map((file, idx) => (
-                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-3 bg-[#F4F4F5] rounded-[8px]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white"><FileText size={16} className="text-[#3F3F47]" /></div>
-                                    <div className="flex-1 min-w-0">
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] break-all">{file.name}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => p.removePolicyFile(idx)} className="text-[#3F3F47] hover:text-[#030303]"><X size={18} /></button>
-                            </div>
-                        ))}
+            {/* ── Pricing Summary ── */}
+            <div className="rounded-[20px] overflow-hidden border border-[#E4E4E7]">
+                {/* Header */}
+                <div className="bg-[#04222D] px-5 py-4 flex items-center justify-between">
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-white">Pricing summary</span>
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#04222D] bg-[#A8C5B5] px-3 py-1 rounded-full">
+                        {p.djItems.length} item{p.djItems.length !== 1 ? 's' : ''} {p.addons.length > 0 ? `+ ${p.addons.length} add-on${p.addons.length !== 1 ? 's' : ''}` : ''}
+                    </span>
+                </div>
+                {/* Body */}
+                <div className="bg-[#0A2E3B] p-5 flex flex-col gap-4">
+                    <div className="flex justify-between items-center text-white">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px]">Package amount</span>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold">₹{new Intl.NumberFormat('en-IN').format(parseFloat(p.packagePrice) || 0)}</span>
                     </div>
-                )}
+                    {p.teamEquipmentPrice && (
+                        <div className="flex justify-between items-center text-[#9F9FA9]">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px]">Team & Equipment</span>
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px]">₹{new Intl.NumberFormat('en-IN').format(parseFloat(p.teamEquipmentPrice) || 0)}</span>
+                        </div>
+                    )}
+                    {p.overtimePrice && (
+                        <div className="flex justify-between items-center text-[#9F9FA9]">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px]">Overtime per hour</span>
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px]">₹{new Intl.NumberFormat('en-IN').format(parseFloat(p.overtimePrice) || 0)}</span>
+                        </div>
+                    )}
+                </div>
             </div>
+
+            <PolicyBottomSheet 
+                isOpen={activePolicySheet !== null} 
+                onClose={() => setActivePolicySheet(null)}
+                title={activePolicySheet === 'cancellation' ? 'Cancellation Policy' : activePolicySheet === 'lastMinute' ? 'Last Minute Charges' : 'General Policy'}
+                subtitle="Add your policy details here."
+                initialDocs={activePolicySheet === 'cancellation' ? p.cancellationDocs : activePolicySheet === 'lastMinute' ? p.lastMinuteDocs : p.policyDocs}
+                onSaveDocs={(docs) => {
+                    if (activePolicySheet === 'cancellation') p.setCancellationDocs(docs);
+                    else if (activePolicySheet === 'lastMinute') p.setLastMinuteDocs(docs);
+                    else if (activePolicySheet === 'general') p.setPolicyDocs(docs);
+                    setActivePolicySheet(null);
+                }}
+            />
         </div>
     );
 }

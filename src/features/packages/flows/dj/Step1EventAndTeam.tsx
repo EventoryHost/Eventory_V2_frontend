@@ -13,6 +13,7 @@ interface Props {
     totalCrewSize: number; setTotalCrewSize: (v: number) => void;
     performingArtistCount: string; setPerformingArtistCount: (v: string) => void;
     supportingCrewCount: string; setSupportingCrewCount: (v: string) => void;
+    performingArtistExperience: string; setPerformingArtistExperience: (v: string) => void;
     venueNeeds: string[]; toggleVenueNeed: (v: string) => void;
     venueRequest: string; setVenueRequest: (v: string) => void;
     siteVisitProvided: boolean; setSiteVisitProvided: (v: boolean) => void;
@@ -44,6 +45,7 @@ export default function DJStep1EventAndTeam({
     totalCrewSize, setTotalCrewSize,
     performingArtistCount, setPerformingArtistCount,
     supportingCrewCount, setSupportingCrewCount,
+    performingArtistExperience, setPerformingArtistExperience,
     venueNeeds, toggleVenueNeed,
     venueRequest, setVenueRequest,
     siteVisitProvided, setSiteVisitProvided,
@@ -109,7 +111,14 @@ export default function DJStep1EventAndTeam({
                         type="text"
                         placeholder="e.g. 3-Hour Premium Wedding Set"
                         value={packageName === 'Untitled Package' ? '' : packageName}
-                        onChange={(e) => setPackageName(e.target.value)}
+                        onChange={(e) => {
+                            // Allow only letters, digits, spaces and hyphens (no hash, symbols or commas)
+                            const sanitized = e.target.value.replace(/[#,!@$%^&*()+=\[\]{};':"\\|<>\/?]/g, '');
+                            setPackageName(sanitized);
+                        }}
+                        autoComplete="off"
+                        inputMode="text"
+                        required
                         style={{ fontFamily: 'Figtree, sans-serif' }}
                         className={INPUT}
                     />
@@ -149,7 +158,7 @@ export default function DJStep1EventAndTeam({
                             </div>
                             <input
                                 type="text"
-                                placeholder="Type Events Categories"
+                                placeholder="Enter Performance type"
                                 value={categoryInput}
                                 onChange={(e) => {
                                     setCategoryInput(e.target.value);
@@ -230,10 +239,12 @@ export default function DJStep1EventAndTeam({
                     <div className="flex flex-col gap-2">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Min Guest count</label>
                         <input
-                            type="text"
+                            type="number"
                             placeholder="Number"
+                            min={0}
                             value={minGuestCount}
-                            onChange={(e) => setMinGuestCount(e.target.value.replace(/\D/g, ''))}
+                            onChange={(e) => setMinGuestCount(e.target.value)}
+                            required
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className={INPUT}
                         />
@@ -241,10 +252,12 @@ export default function DJStep1EventAndTeam({
                     <div className="flex flex-col gap-2">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Max Guest count</label>
                         <input
-                            type="text"
+                            type="number"
                             placeholder="Number"
+                            min={0}
                             value={maxGuestCount}
-                            onChange={(e) => setMaxGuestCount(e.target.value.replace(/\D/g, ''))}
+                            onChange={(e) => setMaxGuestCount(e.target.value)}
+                            required
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className={INPUT}
                         />
@@ -254,11 +267,19 @@ export default function DJStep1EventAndTeam({
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Total crew size</label>
                     <div className="flex items-center justify-between px-4 py-3 border border-[#E4E4E7] rounded-[8px]">
-                        <button onClick={decrementCrewSize} className="p-1 rounded-full border border-[#D4D4D8] text-[#9F9FA9] hover:text-[#030303] hover:border-[#030303] transition-colors">
+                        <button type="button" onClick={decrementCrewSize} className="p-1 rounded-full border border-[#D4D4D8] text-[#9F9FA9] hover:text-[#030303] hover:border-[#030303] transition-colors">
                             <Minus size={16} />
                         </button>
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{totalCrewSize}</span>
-                        <button onClick={incrementCrewSize} className="p-1 rounded-full border border-[#D4D4D8] text-[#9F9FA9] hover:text-[#030303] hover:border-[#030303] transition-colors">
+                        <input
+                            type="number"
+                            min={1}
+                            value={totalCrewSize}
+                            onChange={(e) => setTotalCrewSize(Math.max(1, parseInt(e.target.value) || 1))}
+                            required
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className="text-[16px] font-bold text-[#030303] text-center w-12 focus:outline-none bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        />
+                        <button type="button" onClick={incrementCrewSize} className="p-1 rounded-full border border-[#D4D4D8] text-[#9F9FA9] hover:text-[#030303] hover:border-[#030303] transition-colors">
                             <Plus size={16} />
                         </button>
                     </div>
@@ -268,10 +289,12 @@ export default function DJStep1EventAndTeam({
                     <div className="flex flex-col gap-2">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Performing Artist</label>
                         <input
-                            type="text"
+                            type="number"
                             placeholder="Eg - 2"
+                            min={0}
                             value={performingArtistCount}
-                            onChange={(e) => setPerformingArtistCount(e.target.value.replace(/\D/g, ''))}
+                            onChange={(e) => setPerformingArtistCount(e.target.value)}
+                            required
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className={INPUT}
                         />
@@ -279,13 +302,36 @@ export default function DJStep1EventAndTeam({
                     <div className="flex flex-col gap-2">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Supporting crew</label>
                         <input
-                            type="text"
+                            type="number"
                             placeholder="Eg - 4"
+                            min={0}
                             value={supportingCrewCount}
-                            onChange={(e) => setSupportingCrewCount(e.target.value.replace(/\D/g, ''))}
+                            onChange={(e) => setSupportingCrewCount(e.target.value)}
+                            required
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className={INPUT}
                         />
+                    </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Experience of Performing Artist</label>
+                    <div className="relative">
+                        <select
+                            value={performingArtistExperience}
+                            onChange={(e) => setPerformingArtistExperience(e.target.value)}
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className={`${INPUT} pr-10 appearance-none`}
+                        >
+                            <option value="" disabled>Eg - 2-4 years</option>
+                            <option value="0-1">0-1 years</option>
+                            <option value="1-2">1-2 years</option>
+                            <option value="2-4">2-4 years</option>
+                            <option value="4-6">4-6 years</option>
+                            <option value="6-10">6-10 years</option>
+                            <option value="10+">10+ years</option>
+                        </select>
+                        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
                     </div>
                 </div>
             </div>
@@ -303,16 +349,11 @@ export default function DJStep1EventAndTeam({
                                 type="button"
                                 onClick={() => toggleVenueNeed(opt)}
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`px-4 py-2 rounded-full text-[14px] font-normal flex items-center gap-2 transition-all leading-[20px] border ${isSelected
+                                className={`px-4 py-2 rounded-full text-[14px] font-normal transition-all leading-[20px] border ${isSelected
                                     ? 'bg-[#04222D] text-white border-[#04222D]'
                                     : 'bg-[#E6E9EA] text-[#3F3F47] border-[#E6E9EA] hover:bg-gray-200'
                                     }`}
                             >
-                                {isSelected ? (
-                                    <Check size={14} className="text-white" />
-                                ) : (
-                                    <Plus size={14} className="text-[#3F3F47]" />
-                                )}
                                 <span>{opt}</span>
                             </button>
                         );
@@ -323,16 +364,13 @@ export default function DJStep1EventAndTeam({
                     <textarea
                         placeholder="Anything else you need from the venue?"
                         value={venueRequest}
-                        onChange={(e) => setVenueRequest(e.target.value)}
-                        onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                                e.preventDefault();
-                                if (venueRequest.trim() && !venueNeeds.includes(venueRequest.trim())) {
-                                    toggleVenueNeed(venueRequest.trim());
-                                }
-                                setVenueRequest('');
-                            }
+                        onChange={(e) => {
+                            if (e.target.value.length <= 400) setVenueRequest(e.target.value);
                         }}
+                        maxLength={400}
+                        autoComplete="off"
+                        inputMode="text"
+                        required
                         rows={4}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
                         className={`${INPUT} resize-none`}
@@ -340,7 +378,7 @@ export default function DJStep1EventAndTeam({
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#9F9FA9] leading-[18px] ml-1 mt-1">Enter your Venue needs in the text box</p>
                 </div>
 
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center justify-between border-t border-[#E4E4E7] pt-4 mt-2">
                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-[600] text-[#3F3F47] leading-[24px]">Site visit provided</span>
                     <button
                         type="button"

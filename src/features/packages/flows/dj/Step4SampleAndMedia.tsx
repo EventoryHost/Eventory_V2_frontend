@@ -63,71 +63,69 @@ export default function DJStep4SampleAndMedia({
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Social Media Links</h3>
                 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Youtube</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-normal text-[#3F3F47]">Youtube</label>
                     <input 
                         type="text" 
-                        placeholder="Paste your YouTube link" 
+                        placeholder="Please enter your YouTube Link here." 
                         value={youtubeLink} 
                         onChange={(e) => setYoutubeLink(e.target.value)} 
                         style={{ fontFamily: 'Figtree, sans-serif' }} 
-                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-semibold text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-normal text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
                     />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Instagram</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-normal text-[#3F3F47]">Instagram</label>
                     <input 
                         type="text" 
-                        placeholder="Paste your Instagram Link" 
+                        placeholder="Please enter your Instagram Link here." 
                         value={instagramLink} 
                         onChange={(e) => setInstagramLink(e.target.value)} 
                         style={{ fontFamily: 'Figtree, sans-serif' }} 
-                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-semibold text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-normal text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
                     />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Spotify</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-normal text-[#3F3F47]">Spotify</label>
                     <input 
                         type="text" 
-                        placeholder="Paste your Spotify Link" 
+                        placeholder="Please enter your Spotify Link here." 
                         value={spotifyLink} 
                         onChange={(e) => setSpotifyLink(e.target.value)} 
                         style={{ fontFamily: 'Figtree, sans-serif' }} 
-                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-semibold text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-normal text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
                     />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Facebook</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-normal text-[#3F3F47]">Facebook</label>
                     <input 
                         type="text" 
-                        placeholder="Paste your Facebook Link" 
+                        placeholder="Please enter your Facebook Link here." 
                         value={facebookLink} 
                         onChange={(e) => setFacebookLink(e.target.value)} 
                         style={{ fontFamily: 'Figtree, sans-serif' }} 
-                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-semibold text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-normal text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
                     />
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-semibold text-[#3F3F47]">Other</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[13px] font-normal text-[#3F3F47]">Other</label>
                     <input 
                         type="text" 
                         placeholder="Paste Link" 
                         value={otherLink} 
                         onChange={(e) => setOtherLink(e.target.value)} 
                         style={{ fontFamily: 'Figtree, sans-serif' }} 
-                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-semibold text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
+                        className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-normal text-[#030303] placeholder:text-[#9F9FA9] focus:outline-none focus:ring-1 focus:ring-gray-300" 
                     />
                 </div>
             </div>
 
             {/* Sample Media */}
             <div>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] uppercase tracking-wide mb-4">
-                    SAMPLE MEDIA
-                </p>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-4">Sample Media <span className="text-red-500">*</span></h3>
                 <div className="bg-[#F4F4F5] p-5 rounded-[16px] flex flex-col gap-3 border border-[#E4E4E7]/40">
                     <label className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#D4D4D8] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer text-center block">
                         <div className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-3 mx-auto">

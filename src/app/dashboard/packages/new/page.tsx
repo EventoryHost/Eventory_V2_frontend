@@ -14,11 +14,27 @@ export default function NewPackagePage() {
     const [clickAttemptedStep2, setClickAttemptedStep2] = useState(false);
     const [completedStepsCount, setCompletedStepsCount] = useState(0);
 
+    const fetchProgress = async () => {
+        const vendorId = localStorage.getItem('vendor_id');
+        if (!vendorId) return;
+        try {
+            const res = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`), { cache: 'no-store' });
+            const data = await res.json();
+            if (data.status === 'SUCCESS' && data.packages && data.packages.length > 0) {
+                const pkg = data.packages[0];
+                if (pkg.completedSteps) {
+                    setCompletedStepsCount(pkg.completedSteps.length);
+                }
+            }
+        } catch (err) {
+            console.error("Failed to fetch package draft progress:", err);
+        }
+    };
+
     useEffect(() => {
         // Read service id from local storage
         const serviceId = localStorage.getItem('service_id');
-        const vendorId = localStorage.getItem('vendor_id');
-
+        
         if (serviceId) {
             // Extrapolate vendor type from standard ID format e.g. CAT384728943 -> CAT
             setVendorType(serviceId.substring(0, 3).toUpperCase());
@@ -29,24 +45,13 @@ export default function NewPackagePage() {
         }
 
         // Fetch draft package progress
-        if (vendorId) {
-            const fetchProgress = async () => {
-                try {
-                    const res = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
-                    const data = await res.json();
-                    if (data.status === 'SUCCESS' && data.packages && data.packages.length > 0) {
-                        const pkg = data.packages[0];
-                        if (pkg.completedSteps) {
-                            setCompletedStepsCount(pkg.completedSteps.length);
-                        }
-                    }
-                } catch (err) {
-                    console.error("Failed to fetch package draft progress:", err);
-                }
-            };
-            fetchProgress();
-        }
+        fetchProgress();
     }, []);
+
+    const handleExitFlow = () => {
+        setShowStepsOverview(true);
+        fetchProgress();
+    };
 
     // Show a loading/fallback state until vendor type is resolved
     if (!vendorType) {
@@ -340,7 +345,7 @@ export default function NewPackagePage() {
     return (
         <div className="flex flex-col relative w-full min-h-screen">
             {/* Mount the scalable dynamic feature */}
-            <PackageFlowManager vendorType={vendorType} />
+            <PackageFlowManager vendorType={vendorType} onExitFlow={handleExitFlow} />
         </div>
     );
 }

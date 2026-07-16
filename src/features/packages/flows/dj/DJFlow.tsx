@@ -14,12 +14,25 @@ import { GuestTier, PolicyFile, SampleMediaFile } from '../../shared/types';
 
 const FLOW_CONFIG = {
     vendorName: 'DJ Artist',
-    steps: ['Event & Team', 'Package and Items', 'Package Price and Policy', 'Sample and Media'],
+    steps: ['Package basics', 'Package Items', 'Pricing and Policies', 'Sample and Media'],
 };
 
-const VENUE_NEEDS_OPTIONS = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
+const VENUE_NEEDS_OPTIONS = [
+    'Power supply',
+    'Power backup',
+    'Performance space (e.g. 10×10 ft)',
+    'Permission for sound levels & curfew time',
+    'Truss rigging points',
+    'Backstage',
+    'Loading access for heavy equipment',
+    'Smoke / effects clearance',
+];
 
-export default function DJFlow() {
+interface Props {
+    onExitFlow?: () => void;
+}
+
+export default function DJFlow({ onExitFlow }: Props) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
@@ -34,7 +47,8 @@ export default function DJFlow() {
     const [totalCrewSize, setTotalCrewSize] = React.useState(4);
     const [performingArtistCount, setPerformingArtistCount] = React.useState('');
     const [supportingCrewCount, setSupportingCrewCount] = React.useState('');
-    const [venueNeeds, setVenueNeeds] = React.useState<string[]>(['Power']);
+    const [performingArtistExperience, setPerformingArtistExperience] = React.useState('');
+    const [venueNeeds, setVenueNeeds] = React.useState<string[]>([]);
     const [venueRequest, setVenueRequest] = React.useState('');
     const [siteVisitProvided, setSiteVisitProvided] = React.useState(false);
 
@@ -63,6 +77,7 @@ export default function DJFlow() {
         const newItem: DJItem = {
             id: Math.random().toString(36).substr(2, 9),
             name: '',
+            performanceType: [],
             genres: [],
             languages: [],
             description: '',
@@ -82,14 +97,16 @@ export default function DJFlow() {
 
     // Playlist Handlers
     const handleAddPlaylist = () => {
+        const id = Math.random().toString(36).substr(2, 9);
         setPlaylists(prev => [...prev, {
-            id: Math.random().toString(36).substr(2, 9),
+            id,
             name: 'Curated Playlist',
             type: 'Curated',
             playlistType: 'Type 1',
             songs: [],
             isExpanded: true
         }]);
+        return id;
     };
     const updatePlaylist = (id: string, field: string, value: any) => {
         setPlaylists(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -127,6 +144,7 @@ export default function DJFlow() {
     const [teamEquipmentChargeType, setTeamEquipmentChargeType] = React.useState('Per Performance');
     const [teamEquipmentPrice, setTeamEquipmentPrice] = React.useState('');
     const [overtimePrice, setOvertimePrice] = React.useState('');
+    const [isGstInclusive, setIsGstInclusive] = React.useState(false);
 
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(false);
@@ -168,23 +186,9 @@ export default function DJFlow() {
         setGuestTiers(prev => prev.map((t, i) => i === index ? { ...t, [field]: value } : t));
     };
 
-    const [lastMinuteFiles, setLastMinuteFiles] = React.useState<PolicyFile[]>([]);
-    const onLastMinuteUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files).map(f => ({ name: f.name, size: f.size, file: f }));
-            setLastMinuteFiles(prev => [...prev, ...newFiles]);
-        }
-    };
-    const removeLastMinuteFile = (i: number) => setLastMinuteFiles(prev => prev.filter((_, idx) => idx !== i));
-
-    const [policyFiles, setPolicyFiles] = React.useState<PolicyFile[]>([]);
-    const onPolicyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const newFiles = Array.from(e.target.files).map(f => ({ name: f.name, size: f.size, file: f }));
-            setPolicyFiles(prev => [...prev, ...newFiles]);
-        }
-    };
-    const removePolicyFile = (i: number) => setPolicyFiles(prev => prev.filter((_, idx) => idx !== i));
+    const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
+    const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
+    const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
 
     // --- Step 4 State ---
     const [youtubeLink, setYoutubeLink] = React.useState('');
@@ -217,7 +221,7 @@ export default function DJFlow() {
 
             try {
                 // 1. Check if vendor already has a draft package in the database
-                const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
+                const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`), { cache: 'no-store' });
                 const draftData = await draftRes.json();
 
                 if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
@@ -274,6 +278,7 @@ export default function DJFlow() {
                                 setDjItems(s2.items.map((it: any) => ({
                                     id: it._id || Math.random().toString(36).substr(2, 9),
                                     name: it.name || '',
+                                    performanceType: it.performanceType ? [it.performanceType] : [],
                                     genres: it.contentDetails?.genreOfMusic || [],
                                     languages: it.contentDetails?.language || [],
                                     description: it.contentDetails?.description || '',
@@ -281,7 +286,8 @@ export default function DJFlow() {
                                 })));
                             }
                             if (s2.playlists && s2.playlists.length > 0) {
-                                setPlaylists(s2.playlists.map((pl: any) => ({
+                                const uiPlaylists = s2.playlists.filter((pl: any) => pl.name !== 'Default Playlist');
+                                setPlaylists(uiPlaylists.map((pl: any) => ({
                                     id: pl._id || Math.random().toString(36).substr(2, 9),
                                     name: pl.name || 'Curated Playlist',
                                     type: pl.type || 'Curated',
@@ -289,6 +295,7 @@ export default function DJFlow() {
                                     songs: (pl.songs || []).map((s: any) => ({
                                         id: s._id || Math.random().toString(36).substr(2, 9),
                                         name: s.name,
+                                        performanceType: s.performanceType ? [s.performanceType] : [],
                                         artist: s.artist,
                                         duration: s.duration,
                                         url: s.url
@@ -343,7 +350,10 @@ export default function DJFlow() {
                                 setTeamEquipmentChargeType(s3.teamAndEquipment.billingUnit || 'Per Performance');
                             }
                             if (s3.overtimeCharges) {
-                                setOvertimePrice(String(s3.overtimeCharges.price || ''));
+                                setOvertimePrice(s3.overtimeCharges.price ? s3.overtimeCharges.price.toString() : '');
+                            }
+                            if (typeof s3.gstInclusive === 'boolean') {
+                                setIsGstInclusive(s3.gstInclusive);
                             }
 
                             if (s3.guestTiers && s3.guestTiers.length > 0) {
@@ -408,11 +418,14 @@ export default function DJFlow() {
                                     setCustomDatesEndDate(dp.customDates.endDate || '');
                                 }
                             }
+                            if (s3.cancellationDocUrl) {
+                                setCancellationDocs([{ name: 'Cancellation Policy', size: 0, url: s3.cancellationDocUrl } as any]);
+                            }
                             if (s3.lastMinuteChargesDocUrl) {
-                                setLastMinuteFiles([{ name: 'Last Minute Policy', size: 0, url: s3.lastMinuteChargesDocUrl } as any]);
+                                setLastMinuteDocs([{ name: 'Last Minute Policy', size: 0, url: s3.lastMinuteChargesDocUrl } as any]);
                             }
                             if (s3.policiesDocUrl) {
-                                setPolicyFiles([{ name: 'Policy Document', size: 0, url: s3.policiesDocUrl } as any]);
+                                setPolicyDocs([{ name: 'General Policy', size: 0, url: s3.policiesDocUrl } as any]);
                             }
                         }
 
@@ -471,11 +484,15 @@ export default function DJFlow() {
 
     // --- Navigation ---
     const handleBack = () => {
-        if (step > 1) setStep(step - 1);
-        else router.push('/dashboard/inventory');
+        if (step > 1) {
+            setStep(step - 1);
+        } else {
+            if (onExitFlow) onExitFlow();
+            else router.push('/dashboard/inventory');
+        }
     };
 
-    const handleNext = async () => {
+    const handleNext = async (afterSave: 'next' | 'home' = 'next') => {
         let currentPackageId = packageId;
         if (!currentPackageId) {
             const vendorId = localStorage.getItem('vendor_id');
@@ -559,6 +576,7 @@ export default function DJFlow() {
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error("Failed to save Step 1 (Event & Team).");
+                if (afterSave === 'home') { onExitFlow?.(); return; }
                 setStep(2);
             } else if (step === 2) {
                 // Upload addon policies/media if any
@@ -600,6 +618,7 @@ export default function DJFlow() {
                 const payload = {
                     items: djItems.map(item => ({
                         name: item.name || 'DJ Item',
+                        performanceType: item.performanceType.length > 0 ? item.performanceType[0] : undefined,
                         contentDetails: {
                             genreOfMusic: item.genres,
                             language: item.languages,
@@ -641,27 +660,41 @@ export default function DJFlow() {
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error("Failed to save Step 2 (Package and Items).");
+                if (afterSave === 'home') { onExitFlow?.(); return; }
                 setStep(3);
             } else if (step === 3) {
-                
+                let token = localStorage.getItem('token');
+                let cancelUrl = '';
+                if (cancellationDocs.length > 0) {
+                    const cf = cancellationDocs[0] as any;
+                    if (cf.file) {
+                        const formData = new FormData(); formData.append('file', cf.file); formData.append('type', 'policy');
+                        const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, { method: 'POST', body: formData, headers: { Authorization: `Bearer ${token}` } });
+                        if (uploadRes.ok) { const data = await uploadRes.json(); cancelUrl = data.url || ''; }
+                    } else if (cf.url) { cancelUrl = cf.url; }
+                    else if (cf.preview) { cancelUrl = cf.preview; }
+                }
+
                 let lastMinuteUrl = '';
-                if (lastMinuteFiles.length > 0) {
-                    const lf = lastMinuteFiles[0] as any;
+                if (lastMinuteDocs.length > 0) {
+                    const lf = lastMinuteDocs[0] as any;
                     if (lf.file) {
-                        const formData = new FormData(); formData.append('file', lf.file);
-                        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                        const formData = new FormData(); formData.append('file', lf.file); formData.append('type', 'policy');
+                        const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, { method: 'POST', body: formData, headers: { Authorization: `Bearer ${token}` } });
                         if (uploadRes.ok) { const data = await uploadRes.json(); lastMinuteUrl = data.url || ''; }
                     } else if (lf.url) { lastMinuteUrl = lf.url; }
+                    else if (lf.preview) { lastMinuteUrl = lf.preview; }
                 }
 
                 let policyUrl = '';
-                if (policyFiles.length > 0) {
-                    const pf = policyFiles[0] as any;
+                if (policyDocs.length > 0) {
+                    const pf = policyDocs[0] as any;
                     if (pf.file) {
-                        const formData = new FormData(); formData.append('file', pf.file);
-                        const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                        const formData = new FormData(); formData.append('file', pf.file); formData.append('type', 'policy');
+                        const uploadRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload`, { method: 'POST', body: formData, headers: { Authorization: `Bearer ${token}` } });
                         if (uploadRes.ok) { const data = await uploadRes.json(); policyUrl = data.url || ''; }
                     } else if (pf.url) { policyUrl = pf.url; }
+                    else if (pf.preview) { policyUrl = pf.preview; }
                 }
 
                 const festDetails: Record<string, any> = {};
@@ -714,13 +747,15 @@ export default function DJFlow() {
                         billingUnit: teamEquipmentChargeType
                     },
                     overtimeCharges: {
-                        price: parseFloat(overtimePrice) || 0,
+                        price: overtimePrice ? parseFloat(overtimePrice.replace(/,/g, '')) : 0,
                         billingUnit: 'Per Hour'
                     },
+                    gstInclusive: isGstInclusive,
                     guestTiers: validTiers,
                     dynamicPricing: dpPayload,
                     lastMinuteChargesDocUrl: lastMinuteUrl,
-                    policiesDocUrl: policyUrl
+                    policiesDocUrl: policyUrl,
+                    cancellationDocUrl: cancelUrl
                 };
 
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/3`), {
@@ -729,6 +764,7 @@ export default function DJFlow() {
                     body: JSON.stringify(s3Payload)
                 });
                 if (!res.ok) throw new Error("Failed to save Step 3 (Pricing and Policies).");
+                if (afterSave === 'home') { onExitFlow?.(); return; }
                 setStep(4);
             } else if (step === 4) {
                 // Upload sample media files
@@ -777,6 +813,12 @@ export default function DJFlow() {
                 });
                 if (!res.ok) throw new Error("Failed to save Step 4 (Sample and Media).");
 
+                if (afterSave === 'home') {
+                    // Save draft only — skip submission
+                    onExitFlow?.();
+                    return;
+                }
+
                 // Submit package
                 const resSubmit = await fetch(apiUrl(`/packages/${currentPackageId}/submit`), {
                     method: 'POST'
@@ -796,6 +838,8 @@ export default function DJFlow() {
             setIsSaving(false);
         }
     };
+
+    const handleSaveDraft = () => handleNext('home');
 
     return (
         <>
@@ -824,6 +868,7 @@ export default function DJFlow() {
                 onDuplicateVariant={variants.handleDuplicateVariant}
                 onRenameVariant={variants.handleRenameVariant}
                 onDeleteVariant={variants.handleDeleteVariant}
+                onSaveDraft={handleSaveDraft}
             >
                 {step === 1 && (
                     <DJStep1EventAndTeam
@@ -836,6 +881,7 @@ export default function DJFlow() {
                         totalCrewSize={totalCrewSize} setTotalCrewSize={setTotalCrewSize}
                         performingArtistCount={performingArtistCount} setPerformingArtistCount={setPerformingArtistCount}
                         supportingCrewCount={supportingCrewCount} setSupportingCrewCount={setSupportingCrewCount}
+                        performingArtistExperience={performingArtistExperience} setPerformingArtistExperience={setPerformingArtistExperience}
                         venueNeeds={venueNeeds} toggleVenueNeed={toggleVenueNeed}
                         venueRequest={venueRequest} setVenueRequest={setVenueRequest}
                         siteVisitProvided={siteVisitProvided} setSiteVisitProvided={setSiteVisitProvided}
@@ -881,7 +927,7 @@ export default function DJFlow() {
                         teamEquipmentChargeType={teamEquipmentChargeType} setTeamEquipmentChargeType={setTeamEquipmentChargeType}
                         teamEquipmentPrice={teamEquipmentPrice} setTeamEquipmentPrice={setTeamEquipmentPrice}
                         overtimePrice={overtimePrice} setOvertimePrice={setOvertimePrice}
-
+                        isGstInclusive={isGstInclusive} setIsGstInclusive={setIsGstInclusive}
                         isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                         weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
                         weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
@@ -908,10 +954,12 @@ export default function DJFlow() {
                         customDatesStartDate={customDatesStartDate} setCustomDatesStartDate={setCustomDatesStartDate}
                         customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
 
+                        cancellationDocs={cancellationDocs} setCancellationDocs={setCancellationDocs}
+                        lastMinuteDocs={lastMinuteDocs} setLastMinuteDocs={setLastMinuteDocs}
+                        policyDocs={policyDocs} setPolicyDocs={setPolicyDocs}
+                        djItems={djItems}
+                        addons={addons}
                         guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier}
-
-                        lastMinuteFiles={lastMinuteFiles} onLastMinuteUpload={onLastMinuteUpload} removeLastMinuteFile={removeLastMinuteFile}
-                        policyFiles={policyFiles} onPolicyUpload={onPolicyUpload} removePolicyFile={removePolicyFile}
                     />
                 )}
                 

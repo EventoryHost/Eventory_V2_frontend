@@ -43,6 +43,7 @@ interface FlowShellProps {
     onDeleteVariant: () => void;
     isSaving?: boolean;
     saveLabel?: string;
+    onSaveDraft?: () => void;
 }
 
 export default function FlowShell({
@@ -72,6 +73,7 @@ export default function FlowShell({
     onDeleteVariant,
     isSaving = false,
     saveLabel,
+    onSaveDraft,
 }: FlowShellProps) {
     return (
         <div className="min-h-screen bg-white relative overflow-x-hidden">
@@ -84,7 +86,11 @@ export default function FlowShell({
                     <h1 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">New Package</h1>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button className="px-4 py-2 text-[14px] font-semibold text-[#3F3F47] hover:bg-gray-50 rounded-full transition-colors">Save Draft</button>
+                    <button
+                        onClick={onSaveDraft}
+                        disabled={isSaving}
+                        className="px-4 py-2 text-[14px] font-semibold text-[#3F3F47] hover:bg-gray-50 rounded-full transition-colors disabled:opacity-40"
+                    >Save Draft</button>
                     <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Menu size={24} className="text-[#030303]" /></button>
                 </div>
             </div>
@@ -144,7 +150,7 @@ export default function FlowShell({
                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider">
                         STEP {step} OF {config.steps.length}
                     </span>
-                    <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303] mb-2">
+                    <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-[600] text-[#030303] leading-[28px] tracking-[0px] mb-2">
                         {config.steps[step - 1]}
                     </h2>
                     <div className="h-[6px] w-full bg-[#E4E4E7] rounded-full">

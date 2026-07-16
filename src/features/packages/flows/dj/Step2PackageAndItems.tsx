@@ -7,6 +7,7 @@ import { AddonModal, Addon } from '../../components/AddonModal';
 export interface DJItem {
     id: string;
     name: string;
+    performanceType: string[];
     genres: string[];
     languages: string[];
     description: string;
@@ -46,7 +47,7 @@ interface Props {
     deleteDJItem: (id: string) => void;
 
     playlists: Playlist[];
-    handleAddPlaylist: () => void;
+    handleAddPlaylist: () => any;
     updatePlaylist: (id: string, field: keyof Playlist, value: any) => void;
     togglePlaylistExpand: (id: string) => void;
     deletePlaylist: (id: string) => void;
@@ -113,83 +114,67 @@ export default function DJStep2PackageAndItems({
         }
     };
 
-    const GENRE_SUGGESTIONS = ["Bollywood", "Pop", "Classical", "Hip Hop", "EDM", "House", "Techno", "R&B", "Jazz", "Rock"];
-    const LANGUAGE_SUGGESTIONS = ["Hindi", "English", "Punjabi", "Tamil", "Telugu", "Marathi", "Gujarati", "Bengali"];
+    const PERF_TYPES = ["DJ", "Live Band", "Solo Singer", "Duo/Trio, Orchestra", "Dhol Players", "Nagada Shehnai", "Sufi Ensemble", "Qawwali Group", "Folk Artists", "Instrumental", "Rapper", "MC/Anchor", "Bhangra Band", "Garba Orchestra", "Cartoonist/Commentator", "Bagpipers", "Brass Band", "Acoustic", "Karaoke Host"];
+    const GENRE_SUGGESTIONS = ["Bollywood Old (70s-90s)", "Bollywood New (2000+)", "Punjabi/Bhangra", "Sufi", "Ghazal", "Classical (Hindustani/Carnatic)", "Folk(Rajasthani/ Haryanvi)", "Devotional/Aarti", "Regional", "Qawwali", "International"];
+    const LANGUAGE_SUGGESTIONS = ["Hindi", "English", "Punjabi", "Telugu", "Haryanvi", "Bhojpuri"];
 
     // Helper for tag inputs in DJ Item
-    const TagInput = ({ itemId, field, values, placeholder }: { itemId: string, field: 'genres' | 'languages', values: string[], placeholder: string }) => {
+    const TagInput = ({ itemId, field, values, placeholder, title }: { itemId: string, field: 'performanceType' | 'genres' | 'languages', values: string[], placeholder: string, title: string }) => {
         const [inputValue, setInputValue] = React.useState('');
-        const [isFocused, setIsFocused] = React.useState(false);
-        const [hoveredSuggestion, setHoveredSuggestion] = React.useState<string | null>(null);
 
-        const suggestionsList = field === 'genres' ? GENRE_SUGGESTIONS : LANGUAGE_SUGGESTIONS;
-        
-        const filteredSuggestions = suggestionsList.filter(s => 
-            !values.includes(s) && s.toLowerCase().includes(inputValue.toLowerCase())
-        );
+        let suggestionsList: string[] = [];
+        if (field === 'performanceType') suggestionsList = PERF_TYPES;
+        else if (field === 'genres') suggestionsList = GENRE_SUGGESTIONS;
+        else if (field === 'languages') suggestionsList = LANGUAGE_SUGGESTIONS;
 
-        const handleAdd = (valToUse?: string) => {
-            const val = (valToUse !== undefined ? valToUse : inputValue).trim();
+        const handleToggle = (tag: string) => {
+            if (values.includes(tag)) {
+                updateDJItem(itemId, field, values.filter(v => v !== tag));
+            } else {
+                updateDJItem(itemId, field, [...values, tag]);
+            }
+        };
+
+        const handleAddCustom = () => {
+            const val = inputValue.trim();
             if (val && !values.includes(val)) {
                 updateDJItem(itemId, field, [...values, val]);
             }
             setInputValue('');
         };
 
-        const handleRemove = (tag: string) => {
-            updateDJItem(itemId, field, values.filter(v => v !== tag));
-        };
+        const allTags = Array.from(new Set([...suggestionsList, ...values]));
 
         return (
             <div className="flex flex-col gap-2 relative">
-                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#3F3F47] pl-1">{field === 'genres' ? 'Music genre' : 'Music languages'}</label>
-                <div className={`flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
-                    {values.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            {values.map(tag => (
-                                <div key={tag} className="flex items-center gap-1.5 bg-[#04222D] text-white px-3 py-1.5 rounded-full text-[12px]">
-                                    <span>{tag}</span>
-                                    <button type="button" onClick={() => handleRemove(tag)} className="hover:text-gray-300 flex items-center justify-center">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#3F3F47] pl-1">{title}</label>
+                <div className="flex flex-col p-4 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 gap-4">
+                    <div className="flex flex-wrap gap-2">
+                        {allTags.map(tag => {
+                            const isSelected = values.includes(tag);
+                            return (
+                                <button
+                                    key={tag}
+                                    type="button"
+                                    onClick={() => handleToggle(tag)}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors ${isSelected ? 'bg-[#04222D] text-white' : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-[#EAEBEB]'}`}
+                                >
+                                    {tag}
+                                </button>
+                            );
+                        })}
+                    </div>
                     <input
                         type="text"
-                        placeholder={values.length === 0 ? placeholder : ""}
+                        placeholder={placeholder}
                         value={inputValue}
                         onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
-                        onFocus={() => setIsFocused(true)}
-                        onBlur={() => {
-                            setTimeout(() => {
-                                handleAdd();
-                                setIsFocused(false);
-                            }, 150);
-                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
+                        className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent mt-2"
                     />
                 </div>
-
-                {isFocused && filteredSuggestions.length > 0 && (
-                    <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 max-h-[220px] overflow-y-auto py-2">
-                        {filteredSuggestions.map((s) => (
-                            <div 
-                                key={s}
-                                onMouseDown={(e) => { e.preventDefault(); handleAdd(s); }}
-                                onMouseEnter={() => setHoveredSuggestion(s)}
-                                onMouseLeave={() => setHoveredSuggestion(null)}
-                                className={`px-4 py-3 cursor-pointer text-[14px] text-[#3F3F47] transition-colors ${hoveredSuggestion === s ? 'bg-[#E4E4E7]' : 'bg-white'}`}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                            >
-                                {s}
-                            </div>
-                        ))}
-                    </div>
-                )}
             </div>
         );
     };
@@ -211,16 +196,13 @@ export default function DJStep2PackageAndItems({
             {/* ── Items ── */}
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between px-2">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider">ITEMS</span>
-                    <button type="button" onClick={(e) => { e.preventDefault(); handleAddDJItem(); }} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-[#030303] flex items-center gap-2 hover:text-[#04222D]">
-                        Add Item <Plus size={16} />
-                    </button>
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">Items</span>
                 </div>
 
                 {djItems.length === 0 ? (
-                    <div onClick={handleAddDJItem} className="w-full h-[220px] bg-white border border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
+                    <div onClick={handleAddDJItem} className="w-full h-[220px] bg-transparent border border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
                         <div className="w-[80px] h-[80px] flex items-center justify-center mb-[-8px]">
-                            <img src="/images/dj/empty_turntable.png" alt="Empty Items" className="w-full h-full object-contain mix-blend-multiply" />
+                            <img src="/images/dj/empty_turntable.png" alt="Empty Items" className="w-full h-full object-contain mix-blend-multiply contrast-125 brightness-110" />
                         </div>
                         <div className="text-center flex flex-col gap-1">
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">No items</p>
@@ -233,61 +215,96 @@ export default function DJStep2PackageAndItems({
                             const isFilled = item.genres.length > 0 && item.languages.length > 0 && item.description.trim().length > 0;
                             return (
                             <div key={item.id} className="bg-[#F9F9F9] rounded-[16px] flex flex-col transition-all">
-                                <div className="p-5 flex items-center justify-between cursor-pointer" onClick={() => toggleDJItemExpand(item.id)}>
-                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{item.name || `DJ Item ${index + 1}`}</h4>
-                                    <div className="flex items-center gap-4 text-[#030303]">
-                                        <div className="relative">
-                                            <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuDropdown(activeMenuDropdown === item.id ? null : item.id); }} className="text-[#3F3F47] hover:text-[#030303] transition-colors p-1 rounded-md hover:bg-gray-100">
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
-                                            </button>
-                                            {activeMenuDropdown === item.id && (
-                                                <div className="absolute right-0 top-8 w-32 bg-white border border-[#E4E4E7] rounded-[8px] shadow-lg py-1 z-10" onClick={(e) => e.stopPropagation()}>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => { deleteDJItem(item.id); setActiveMenuDropdown(null); }}
-                                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                        className="w-full text-left px-4 py-2 text-[14px] font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2"
-                                                    >
-                                                        <Trash2 size={14} /> Delete
-                                                    </button>
-                                                </div>
-                                            )}
+                                <div className="p-5 flex flex-col cursor-pointer" onClick={() => !item.isExpanded && toggleDJItemExpand(item.id)}>
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex flex-col gap-1">
+                                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{item.name || `DJ Item ${index + 1}`}</h4>
                                         </div>
-                                        <button type="button" onClick={(e) => { e.stopPropagation(); toggleDJItemExpand(item.id); }} className="text-[#3F3F47] hover:text-[#030303] transition-colors p-1 rounded-md hover:bg-gray-100">
-                                            {item.isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-                                        </button>
+                                        <div className="flex items-center gap-4 text-[#030303]">
+                                            <div className="relative">
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuDropdown(activeMenuDropdown === item.id ? null : item.id); }} className="text-[#3F3F47] hover:text-[#030303] transition-colors p-1 rounded-md hover:bg-gray-100">
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+                                                </button>
+                                                {activeMenuDropdown === item.id && (
+                                                    <div className="absolute right-0 top-8 w-32 bg-white border border-[#E4E4E7] rounded-[8px] shadow-lg py-1 z-10" onClick={(e) => e.stopPropagation()}>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => { deleteDJItem(item.id); setActiveMenuDropdown(null); }}
+                                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                            className="w-full text-left px-4 py-2 text-[14px] font-medium text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors flex items-center gap-2"
+                                                        >
+                                                            <Trash2 size={14} /> Delete
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <button type="button" onClick={(e) => { e.stopPropagation(); toggleDJItemExpand(item.id); }} className="text-[#3F3F47] hover:text-[#030303] transition-colors p-1 rounded-md hover:bg-gray-100">
+                                                <ChevronDown size={20} />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 {item.isExpanded && (
-                                    <div className="px-5 pb-5 flex flex-col gap-4">
-                                        <div className="bg-white border border-[#E4E4E7] rounded-[12px] p-5 flex flex-col gap-6">
-                                            <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Content Details</h5>
+                                    <div className="fixed inset-0 z-50 bg-white overflow-y-auto flex flex-col">
+                                        <div className="w-full max-w-2xl mx-auto flex flex-col p-6 min-h-screen">
                                             
-                                            <TagInput itemId={item.id} field="genres" values={item.genres} placeholder="" />
-                                            
-                                            <TagInput itemId={item.id} field="languages" values={item.languages} placeholder="" />
+                                            <div className="flex items-center justify-between pb-6 mb-6 border-b border-[#E4E4E7] pt-8">
+                                                <div className="flex flex-col gap-1">
+                                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303]">{item.name || `DJ Item ${index + 1}`}</h4>
+                                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#9F9FA9]">Fill out the details about the item you chose.</p>
+                                                </div>
+                                                <button type="button" onClick={(e) => { e.stopPropagation(); deleteDJItem(item.id); }} className="text-red-500 hover:text-red-600 transition-colors p-2 rounded-md hover:bg-red-50">
+                                                    <Trash2 size={24} />
+                                                </button>
+                                            </div>
 
-                                            <div className="flex flex-col gap-2">
-                                                <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#3F3F47] pl-1">About this</label>
-                                                <textarea
-                                                    placeholder="An explosive, high-octane musical experience tailored for elite dance floors. Features a seamless blend..."
-                                                    value={item.description}
-                                                    onChange={(e) => updateDJItem(item.id, 'description', e.target.value)}
-                                                    rows={3}
-                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                    className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9] resize-none"
-                                                />
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] leading-[16px] pl-1 mt-0.5">This appears on your public listing — keep it customer-friendly</p>
+                                            <div className="flex flex-col gap-6 flex-1">
+                                                <div className="bg-white border border-[#E4E4E7] rounded-[12px] p-5 flex flex-col gap-6">
+                                                    <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Content Details</h5>
+                                                    
+                                                    <div className="flex flex-col gap-2">
+                                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#3F3F47] pl-1">Item Name</label>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="e.g., College Fest DJ Night"
+                                                            value={item.name}
+                                                            onChange={(e) => updateDJItem(item.id, 'name', e.target.value)}
+                                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                                        />
+                                                    </div>
+
+                                                    <TagInput itemId={item.id} field="performanceType" values={item.performanceType || []} placeholder="Enter Performance type" title="Perfomance Type" />
+                                                    
+                                                    <TagInput itemId={item.id} field="genres" values={item.genres} placeholder="e.g., Bollywood, EDM, Punjabi" title="Music genre" />
+                                                    
+                                                    <TagInput itemId={item.id} field="languages" values={item.languages} placeholder="e.g., Hindi, English, Punjabi" title="Music Languages" />
+
+                                                    <div className="flex flex-col gap-2">
+                                                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#3F3F47] pl-1">About this</label>
+                                                        <textarea
+                                                            placeholder="An explosive, high-octane musical experience tailored for elite dance floors. Features a seamless blend..."
+                                                            value={item.description}
+                                                            onChange={(e) => updateDJItem(item.id, 'description', e.target.value)}
+                                                            rows={3}
+                                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9] resize-none"
+                                                        />
+                                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] leading-[16px] pl-1 mt-0.5">This appears on your public listing — keep it customer-friendly</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="pt-8 mt-auto pb-8">
+                                                <button 
+                                                    type="button"
+                                                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDJItemExpand(item.id); }} 
+                                                    style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                    className={`w-full py-4 text-white rounded-full font-semibold text-[16px] tracking-wide transition-colors shadow-sm ${isFilled ? 'bg-[#04222D] hover:bg-[#031820]' : 'bg-[#8B9A9F]'}`}>
+                                                    Save Item
+                                                </button>
                                             </div>
                                         </div>
-
-                                        <button 
-                                            type="button"
-                                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleDJItemExpand(item.id); }} 
-                                            style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                            className={`w-full py-4 mt-2 text-white rounded-full font-semibold text-[16px] tracking-wide transition-colors shadow-sm ${isFilled ? 'bg-[#04222D] hover:bg-[#031820]' : 'bg-[#8B9A9F]'}`}>
-                                            Save Item
-                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -295,186 +312,82 @@ export default function DJStep2PackageAndItems({
                     </div>
                 )}
             </div>
-
-            {/* ── Add-Ons ── */}
-            <div className="flex flex-col gap-4">
-                <div className="flex items-center justify-between px-2">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider">ADD-ONS</span>
-                    <button type="button" onClick={handleOpenAddonForm} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-[#030303] flex items-center gap-2 hover:text-[#04222D]">
-                        Add <Plus size={16} />
-                    </button>
-                </div>
-
-                {addons.length === 0 ? (
-                    <div onClick={handleOpenAddonForm} className="w-full h-[220px] bg-white border border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
-                        <div className="w-[80px] h-[80px] flex items-center justify-center mb-[-8px]">
-                            <img src="/images/dj/empty_headphones.png" alt="Empty Addons" className="w-full h-full object-contain mix-blend-multiply" />
-                        </div>
-                        <div className="text-center flex flex-col gap-1">
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">No Add-ons</p>
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] leading-[16px]">To add an add-on click Add on top or in<br />this box</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 gap-4">
-                        {addons.map((addon) => (
-                            <div 
-                                key={addon.id} 
-                                onClick={() => handleEditAddon(addon)}
-                                className="p-4 bg-white border border-[#FCE8EB] rounded-[16px] flex items-center justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-gray-50 transition-all"
-                            >
-                                <div className="flex items-center gap-4">
-                                    <div className="w-[60px] h-[60px] rounded-[8px] bg-gray-200 overflow-hidden flex-shrink-0 relative">
-                                         {addon.media && addon.media[0]?.preview ? (
-                                             <img src={addon.media[0].preview} alt="" className="w-full h-full object-cover" />
-                                         ) : (
-                                             <div className="w-full h-full bg-gradient-to-br from-[#E4E4E7] to-[#D4D4D8]"></div>
-                                         )}
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] leading-tight">{addon.name}</h4>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] mt-1">{addon.productType || 'Product'}/{addon.category || 'Category'}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mt-1">₹ {addon.price}</p>
-                                    </div>
-                                </div>
-                                <button 
-                                    type="button" 
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteAddon(addon.id);
-                                    }} 
-                                    className="w-6 h-6 rounded-full border border-[#9F9FA9] flex items-center justify-center text-[#3F3F47] hover:bg-gray-50 flex-shrink-0"
-                                >
-                                    <div className="w-[10px] h-[1.5px] bg-[#3F3F47]"></div>
-                                </button>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
+            {/* Full-width Add button — Items */}
+            <button
+                type="button"
+                onClick={handleAddDJItem}
+                style={{ fontFamily: 'Figtree, sans-serif' }}
+                className="w-full py-3.5 bg-[#F4F4F5] rounded-[12px] flex items-center justify-center gap-2 text-[15px] font-semibold text-[#030303] hover:bg-gray-200 transition-colors"
+            >
+                Add
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </button>
 
             {/* ── Playlist ── */}
-            <div className={CARD}>
-                <div className="flex items-center justify-between mb-6">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#3F3F47] uppercase tracking-widest">PLAYLIST</span>
-                    <button type="button" onClick={handleAddPlaylist} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] flex items-center gap-2 hover:text-[#04222D]">
-                        Create Playlist <Plus size={16} />
-                    </button>
+            <div className="bg-white p-5 rounded-[12px] border border-[#E4E4E7] flex flex-col">
+                <div className="flex items-center mb-4">
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">Playlist</span>
                 </div>
                 
                 {playlists.length > 0 && (
-                    <div className="flex flex-col gap-6 mb-6">
+                    <div className="flex flex-col gap-4 mb-4">
                         {playlists.map((playlist) => {
                             const totalSongs = playlist.songs.length;
                             return (
                                 <div key={playlist.id} className="flex flex-col">
                                     <div className="flex items-start justify-between">
-                                        <div className="flex gap-4">
-                                            {/* Playlist Image */}
-                                            <div className="w-[72px] h-[72px] rounded-[8px] bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 flex items-center justify-center text-white font-bold text-[12px] overflow-hidden flex-shrink-0 shadow-sm">
-                                                MIX
-                                            </div>
-                                            <div className="flex flex-col pt-1">
-                                                <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] leading-tight mb-1">{playlist.name}</h4>
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-tight mb-3">{totalSongs > 0 ? totalSongs : 50} songs - 3h Duration</p>
-                                                <div className="flex items-center gap-5">
-                                                    <button type="button" onClick={() => setIsUploadModalOpen(playlist.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] hover:underline">Edit Playlist</button>
-                                                    <button type="button" onClick={() => deletePlaylist(playlist.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-normal text-red-500 hover:underline">Remove</button>
-                                                </div>
+                                        <div className="flex flex-col flex-1 pt-1">
+                                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] leading-tight mb-1">{playlist.name}</h4>
+                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-tight mb-3">{totalSongs > 0 ? totalSongs : 50} songs - 3h Duration</p>
+                                            <div className="flex items-center gap-5">
+                                                <button type="button" onClick={() => setIsUploadModalOpen(playlist.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] hover:underline">Edit Playlist</button>
+                                                <button type="button" onClick={() => deletePlaylist(playlist.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-normal text-red-500 hover:underline">Remove</button>
                                             </div>
                                         </div>
-                                        <button type="button" onClick={() => togglePlaylistExpand(playlist.id)} className="text-[#3F3F47] hover:text-[#030303] mt-2 p-1">
-                                            {playlist.isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                        <button type="button" className="text-[#3F3F47] mt-2 p-1 cursor-default">
+                                            <ChevronDown size={20} />
                                         </button>
                                     </div>
-                                    
-                                    {playlist.isExpanded && (
-                                        <div className="flex flex-col mt-6">
-                                            <div className="relative mb-4">
-                                                <input
-                                                    type="text"
-                                                    placeholder="Search song name.."
-                                                    value={songInput[playlist.id] || ''}
-                                                    onChange={(e) => setSongInput(prev => ({ ...prev, [playlist.id]: e.target.value }))}
-                                                    onKeyDown={(e) => handleSongInputKeyDown(e, playlist.id)}
-                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                    className="w-full p-[14px] bg-[#F4F4F5] rounded-[8px] text-[14px] focus:outline-none focus:ring-1 focus:ring-gray-300 pr-12 text-[#030303] placeholder:text-[#9F9FA9]"
-                                                />
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]">
-                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:h-1 [&::-webkit-scrollbar-thumb]:bg-gray-200">
-                                                {['Type 1', 'Type 2', 'Type 3'].map((type) => (
-                                                    <button
-                                                        key={type}
-                                                        type="button"
-                                                        onClick={() => updatePlaylist(playlist.id, 'playlistType', type)}
-                                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                        className={`px-4 py-1.5 rounded-full text-[12px] font-medium transition-colors whitespace-nowrap ${playlist.playlistType === type ? 'bg-[#04222D] text-white' : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-gray-200'}`}
-                                                    >
-                                                        {type}
-                                                    </button>
-                                                ))}
-                                            </div>
-
-                                            {playlist.songs.length > 0 && (
-                                                <div className="flex flex-col gap-0 max-h-[220px] overflow-y-auto pr-4 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-[#F4F4F5] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent">
-                                                    {playlist.songs.map((song: any, i: number) => (
-                                                        <div key={song.id} className={`flex items-center justify-between py-4 ${i !== 0 ? 'border-t border-[#E4E4E7]' : ''}`}>
-                                                            <div className="flex flex-col">
-                                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-medium text-[#030303] leading-snug">{song.name}</span>
-                                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] mt-0.5">{song.artist || 'Genre'}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-4">
-                                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#3F3F47] mt-0.5">{song.duration || '4:22'}</span>
-                                                                <button type="button" onClick={() => removeSongFromPlaylist(playlist.id, song.id)} className="text-red-400 hover:text-red-600"><Trash2 size={18} /></button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                            {playlist.songs.length === 0 && (
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-gray-400 text-center py-4">No songs added. Click 'Upload Music' above or type a name to add.</p>
-                                            )}
-                                            
-                                            <button type="button" onClick={() => togglePlaylistExpand(playlist.id)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-[14px] mt-2 bg-[#04222D] text-white rounded-[8px] font-medium text-[14px] hover:bg-opacity-90 transition-colors">
-                                                Save Playlist
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             );
                         })}
                     </div>
                 )}
 
-                <div className="h-[1px] w-full bg-[#E4E4E7] mb-6"></div>
+                <button
+                    type="button"
+                    onClick={() => {
+                        const newId = handleAddPlaylist();
+                        if (newId) setIsUploadModalOpen(newId);
+                    }}
+                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                    className="w-full py-3 bg-[#E8EAEC] rounded-[8px] flex items-center justify-center gap-2 text-[15px] font-medium text-[#030303] hover:bg-gray-200 transition-colors mb-5"
+                >
+                    Add
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
 
-                <div className="flex flex-col gap-6 mb-2">
+                <div className="h-[1px] w-full bg-[#E4E4E7] mb-5"></div>
+
+                <div className="flex flex-col gap-5">
                     <div className="flex items-center justify-between gap-4">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-normal text-[#3F3F47] leading-snug">Allow customers share their<br />own playlist</span>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-normal text-[#3F3F47] leading-snug">Allow customers share their own playlist</span>
                         <Toggle isOn={customerPlaylistAllowed} onToggle={() => setCustomerPlaylistAllowed(!customerPlaylistAllowed)} />
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-normal text-[#3F3F47] leading-snug">Allow guests to request songs<br />during the event</span>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-normal text-[#3F3F47] leading-snug">Allow guests to request songs during the event</span>
                         <Toggle isOn={guestRequestsAllowed} onToggle={() => setGuestRequestsAllowed(!guestRequestsAllowed)} />
                     </div>
                 </div>
             </div>
 
-            {/* ── Equipment ── */}
-            <div className={CARD}>
-                <div className="flex items-center justify-between">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#3F3F47] uppercase tracking-widest">EQUIPMENT</span>
-                    <button type="button" onClick={() => setIsAddingEquipment(true)} style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] flex items-center gap-2 hover:text-[#04222D]">
-                        Add Equipment <Plus size={16} />
-                    </button>
+            <div className="bg-white p-5 rounded-[12px] border border-[#E4E4E7] flex flex-col">
+                <div className="flex items-center mb-4">
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-semibold text-[#3F3F47] leading-[24px]">Equipment</span>
                 </div>
 
                 {equipments.length > 0 && (
-                    <div className="flex flex-col gap-3 mt-4 mb-2">
+                    <div className="flex flex-col gap-3 mb-4">
                         {equipments.map((eq) => (
                             <div key={eq.id} className="flex items-center justify-between p-[18px] bg-white border border-[#E4E4E7] rounded-[8px] shadow-sm">
                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-[#030303]">{eq.name}</span>
@@ -484,20 +397,88 @@ export default function DJStep2PackageAndItems({
                     </div>
                 )}
 
-                <div className="h-[1px] w-full bg-[#E4E4E7] my-4"></div>
+                <button
+                    type="button"
+                    onClick={() => setIsAddingEquipment(true)}
+                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                    className="w-full py-3 bg-[#F4F4F5] rounded-[8px] flex items-center justify-center gap-2 text-[15px] font-medium text-[#030303] hover:bg-gray-200 transition-colors mb-5"
+                >
+                    Add
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                </button>
 
-                <div className="flex items-center justify-between mb-2">
+                <div className="h-[1px] w-full bg-[#E4E4E7] mb-5"></div>
+
+                <div className="flex items-center justify-between">
                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-normal text-[#3F3F47]">I carry backup equipment</span>
                     <Toggle isOn={hasBackupEquipment} onToggle={() => setHasBackupEquipment(!hasBackupEquipment)} />
                 </div>
             </div>
 
-            {/* ── Whats Included ── */}
+            <div className="flex flex-col gap-4">
+                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">Add-ons <span className="text-red-500">*</span></span>
+
+                {addons.length === 0 ? (
+                    <div onClick={handleOpenAddonForm} className="w-full h-[220px] bg-transparent border border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
+                        <div className="w-[80px] h-[80px] flex items-center justify-center mb-[-8px]">
+                            <img src="/images/dj/empty_headphones.png" alt="Empty Addons" className="w-full h-full object-contain mix-blend-multiply contrast-125 brightness-110" />
+                        </div>
+                        <div className="text-center flex flex-col gap-1">
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">No Add-ons</p>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] leading-[16px]">To add an add-on click Add on top or in<br />this box</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        {addons.map((addon) => (
+                            <div
+                                key={addon.id}
+                                onClick={() => handleEditAddon(addon)}
+                                className="p-4 bg-white border border-[#FCE8EB] rounded-[16px] flex items-center justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)] cursor-pointer hover:bg-gray-50 transition-all"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="w-[60px] h-[60px] rounded-[8px] bg-gray-200 overflow-hidden flex-shrink-0 relative">
+                                        {addon.media && addon.media[0]?.preview ? (
+                                            <img src={addon.media[0].preview} alt="" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-gradient-to-br from-[#E4E4E7] to-[#D4D4D8]"></div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] leading-tight">{addon.name}</h4>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] mt-1">{addon.productType || 'Product'}/{addon.category || 'Category'}</p>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mt-1">₹ {addon.price}</p>
+                                    </div>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); deleteAddon(addon.id); }}
+                                    className="w-6 h-6 rounded-full border border-[#9F9FA9] flex items-center justify-center text-[#3F3F47] hover:bg-gray-50 flex-shrink-0"
+                                >
+                                    <div className="w-[10px] h-[1.5px] bg-[#3F3F47]"></div>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+            {/* Full-width Add button — Addons */}
+            <button
+                type="button"
+                onClick={handleOpenAddonForm}
+                style={{ fontFamily: 'Figtree, sans-serif' }}
+                className="w-full py-3.5 bg-[#F4F4F5] rounded-[12px] flex items-center justify-center gap-2 text-[15px] font-semibold text-[#030303] hover:bg-gray-200 transition-colors"
+            >
+                Add
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </button>
+
+            {/* ── About The Package ── */}
             <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider mb-[-12px]">WHATS INCLUDED</h3>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">List everything a customer gets when they book this package</p>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">About The Package</h3>
+                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9] mt-[-8px]">List everything a customer gets when they book this package</p>
                 <textarea
-                    placeholder="Enter Details..."
+                    placeholder="Enter details"
                     value={providedDetails}
                     onChange={(e) => setProvidedDetails(e.target.value)}
                     rows={4}
@@ -506,13 +487,13 @@ export default function DJStep2PackageAndItems({
                 />
             </div>
 
-            {/* ── Whats Not Included ── */}
+            {/* ── What's Not Included ── */}
             <div className={CARD}>
-                <div className="flex items-center gap-2 mb-[-12px]">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider">WHATS NOT INCLUDED</h3>
-                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center"><Info size={12} className="text-red-600" /></div>
+                <div className="flex items-center gap-2">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">What's Not Included</h3>
+                    <Info size={16} className="text-red-600" />
                 </div>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">Help customers know what they'll need to arrange separately</p>
+                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9] mt-[-8px]">Help customers know what they'll need to arrange separately</p>
                 <textarea
                     placeholder="Enter Details..."
                     value={notProvidedDetails}

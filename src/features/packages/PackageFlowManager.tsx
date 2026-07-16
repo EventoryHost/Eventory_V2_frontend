@@ -10,9 +10,10 @@ import VenueFlow from './flows/venue/VenueFlow';
 
 interface Props {
     vendorType: string;
+    onExitFlow?: () => void;
 }
 
-export default function PackageFlowManager({ vendorType }: Props) {
+export default function PackageFlowManager({ vendorType, onExitFlow }: Props) {
     switch (vendorType) {
         case 'CAT':
             return <CatererFlow />;
@@ -21,7 +22,7 @@ export default function PackageFlowManager({ vendorType }: Props) {
         case 'DEC':
             return <DecoratorFlow />;
         case 'DJA':
-            return <DJFlow />;
+            return <DJFlow onExitFlow={onExitFlow} />;
         case 'PAV':
             return <PAVFlow />;
         case 'VEN':
