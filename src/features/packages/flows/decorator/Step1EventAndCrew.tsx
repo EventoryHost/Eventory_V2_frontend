@@ -8,6 +8,10 @@ interface Props {
     setPackageName: (v: string) => void;
     eventCategories: string;
     setEventCategories: (v: string) => void;
+    eventMinDuration: string;
+    setEventMinDuration: (v: string) => void;
+    eventMaxDuration: string;
+    setEventMaxDuration: (v: string) => void;
     poc: string;
     setPoc: (v: string) => void;
     setupDuration: string;
@@ -29,7 +33,6 @@ const INPUT = 'w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[1
 const HEAD = 'text-[18px] font-bold text-[#030303] leading-[24px]';
 const HELPER = 'text-[12px] font-normal text-[#9F9FA9] leading-[18px] ml-1';
 
-const pocOptions = ['Rahul Sharma', 'Ananya Mehta', 'Karan Patel'];
 const SUGGESTIONS = [
     'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Baby shower', 'Anniversary'
 ];
@@ -44,6 +47,10 @@ export default function DecoratorStep1EventAndCrew({
     setPackageName,
     eventCategories,
     setEventCategories,
+    eventMinDuration,
+    setEventMinDuration,
+    eventMaxDuration,
+    setEventMaxDuration,
     poc,
     setPoc,
     setupDuration,
@@ -109,13 +116,13 @@ export default function DecoratorStep1EventAndCrew({
         <div className="flex flex-col gap-6 pb-40">
             {/* Package & Event Details */}
             <section className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Package and Event Details *</h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Package Details *</h3>
 
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Package name</label>
                     <input
                         type="text"
-                        placeholder="e.g., Premium Wedding Buffet"
+                        placeholder="Package Name"
                         value={packageName}
                         onChange={(event) => setPackageName(event.target.value)}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
@@ -197,11 +204,66 @@ export default function DecoratorStep1EventAndCrew({
                         )}
                     </div>
                 </div>
+            
+                <div className="flex flex-col gap-2">
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Event duration *</label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#3F3F47] leading-[18px]">Min Duration</p>
+                            <div className="relative">
+                                <select
+                                    value={eventMinDuration}
+                                    onChange={(event) => setEventMinDuration(event.target.value)}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`${INPUT} appearance-none pr-12 ${eventMinDuration ? 'text-[#030303]' : 'text-[#9F9FA9]'}`}
+                                >
+                                    <option value="">hrs</option>
+                                    {[...Array(24)].map((_, i) => (
+                                        <option key={i+1} value={i+1}>{i+1} hrs</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#3F3F47] leading-[18px]">Max Duration</p>
+                            <div className="relative">
+                                <select
+                                    value={eventMaxDuration}
+                                    onChange={(event) => setEventMaxDuration(event.target.value)}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`${INPUT} appearance-none pr-12 ${eventMaxDuration ? 'text-[#030303]' : 'text-[#9F9FA9]'}`}
+                                >
+                                    <option value="">hrs</option>
+                                    {[...Array(24)].map((_, i) => (
+                                        <option key={i+1} value={i+1}>{i+1} hrs</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
             {/* Capacity & Crew */}
             <section className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Capacity & Crew *</h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Crew and Setup *</h3>
+
+                <div className="flex flex-col gap-2">
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Point of Contact(POC)</label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={poc}
+                            onChange={(event) => setPoc(event.target.value)}
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            placeholder="Enter POC name"
+                            className={INPUT}
+                        />
+                    </div>
+                </div>
 
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Setup Duration</label>
@@ -212,31 +274,14 @@ export default function DecoratorStep1EventAndCrew({
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className={`${INPUT} appearance-none pr-12 ${setupDuration ? 'text-[#030303]' : 'text-[#9F9FA9]'}`}
                         >
-                            <option value="">E.g Upto 2 hours</option>
+                            <option value="">E.g Upto 1 hour</option>
                             {setupDurationOptions.map((option) => (
                                 <option key={option} value={option}>{option}</option>
                             ))}
                         </select>
                         <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
                     </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>POC</label>
-                    <div className="relative">
-                        <select
-                            value={poc}
-                            onChange={(event) => setPoc(event.target.value)}
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className={`${INPUT} appearance-none pr-12 ${poc ? 'text-[#030303]' : 'text-[#9F9FA9]'}`}
-                        >
-                            <option value="">Text + Dropdown</option>
-                            {pocOptions.map((option) => (
-                                <option key={option} value={option}>{option}</option>
-                            ))}
-                        </select>
-                        <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
-                    </div>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to Input field.</p>
                 </div>
 
                 <div className="flex flex-col gap-2">
@@ -244,7 +289,7 @@ export default function DecoratorStep1EventAndCrew({
                     <div className="grid grid-cols-2 gap-4">
                         <input
                             type="text"
-                            placeholder="Min. Crew Size"
+                            placeholder="Supervisors"
                             value={supervisors}
                             onChange={(event) => setSupervisors(event.target.value.replace(/\D/g, ''))}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
@@ -252,7 +297,7 @@ export default function DecoratorStep1EventAndCrew({
                         />
                         <input
                             type="text"
-                            placeholder="Max. Crew Size"
+                            placeholder="Workers"
                             value={workers}
                             onChange={(event) => setWorkers(event.target.value.replace(/\D/g, ''))}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
@@ -264,7 +309,7 @@ export default function DecoratorStep1EventAndCrew({
 
             {/* Requirement-Focused */}
             <section className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>On-site Requirements *</h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Venue Needs *</h3>
 
                 <div className="flex flex-col gap-3">
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Needs from the Venue</p>
@@ -277,13 +322,12 @@ export default function DecoratorStep1EventAndCrew({
                                     type="button"
                                     onClick={() => toggleVenueNeed(need)}
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className={`flex items-center gap-2 rounded-full px-4 py-2 text-[14px] font-normal leading-[20px] transition-all ${
+                                    className={`flex items-center justify-center rounded-full px-4 py-2 text-[14px] font-normal leading-[20px] transition-all ${
                                         isSelected
                                             ? 'bg-[#04222D] text-white'
                                             : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-gray-200'
                                     }`}
                                 >
-                                    {isSelected ? <Check size={14} /> : <Plus size={14} />}
                                     <span>{need}</span>
                                 </button>
                             );
@@ -300,7 +344,7 @@ export default function DecoratorStep1EventAndCrew({
                         style={{ fontFamily: 'Figtree, sans-serif' }}
                         className={`${INPUT} resize-none`}
                     />
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to Input field.</p>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Enter your Venue needs in the text box</p>
                 </div>
             </section>
         </div>

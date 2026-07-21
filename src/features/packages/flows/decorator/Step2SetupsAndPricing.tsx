@@ -3,12 +3,20 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronDown, MoreHorizontal, Pencil, Trash2, X, ShieldAlert, Check, PlusCircle, Camera, Edit2 } from 'lucide-react';
+import { Plus, ChevronDown, MoreHorizontal, Pencil, Trash2, X, ShieldAlert, Check, PlusCircle, Camera, Edit2, ChevronRight, ArrowLeft, MinusCircle } from 'lucide-react';
 import { Addon, AddonModal } from '../../components/AddonModal';
 
 // Setup types mapped to the backend mongoose schema
 export interface SetupItem {
     name: string;
+    itemType?: string;
+    flowerType?: string;
+    volume?: string;
+    lightingType?: string;
+    dimensions?: string;
+    colors?: string[];
+    chargeMoreForLargerSize?: boolean;
+    description?: string;
     qty: number;
     unit: string;
     price: number;
@@ -22,10 +30,12 @@ export interface Setup {
     description: string;
     price: string;
     decoratingWhat: string; // What are you decorating?
+    structuresIncluded?: string[]; // Added for Figma match
+    themes?: string[]; // Added for Figma match
     items: SetupItem[];
-    notPartOfSetup: string;
-    partOfSetup: string;
 }
+
+import { ItemManagerModal } from './ItemManagerModal';
 
 interface Props {
     setups: Setup[];
@@ -103,18 +113,16 @@ const STOCK_STYLES = [
     {
         id: 'style_floral_arch',
         name: 'Floral Arch',
-        setupPhoto: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?q=80&w=600',
+        setupPhoto: 'https://dkuacgndftndz.cloudfront.net/inventory-page/floral%20arch.png',
         referenceStyle: 'Indoor',
         description: 'Includes: Flowers, Frame, Drapes',
         price: '2500',
         decoratingWhat: 'Door',
         items: [
-            { name: 'Steel Frame (Adjustable)', qty: 1, unit: 'Units', price: 120 },
-            { name: 'Fresh Flowers (Roses & Orchids)', qty: 50, unit: 'Pcs', price: 15 },
-            { name: 'Drapes (Satin / Silk)', qty: 4, unit: 'Meters', price: 200 }
-        ],
-        partOfSetup: '• Floral Arch Frame\n• Fresh flower arrangements\n• Premium drapery',
-        notPartOfSetup: '• Ambient spot lighting\n• Additional stands'
+            { name: 'Steel Frame (Adjustable)', itemType: 'Custom', qty: 1, unit: 'Units', price: 120 },
+            { name: 'Fresh Flowers (Roses & Orchids)', itemType: 'Flowers', flowerType: 'Rose', volume: 'Medium', qty: 50, unit: 'Pcs', price: 15 },
+            { name: 'Drapes (Satin / Silk)', itemType: 'Custom', qty: 4, unit: 'Meters', price: 200 }
+        ]
     },
     {
         id: 'style_royal_table',
@@ -125,14 +133,78 @@ const STOCK_STYLES = [
         price: '4500',
         decoratingWhat: 'Dining Area',
         items: [
-            { name: 'Floral Centerpiece', qty: 10, unit: 'Pcs', price: 300 },
-            { name: 'Scented Candle Holders', qty: 20, unit: 'Pcs', price: 50 },
-            { name: 'Premium Satin Table Runners', qty: 10, unit: 'Pcs', price: 100 }
-        ],
-        partOfSetup: '• Premium tableware setting\n• Candles and crystal stands',
-        notPartOfSetup: '• Chairs and heavy catering tables'
+            { name: 'Floral Centerpiece', itemType: 'Flowers', flowerType: 'Mixed', volume: 'Medium', qty: 10, unit: 'Pcs', price: 300 },
+            { name: 'Scented Candle Holders', itemType: 'Lighting', lightingType: 'Candles', qty: 20, unit: 'Pcs', price: 50 },
+        ]
     }
 ];
+
+// Reusable Multi-Select Pills Component
+const MultiSelectPills = ({ 
+    options, 
+    selected, 
+    onChange, 
+    customInputPlaceholder 
+}: { 
+    options: string[], 
+    selected: string[], 
+    onChange: (val: string[]) => void,
+    customInputPlaceholder: string
+}) => {
+    const [customValue, setCustomValue] = React.useState('');
+
+    const toggle = (opt: string) => {
+        if (selected.includes(opt)) {
+            onChange(selected.filter(o => o !== opt));
+        } else {
+            onChange([...selected, opt]);
+        }
+    };
+
+    const handleCustomSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && customValue.trim() !== '') {
+            e.preventDefault();
+            if (!selected.includes(customValue.trim())) {
+                onChange([...selected, customValue.trim()]);
+            }
+            setCustomValue('');
+        }
+    };
+
+    const allOptions = Array.from(new Set([...options, ...selected]));
+
+    return (
+        <div className="flex flex-col gap-3 p-4 border border-[#E4E4E7] rounded-[16px] bg-white shadow-sm">
+            <div className="flex flex-wrap gap-2">
+                {allOptions.map(opt => (
+                    <button
+                        key={opt}
+                        type="button"
+                        onClick={() => toggle(opt)}
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                        className={`px-4 py-2 rounded-full text-[14px] transition-colors flex items-center gap-1.5 ${
+                            selected.includes(opt) 
+                            ? 'bg-[#04222D] text-white border border-[#04222D] font-normal' 
+                            : 'bg-[#F4F4F5] text-[#030303] border border-transparent hover:bg-gray-200 font-normal'
+                        }`}
+                    >
+                        {opt}
+                        {selected.includes(opt) && <span className="flex items-center justify-center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>}
+                    </button>
+                ))}
+            </div>
+            <input
+                type="text"
+                placeholder={customInputPlaceholder}
+                value={customValue}
+                onChange={(e) => setCustomValue(e.target.value)}
+                onKeyDown={handleCustomSubmit}
+                className="w-full text-[12px] bg-transparent border-none focus:outline-none placeholder:text-[#9F9FA9] text-[#030303] mt-1"
+                style={{ fontFamily: 'Figtree, sans-serif' }}
+            />
+        </div>
+    );
+};
 
 export default function DecoratorStep2SetupsAndPricing({
     setups,
@@ -152,25 +224,30 @@ export default function DecoratorStep2SetupsAndPricing({
     const [modalStage, setModalStage] = React.useState<'CHOOSE_STYLE' | 'EDIT_SETUP'>('CHOOSE_STYLE');
     const [selectedStyleId, setSelectedStyleId] = React.useState<string | null>(null);
     const [editingSetupId, setEditingSetupId] = React.useState<string | null>(null);
-    const totalCalculatedPrice = setups.reduce((acc, curr) => acc + (Number(curr.price) || 0), 0);
+    const totalCalculatedPrice = setups.reduce((acc, setup) => {
+        const itemsTotal = (setup.items || []).reduce((iAcc, item) => iAcc + ((Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
+        return acc + (Number(setup.price) || 0) + itemsTotal;
+    }, 0) + addons.reduce((acc, addon) => acc + (Number(addon.price) || 0), 0);
 
     // Setup Custom Form States
     const [setupName, setSetupName] = React.useState('');
     const [isCustomName, setIsCustomName] = React.useState(false);
     
     const [setupDecoratingWhat, setSetupDecoratingWhat] = React.useState('Door');
-    const [isCustomDecorating, setIsCustomDecorating] = React.useState(false);
+    const [setupDecoratingWhatList, setSetupDecoratingWhatList] = React.useState<string[]>([]);
+    
+    const [setupStructures, setSetupStructures] = React.useState<string[]>([]);
+    const [setupThemes, setSetupThemes] = React.useState<string[]>([]);
 
     const [setupReferenceStyle, setSetupReferenceStyle] = React.useState('Indoor'); // Indoor/Outdoor/Both
     const [setupDescription, setSetupDescription] = React.useState('');
     const [setupPrice, setSetupPrice] = React.useState('');
     const [setupPhoto, setSetupPhoto] = React.useState('');
     const [setupItems, setSetupItems] = React.useState<SetupItem[]>([]);
-    const [setupPartOfSetup, setSetupPartOfSetup] = React.useState('');
-    const [setupNotPartOfSetup, setSetupNotPartOfSetup] = React.useState('');
 
     // Inline item edit state in setup wizard
     const [editingItemIndex, setEditingItemIndex] = React.useState<number | null>(null);
+    const [isItemManagerOpen, setIsItemManagerOpen] = React.useState(false);
     const [itemEditName, setItemEditName] = React.useState('');
     const [itemEditQty, setItemEditQty] = React.useState(1);
     const [itemEditUnit, setItemEditUnit] = React.useState('Pcs');
@@ -190,18 +267,17 @@ export default function DecoratorStep2SetupsAndPricing({
     const openEditSetup = (setup: Setup) => {
         setEditingSetupId(setup.id);
         setSetupName(setup.name);
-        setIsCustomName(!['Floral Arch', 'Flora Arch', 'Royal Table Decor'].includes(setup.name));
         
         setSetupDecoratingWhat(setup.decoratingWhat);
-        setIsCustomDecorating(!['Door', 'Stage', 'Entrance', 'Mandap', 'Photo Booth', 'Dining Area'].includes(setup.decoratingWhat));
+        setSetupDecoratingWhatList(setup.decoratingWhat ? setup.decoratingWhat.split(', ') : []);
+        setSetupStructures(setup.structuresIncluded || []);
+        setSetupThemes(setup.themes || []);
 
         setSetupReferenceStyle(setup.referenceStyle || 'Indoor');
         setSetupDescription(setup.description || '');
         setSetupPrice(setup.price || '');
         setSetupPhoto(setup.setupPhoto || STOCK_STYLES[0].setupPhoto);
         setSetupItems(setup.items || []);
-        setSetupPartOfSetup(setup.partOfSetup || '');
-        setSetupNotPartOfSetup(setup.notPartOfSetup || '');
         setEditingItemIndex(null);
         
         setModalStage('EDIT_SETUP');
@@ -217,19 +293,17 @@ export default function DecoratorStep2SetupsAndPricing({
                 const base64Url = event.target?.result as string;
                 // Initialize Custom Setup with uploaded image
                 setEditingSetupId(null);
-                setSetupName('Custom Setup');
-                setIsCustomName(true);
-                setSetupDecoratingWhat('Stage');
-                setIsCustomDecorating(false);
+                setSetupName('');
+                setSetupDecoratingWhatList([]);
+                setSetupStructures([]);
+                setSetupThemes([]);
                 setSetupReferenceStyle('Indoor');
                 setSetupDescription('Custom uploaded setup reference photo.');
                 setSetupPrice('5000');
                 setSetupPhoto(base64Url);
-                setSetupPartOfSetup('• Premium custom setup installations');
-                setSetupNotPartOfSetup('• Power generator backing');
                 setSetupItems([
-                    { name: 'Structure Frame', qty: 1, unit: 'Units', price: 1500 },
-                    { name: 'Custom Decor Elements', qty: 1, unit: 'Pcs', price: 3500 }
+                    { name: 'Structure Frame', itemType: 'Custom', qty: 1, unit: 'Units', price: 1500 },
+                    { name: 'Custom Decor Elements', itemType: 'Custom', qty: 1, unit: 'Pcs', price: 3500 }
                 ]);
                 setEditingItemIndex(null);
                 
@@ -243,16 +317,15 @@ export default function DecoratorStep2SetupsAndPricing({
     const handleNextStage = () => {
         const style = STOCK_STYLES.find(s => s.id === selectedStyleId) || STOCK_STYLES[0];
         setSetupName(style.name);
-        setIsCustomName(false);
         setSetupDecoratingWhat(style.decoratingWhat);
-        setIsCustomDecorating(false);
+        setSetupDecoratingWhatList([style.decoratingWhat]);
+        setSetupStructures([]);
+        setSetupThemes([]);
         setSetupReferenceStyle(style.referenceStyle);
         setSetupDescription(style.description);
         setSetupPrice(style.price);
         setSetupPhoto(style.setupPhoto);
         setSetupItems(style.items);
-        setSetupPartOfSetup(style.partOfSetup);
-        setSetupNotPartOfSetup(style.notPartOfSetup);
         setEditingItemIndex(null);
         
         setModalStage('EDIT_SETUP');
@@ -271,10 +344,10 @@ export default function DecoratorStep2SetupsAndPricing({
             referenceStyle: setupReferenceStyle,
             description: setupDescription,
             price: setupPrice,
-            decoratingWhat: setupDecoratingWhat,
+            decoratingWhat: setupDecoratingWhatList.join(', '),
+            structuresIncluded: setupStructures,
+            themes: setupThemes,
             items: setupItems,
-            partOfSetup: setupPartOfSetup,
-            notPartOfSetup: setupNotPartOfSetup,
         };
 
         if (editingSetupId) {
@@ -288,39 +361,30 @@ export default function DecoratorStep2SetupsAndPricing({
 
     // Edit dynamic item row handlers
     const startEditItem = (index: number) => {
-        const item = setupItems[index];
         setEditingItemIndex(index);
-        setItemEditName(item.name);
-        setItemEditQty(item.qty);
-        setItemEditUnit(item.unit);
-        setItemEditPrice(item.price);
-    };
-
-    const saveEditedItem = () => {
-        if (editingItemIndex === null) return;
-        setSetupItems(prev => prev.map((item, idx) => {
-            if (idx === editingItemIndex) {
-                return {
-                    name: itemEditName,
-                    qty: itemEditQty,
-                    unit: itemEditUnit,
-                    price: itemEditPrice
-                };
-            }
-            return item;
-        }));
-        setEditingItemIndex(null);
+        setIsItemManagerOpen(true);
     };
 
     const deleteItemRow = (index: number) => {
-        setSetupItems(prev => prev.filter((_, idx) => idx !== index));
+        setSetupItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handleSaveItemManager = (newItem: SetupItem) => {
+        const updatedItems = [...setupItems];
+        if (editingItemIndex !== null && editingItemIndex >= 0) {
+            updatedItems[editingItemIndex] = newItem;
+        } else {
+            updatedItems.push(newItem);
+        }
+        setSetupItems(updatedItems);
+        setIsItemManagerOpen(false);
         setEditingItemIndex(null);
     };
 
     const addNewItemRow = () => {
         const newItem = { name: 'New Decor Item', qty: 1, unit: 'Pcs', price: 100 };
         setSetupItems(prev => [...prev, newItem]);
-        startEditItem(setupItems.length);
+        startEditItem(setupItems.length - 1);
     };
 
     // Automatic bullet prefix formatting
@@ -363,96 +427,79 @@ export default function DecoratorStep2SetupsAndPricing({
             <div className="flex flex-col gap-6 pb-40">
                 {/* ── SETUPS Section ── */}
                 <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SECTION_LABEL}>Setups</span>
-                        <button
-                            type="button"
-                            onClick={openCreateSetup}
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="flex items-center gap-1.5 text-[14px] font-bold text-[#04222D] hover:underline transition-all"
-                        >
-                            <span>Add setup</span>
-                            <PlusCircle size={16} className="text-[#04222D]" />
-                        </button>
+                    <div className="flex items-center justify-between mb-1">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold uppercase tracking-wide text-[#030303]">SETUPS</span>
                     </div>
 
                     {setups.length > 0 ? (
                         <div className="flex flex-col gap-4">
                             {/* Total Package Price Card/Banner */}
-                            <div className="bg-[#F4F4F5] rounded-[16px] p-5 flex flex-col items-center gap-1.5 border border-[#E4E4E7]/30">
-                                <span style={DECORATION_ITEMS_STYLE} className="text-[11px] font-bold uppercase tracking-wider text-[#71717B]">
+                            <div className="bg-[#F4F4F5] rounded-[16px] p-6 flex flex-col items-center gap-3 border border-[#E4E4E7]/30">
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold uppercase tracking-wider text-[#4B5563]">
                                     TOTAL PACKAGE PRICE
                                 </span>
-                                <div className="flex items-center gap-2 bg-white px-8 py-3 rounded-[12px] shadow-xs border border-gray-100 min-w-[200px] justify-center">
-                                    <span style={HEADING_STYLE} className="text-[18px]">₹</span>
-                                    <span style={HEADING_STYLE} className="text-[24px] font-black">
-                                        {totalCalculatedPrice.toLocaleString('en-IN')}
-                                    </span>
-                                    <button type="button" className="text-gray-400 hover:text-gray-600 ml-2" title="Edit manual price">
-                                        <Pencil size={15} />
+                                <div className="flex items-center gap-4">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[32px] font-bold text-[#030303] leading-none mt-1">₹</span>
+                                    <div className="flex items-center justify-center bg-white px-8 py-3 rounded-[12px] shadow-sm border border-black/5 min-w-[200px]">
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[32px] font-black tracking-tight text-[#030303] leading-none">
+                                            {totalCalculatedPrice.toLocaleString('en-IN')}
+                                        </span>
+                                    </div>
+                                    <button type="button" className="w-12 h-12 rounded-full bg-[#CBD5E1]/50 flex items-center justify-center text-[#475569] hover:bg-[#CBD5E1] transition-colors shadow-sm" title="Edit manual price">
+                                        <Pencil size={20} strokeWidth={1.5} />
                                     </button>
                                 </div>
-                                <span style={SUBTEXT_STYLE} className="text-[11px] text-[#71717B]">
-                                    Calculated from items
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#4B5563]">
+                                    Calculated from items. Edit to override
                                 </span>
                             </div>
 
-                            {/* Section Heading: Setups (Count) */}
-                            <h3 style={HEADING_STYLE} className="text-[20px] font-bold text-[#030303] mt-2 mb-1">
-                                Setups ({setups.length})
-                            </h3>
-
                             {/* List of horizontal rows */}
-                            <div className="flex flex-col gap-3">
+                            <div className="flex flex-col gap-3 mt-1">
                                 {setups.map((setup) => {
                                     const itemCount = setup.items?.length || 0;
+                                    const itemsTotal = (setup.items || []).reduce((acc, item) => acc + ((Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
+                                    const setupTotal = (Number(setup.price) || 0) + itemsTotal;
                                     return (
-                                        <div key={setup.id} className="p-4 bg-white border border-[#E4E4E7] rounded-[16px] flex items-center justify-between shadow-xs">
-                                            <div className="flex items-center gap-4">
+                                        <div 
+                                            key={setup.id} 
+                                            onClick={() => openEditSetup(setup)}
+                                            className="p-3 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                                        >
+                                            <div className="flex items-center gap-4 pointer-events-none">
                                                 {/* Thumbnail Image */}
                                                 <img 
-                                                    src={setup.setupPhoto} 
+                                                    src={setup.setupPhoto || "https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=600"} 
                                                     alt={setup.name} 
-                                                    className="w-16 h-16 rounded-[12px] object-cover bg-gray-100 flex-shrink-0"
+                                                    className="w-[56px] h-[64px] rounded-[8px] object-cover bg-transparent flex-shrink-0"
                                                 />
                                                 
                                                 {/* Details */}
-                                                <div className="flex flex-col gap-1">
-                                                    <span style={HEADING_STYLE} className="text-[16px]">
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-[#111827]">
                                                         {setup.name}
                                                     </span>
-                                                    <div className="flex items-center gap-2">
-                                                        {/* Item count badge */}
-                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="bg-[#F4F4F5] text-[#71717B] text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-[4px]">
-                                                            {itemCount} {itemCount === 1 ? 'ITEM' : 'ITEMS'}
-                                                        </span>
-                                                        {/* Price */}
-                                                        <span style={SUBTEXT_STYLE} className="text-[14px] font-medium">
-                                                            ₹{setup.price ? Number(setup.price).toLocaleString('en-IN') : '0'}
-                                                        </span>
-                                                    </div>
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#9CA3AF]">
+                                                        {itemCount} {itemCount === 1 ? 'Item' : 'Items'}
+                                                    </span>
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#111827] mt-1">
+                                                        ₹ {setupTotal.toLocaleString('en-IN')}
+                                                    </span>
                                                 </div>
                                             </div>
                                             
-                                            {/* Edit trigger icon button */}
-                                            <div className="flex items-center gap-2">
+                                            {/* Delete trigger icon button */}
+                                            <div className="flex items-center pr-2">
                                                 <button
                                                     type="button"
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         if(confirm('Are you sure you want to delete this setup?')) deleteSetup(setup.id);
                                                     }}
-                                                    className="w-10 h-10 rounded-full border border-red-100 flex items-center justify-center text-red-500 hover:bg-red-50 transition-colors"
+                                                    className="text-[#1E293B] hover:text-[#030303] transition-colors"
                                                     title="Delete Setup"
                                                 >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => openEditSetup(setup)}
-                                                    className="w-10 h-10 rounded-full border border-[#E4E4E7] flex items-center justify-center text-[#71717A] hover:bg-gray-50 transition-colors"
-                                                    title="Edit Setup"
-                                                >
-                                                    <Pencil size={16} />
+                                                    <MinusCircle size={26} strokeWidth={1.25} />
                                                 </button>
                                             </div>
                                         </div>
@@ -461,88 +508,136 @@ export default function DecoratorStep2SetupsAndPricing({
                             </div>
                         </div>
                     ) : (
-                        <div className="h-4 bg-transparent" />
+                        <div className="flex flex-col gap-4 mt-2">
+                            <div className="flex flex-col items-center justify-center py-8 border-[2px] border-dashed border-[#E4E4E7] rounded-[16px] bg-white cursor-pointer" onClick={openCreateSetup}>
+                                <img src="https://dkuacgndftndz.cloudfront.net/inventory-page/decorationpage2.png" alt="No setups added" className="w-32 h-24 mb-3 object-contain grayscale opacity-60" />
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-1">No setups added</span>
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] text-center max-w-[200px]">To add an item click on Add Item on top or in this box</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={openCreateSetup}
+                                className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
+                            >
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">
+                                    Add
+                                </span>
+                                <PlusCircle size={16} className="text-[#030303]" strokeWidth={1.5} />
+                            </button>
+                        </div>
                     )}
                 </div>
 
                 {/* ── EXTRA ADD-ONS Section ── */}
                 <div className="flex flex-col gap-3">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SECTION_LABEL}>Extra Add-ons</span>
+                    <div className="flex items-center justify-between mb-1">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold uppercase tracking-wide text-[#030303]">ADD-ONS <span className="text-red-500">*</span></span>
+                    </div>
                     
-                    {addons.length > 0 && (
-                        <div className="flex flex-col gap-3">
+                    {addons.length > 0 ? (
+                        <div className="flex flex-col gap-3 mt-1">
                             {addons.map((addon) => (
                                 <div 
                                     key={addon.id} 
                                     onClick={() => handleEditAddon(addon)}
-                                    className="p-4 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-all"
+                                    className="p-3 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
                                 >
-                                    <div className="flex flex-col">
-                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[24px]">
-                                            {addon.name}
-                                        </span>
-                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#9F9FA9] leading-[18px]">
-                                            {addon.type} • {addon.price ? `₹${addon.price}` : 'Free'} {addon.price && `• ${addon.billingUnit}`}
-                                        </span>
+                                    <div className="flex items-center gap-4 pointer-events-none">
+                                        <img 
+                                            src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=600" 
+                                            alt={addon.name} 
+                                            className="w-[56px] h-[64px] rounded-[8px] object-cover bg-transparent flex-shrink-0"
+                                        />
+                                        <div className="flex flex-col gap-0.5">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-[#111827]">
+                                                {addon.name}
+                                            </span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#9CA3AF]">
+                                                {addon.type}
+                                            </span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#111827] mt-1">
+                                                ₹ {addon.price ? Number(addon.price).toLocaleString('en-IN') : '0'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div className="relative" onClick={(e) => e.stopPropagation()}>
+                                    <div className="relative pr-2" onClick={(e) => e.stopPropagation()}>
                                         <button
                                             type="button"
-                                            onClick={() => handleEditAddon(addon)}
-                                            className="hover:bg-gray-100 p-2 rounded-full text-[#71717A]"
-                                            title="Edit Add-on"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if(confirm('Are you sure you want to delete this add-on?')) deleteAddon(addon.id);
+                                            }}
+                                            className="text-[#1E293B] hover:text-[#030303] transition-colors"
+                                            title="Delete Add-on"
                                         >
-                                            <Pencil size={16} />
+                                            <MinusCircle size={26} strokeWidth={1.25} />
                                         </button>
                                     </div>
                                 </div>
                             ))}
+                            <button
+                                type="button"
+                                onClick={handleOpenAddonForm}
+                                className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
+                            >
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">
+                                    Add
+                                </span>
+                                <PlusCircle size={16} className="text-[#030303]" strokeWidth={1.5} />
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="flex flex-col gap-4 mt-2">
+                            <div className="flex flex-col items-center justify-center py-8 border-[2px] border-dashed border-[#E4E4E7] rounded-[16px] bg-white cursor-pointer" onClick={handleOpenAddonForm}>
+                                <img src="https://dkuacgndftndz.cloudfront.net/inventory-page/decorationpage21.png" alt="No Add-ons" className="w-32 h-24 mb-3 object-contain grayscale opacity-60" />
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-1">No Add-ons</span>
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] text-center max-w-[200px]">To add an add-on click Add on top or in this box</span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleOpenAddonForm}
+                                className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
+                            >
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">
+                                    Add
+                                </span>
+                                <PlusCircle size={16} className="text-[#030303]" strokeWidth={1.5} />
+                            </button>
                         </div>
                     )}
-
-                    <div className="w-full bg-white rounded-[12px] border border-[#E4E4E7] p-6 shadow-sm">
-                        <button
-                            type="button"
-                            onClick={handleOpenAddonForm}
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="w-full py-6 rounded-[12px] border-[2px] border-dashed border-[#D4D4D8] text-[#9F9FA9] text-[16px] font-normal leading-[24px] bg-white hover:bg-gray-50 transition-colors"
-                        >
-                            Enter Add-on +
-                        </button>
-                    </div>
                 </div>
 
-                {/* ── NOT PART OF THIS PACKAGE Section ── */}
+                {/* ── ABOUT THE PACKAGE Section ── */}
                 <div className="bg-white rounded-[12px] border border-[#E4E4E7] p-6 shadow-sm flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                        <h4 style={FOOTNOTE_STYLE}>Not Part of This Package</h4>
-                        <div className="w-5 h-5 rounded-full bg-[#D92D20] flex items-center justify-center text-white">
-                            <ShieldAlert size={12} className="stroke-[3]" />
-                        </div>
-                    </div>
-                    <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px] mb-2">
-                        Enter the things that will not be provided by you
-                    </p>
-                    <textarea
-                        value={notProvidedDetails}
-                        onChange={(e) => handleBulletChange(e, setNotProvidedDetails)}
-                        onKeyDown={(e) => handleBulletKeyDown(e, notProvidedDetails, setNotProvidedDetails)}
-                        placeholder="Enter Details..."
-                        style={INPUT_STYLE}
-                        className={`${INPUT_CLASS} w-full h-28 resize-none`}
-                    />
-                </div>
-
-                {/* ── PART OF THIS PACKAGE Section ── */}
-                <div className="bg-white rounded-[12px] border border-[#E4E4E7] p-6 shadow-sm flex flex-col gap-2">
-                    <h4 style={FOOTNOTE_STYLE}>Part of This Package</h4>
-                    <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px] mb-2">
-                        Enter the things that will be provided by you
+                    <h4 style={FOOTNOTE_STYLE}>About The Package</h4>
+                    <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px] mb-2 text-[#71717A]">
+                        List everything a customer gets when they book this package
                     </p>
                     <textarea
                         value={providedDetails}
                         onChange={(e) => handleBulletChange(e, setProvidedDetails)}
                         onKeyDown={(e) => handleBulletKeyDown(e, providedDetails, setProvidedDetails)}
+                        placeholder="Enter details..."
+                        style={INPUT_STYLE}
+                        className={`${INPUT_CLASS} w-full h-28 resize-none`}
+                    />
+                </div>
+
+                {/* ── WHAT'S NOT INCLUDED Section ── */}
+                <div className="bg-white rounded-[12px] border border-[#E4E4E7] p-6 shadow-sm flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                        <h4 style={FOOTNOTE_STYLE}>What's Not Included</h4>
+                        <div className="w-5 h-5 rounded-full bg-[#D92D20] flex items-center justify-center text-white">
+                            <ShieldAlert size={12} className="stroke-[3]" />
+                        </div>
+                    </div>
+                    <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px] mb-2 text-[#71717A]">
+                        Help customers know what they'll need to arrange separately
+                    </p>
+                    <textarea
+                        value={notProvidedDetails}
+                        onChange={(e) => handleBulletChange(e, setNotProvidedDetails)}
+                        onKeyDown={(e) => handleBulletKeyDown(e, notProvidedDetails, setNotProvidedDetails)}
                         placeholder="Enter Details..."
                         style={INPUT_STYLE}
                         className={`${INPUT_CLASS} w-full h-28 resize-none`}
@@ -559,17 +654,17 @@ export default function DecoratorStep2SetupsAndPricing({
                         {modalStage === 'CHOOSE_STYLE' && (
                             <>
                                 {/* Header matches native view layout */}
-                                <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-6 border-b border-gray-100">
-                                    <h2 style={HEADING_STYLE}>
-                                        Setup
-                                    </h2>
+                                <div className="sticky top-0 bg-white z-10 flex items-center gap-3 p-6 pb-4 border-b border-gray-100">
                                     <button
                                         type="button"
                                         onClick={() => setIsSetupModalOpen(false)}
-                                        className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors -ml-2"
                                     >
-                                        <X size={20} className="text-[#030303]" />
+                                        <ArrowLeft size={20} className="text-[#030303]" />
                                     </button>
+                                    <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">
+                                        Add a Setup
+                                    </h2>
                                 </div>
 
                                 {/* Main Choose style content */}
@@ -578,17 +673,19 @@ export default function DecoratorStep2SetupsAndPricing({
                                     {/* Upload reference Photo box */}
                                     <div 
                                         onClick={() => fileInputRef.current?.click()}
-                                        className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#D4D4D8] bg-[#FAFAFA] flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                                        className="w-full px-6 py-4 rounded-[16px] border-[2px] border-dashed border-[#E4E4E7] bg-[#F4F4F5] flex flex-col items-center justify-center gap-4 cursor-pointer hover:bg-[#E4E4E7]/50 transition-colors"
                                     >
-                                        <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center mb-3 shadow-xs border border-[#E4E4E7]">
-                                            <Camera size={24} className="text-[#3F3F47]" />
+                                        <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-[#E4E4E7]">
+                                            <Camera size={18} className="text-[#3F3F47]" />
                                         </div>
-                                        <p style={HEADING_STYLE} className="mb-1 text-[16px] text-center">
-                                            Use your own setup photo
-                                        </p>
-                                        <p style={SUBTEXT_STYLE} className="text-center">
-                                            Upload a reference photo to build a custom setup
-                                        </p>
+                                        <div className="flex flex-col items-center gap-1">
+                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] text-center">
+                                                Use your own setup photo
+                                            </p>
+                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] text-center max-w-[220px] leading-[18px]">
+                                                Upload a reference photo to build a custom setup
+                                            </p>
+                                        </div>
                                     </div>
                                     <input 
                                         type="file" 
@@ -606,11 +703,11 @@ export default function DecoratorStep2SetupsAndPricing({
                                     </div>
 
                                     {/* Section Choose your Setup text and subheadings */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <h3 style={HEADING_STYLE}>
-                                            Choose your Setup
+                                    <div className="flex flex-col gap-1">
+                                        <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">
+                                            Start from a preset
                                         </h3>
-                                        <p style={SUBTEXT_STYLE}>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">
                                             Choose one style. Next, you&apos;ll add items from this setup.
                                         </p>
                                     </div>
@@ -623,41 +720,33 @@ export default function DecoratorStep2SetupsAndPricing({
                                                 <div 
                                                     key={style.id}
                                                     onClick={() => setSelectedStyleId(style.id)}
-                                                    className={`bg-white rounded-[20px] overflow-hidden flex flex-col transition-all ${
-                                                        isSelected ? 'border-2 border-[#04222D] p-1.5 shadow-sm' : 'border border-transparent p-1.5'
+                                                    className={`bg-white rounded-[16px] overflow-hidden flex flex-col transition-all border ${
+                                                        isSelected ? 'border-[#030303]' : 'border-transparent'
                                                     }`}
                                                 >
-                                                    {/* Square aspect ratio image container */}
-                                                    <div className="w-full relative rounded-[16px] overflow-hidden bg-gray-100 aspect-square">
+                                                    {/* Image without outer padding */}
+                                                    <div className="w-full relative bg-gray-100 aspect-[4/3]">
                                                         <img 
                                                             src={style.setupPhoto} 
                                                             alt={style.name} 
                                                             className="w-full h-full object-cover" 
                                                         />
-                                                        
-                                                        {/* Selected Badge */}
-                                                        {isSelected && (
-                                                            <div className="absolute bottom-4 left-4 bg-black/90 text-white text-[11px] font-bold px-3.5 py-2 rounded-full flex items-center gap-1.5 leading-[16px] shadow-xs">
-                                                                <Check size={12} className="stroke-[3]" />
-                                                                SELECTED FOR YOUR PACKAGE
-                                                            </div>
-                                                        )}
                                                     </div>
                                                     
                                                     {/* Details layout */}
-                                                    <div className="px-2 pt-4 pb-2 flex flex-col gap-1">
+                                                    <div className="p-4 flex flex-col gap-1">
                                                         <div className="flex items-center justify-between">
-                                                            <span style={HEADING_STYLE} className="text-[18px]">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">
                                                                 {style.name}
                                                             </span>
-                                                            <span style={SUBTEXT_STYLE} className="bg-[#F4F4F5] text-[#71717B] text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-[6px]">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="bg-[#F4F4F5] text-[#71717B] text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[4px]">
                                                                 {style.referenceStyle}
                                                             </span>
                                                         </div>
-                                                        <p style={SUBTEXT_STYLE} className="text-[12px] leading-[18px]">
+                                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] leading-[18px]">
                                                             {style.description}
                                                         </p>
-                                                        <span style={HEADING_STYLE} className="text-[18px] mt-1">
+                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mt-1">
                                                             ₹{Number(style.price).toLocaleString('en-IN')}
                                                         </span>
                                                         
@@ -670,9 +759,9 @@ export default function DecoratorStep2SetupsAndPricing({
                                                                     handleNextStage();
                                                                 }}
                                                                 style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                                className="w-full mt-3 py-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-bold text-[#030303] hover:bg-gray-50 transition-colors shadow-xs"
+                                                                className="w-full mt-3 py-3 bg-white border border-[#030303] rounded-[8px] text-[14px] font-bold text-[#030303] hover:bg-gray-50 transition-colors shadow-sm"
                                                             >
-                                                                Edit this setup
+                                                                Proceed with this Setup
                                                             </button>
                                                         )}
                                                     </div>
@@ -715,361 +804,238 @@ export default function DecoratorStep2SetupsAndPricing({
                         {modalStage === 'EDIT_SETUP' && (
                             <>
                                 {/* Header */}
-                                <div className="sticky top-0 bg-white z-10 flex items-center justify-between p-6 border-b border-gray-100">
-                                    <h2 style={HEADING_STYLE}>
-                                        Custom Setup
-                                    </h2>
+                                <div className="sticky top-0 bg-white z-10 flex items-center gap-3 p-6 pb-4 border-b border-gray-100">
                                     <button 
                                         type="button"
                                         onClick={() => setModalStage('CHOOSE_STYLE')} 
-                                        className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center"
+                                        className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors -ml-2"
                                     >
-                                        <X size={20} className="text-[#030303]" />
+                                        <ArrowLeft size={20} className="text-[#030303]" />
                                     </button>
+                                    <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">
+                                        Edit Setup
+                                    </h2>
                                 </div>
 
                                 {/* Custom Form Inputs with active Hotspots */}
-                                <div className="p-6 flex flex-col gap-6 pb-36">
+                                <div className="flex flex-col gap-6 pb-36">
                                     
                                     {/* Image with interactive tag pins */}
-                                    <div className="w-full h-64 rounded-[20px] overflow-hidden bg-gray-100 relative shadow-sm border border-gray-200 aspect-square">
+                                    <div className="w-full relative bg-gray-100 aspect-[4/5] sm:aspect-square">
                                         <img src={setupPhoto} alt="Setup reference" className="w-full h-full object-cover" />
                                         
                                         {/* Hotspot overlays */}
                                         <div className="absolute inset-0 pointer-events-none">
                                             {/* Hotspot 1: Flowers */}
-                                            <div className="absolute flex items-center gap-1.5 bg-white/95 backdrop-blur-xs text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-md border border-gray-100 pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '18%', left: '50%' }}>
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <div className="absolute flex items-center gap-1.5 bg-white text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '18%', left: '50%' }}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
                                                 Flowers
                                             </div>
 
                                             {/* Hotspot 2: Lighting */}
-                                            <div className="absolute flex items-center gap-1.5 bg-white/95 backdrop-blur-xs text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-md border border-gray-100 pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '32%', left: '80%' }}>
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <div className="absolute flex items-center gap-1.5 bg-white text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '32%', left: '80%' }}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
                                                 Lighting
                                             </div>
 
                                             {/* Hotspot 3: Frame */}
-                                            <div className="absolute flex items-center gap-1.5 bg-white/95 backdrop-blur-xs text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-md border border-gray-100 pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '50%', left: '72%' }}>
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <div className="absolute flex items-center gap-1.5 bg-white text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '50%', left: '72%' }}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
                                                 Frame
                                             </div>
 
                                             {/* Hotspot 4: Drapes */}
-                                            <div className="absolute flex items-center gap-1.5 bg-white/95 backdrop-blur-xs text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-md border border-gray-100 pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '58%', left: '32%' }}>
-                                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            <div className="absolute flex items-center gap-1.5 bg-white text-[#030303] text-[9px] font-black uppercase px-2.5 py-1 rounded-full shadow-sm pointer-events-auto cursor-help transform -translate-x-1/2 -translate-y-1/2 transition-transform hover:scale-105" style={{ top: '58%', left: '32%' }}>
+                                                <span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse" />
                                                 Drapes
                                             </div>
                                         </div>
 
                                         {/* Bottom Action Pill */}
-                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-[#030303]/80 backdrop-blur-xs text-white text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full">
+                                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-white border border-[#E4E4E7] text-[#030303] text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-sm">
                                             Tap items to edit
                                         </div>
                                     </div>
 
-                                    {/* Name of the Setup */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label style={HEADING_STYLE}>
-                                            Name of the Setup
-                                        </label>
-                                        <div className="flex flex-col gap-2">
-                                            <div className="relative">
-                                                <select
-                                                    value={isCustomName ? 'custom' : setupName}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val === 'custom') {
-                                                            setIsCustomName(true);
-                                                            setSetupName('');
-                                                        } else {
-                                                            setIsCustomName(false);
-                                                            setSetupName(val);
-                                                        }
-                                                    }}
-                                                    style={INPUT_STYLE}
-                                                    className={`${INPUT_CLASS} w-full appearance-none pr-12`}
-                                                >
-                                                    <option value="Floral Arch">Floral Arch</option>
-                                                    <option value="Flora Arch">Flora Arch</option>
-                                                    <option value="Royal Table Decor">Royal Table Decor</option>
-                                                    <option value="custom">Custom (Type your own)...</option>
-                                                </select>
-                                                <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
-                                            </div>
-                                            {isCustomName && (
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter setup name..."
-                                                    value={setupName}
-                                                    onChange={(e) => setSetupName(e.target.value)}
-                                                    style={INPUT_STYLE}
-                                                    className={INPUT_CLASS}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* What are you decorating? */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label style={HEADING_STYLE}>
-                                            What are you decorating?
-                                        </label>
-                                        <p style={SUBTEXT_STYLE}>
-                                            This helps define your setup clearly.
-                                        </p>
-                                        <div className="flex flex-col gap-2">
-                                            <div className="relative">
-                                                <select
-                                                    value={isCustomDecorating ? 'custom' : setupDecoratingWhat}
-                                                    onChange={(e) => {
-                                                        const val = e.target.value;
-                                                        if (val === 'custom') {
-                                                            setIsCustomDecorating(true);
-                                                            setSetupDecoratingWhat('');
-                                                        } else {
-                                                            setIsCustomDecorating(false);
-                                                            setSetupDecoratingWhat(val);
-                                                        }
-                                                    }}
-                                                    style={INPUT_STYLE}
-                                                    className={`${INPUT_CLASS} w-full appearance-none pr-12`}
-                                                >
-                                                    <option value="Door">Door</option>
-                                                    <option value="Stage">Stage</option>
-                                                    <option value="Entrance">Entrance</option>
-                                                    <option value="Mandap">Mandap</option>
-                                                    <option value="Photo Booth">Photo Booth</option>
-                                                    <option value="Dining Area">Dining Area</option>
-                                                    <option value="custom">Custom (Type your own)...</option>
-                                                </select>
-                                                <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
-                                            </div>
-                                            {isCustomDecorating && (
-                                                <input
-                                                    type="text"
-                                                    placeholder="Enter decorating location..."
-                                                    value={setupDecoratingWhat}
-                                                    onChange={(e) => setSetupDecoratingWhat(e.target.value)}
-                                                    style={INPUT_STYLE}
-                                                    className={INPUT_CLASS}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Type of Setup */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label style={HEADING_STYLE}>
-                                            Type of Setup
-                                        </label>
-                                        <div className="relative">
-                                            <select
-                                                value={setupReferenceStyle}
-                                                onChange={(e) => setSetupReferenceStyle(e.target.value)}
+                                    <div className="px-6 flex flex-col gap-6">
+                                        {/* Name of the Setup */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label style={HEADING_STYLE}>
+                                                Setup name
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g., Floral Arch with Drapes"
+                                                value={setupName}
+                                                onChange={(e) => setSetupName(e.target.value)}
                                                 style={INPUT_STYLE}
-                                                className={`${INPUT_CLASS} w-full appearance-none pr-12`}
-                                            >
-                                                <option value="Indoor">Indoor</option>
-                                                <option value="Outdoor">Outdoor</option>
-                                                <option value="Both">Both</option>
-                                            </select>
-                                            <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
+                                                className={INPUT_CLASS}
+                                            />
                                         </div>
-                                    </div>
 
-                                    {/* Setup Price */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label style={HEADING_STYLE}>
-                                            Setup Price (₹)
-                                        </label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. 2500"
-                                            value={setupPrice}
-                                            onChange={(e) => setSetupPrice(e.target.value.replace(/\D/g, ''))}
-                                            style={INPUT_STYLE}
-                                            className={INPUT_CLASS}
-                                        />
-                                    </div>
+                                        {/* What are you decorating? */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label style={HEADING_STYLE}>
+                                                What are you decorating?
+                                            </label>
+                                            <p style={SUBTEXT_STYLE} className="-mt-1 text-[14px]">
+                                                This helps define your setup clearly
+                                            </p>
+                                            <MultiSelectPills
+                                                options={['Hall', 'Doors', 'Stage', 'Corners', 'Entrance Gate', 'Floor', 'Lawn', 'Banquets', 'Restaurants', 'Hotel', 'Farm House', 'Swimming Pool', 'Balcony', 'Terrace', 'Porch', 'Road', 'Front', 'Out/SUVs', 'Ground', 'Wall', 'Garden']}
+                                                selected={setupDecoratingWhatList}
+                                                onChange={setSetupDecoratingWhatList}
+                                                customInputPlaceholder="Enter Object"
+                                            />
+                                        </div>
 
-                                    {/* Items list section */}
-                                    <div className="flex flex-col gap-3 mt-2">
-                                        <div className="flex items-center justify-between">
-                                            <div>
+                                        {/* Structures Included */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label style={HEADING_STYLE}>
+                                                Structures included
+                                            </label>
+                                            <p style={SUBTEXT_STYLE} className="-mt-1 text-[14px]">
+                                                Create your setup with one or more structures
+                                            </p>
+                                            <MultiSelectPills
+                                                options={[
+                                                    'Gate Entrance', 'Centerpieces', 'Chair Decor', 'Ceiling Draping', 
+                                                    'Mandap (Open)', 'Mandap (Closed)', 'Mandap(Domed)', 'Stage Riser', 
+                                                    'Walkway Truss', 'Pergola', 'Cabana', 'Gazebo', 'Swing/Jhula', 
+                                                    'Throne Chairs', 'Vintage Sofa', 'Floral Arch (various types)', 
+                                                    'Hexagon Arch', 'Round Arch', 'Triangle Arch', 'Cake Table'
+                                                ]}
+                                                selected={setupStructures}
+                                                onChange={setSetupStructures}
+                                                customInputPlaceholder="Enter Structures you want to add"
+                                            />
+                                        </div>
+
+                                        {/* Theme */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label style={HEADING_STYLE}>
+                                                Theme
+                                            </label>
+                                            <p style={SUBTEXT_STYLE} className="-mt-1 text-[14px]">
+                                                Choose the theme for this setup
+                                            </p>
+                                            <MultiSelectPills
+                                                options={['Indian(Regional)', 'Fairy-tale', 'Bollywood Retro', 'Boho', 'Rustin', 'Botanical/Greenery', 'Monochrome', 'Floral Pastel', 'Signage', 'Minimalist Modern', 'Floor Decor', 'Vintage', 'Pool Decor', 'Black & Gold', 'White & Gold', 'Neon']}
+                                                selected={setupThemes}
+                                                onChange={setSetupThemes}
+                                                customInputPlaceholder="Enter Theme"
+                                            />
+                                        </div>
+
+                                        {/* Type of Setup */}
+                                        <div className="flex flex-col gap-1.5">
+                                            <label style={HEADING_STYLE}>
+                                                Type of Setup
+                                            </label>
+                                            <div className="flex w-full p-1 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7]">
+                                                {['Indoor', 'Outdoor', 'Both'].map(type => (
+                                                    <button
+                                                        key={type}
+                                                        type="button"
+                                                        onClick={() => setSetupReferenceStyle(type)}
+                                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                        className={`flex-1 py-2 text-[14px] font-medium rounded-[10px] transition-all ${
+                                                            setupReferenceStyle === type 
+                                                            ? 'bg-white text-[#030303] shadow-sm' 
+                                                            : 'text-[#9F9FA9] hover:text-[#030303]'
+                                                        }`}
+                                                    >
+                                                        {type}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Items in your Setup */}
+                                        <div className="flex flex-col gap-3 mt-2">
+                                            <div className="flex flex-col gap-1">
                                                 <label style={HEADING_STYLE}>
                                                     Items in your Setup
                                                 </label>
-                                                <p style={SUBTEXT_STYLE} className="mt-0.5">
+                                                <p style={SUBTEXT_STYLE} className="text-[14px]">
                                                     We found these items for you based on your photo.
                                                 </p>
                                             </div>
+
+                                            {setupItems.length > 0 ? (
+                                                <div className="flex flex-col gap-3">
+                                                    {setupItems.map((item, idx) => (
+                                                        <div 
+                                                            key={idx} 
+                                                            onClick={() => {
+                                                                setEditingItemIndex(idx);
+                                                                setIsItemManagerOpen(true);
+                                                            }}
+                                                            className="p-4 bg-white border border-[#E4E4E7] rounded-[12px] flex items-center justify-between shadow-xs cursor-pointer hover:bg-gray-50 transition-colors"
+                                                        >
+                                                            <div className="flex flex-col gap-1">
+                                                                <span style={HEADING_STYLE} className="text-[14px] text-[#030303]">
+                                                                    {item.name}
+                                                                </span>
+                                                                <span style={SUBTEXT_STYLE} className="text-[12px] text-[#71717A]">
+                                                                    Quantity: {item.qty}
+                                                                </span>
+                                                                <span style={HEADING_STYLE} className="text-[14px] font-bold text-[#030303] mt-1">
+                                                                    ₹ {item.price ? item.price.toLocaleString('en-IN') : '0'}
+                                                                </span>
+                                                            </div>
+                                                            <ChevronRight size={20} className="text-[#9F9FA9]" />
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="w-full flex flex-col items-center justify-center py-8 px-4 border border-dashed border-[#E4E4E7] rounded-[16px] bg-white gap-4">
+                                                    <img src="https://dkuacgndftndz.cloudfront.net/inventory-page/decorationpage2.png" alt="No setups added" className="w-[180px] h-auto object-contain" />
+                                                    <div className="flex flex-col items-center gap-1.5 text-center">
+                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[#030303] text-[16px] font-bold">
+                                                            No setups added
+                                                        </span>
+                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[#9F9FA9] text-[14px]">
+                                                            To add an item click on Add Item on top<br/>or in this box
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <button
                                                 type="button"
-                                                onClick={addNewItemRow}
-                                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                className="flex items-center gap-1 text-[13px] font-bold text-[#04222D] hover:underline"
+                                                onClick={() => {
+                                                    setEditingItemIndex(-1);
+                                                    setIsItemManagerOpen(true);
+                                                }}
+                                                className="w-full mt-2 py-3.5 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
                                             >
-                                                <span>Add item</span>
-                                                <PlusCircle size={16} className="text-[#04222D]" />
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-semibold text-[#030303]">
+                                                    Add
+                                                </span>
+                                                <PlusCircle size={18} className="text-[#030303]" strokeWidth={1.5} />
                                             </button>
                                         </div>
 
-                                        {/* Decoration Items Label */}
-                                        <div className="mt-2">
-                                            <span style={DECORATION_ITEMS_STYLE} className="uppercase tracking-wider">
-                                                DECORATION ITEMS
-                                            </span>
-                                        </div>
-
-                                        <div className="flex flex-col gap-4">
-                                            {setupItems.map((item, idx) => {
-                                                const isEditing = editingItemIndex === idx;
-                                                return (
-                                                    <div 
-                                                        key={idx} 
-                                                        className={`p-4 bg-white border rounded-[12px] flex flex-col gap-3 shadow-xs relative transition-all ${
-                                                            isEditing ? 'border-[#030303] bg-gray-50' : 'border-[#E4E4E7]'
-                                                        }`}
-                                                    >
-                                                        {isEditing ? (
-                                                            <div className="flex flex-col gap-2.5">
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="Item Name"
-                                                                    value={itemEditName}
-                                                                    onChange={(e) => setItemEditName(e.target.value)}
-                                                                    style={INPUT_STYLE}
-                                                                    className="p-2 border rounded"
-                                                                />
-                                                                <div className="grid grid-cols-3 gap-2">
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Qty"
-                                                                        value={itemEditQty || ''}
-                                                                        onChange={(e) => setItemEditQty(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
-                                                                        style={INPUT_STYLE}
-                                                                        className="p-2 border rounded text-center"
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Unit"
-                                                                        value={itemEditUnit}
-                                                                        onChange={(e) => setItemEditUnit(e.target.value)}
-                                                                        style={INPUT_STYLE}
-                                                                        className="p-2 border rounded text-center"
-                                                                    />
-                                                                    <input
-                                                                        type="text"
-                                                                        placeholder="Price"
-                                                                        value={itemEditPrice || ''}
-                                                                        onChange={(e) => setItemEditPrice(parseInt(e.target.value.replace(/\D/g, '')) || 0)}
-                                                                        style={INPUT_STYLE}
-                                                                        className="p-2 border rounded text-center"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex gap-2 justify-end mt-1">
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => deleteItemRow(idx)}
-                                                                        className="px-3 py-1 bg-red-100 text-red-600 rounded text-[12px] font-bold"
-                                                                    >
-                                                                        Remove
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => setEditingItemIndex(null)}
-                                                                        className="px-3 py-1 bg-white border rounded text-[12px]"
-                                                                    >
-                                                                        Cancel
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={saveEditedItem}
-                                                                        className="px-4 py-1 bg-[#04222D] text-white rounded text-[12px] font-bold"
-                                                                    >
-                                                                        Apply
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className="flex flex-col">
-                                                                        <span style={HEADING_STYLE} className="text-[15px]">
-                                                                            {item.name}
-                                                                        </span>
-                                                                        <span style={DECORATION_ITEMS_STYLE} className="text-[11px]">
-                                                                            Add material, size, color
-                                                                        </span>
-                                                                    </div>
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => startEditItem(idx)}
-                                                                        className="p-1.5 text-[#71717A] hover:bg-gray-100 rounded-full"
-                                                                    >
-                                                                        <Edit2 size={14} />
-                                                                    </button>
-                                                                </div>
-                                                                <div className="flex gap-6 mt-1 text-[12px] text-[#3F3F47]">
-                                                                    <div className="flex flex-col">
-                                                                        <span style={DECORATION_ITEMS_STYLE} className="text-[10px] font-bold uppercase">Qty</span>
-                                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="font-bold">{item.qty} {item.unit}</span>
-                                                                    </div>
-                                                                    <div className="flex flex-col">
-                                                                        <span style={DECORATION_ITEMS_STYLE} className="text-[10px] font-bold uppercase">Price</span>
-                                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="font-bold">₹{item.price.toFixed(2)}</span>
-                                                                    </div>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Exclusions */}
-                                    <div className="flex flex-col gap-1.5 mt-2">
-                                        <div className="flex items-center gap-2">
-                                            <label style={FOOTNOTE_STYLE}>
-                                                Not Part of this Setup
+                                        {/* Setup Cost */}
+                                        <div className="flex flex-col gap-1.5 mt-2">
+                                            <label style={HEADING_STYLE}>
+                                                Setup Cost(per event)
                                             </label>
-                                            <div className="w-4 h-4 rounded-full bg-[#D92D20] flex items-center justify-center text-white">
-                                                <ShieldAlert size={10} className="stroke-[3]" />
+                                            <div className="flex w-full rounded-[8px] border border-[#E4E4E7] overflow-hidden focus-within:border-gray-400">
+                                                <div className="w-14 bg-[#F4F4F5] flex items-center justify-center border-r border-[#E4E4E7]">
+                                                    <span className="text-[#030303] font-medium text-[16px]">₹</span>
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter Cost"
+                                                    value={setupPrice}
+                                                    onChange={(e) => setSetupPrice(e.target.value.replace(/\D/g, ''))}
+                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                    className="flex-1 p-3.5 text-[14px] text-[#030303] outline-none placeholder:text-[#9F9FA9]"
+                                                />
                                             </div>
                                         </div>
-                                        <p style={SUBTEXT_STYLE}>
-                                            Choose the things that will not be provided by you
-                                        </p>
-                                        <textarea
-                                            value={setupNotPartOfSetup}
-                                            onChange={(e) => handleBulletChange(e, setSetupNotPartOfSetup)}
-                                            onKeyDown={(e) => handleBulletKeyDown(e, setupNotPartOfSetup, setSetupNotPartOfSetup)}
-                                            placeholder="Enter Details.."
-                                            rows={3}
-                                            style={INPUT_STYLE}
-                                            className={`${INPUT_CLASS} text-[14px] resize-none`}
-                                        />
-                                    </div>
-
-                                    {/* Inclusions */}
-                                    <div className="flex flex-col gap-1.5">
-                                        <label style={FOOTNOTE_STYLE}>
-                                            Part of this Setup
-                                        </label>
-                                        <p style={SUBTEXT_STYLE}>
-                                            Choose the things that will be provided by you
-                                        </p>
-                                        <textarea
-                                            value={setupPartOfSetup}
-                                            onChange={(e) => handleBulletChange(e, setSetupPartOfSetup)}
-                                            onKeyDown={(e) => handleBulletKeyDown(e, setupPartOfSetup, setSetupPartOfSetup)}
-                                            placeholder="Enter Details.."
-                                            rows={3}
-                                            style={INPUT_STYLE}
-                                            className={`${INPUT_CLASS} text-[14px] resize-none`}
-                                        />
                                     </div>
                                 </div>
 
@@ -1078,12 +1044,30 @@ export default function DecoratorStep2SetupsAndPricing({
                                     <button
                                         type="button"
                                         onClick={handleSaveSetup}
+                                        disabled={setupName.trim() === ''}
                                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                                        className="w-full h-14 flex justify-center items-center bg-[#04222D] text-white rounded-[12px] font-bold text-[16px] active:scale-[0.98] transition-transform hover:bg-[#063445]"
+                                        className={`w-full h-14 flex justify-center items-center text-white rounded-[12px] font-bold text-[16px] transition-transform ${
+                                            setupName.trim() !== '' 
+                                            ? 'bg-[#04222D] active:scale-[0.98] hover:bg-[#031b24]' 
+                                            : 'bg-[#829296] cursor-not-allowed opacity-80'
+                                        }`}
                                     >
                                         Save Setup
                                     </button>
                                 </div>
+                                {isItemManagerOpen && (
+                                    <ItemManagerModal
+                                        isOpen={isItemManagerOpen}
+                                        onClose={() => setIsItemManagerOpen(false)}
+                                        onSave={handleSaveItemManager}
+                                        onDelete={() => {
+                                            if (editingItemIndex !== null && editingItemIndex >= 0) {
+                                                setSetupItems(prev => prev.filter((_, idx) => idx !== editingItemIndex));
+                                            }
+                                        }}
+                                        initialItem={editingItemIndex !== null && editingItemIndex >= 0 ? setupItems[editingItemIndex] : null}
+                                    />
+                                )}
                             </>
                         )}
                     </div>

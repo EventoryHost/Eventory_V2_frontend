@@ -9,11 +9,23 @@ import DecoratorStep2SetupsAndPricing, { Setup } from './Step2SetupsAndPricing';
 import DecoratorStep3PoliciesAndCharges from './Step3PoliciesAndCharges';
 import DecoratorStep4SampleAndMedia from './Step4SampleAndMedia';
 import { AddonModal, Addon } from '../../components/AddonModal';
+import { DecoratorAddonModal } from './DecoratorAddonModal';
 import { useFlowVariants } from '../../shared/useFlowVariants';
 import { PolicyFile, SampleMediaFile } from '../../shared/types';
 
-const STEPS = ['Event and Crew', 'Setups and Pricing', 'Policies and Charges', 'Sample and Media'];
-const VENUE_NEEDS_OPTIONS = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
+const STEPS = ['Package basics', 'Setups and Pricing', 'Policies and Charges', 'Sample and Media'];
+const VENUE_NEEDS_OPTIONS = [
+    'Setup area',
+    'Ceiling height & hanging/rigging points',
+    'Power for lighting installations',
+    'Mandap base area',
+    'Entrance & pathway access',
+    'Backdrop fixing permission',
+    'Advance setup access (day before)',
+    'Debris clearance access',
+    'Lawn access',
+    'Ladder / scaffolding clearance'
+];
 
 export default function DecoratorFlow() {
     const router = useRouter();
@@ -24,6 +36,8 @@ export default function DecoratorFlow() {
     const [packageName, setPackageName] = React.useState('');
     const [eventCategories, setEventCategories] = React.useState('');
     const [poc, setPoc] = React.useState('');
+    const [eventMinDuration, setEventMinDuration] = React.useState('');
+    const [eventMaxDuration, setEventMaxDuration] = React.useState('');
     const [setupDuration, setSetupDuration] = React.useState('');
     const [supervisors, setSupervisors] = React.useState('');
     const [workers, setWorkers] = React.useState('');
@@ -155,8 +169,11 @@ export default function DecoratorFlow() {
                             if (s1.eventCategories) setEventCategories(s1.eventCategories.join(', '));
                             setPoc(s1.poc || '');
                             if (s1.duration) {
-                                const hrs = s1.duration.minHours;
-                                setSetupDuration(hrs ? `Upto ${hrs} hour${hrs > 1 ? 's' : ''}` : '');
+                                setEventMinDuration(s1.duration.minHours ? String(s1.duration.minHours) : '');
+                                setEventMaxDuration(s1.duration.maxHours ? String(s1.duration.maxHours) : '');
+                            }
+                            if (s1.durationOfSetup) {
+                                setSetupDuration(`Upto ${s1.durationOfSetup} hour${s1.durationOfSetup > 1 ? 's' : ''}`);
                             }
                             if (s1.crewSize) {
                                 // Mongoose schemas map supervisors & workers to minPeople & maxPeople. Check both for full backwards compatibility
@@ -171,9 +188,8 @@ export default function DecoratorFlow() {
                             if (s1.venueNeeds?.security) needs.push('Security');
                             if (s1.venueNeeds?.customText) {
                                 const customs = s1.venueNeeds.customText.split(',').map((s: string) => s.trim()).filter(Boolean);
-                                const options = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
-                                needs.push(...customs.filter((c: string) => options.includes(c)));
-                                const nonOptions = customs.filter((c: string) => !options.includes(c));
+                                needs.push(...customs.filter((c: string) => VENUE_NEEDS_OPTIONS.includes(c)));
+                                const nonOptions = customs.filter((c: string) => !VENUE_NEEDS_OPTIONS.includes(c));
                                 if (nonOptions.length > 0) {
                                     setVenueRequest(nonOptions.join(', '));
                                 }
@@ -193,6 +209,8 @@ export default function DecoratorFlow() {
                                     description: s.description || '',
                                     price: String(s.price || ''),
                                     decoratingWhat: s.decoratingWhat || '',
+                                    structuresIncluded: s.structuresIncluded || [],
+                                    themes: s.themes || [],
                                     items: s.items || [],
                                     partOfSetup: s.partOfSetup || '',
                                     notPartOfSetup: s.notPartOfSetup || '',
@@ -346,9 +364,10 @@ export default function DecoratorFlow() {
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Decoration'],
                     poc: poc || 'Rahul Sharma',
                     duration: {
-                        minHours: parseInt(setupDuration.replace(/\D/g, '')) || 0,
-                        maxHours: parseInt(setupDuration.replace(/\D/g, '')) || 0
+                        minHours: parseInt(eventMinDuration) || 0,
+                        maxHours: parseInt(eventMaxDuration) || 0
                     },
+                    durationOfSetup: parseInt(setupDuration.replace(/\D/g, '')) || 0,
                     crewSize: {
                         // Map supervisors and workers to minPeople & maxPeople as defined in the Mongoose schema (Package.js)
                         minPeople: parseInt(supervisors) || 0,
@@ -360,10 +379,8 @@ export default function DecoratorFlow() {
                         stage: venueNeeds.includes('Stage'),
                         lighting: venueNeeds.includes('Lighting'),
                         security: venueNeeds.includes('Security'),
-                        // Include "Camera" under customText since the Mongoose Schema does not define it as a boolean field
                         customText: [
-                            ...(venueNeeds.includes('Camera') ? ['Camera'] : []),
-                            ...venueNeeds.filter(n => !['Power', 'Camera', 'Stage', 'Lighting', 'Security'].includes(n)),
+                            ...venueNeeds.filter(n => !['Power', 'Stage', 'Lighting', 'Security'].includes(n)),
                             ...(venueRequest.trim() ? [venueRequest.trim()] : [])
                         ].join(', ')
                     }
@@ -458,14 +475,14 @@ export default function DecoratorFlow() {
                         description: s.description,
                         price: parseFloat(s.price) || 0,
                         decoratingWhat: s.decoratingWhat,
+                        structuresIncluded: s.structuresIncluded || [],
+                        themes: s.themes || [],
                         items: s.items.map(item => ({
                             name: item.name,
                             qty: item.qty || 1,
                             unit: item.unit || 'pcs',
                             price: item.price || 0
                         })),
-                        partOfSetup: s.partOfSetup,
-                        notPartOfSetup: s.notPartOfSetup
                     })),
                     addOns: processedAddons,
                     included: cleanIncluded,
@@ -603,16 +620,41 @@ export default function DecoratorFlow() {
     };
 
     // ── Setup State Updaters ──
+    const saveSetupsToBackend = async (newSetups: Setup[]) => {
+        if (!packageId) return;
+        try {
+            await fetch(apiUrl(`/packages/${packageId}/step/2`), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ setups: newSetups })
+            });
+        } catch (err) {
+            console.error('Failed to auto-save setups', err);
+        }
+    };
+
     const handleAddSetup = (newSetup: Setup) => {
-        setSetups((prev) => [...prev, newSetup]);
+        setSetups((prev) => {
+            const newSetups = [...prev, newSetup];
+            saveSetupsToBackend(newSetups);
+            return newSetups;
+        });
     };
 
     const handleEditSetup = (updatedSetup: Setup) => {
-        setSetups((prev) => prev.map((s) => (s.id === updatedSetup.id ? updatedSetup : s)));
+        setSetups((prev) => {
+            const newSetups = prev.map((s) => (s.id === updatedSetup.id ? updatedSetup : s));
+            saveSetupsToBackend(newSetups);
+            return newSetups;
+        });
     };
 
     const deleteSetup = (id: string) => {
-        setSetups((prev) => prev.filter((s) => s.id !== id));
+        setSetups((prev) => {
+            const newSetups = prev.filter((s) => s.id !== id);
+            saveSetupsToBackend(newSetups);
+            return newSetups;
+        });
     };
 
     // ── Add-on Modal Handlers ──
@@ -646,8 +688,10 @@ export default function DecoratorFlow() {
         // Step 1
         setPackageName('Royal Floral Palace Decor');
         setEventCategories('Wedding, Engagement, Sangeet');
+        setEventMinDuration('4');
+        setEventMaxDuration('6');
         setPoc('Rahul Sharma');
-        setSetupDuration('6');
+        setSetupDuration('E.g Upto 5 hours');
         setSupervisors('3');
         setWorkers('12');
         setVenueNeeds(['Power', 'Stage', 'Lighting']);
@@ -663,8 +707,6 @@ export default function DecoratorFlow() {
                 setupPhoto: 'https://images.unsplash.com/photo-1523438885200-e635ba2c371e?q=80&w=600',
                 description: 'A grand four-pillar dome mandap decorated with high-quality white roses, orchids, hanging crystals, and soft yellow spotlights.',
                 price: '75000',
-                partOfSetup: '• Handcrafted wooden pillars\n• Fresh floral garlands\n• 4 spotlights\n• Carpet and low seating chairs',
-                notPartOfSetup: '• Special sound systems\n• Power backups',
                 items: [
                     { name: 'Floral Pillar Frames', qty: 4, unit: 'pcs', price: 8000 },
                     { name: 'Hanging Crystal Chandeliers', qty: 2, unit: 'pcs', price: 3500 },
@@ -679,8 +721,6 @@ export default function DecoratorFlow() {
                 setupPhoto: 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?q=80&w=600',
                 description: 'Retro wooden hexagonal frame backdrop wrapped in fresh pampas grass, neon signs saying "Happily Ever After", and rustic carpet styling.',
                 price: '25000',
-                partOfSetup: '• Wooden hexagon wall\n• Pampas grass accents\n• Neon text sign\n• Standing spotlights',
-                notPartOfSetup: '• DSLR photographer or print booth',
                 items: [
                     { name: 'Hexagonal Wooden Backdrop', qty: 1, unit: 'pcs', price: 5000 },
                     { name: 'Neon Script Sign', qty: 1, unit: 'pcs', price: 2000 }
@@ -745,7 +785,7 @@ export default function DecoratorFlow() {
                 <div className="max-w-md mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <h1 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303] leading-[24px]">
-                            New Event Package
+                            Package Setup
                         </h1>
                     </div>
                     <button
@@ -802,6 +842,10 @@ export default function DecoratorFlow() {
                         setPackageName={setPackageName}
                         eventCategories={eventCategories}
                         setEventCategories={setEventCategories}
+                        eventMinDuration={eventMinDuration}
+                        setEventMinDuration={setEventMinDuration}
+                        eventMaxDuration={eventMaxDuration}
+                        setEventMaxDuration={setEventMaxDuration}
                         poc={poc}
                         setPoc={setPoc}
                         setupDuration={setupDuration}
@@ -888,12 +932,11 @@ export default function DecoratorFlow() {
                 </div>
             </div>
 
-            {/* Shared Add-on Creation/Edit Modal Portal */}
-            <AddonModal
+            {/* Decorator Add-on Modal */}
+            <DecoratorAddonModal
                 isOpen={isAddonModalOpen}
                 onClose={() => setIsAddonModalOpen(false)}
                 onSave={handleSaveAddon}
-                vendorType="DEC"
                 addon={editingAddon}
             />
 

@@ -217,19 +217,14 @@ export default function VenueStep1PackageAndTeam({
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Point of contact(POC)</label>
                     <div className="relative">
-                        <select
+                        <input
+                            type="text"
                             value={poc}
                             onChange={(e) => setPoc(e.target.value)}
-                            style={{ fontFamily: 'Figtree, sans-serif', appearance: 'none' }}
-                            className={`${INPUT} pr-10`}
-                        >
-                            <option value="" disabled hidden>Text + Dropdown</option>
-                            <option value="Owner">Owner</option>
-                            <option value="Manager">Manager</option>
-                            <option value="Coordinator">Coordinator</option>
-                            <option value="Sales">Sales</option>
-                        </select>
-                        <ChevronDown size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
+                            placeholder="Enter POC name"
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className={INPUT}
+                        />
                     </div>
                 </div>
 
