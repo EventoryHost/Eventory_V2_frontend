@@ -19,7 +19,7 @@ const FLOW_CONFIG = {
 
 const VENUE_NEEDS_OPTIONS = ['Power', 'AC', 'Stage', 'Lighting', 'Security'];
 
-export default function MakeupFlow() {
+export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
@@ -414,9 +414,9 @@ export default function MakeupFlow() {
         initOrRestorePackage();
     }, []);
 
-    // --- Navigation ---
     const handleBack = () => {
         if (step > 1) setStep(step - 1);
+        else if (onExitFlow) onExitFlow();
         else router.push('/dashboard/inventory');
     };
 

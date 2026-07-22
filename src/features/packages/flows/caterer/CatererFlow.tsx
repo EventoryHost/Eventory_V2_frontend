@@ -14,7 +14,7 @@ import { AddonModal, Addon } from '../../components/AddonModal';
 const FLOW_CONFIG = { vendorName: 'Caterer', steps: ['Event and Crew', 'Products and Pricing', 'Policies and Charges', 'Sample and Media'] };
 const VENUE_NEEDS_OPTIONS = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
 
-export default function CatererFlow() {
+export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
@@ -497,7 +497,11 @@ export default function CatererFlow() {
         initOrRestorePackage();
     }, []);
 
-    const handleBack = () => { if (step > 1) setStep(step - 1); else router.push('/dashboard/inventory'); };
+    const handleBack = () => { 
+        if (step > 1) setStep(step - 1); 
+        else if (onExitFlow) onExitFlow();
+        else router.push('/dashboard/inventory'); 
+    };
 
     const handleNext = async () => {
         let currentPackageId = packageId;

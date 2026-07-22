@@ -83,7 +83,53 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
                                     </button>
                                 </div>
 
-                                <div className="px-6 flex flex-col gap-4 overflow-y-auto pb-4">
+                                <div className="px-6 flex flex-col gap-4 overflow-y-auto pb-4 max-h-[60vh]">
+                                    {/* Cancellation Policy Presets */}
+                                    {title.toLowerCase().includes('cancellation') && (
+                                        <div className="flex flex-col gap-3">
+                                            {[
+                                                { id: 'flexible', name: 'Flexible', desc: 'Full refund 7 days before event. 50% refund after.' },
+                                                { id: 'standard', name: 'Standard', desc: 'Full refund 30 days before. No refund within 14 days.' },
+                                                { id: 'strict', name: 'Strict', desc: 'Non-refundable deposit. No cancellations permitted.' }
+                                            ].map((preset) => {
+                                                const isSelected = docs.some(d => d.name.includes(preset.name));
+                                                return (
+                                                    <div 
+                                                        key={preset.id}
+                                                        onClick={() => {
+                                                            const presetFile: PolicyFile = { name: `${preset.name} Cancellation Policy`, size: 0 };
+                                                            setDocs([presetFile]);
+                                                        }}
+                                                        className={`p-4 border rounded-[16px] cursor-pointer transition-all flex items-start justify-between ${
+                                                            isSelected ? 'border-[#04222D] bg-[#F4F4F5]/50 ring-1 ring-[#04222D]' : 'border-[#E4E4E7] hover:border-gray-400 bg-white'
+                                                        }`}
+                                                    >
+                                                        <div className="flex flex-col gap-1">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{preset.name}</span>
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] leading-relaxed">{preset.desc}</span>
+                                                        </div>
+                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                                                            isSelected ? 'bg-[#04222D] text-white' : 'border-2 border-[#D4D4D8]'
+                                                        }`}>
+                                                            {isSelected && <span className="text-[10px]">✓</span>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            <div className="p-3 bg-[#F4F4F5] rounded-[12px] flex items-start gap-2 text-[#71717B] text-[12px]">
+                                                <span className="text-[14px]">ⓘ</span>
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }}>
+                                                    Not sure which to choose? Flexible is the most common for new vendors and the easiest for customers to accept.
+                                                </span>
+                                            </div>
+
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mt-2 block">
+                                                Already have your own policy?
+                                            </span>
+                                        </div>
+                                    )}
+
                                     <div 
                                         onClick={() => setView('upload')}
                                         className="flex items-center gap-4 p-4 border border-[#E4E4E7] rounded-[16px] cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.02)]"

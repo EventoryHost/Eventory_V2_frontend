@@ -27,7 +27,7 @@ const VENUE_NEEDS_OPTIONS = [
     'Ladder / scaffolding clearance'
 ];
 
-export default function DecoratorFlow() {
+export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
@@ -60,6 +60,40 @@ export default function DecoratorFlow() {
     const [lastMinuteFiles, setLastMinuteFiles] = React.useState<PolicyFile[]>([]);
     const [policyFiles, setPolicyFiles] = React.useState<PolicyFile[]>([]);
     const [lastMinuteChargesDescription, setLastMinuteChargesDescription] = React.useState('');
+
+    // Dynamic Pricing & Policy Docs
+    const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
+    const [weekendPricing, setWeekendPricing] = React.useState(false);
+    const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Percentage');
+    const [weekendValue, setWeekendValue] = React.useState('10');
+    const [weekendSeason, setWeekendSeason] = React.useState(false);
+    const [seasonIncreaseType, setSeasonIncreaseType] = React.useState('Percentage');
+    const [seasonValue, setSeasonValue] = React.useState('20');
+    const [festivalPricing, setFestivalPricing] = React.useState(false);
+    const [selectedFestivals, setSelectedFestivals] = React.useState<string[]>([]);
+    const [availableFestivals, setAvailableFestivals] = React.useState<string[]>(['Diwali', 'Holi', 'New Year']);
+    const [isAddingFestival, setIsAddingFestival] = React.useState(false);
+    const [newFestivalName, setNewFestivalName] = React.useState('');
+    const [festivalPrices, setFestivalPrices] = React.useState<Record<string, { increaseType: string; value: string }>>({});
+    
+    const handleAddFestival = () => {
+        if (newFestivalName.trim() && !availableFestivals.includes(newFestivalName.trim())) {
+            setAvailableFestivals(prev => [...prev, newFestivalName.trim()]);
+            setSelectedFestivals(prev => [...prev, newFestivalName.trim()]);
+            setNewFestivalName('');
+            setIsAddingFestival(false);
+        }
+    };
+
+    const [customDatesPricing, setCustomDatesPricing] = React.useState(false);
+    const [customDatesIncreaseType, setCustomDatesIncreaseType] = React.useState('Percentage');
+    const [customDatesValue, setCustomDatesValue] = React.useState('10');
+    const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
+    const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+
+    const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
+    const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
+    const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
 
     // Step 4 States
     const [sampleMediaFiles, setSampleMediaFiles] = React.useState<SampleMediaFile[]>([]);
@@ -500,50 +534,77 @@ export default function DecoratorFlow() {
                 localStorage.setItem(`decorator_active_step_${currentPackageId}`, '3');
             } else if (step === 3) {
                 // Save Step 3 (Policies & Charges)
-                const policyUrls: string[] = [];
-                for (const pf of policyFiles) {
-                    if (pf.file) {
-                        const formData = new FormData();
-                        formData.append('file', pf.file);
-                        const uploadRes = await fetch('/api/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        if (uploadRes.ok) {
-                            const uploadData = await uploadRes.json();
-                            if (uploadData.url) policyUrls.push(uploadData.url);
-                        }
-                    } else if (pf.preview) {
-                        policyUrls.push(pf.preview);
-                    }
+                let lastMinuteUrl = '';
+                if (lastMinuteDocs.length > 0) {
+                    const doc = lastMinuteDocs[0];
+                    if (doc.file) {
+                        const formData = new FormData(); formData.append('file', doc.file);
+                        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                        if (res.ok) { const data = await res.json(); lastMinuteUrl = data.url; }
+                    } else if (doc.preview) lastMinuteUrl = doc.preview;
                 }
 
-                const lastMinuteUrls: string[] = [];
-                for (const lmf of lastMinuteFiles) {
-                    if (lmf.file) {
-                        const formData = new FormData();
-                        formData.append('file', lmf.file);
-                        const uploadRes = await fetch('/api/upload', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        if (uploadRes.ok) {
-                            const uploadData = await uploadRes.json();
-                            if (uploadData.url) lastMinuteUrls.push(uploadData.url);
-                        }
-                    } else if (lmf.preview) {
-                        lastMinuteUrls.push(lmf.preview);
-                    }
+                let policyUrl = '';
+                if (policyDocs.length > 0) {
+                    const doc = policyDocs[0];
+                    if (doc.file) {
+                        const formData = new FormData(); formData.append('file', doc.file);
+                        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                        if (res.ok) { const data = await res.json(); policyUrl = data.url; }
+                    } else if (doc.preview) policyUrl = doc.preview;
                 }
+
+                let cancellationUrl = '';
+                if (cancellationDocs.length > 0) {
+                    const doc = cancellationDocs[0];
+                    if (doc.file) {
+                        const formData = new FormData(); formData.append('file', doc.file);
+                        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+                        if (res.ok) { const data = await res.json(); cancellationUrl = data.url; }
+                    } else if (doc.preview) cancellationUrl = doc.preview;
+                }
+
+                const festDetails: Record<string, any> = {};
+                selectedFestivals.forEach(f => {
+                    const spec = festivalPrices[f] || { increaseType: 'Percentage', value: '10' };
+                    festDetails[f] = spec.increaseType === 'Percentage' 
+                        ? { percentage: parseFloat(spec.value) || 0 }
+                        : { price: parseFloat(spec.value) || 0 };
+                });
+
+                const dpPayload = {
+                    weekends: {
+                        enabled: isDynamicPricingEnabled && weekendPricing,
+                        percentage: weekendIncreaseType === 'Percentage' ? (parseFloat(weekendValue) || 0) : undefined,
+                        price: weekendIncreaseType === 'Fixed Price' ? (parseFloat(weekendValue) || 0) : undefined
+                    },
+                    weddingSeason: {
+                        enabled: isDynamicPricingEnabled && weekendSeason,
+                        percentage: seasonIncreaseType === 'Percentage' ? (parseFloat(seasonValue) || 0) : undefined,
+                        price: seasonIncreaseType === 'Fixed Price' ? (parseFloat(seasonValue) || 0) : undefined
+                    },
+                    festivals: {
+                        enabled: isDynamicPricingEnabled && festivalPricing,
+                        details: festDetails
+                    },
+                    customDates: {
+                        enabled: isDynamicPricingEnabled && customDatesPricing,
+                        percentage: customDatesIncreaseType === 'Percentage' ? (parseFloat(customDatesValue) || 0) : undefined,
+                        price: customDatesIncreaseType === 'Fixed Price' ? (parseFloat(customDatesValue) || 0) : undefined,
+                        startDate: customDatesStartDate,
+                        endDate: customDatesEndDate
+                    }
+                };
 
                 const payload = {
                     teamAndEquipment: {
                         price: parseFloat(teamEquipmentPrice) || 0,
                         billingUnit: teamEquipmentUnit
                     },
-                    policiesDocUrl: policyUrls.join(', '),
-                    lastMinuteChargesDocUrl: lastMinuteUrls.join(', '),
-                    lastMinuteChargesDescription: lastMinuteChargesDescription
+                    dynamicPricing: dpPayload,
+                    policiesDocUrl: policyUrl,
+                    lastMinuteChargesDocUrl: lastMinuteUrl,
+                    cancellationDocUrl: cancellationUrl
                 };
 
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/3`), {
@@ -835,7 +896,7 @@ export default function DecoratorFlow() {
             </div>
 
             {/* Main Step Render */}
-            <main className="p-6 max-w-md mx-auto">
+            <main className="px-6 pt-6 pb-48 max-w-md mx-auto">
                 {step === 1 && (
                     <DecoratorStep1EventAndCrew
                         packageName={packageName}
@@ -883,16 +944,50 @@ export default function DecoratorFlow() {
                         setTeamEquipmentPrice={setTeamEquipmentPrice}
                         teamEquipmentUnit={teamEquipmentUnit}
                         setTeamEquipmentUnit={setTeamEquipmentUnit}
-                        lastMinuteFiles={lastMinuteFiles}
-                        lastMinuteInputRef={lastMinuteInputRef}
-                        onLastMinuteUpload={onLastMinuteUpload}
-                        removeLastMinuteFile={removeLastMinuteFile}
-                        policyFiles={policyFiles}
-                        policyInputRef={policyInputRef}
-                        onPolicyUpload={onPolicyUpload}
-                        removePolicyFile={removePolicyFile}
-                        lastMinuteChargesDescription={lastMinuteChargesDescription}
-                        setLastMinuteChargesDescription={setLastMinuteChargesDescription}
+                        isDynamicPricingEnabled={isDynamicPricingEnabled}
+                        setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                        weekendPricing={weekendPricing}
+                        setWeekendPricing={setWeekendPricing}
+                        weekendIncreaseType={weekendIncreaseType}
+                        setWeekendIncreaseType={setWeekendIncreaseType}
+                        weekendValue={weekendValue}
+                        setWeekendValue={setWeekendValue}
+                        weekendSeason={weekendSeason}
+                        setWeekendSeason={setWeekendSeason}
+                        seasonIncreaseType={seasonIncreaseType}
+                        setSeasonIncreaseType={setSeasonIncreaseType}
+                        seasonValue={seasonValue}
+                        setSeasonValue={setSeasonValue}
+                        festivalPricing={festivalPricing}
+                        setFestivalPricing={setFestivalPricing}
+                        selectedFestivals={selectedFestivals}
+                        setSelectedFestivals={setSelectedFestivals}
+                        availableFestivals={availableFestivals}
+                        isAddingFestival={isAddingFestival}
+                        setIsAddingFestival={setIsAddingFestival}
+                        newFestivalName={newFestivalName}
+                        setNewFestivalName={setNewFestivalName}
+                        handleAddFestival={handleAddFestival}
+                        festivalPrices={festivalPrices}
+                        setFestivalPrices={setFestivalPrices}
+                        customDatesPricing={customDatesPricing}
+                        setCustomDatesPricing={setCustomDatesPricing}
+                        customDatesIncreaseType={customDatesIncreaseType}
+                        setCustomDatesIncreaseType={setCustomDatesIncreaseType}
+                        customDatesValue={customDatesValue}
+                        setCustomDatesValue={setCustomDatesValue}
+                        customDatesStartDate={customDatesStartDate}
+                        setCustomDatesStartDate={setCustomDatesStartDate}
+                        customDatesEndDate={customDatesEndDate}
+                        setCustomDatesEndDate={setCustomDatesEndDate}
+                        cancellationDocs={cancellationDocs}
+                        setCancellationDocs={setCancellationDocs}
+                        lastMinuteDocs={lastMinuteDocs}
+                        setLastMinuteDocs={setLastMinuteDocs}
+                        policyDocs={policyDocs}
+                        setPolicyDocs={setPolicyDocs}
+                        setups={setups}
+                        addons={addons}
                     />
                 )}
                 {step === 4 && (
@@ -906,7 +1001,7 @@ export default function DecoratorFlow() {
             </main>
 
             {/* Sticky Bottom Actions Bar */}
-            <div className="fixed bottom-[72px] left-0 right-0 p-6 bg-white border-t border-gray-100 z-20 max-w-md mx-auto shadow-md">
+            <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 p-6 bg-white border-t border-gray-100 z-20 max-w-md mx-auto shadow-md">
                 <div className="flex items-center justify-center gap-4 w-full">
                     <button
                         type="button"

@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { ArrowLeft, X, Upload, Plus, ChevronRight, ChevronDown, RefreshCw, PlusCircle, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Addon } from '../../components/AddonModal';
-import { formatFileSize } from '../../shared/types';
+import { formatFileSize, SampleMediaFile } from '../../shared/types';
 
 const PRESET_ADDONS = [
     { name: 'Photo Booth', type: 'Service' as const },
@@ -18,7 +18,6 @@ const POLICY_OPTIONS = ['Cancellation Policy', 'Last Minute Charges', 'General P
 const CATEGORY_OPTIONS = ['Floral', 'Lighting', 'Furniture', 'Signage', 'Backdrop', 'Other'];
 
 interface PolicyFile { name: string; size: number; file?: File; preview?: string; }
-interface MediaFile { name: string; size: number; file?: File; preview?: string; }
 interface Color { hex: string; label: string; }
 
 const PRESET_COLORS: Color[] = [
@@ -50,7 +49,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
     const [customColorHex, setCustomColorHex] = React.useState('#000000');
     const [dimensions, setDimensions] = React.useState({ L: '', B: '', H: '', unit: 'CM' });
     const [policies, setPolicies] = React.useState<PolicyFile[]>([]);
-    const [mediaFiles, setMediaFiles] = React.useState<MediaFile[]>([]);
+    const [mediaFiles, setMediaFiles] = React.useState<SampleMediaFile[]>([]);
     const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
 
     const policyInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
@@ -359,14 +358,14 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                                                 value={dimensions[dim]}
                                                 onChange={e => setDimensions(prev => ({ ...prev, [dim]: e.target.value.replace(/\D/g, '') }))}
                                                 style={FF}
-                                                className="flex-1 px-3 py-3 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] text-center focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                                className="flex-1 min-w-0 px-3 py-3 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] text-center focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
                                             />
                                         ))}
                                         <select
                                             value={dimensions.unit}
                                             onChange={e => setDimensions(prev => ({ ...prev, unit: e.target.value }))}
                                             style={FF}
-                                            className="px-2 py-3 bg-white border border-[#E4E4E7] rounded-[8px] text-[13px] focus:outline-none"
+                                            className="px-2 py-3 bg-white border border-[#E4E4E7] rounded-[8px] text-[13px] focus:outline-none flex-shrink-0"
                                         >
                                             {['CM', 'FT', 'IN', 'M'].map(u => <option key={u}>{u}</option>)}
                                         </select>
@@ -471,7 +470,11 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                                             style={FF}
                                             className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3F3F47] hover:text-[#030303] flex-shrink-0"
                                         >
-                                            Update <RefreshCw size={14} />
+                                            {uploaded ? (
+                                                <>Update <RefreshCw size={14} /></>
+                                            ) : (
+                                                <>Upload <Upload size={14} /></>
+                                            )}
                                         </button>
                                         <input
                                             ref={el => { policyInputRefs.current[idx] = el; }}

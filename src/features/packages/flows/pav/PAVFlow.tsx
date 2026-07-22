@@ -19,7 +19,7 @@ const FLOW_CONFIG = {
 
 const VENUE_NEEDS_OPTIONS = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
 
-export default function PAVFlow() {
+export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
@@ -336,9 +336,9 @@ export default function PAVFlow() {
         initOrRestorePackage();
     }, []);
 
-    // --- Navigation ---
     const handleBack = () => {
         if (step > 1) setStep(step - 1);
+        else if (onExitFlow) onExitFlow();
         else router.push('/dashboard/inventory');
     };
 

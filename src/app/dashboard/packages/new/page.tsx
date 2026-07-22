@@ -13,17 +13,54 @@ export default function NewPackagePage() {
     const [hoveredStep1, setHoveredStep1] = useState(false);
     const [clickAttemptedStep2, setClickAttemptedStep2] = useState(false);
     const [completedStepsCount, setCompletedStepsCount] = useState(0);
+    const [activeStepNum, setActiveStepNum] = useState(1);
 
     const fetchProgress = async () => {
         const vendorId = localStorage.getItem('vendor_id');
+        const serviceId = localStorage.getItem('service_id');
         if (!vendorId) return;
+
+        let targetVendorType = '';
+        if (serviceId) {
+            const prefix = serviceId.substring(0, 3).toUpperCase();
+            switch (prefix) {
+                case 'CAT': targetVendorType = 'Caterer'; break;
+                case 'MAK': targetVendorType = 'Makeup Artist'; break;
+                case 'DEC': targetVendorType = 'Decorator'; break;
+                case 'DJA': targetVendorType = 'DJ Artist'; break;
+                case 'PAV': targetVendorType = 'Photographer/Videographer'; break;
+                case 'VEN': targetVendorType = 'Venue'; break;
+            }
+        }
+
         try {
             const res = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`), { cache: 'no-store' });
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.packages && data.packages.length > 0) {
-                const pkg = data.packages[0];
-                if (pkg.completedSteps) {
-                    setCompletedStepsCount(pkg.completedSteps.length);
+                let pkg = targetVendorType 
+                    ? data.packages.find((p: any) => p.vendorType === targetVendorType) 
+                    : data.packages[0];
+
+                if (!pkg) pkg = data.packages[0];
+
+                if (pkg && pkg.completedSteps) {
+                    const completed = pkg.completedSteps;
+                    setCompletedStepsCount(completed.length);
+
+                    // Determine active step from localStorage or completed steps
+                    let currentStep = completed.length > 0 ? Math.min(4, Math.max(...completed) + 1) : 1;
+                    if (pkg._id) {
+                        const localStep = localStorage.getItem(`decorator_active_step_${pkg._id}`)
+                            || localStorage.getItem(`caterer_active_step_${pkg._id}`)
+                            || localStorage.getItem(`makeup_active_step_${pkg._id}`)
+                            || localStorage.getItem(`dj_active_step_${pkg._id}`)
+                            || localStorage.getItem(`pav_active_step_${pkg._id}`)
+                            || localStorage.getItem(`venue_active_step_${pkg._id}`);
+                        if (localStep) {
+                            currentStep = parseInt(localStep, 10);
+                        }
+                    }
+                    setActiveStepNum(currentStep);
                 }
             }
         } catch (err) {
@@ -154,7 +191,7 @@ export default function NewPackagePage() {
                                         borderRadius: '100px',
                                         fontFamily: 'Figtree, sans-serif'
                                     }}>
-                                        Step 1
+                                        Part 1
                                     </span>
                                     <h2 style={{ 
                                         fontSize: '18px', 
@@ -192,7 +229,7 @@ export default function NewPackagePage() {
                             {/* Progress Track */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ height: '6px', backgroundColor: '#EAECEF', borderRadius: '100px', width: '100%' }}>
-                                    <div style={{ height: '100%', backgroundColor: '#04222D', borderRadius: '100px', width: `${(completedStepsCount / 4) * 100}%` }}></div>
+                                    <div style={{ height: '100%', backgroundColor: '#04222D', borderRadius: '100px', width: `${completedStepsCount > 0 ? (activeStepNum / 4) * 100 : 0}%` }}></div>
                                 </div>
                                 <span style={{ 
                                     fontSize: '11.5px', 
@@ -201,7 +238,7 @@ export default function NewPackagePage() {
                                     alignSelf: 'flex-end', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    {completedStepsCount} of 4 steps done
+                                    {completedStepsCount > 0 ? `Currently on Step ${activeStepNum} of 4` : '0 of 4 steps done'}
                                 </span>
                             </div>
 
@@ -215,7 +252,7 @@ export default function NewPackagePage() {
                                     color: '#04222D', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    Start Now
+                                    {completedStepsCount > 0 ? 'Resume' : 'Start Now'}
                                 </span>
                                 <ArrowRight size={18} color="#04222D" />
                             </div>
@@ -253,7 +290,7 @@ export default function NewPackagePage() {
                                         borderRadius: '100px',
                                         fontFamily: 'Figtree, sans-serif'
                                     }}>
-                                        Step 2
+                                        Part 2
                                     </span>
                                     <h2 style={{ 
                                         fontSize: '18px', 

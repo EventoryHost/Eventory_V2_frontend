@@ -17,7 +17,7 @@ const FLOW_CONFIG = {
     steps: ['Your Package & Team', 'Package and Items', 'Policies and Charges', 'Sample and Media'],
 };
 
-export default function VenueFlow() {
+export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
@@ -252,9 +252,9 @@ export default function VenueFlow() {
         initOrRestorePackage();
     }, []);
 
-    // --- Navigation ---
     const handleBack = () => {
         if (step > 1) setStep(step - 1);
+        else if (onExitFlow) onExitFlow();
         else router.push('/dashboard/inventory');
     };
 

@@ -16,17 +16,17 @@ interface Props {
 export default function PackageFlowManager({ vendorType, onExitFlow }: Props) {
     switch (vendorType) {
         case 'CAT':
-            return <CatererFlow />;
+            return <CatererFlow onExitFlow={onExitFlow} />;
         case 'MAK':
-            return <MakeupFlow />;
+            return <MakeupFlow onExitFlow={onExitFlow} />;
         case 'DEC':
-            return <DecoratorFlow />;
+            return <DecoratorFlow onExitFlow={onExitFlow} />;
         case 'DJA':
             return <DJFlow onExitFlow={onExitFlow} />;
         case 'PAV':
-            return <PAVFlow />;
+            return <PAVFlow onExitFlow={onExitFlow} />;
         case 'VEN':
-            return <VenueFlow />;
+            return <VenueFlow onExitFlow={onExitFlow} />;
         default:
             return (
                 <div className="flex items-center justify-center min-h-screen">

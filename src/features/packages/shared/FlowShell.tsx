@@ -163,14 +163,14 @@ export default function FlowShell({
             </div>
 
             {/* Page Content */}
-            <div className="p-6 max-w-md mx-auto w-full min-w-0">
+            <div className="px-6 pt-6 pb-48 max-w-md mx-auto w-full min-w-0">
                 <div className="flex flex-col gap-8 w-full min-w-0">
                     {children}
                 </div>
             </div>
 
             {/* Bottom Nav */}
-            <div className="fixed bottom-[72px] left-0 right-0 p-6 bg-white border-t border-gray-50 z-20 max-w-md mx-auto">
+            <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 p-6 bg-white border-t border-gray-50 z-20 max-w-md mx-auto">
                 <div className="flex items-center justify-center gap-4 w-full">
                     {step > 1 && (
                         <button
