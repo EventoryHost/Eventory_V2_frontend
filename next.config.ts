@@ -1,7 +1,64 @@
 import type { NextConfig } from "next";
+import os from "os";
+
+// Generate all possible local network IPs & subnets dynamically so mobile devices on any Wi-Fi/Hotspot are allowed
+const generateAllowedDevOrigins = (): string[] => {
+  const origins = new Set<string>([
+    "*",
+    "*.local",
+    "localhost",
+    "127.0.0.1",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+  ]);
+
+  // Common subnets (0..254 for 192.168.0.x, 192.168.1.x, 192.168.2.x, 192.168.29.x, 192.168.43.x, 172.20.10.x, etc.)
+  const commonSubnets = [
+    "192.168.0",
+    "192.168.1",
+    "192.168.2",
+    "192.168.29",
+    "192.168.43",
+    "192.168.8",
+    "172.20.10",
+    "10.0.0",
+  ];
+
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === "IPv4" && !iface.internal) {
+          const parts = iface.address.split(".");
+          if (parts.length === 4) {
+            const activeSubnet = `${parts[0]}.${parts[1]}.${parts[2]}`;
+            if (!commonSubnets.includes(activeSubnet)) {
+              commonSubnets.push(activeSubnet);
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    // Ignore fallback
+  }
+
+  for (const subnet of commonSubnets) {
+    for (let i = 1; i <= 254; i++) {
+      const ip = `${subnet}.${i}`;
+      origins.add(ip);
+      origins.add(`http://${ip}`);
+      origins.add(`http://${ip}:3000`);
+      origins.add(`https://${ip}`);
+      origins.add(`https://${ip}:3000`);
+    }
+  }
+
+  return Array.from(origins);
+};
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: ["192.168.0.103", "http://192.168.0.103:3000", "http://192.168.0.103", "192.168.1.26", "http://192.168.1.26:3000", "http://192.168.1.26", "192.168.1.3", "http://192.168.1.3:3000", "http://192.168.1.3", "192.168.0.107", "http://192.168.0.107:3000", "http://192.168.0.107", "192.168.0.106", "http://192.168.0.106:3000", "http://192.168.0.106", "192.168.1.2", "http://192.168.1.2:3000", "http://192.168.1.2", "192.168.1.23", "http://192.168.1.23:3000", "http://192.168.1.23"],
+  allowedDevOrigins: generateAllowedDevOrigins(),
   images: {
     remotePatterns: [
       {

@@ -15,15 +15,29 @@ interface Props {
 
 export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, onSaveDocs, initialDocs = [] }: Props) {
     const [view, setView] = useState<'main' | 'write' | 'upload'>('main');
-    const [docs, setDocs] = useState<PolicyFile[]>(initialDocs);
+    const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+    const [docs, setDocs] = useState<PolicyFile[]>([]);
     const [textPolicy, setTextPolicy] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
         if (isOpen) {
             setView('main');
-            setDocs(initialDocs);
             setTextPolicy('');
+            
+            // Check if initialDocs contains a preset doc vs actual uploaded files
+            const presetDoc = initialDocs.find(d => !d.file && (d.size === 0 || !d.size) && (d.name.includes('Flexible') || d.name.includes('Standard') || d.name.includes('Strict')));
+            if (presetDoc) {
+                if (presetDoc.name.includes('Flexible')) setSelectedPreset('Flexible');
+                else if (presetDoc.name.includes('Standard')) setSelectedPreset('Standard');
+                else if (presetDoc.name.includes('Strict')) setSelectedPreset('Strict');
+                else setSelectedPreset(null);
+
+                setDocs(initialDocs.filter(d => d !== presetDoc));
+            } else {
+                setSelectedPreset(null);
+                setDocs(initialDocs);
+            }
         }
     }, [isOpen, initialDocs]);
 
@@ -52,7 +66,11 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
     };
 
     const handleSave = () => {
-        onSaveDocs(docs);
+        let finalDocs = [...docs];
+        if (finalDocs.length === 0 && selectedPreset) {
+            finalDocs = [{ name: `${selectedPreset} Cancellation Policy`, size: 0 }];
+        }
+        onSaveDocs(finalDocs);
         onClose();
     };
 
@@ -92,13 +110,12 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
                                                 { id: 'standard', name: 'Standard', desc: 'Full refund 30 days before. No refund within 14 days.' },
                                                 { id: 'strict', name: 'Strict', desc: 'Non-refundable deposit. No cancellations permitted.' }
                                             ].map((preset) => {
-                                                const isSelected = docs.some(d => d.name.includes(preset.name));
+                                                const isSelected = selectedPreset === preset.name;
                                                 return (
                                                     <div 
                                                         key={preset.id}
                                                         onClick={() => {
-                                                            const presetFile: PolicyFile = { name: `${preset.name} Cancellation Policy`, size: 0 };
-                                                            setDocs([presetFile]);
+                                                            setSelectedPreset(prev => prev === preset.name ? null : preset.name);
                                                         }}
                                                         className={`p-4 border rounded-[16px] cursor-pointer transition-all flex items-start justify-between ${
                                                             isSelected ? 'border-[#04222D] bg-[#F4F4F5]/50 ring-1 ring-[#04222D]' : 'border-[#E4E4E7] hover:border-gray-400 bg-white'
@@ -262,7 +279,7 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
                                                         <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-[#3F3F47] shrink-0 font-bold text-[10px]">DOC</div>
                                                         <div className="flex flex-col min-w-0">
                                                             <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] truncate">{doc.name}</span>
-                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#71717B]">{Math.round((doc.size || 0) / 1024 / 1024 * 10) / 10} MB</span>
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#71717B]">{doc.size ? `${Math.round((doc.size) / 1024 / 1024 * 10) / 10} MB` : 'File attached'}</span>
                                                         </div>
                                                     </div>
                                                     <button onClick={() => removeFile(idx)} className="text-[#3F3F47] p-2 hover:bg-gray-100 rounded-full">

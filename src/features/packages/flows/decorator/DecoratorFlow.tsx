@@ -280,20 +280,81 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                                 setTeamEquipmentPrice(String(s3.teamAndEquipment.price || ''));
                                 setTeamEquipmentUnit(s3.teamAndEquipment.billingUnit || 'Per hour');
                             }
+                            if (s3.dynamicPricing) {
+                                const dp = s3.dynamicPricing;
+                                setIsDynamicPricingEnabled(!!dp.weekends?.enabled || !!dp.weddingSeason?.enabled || !!dp.festivals?.enabled || !!dp.customDates?.enabled);
+                                
+                                if (dp.weekends?.enabled) {
+                                    setWeekendPricing(true);
+                                    if (dp.weekends.percentage !== undefined) {
+                                        setWeekendIncreaseType('Percentage');
+                                        setWeekendValue(String(dp.weekends.percentage));
+                                    } else if (dp.weekends.price !== undefined) {
+                                        setWeekendIncreaseType('Fixed Price');
+                                        setWeekendValue(String(dp.weekends.price));
+                                    }
+                                }
+                                
+                                if (dp.weddingSeason?.enabled) {
+                                    setWeekendSeason(true);
+                                    if (dp.weddingSeason.percentage !== undefined) {
+                                        setSeasonIncreaseType('Percentage');
+                                        setSeasonValue(String(dp.weddingSeason.percentage));
+                                    } else if (dp.weddingSeason.price !== undefined) {
+                                        setSeasonIncreaseType('Fixed Price');
+                                        setSeasonValue(String(dp.weddingSeason.price));
+                                    }
+                                }
+                                
+                                if (dp.festivals?.enabled && dp.festivals.details) {
+                                    setFestivalPricing(true);
+                                    const fKeys = Object.keys(dp.festivals.details);
+                                    setSelectedFestivals(fKeys);
+                                    setAvailableFestivals(prev => Array.from(new Set([...prev, ...fKeys])));
+                                    const parsedFestivals: Record<string, { increaseType: string; value: string }> = {};
+                                    for (const f of fKeys) {
+                                        const spec = dp.festivals.details[f];
+                                        if (spec.percentage !== undefined) parsedFestivals[f] = { increaseType: 'Percentage', value: String(spec.percentage) };
+                                        else if (spec.price !== undefined) parsedFestivals[f] = { increaseType: 'Fixed Price', value: String(spec.price) };
+                                    }
+                                    setFestivalPrices(parsedFestivals);
+                                }
+                                
+                                if (dp.customDates?.enabled) {
+                                    setCustomDatesPricing(true);
+                                    if (dp.customDates.percentage !== undefined) {
+                                        setCustomDatesIncreaseType('Percentage');
+                                        setCustomDatesValue(String(dp.customDates.percentage));
+                                    } else if (dp.customDates.price !== undefined) {
+                                        setCustomDatesIncreaseType('Fixed Price');
+                                        setCustomDatesValue(String(dp.customDates.price));
+                                    }
+                                    setCustomDatesStartDate(dp.customDates.startDate || '');
+                                    setCustomDatesEndDate(dp.customDates.endDate || '');
+                                }
+                            }
+                            if (s3.cancellationDocUrl) {
+                                const urls = s3.cancellationDocUrl.split(',').map((u: string) => u.trim()).filter(Boolean);
+                                setCancellationDocs(urls.map((url: string) => ({
+                                    name: url.startsWith('http') ? (url.split('/').pop() || 'CancellationPolicy.pdf') : url,
+                                    size: 0,
+                                    preview: url.startsWith('http') ? url : undefined
+                                })));
+                            }
                             if (s3.lastMinuteChargesDocUrl) {
                                 const urls = s3.lastMinuteChargesDocUrl.split(',').map((u: string) => u.trim()).filter(Boolean);
-                                setLastMinuteFiles(urls.map((url: string) => ({
-                                    name: url.split('/').pop() || 'LastMinuteCharges.pdf',
+                                setLastMinuteDocs(urls.map((url: string) => ({
+                                    name: url.startsWith('http') ? (url.split('/').pop() || 'LastMinuteCharges.pdf') : url,
                                     size: 0,
-                                    preview: url
+                                    preview: url.startsWith('http') ? url : undefined
                                 })));
                             }
                             if (s3.policiesDocUrl) {
                                 const urls = s3.policiesDocUrl.split(',').map((u: string) => u.trim()).filter(Boolean);
-                                setPolicyFiles(urls.map((url: string) => ({
-                                    name: url.split('/').pop() || 'PolicyDocument.pdf',
+                                setPolicyDocs(urls.map((url: string) => ({
+                                    name: url.startsWith('http') ? (url.split('/').pop() || 'PolicyDocument.pdf') : url,
                                     size: 0,
-                                    preview: url
+                                    preview: url.startsWith('http') ? url : undefined
                                 })));
                             }
                             if (s3.lastMinuteChargesDescription) {
@@ -541,7 +602,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         const formData = new FormData(); formData.append('file', doc.file);
                         const res = await fetch('/api/upload', { method: 'POST', body: formData });
                         if (res.ok) { const data = await res.json(); lastMinuteUrl = data.url; }
-                    } else if (doc.preview) lastMinuteUrl = doc.preview;
+                    } else if (doc.preview) { lastMinuteUrl = doc.preview; }
+                    else if (doc.name) { lastMinuteUrl = doc.name; }
                 }
 
                 let policyUrl = '';
@@ -551,7 +613,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         const formData = new FormData(); formData.append('file', doc.file);
                         const res = await fetch('/api/upload', { method: 'POST', body: formData });
                         if (res.ok) { const data = await res.json(); policyUrl = data.url; }
-                    } else if (doc.preview) policyUrl = doc.preview;
+                    } else if (doc.preview) { policyUrl = doc.preview; }
+                    else if (doc.name) { policyUrl = doc.name; }
                 }
 
                 let cancellationUrl = '';
@@ -561,7 +624,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         const formData = new FormData(); formData.append('file', doc.file);
                         const res = await fetch('/api/upload', { method: 'POST', body: formData });
                         if (res.ok) { const data = await res.json(); cancellationUrl = data.url; }
-                    } else if (doc.preview) cancellationUrl = doc.preview;
+                    } else if (doc.preview) { cancellationUrl = doc.preview; }
+                    else if (doc.name) { cancellationUrl = doc.name; }
                 }
 
                 const festDetails: Record<string, any> = {};
@@ -1002,12 +1066,12 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
 
             {/* Sticky Bottom Actions Bar */}
             <div className="fixed bottom-[calc(56px+env(safe-area-inset-bottom))] left-0 right-0 p-6 bg-white border-t border-gray-100 z-20 max-w-md mx-auto shadow-md">
-                <div className="flex items-center justify-center gap-4 w-full">
+                <div className="flex items-center justify-center gap-3 w-full">
                     <button
                         type="button"
                         onClick={handleBack}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="flex-1 h-14 flex justify-center items-center bg-white border border-[#04222D] text-[#04222D] rounded-[8px] font-semibold text-[16px] leading-[24px] active:scale-[0.98] transition-transform"
+                        className="flex-1 h-14 flex justify-center items-center bg-white border border-[#04222D] text-[#04222D] rounded-[12px] font-bold text-[15px] active:scale-[0.98] transition-all hover:bg-gray-50 cursor-pointer"
                     >
                         Back
                     </button>
@@ -1016,13 +1080,15 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         onClick={handleNext}
                         disabled={!canSave || isSaving}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className={`flex-1 h-14 flex justify-center items-center rounded-[8px] font-semibold text-[16px] leading-[24px] active:scale-[0.98] transition-transform ${
-                            canSave && !isSaving
-                                ? 'bg-[#04222D] text-white hover:bg-[#063445]'
-                                : 'bg-[#E6E9EA] text-[#9F9FA9] cursor-not-allowed'
+                        className={`flex-1 h-14 flex justify-center items-center rounded-[12px] font-bold text-[15px] active:scale-[0.98] transition-all ${
+                            step === 4 && sampleMediaFiles.length === 0
+                                ? 'bg-[#7F9299] text-white cursor-not-allowed'
+                                : canSave && !isSaving
+                                ? 'bg-[#04222D] text-white hover:bg-[#031820] cursor-pointer'
+                                : 'bg-[#7F9299] text-white cursor-not-allowed'
                         }`}
                     >
-                        {isSaving ? 'Saving...' : step === 4 ? 'Save & Submit' : 'Save & Next'}
+                        {isSaving ? 'Saving...' : step === 4 ? 'Save & Continue' : 'Save & Next'}
                     </button>
                 </div>
             </div>

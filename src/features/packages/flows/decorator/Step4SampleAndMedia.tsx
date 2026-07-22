@@ -12,29 +12,6 @@ interface Props {
     removeSampleMediaFile: (idx: number) => void;
 }
 
-// ── Figma Design Tokens & Typography Styles ──
-const INPUT_STYLE = {
-    color: 'var(--Input-text-value, #030303)',
-    fontFamily: 'var(--Font-family-San-serif, Figtree)',
-    fontSize: 'var(--S-Font-size, 16px)',
-    fontStyle: 'normal',
-    fontWeight: 'var(--font-weight, 400)',
-    lineHeight: 'var(--S-Line-height, 24px)',
-    letterSpacing: 'var(--S-Letter-spacing, 0)',
-};
-
-const SUBTEXT_STYLE = {
-    color: 'var(--Text-Neutral-secondary, #3F3F47)',
-    fontFamily: 'var(--Font-family-San-serif, Figtree)',
-    fontSize: 'var(--S-Font-size, 16px)',
-    fontStyle: 'normal',
-    fontWeight: 'var(--font-weight, 400)',
-    lineHeight: 'var(--S-Line-height, 24px)',
-    letterSpacing: 'var(--S-Letter-spacing, 0)',
-};
-
-const SECTION_LABEL = 'text-[12px] font-bold text-[#9F9FA9] leading-[18px] uppercase tracking-[0.05em]';
-
 export default function DecoratorStep4SampleAndMedia({
     sampleMediaFiles,
     sampleMediaInputRef,
@@ -49,25 +26,31 @@ export default function DecoratorStep4SampleAndMedia({
     };
 
     return (
-        <div className="flex flex-col gap-6 pb-32">
+        <div className="flex flex-col gap-4 pb-32">
             <div>
-                {/* Section label */}
-                <p className={`${SECTION_LABEL} mb-4`}>
-                    Sample Media
-                </p>
+                {/* Heading matching design screenshot */}
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-4">
+                    Sample Media <span className="text-red-500">*</span>
+                </h3>
 
-                {/* Upload container exactly as Page 4 screenshot */}
-                <div className="bg-[#F4F4F5]/60 border border-[#E4E4E7]/60 rounded-[12px] p-6 flex flex-col gap-4">
-                    <label className="w-full py-10 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-[#FAFAFA] transition-colors cursor-pointer text-center block shadow-xs">
-                        <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto">
-                            <Upload size={24} className="text-[#3F3F47] stroke-[2.5]" />
+                {/* Outer Container Card */}
+                <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-[16px] p-5 flex flex-col gap-4">
+                    {/* Inner Upload Dropzone Card */}
+                    <div
+                        onClick={() => sampleMediaInputRef.current?.click()}
+                        className="w-full py-8 px-4 bg-white border-2 border-dashed border-[#E4E4E7] rounded-[16px] flex flex-col items-center justify-center gap-3 cursor-pointer hover:bg-gray-50/80 transition-colors text-center"
+                    >
+                        <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center">
+                            <Upload size={22} className="text-[#030303] stroke-[2]" />
                         </div>
-                        <p style={INPUT_STYLE} className="font-bold text-[#030303] mb-1">
-                            Browse or Drop media
-                        </p>
-                        <p style={SUBTEXT_STYLE} className="text-[12px] text-[#71717B]">
-                            High-res images and videos ( max 50 MB )
-                        </p>
+                        <div className="flex flex-col gap-0.5">
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">
+                                Tap to Upload media
+                            </p>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#71717B]">
+                                Images and videos · Max 50 MB each
+                            </p>
+                        </div>
                         <input
                             type="file"
                             ref={sampleMediaInputRef}
@@ -76,7 +59,7 @@ export default function DecoratorStep4SampleAndMedia({
                             multiple
                             onChange={onSampleMediaUpload}
                         />
-                    </label>
+                    </div>
 
                     {/* Dynamic List of Uploaded Media Rows with Thumbnails */}
                     {sampleMediaFiles.length > 0 && (
@@ -84,17 +67,23 @@ export default function DecoratorStep4SampleAndMedia({
                             {sampleMediaFiles.map((file, idx) => (
                                 <div
                                     key={idx}
-                                    className="flex items-center justify-between p-3 bg-white border border-[#E4E4E7]/60 rounded-[12px] shadow-xs"
+                                    className="flex items-center justify-between p-3 bg-white border border-[#E4E4E7] rounded-[12px] shadow-xs"
                                 >
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                                    <div className="flex items-center gap-3 flex-1 min-w-0">
                                         <div 
-                                            className="w-12 h-12 rounded-[8px] overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer border border-[#E4E4E7]/40"
+                                            className="w-12 h-12 rounded-[8px] overflow-hidden bg-gray-100 flex-shrink-0 cursor-pointer border border-gray-100"
                                             onClick={() => {
                                                 const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null);
                                                 if (url) setPreviewFile({ url, name: file.name });
                                             }}
                                         >
-                                            <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                                            {file.preview ? (
+                                                <img src={file.preview} alt={file.name} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center bg-amber-500 text-white font-bold text-[10px]">
+                                                    IMG
+                                                </div>
+                                            )}
                                         </div>
                                         <div 
                                             className="flex-1 min-w-0 cursor-pointer"
@@ -103,10 +92,10 @@ export default function DecoratorStep4SampleAndMedia({
                                                 if (url) setPreviewFile({ url, name: file.name });
                                             }}
                                         >
-                                            <p style={INPUT_STYLE} className="font-bold text-[#030303] truncate text-[14px]">
+                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] truncate">
                                                 {file.name}
                                             </p>
-                                            <p style={SUBTEXT_STYLE} className="text-[12px] text-[#71717B]">
+                                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#71717B]">
                                                 {formatFileSizeLocal(file.size)}
                                             </p>
                                         </div>
@@ -114,7 +103,7 @@ export default function DecoratorStep4SampleAndMedia({
                                     <button
                                         type="button"
                                         onClick={() => removeSampleMediaFile(idx)}
-                                        className="text-[#3F3F47] hover:text-red-500 ml-3 transition-colors p-1.5 rounded-full hover:bg-gray-100"
+                                        className="text-[#030303] hover:text-red-500 transition-colors p-1.5 rounded-full hover:bg-gray-100"
                                         title="Remove media"
                                     >
                                         <X size={18} />

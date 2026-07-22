@@ -136,7 +136,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Team & Equipment Charges <span className="text-red-500">*</span></h3>
                 
                 <div className="flex flex-col gap-2">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#71717B] uppercase tracking-wider">How do you charge?</span>
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#71717B]">How do you charge?</span>
                     <div className="bg-[#FAFAFA] border border-[#E4E4E7] rounded-[16px] p-1 flex w-full select-none relative h-[48px]">
                         <div 
                             onClick={() => setTeamEquipmentUnit('Per package')}
@@ -162,7 +162,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                 </div>
 
                 <div>
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-bold text-[#71717B] uppercase tracking-wider mb-2">Price</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-bold text-[#71717B] mb-2">Price</label>
                     <div className="relative">
                         <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-semibold text-[#71717B]">Rs.</span>
                         <input 
@@ -195,6 +195,27 @@ export default function DecoratorStep3PoliciesAndCharges({
 
                 {isDynamicPricingEnabled && (() => {
                     const basePrice = parseFloat(teamEquipmentPrice) || 3000;
+
+                    // Weekend Calculation
+                    let weekendInputVal = weekendValue;
+                    if (weekendIncreaseType === 'Percentage') {
+                        const pct = parseFloat(weekendValue) || 0;
+                        weekendInputVal = String(Math.round(basePrice + basePrice * (pct / 100)));
+                    }
+
+                    // Season Calculation
+                    let seasonInputVal = seasonValue;
+                    if (seasonIncreaseType === 'Percentage') {
+                        const pct = parseFloat(seasonValue) || 0;
+                        seasonInputVal = String(Math.round(basePrice + basePrice * (pct / 100)));
+                    }
+
+                    // Custom Dates Calculation
+                    let customDatesInputVal = customDatesValue;
+                    if (customDatesIncreaseType === 'Percentage') {
+                        const pct = parseFloat(customDatesValue) || 0;
+                        customDatesInputVal = String(Math.round(basePrice + basePrice * (pct / 100)));
+                    }
 
                     return (
                         <div className="flex flex-col gap-6 mt-6 border-t border-[#E4E4E7] pt-6 animate-in fade-in duration-200">
@@ -230,7 +251,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                                                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#71717B] flex-shrink-0">Rs.</span>
                                                     <input
                                                         type="text"
-                                                        value={weekendValue ? new Intl.NumberFormat('en-IN').format(parseFloat(weekendValue)) : ''}
+                                                        value={weekendInputVal ? new Intl.NumberFormat('en-IN').format(parseFloat(weekendInputVal)) : ''}
                                                         onChange={(e) => {
                                                             setWeekendIncreaseType('Fixed Price');
                                                             setWeekendValue(e.target.value.replace(/[^0-9]/g, ''));
@@ -242,7 +263,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                                             </div>
 
                                             <div className="flex flex-col gap-2">
-                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">QUICK ADD</span>
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9]">Quick Add</span>
                                                 <div className="flex flex-wrap gap-2">
                                                     <button 
                                                         type="button"
@@ -286,7 +307,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                                                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#71717B] flex-shrink-0">Rs.</span>
                                                     <input
                                                         type="text"
-                                                        value={seasonValue ? new Intl.NumberFormat('en-IN').format(parseFloat(seasonValue)) : ''}
+                                                        value={seasonInputVal ? new Intl.NumberFormat('en-IN').format(parseFloat(seasonInputVal)) : ''}
                                                         onChange={(e) => {
                                                             setSeasonIncreaseType('Fixed Price');
                                                             setSeasonValue(e.target.value.replace(/[^0-9]/g, ''));
@@ -294,6 +315,26 @@ export default function DecoratorStep3PoliciesAndCharges({
                                                         style={{ fontFamily: 'Figtree, sans-serif' }}
                                                         className="w-full bg-transparent text-[14px] font-bold text-[#030303] focus:outline-none"
                                                     />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9]">Quick Add</span>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setSeasonIncreaseType('Percentage'); setSeasonValue('10'); }}
+                                                        className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${seasonIncreaseType === 'Percentage' && seasonValue === '10' ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'}`}
+                                                    >
+                                                        + 10 %
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setSeasonIncreaseType('Percentage'); setSeasonValue('20'); }}
+                                                        className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${seasonIncreaseType === 'Percentage' && seasonValue === '20' ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'}`}
+                                                    >
+                                                        + 20 %
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -316,7 +357,7 @@ export default function DecoratorStep3PoliciesAndCharges({
 
                                     {festivalPricing && (
                                         <div className="ml-8 p-5 bg-[#FAFAFA] border border-[#E4E4E7] rounded-[16px] flex flex-col gap-4">
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B] uppercase tracking-wider block">SELECT FESTIVALS</span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B] block">Select Festivals</span>
                                             <div className="flex flex-wrap items-center gap-3">
                                                 {availableFestivals.map(f => (
                                                     <button 
@@ -360,6 +401,90 @@ export default function DecoratorStep3PoliciesAndCharges({
                                                     </button>
                                                 )}
                                             </div>
+                                            {selectedFestivals.length > 0 && (
+                                                <div className="mt-4 flex flex-col gap-4 border-t border-[#E4E4E7] pt-4 w-full">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B] block">Configure Prices for Selected Festivals</span>
+                                                    <div className="flex flex-col gap-3">
+                                                        {selectedFestivals.map(f => {
+                                                            const spec = festivalPrices[f] || { increaseType: 'Percentage', value: '10' };
+                                                            
+                                                            let fInputVal = spec.value;
+                                                            if (spec.increaseType === 'Percentage') {
+                                                                const pct = parseFloat(spec.value) || 0;
+                                                                fInputVal = String(Math.round(basePrice + basePrice * (pct / 100)));
+                                                            }
+
+                                                            return (
+                                                                <div key={f} className="p-4 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col gap-3">
+                                                                    <div className="flex items-center justify-between">
+                                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">{f}</span>
+                                                                    </div>
+
+                                                                    <div className="flex flex-col gap-1.5">
+                                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303]">Label Price</span>
+                                                                        <div className="w-[140px] bg-white border border-[#E4E4E7] rounded-[8px] px-3 py-2 flex items-center gap-1.5 h-[42px]">
+                                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#71717B] flex-shrink-0">Rs.</span>
+                                                                            <input
+                                                                                type="text"
+                                                                                value={fInputVal ? new Intl.NumberFormat('en-IN').format(parseFloat(fInputVal)) : ''}
+                                                                                onChange={(e) => {
+                                                                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                                                                    setFestivalPrices(prev => ({
+                                                                                        ...prev,
+                                                                                        [f]: { increaseType: 'Fixed Price', value: val }
+                                                                                    }));
+                                                                                }}
+                                                                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                                className="w-full bg-transparent text-[14px] font-bold text-[#030303] focus:outline-none"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9]">Quick Add</span>
+                                                                        <div className="flex gap-2">
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setFestivalPrices(prev => ({
+                                                                                        ...prev,
+                                                                                        [f]: { increaseType: 'Percentage', value: '10' }
+                                                                                    }));
+                                                                                }}
+                                                                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                                className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${
+                                                                                    spec.increaseType === 'Percentage' && spec.value === '10'
+                                                                                        ? 'bg-[#04222D] text-white border-[#04222D]'
+                                                                                        : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'
+                                                                                }`}
+                                                                            >
+                                                                                + 10 %
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    setFestivalPrices(prev => ({
+                                                                                        ...prev,
+                                                                                        [f]: { increaseType: 'Percentage', value: '20' }
+                                                                                    }));
+                                                                                }}
+                                                                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                                className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${
+                                                                                    spec.increaseType === 'Percentage' && spec.value === '20'
+                                                                                        ? 'bg-[#04222D] text-white border-[#04222D]'
+                                                                                        : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'
+                                                                                }`}
+                                                                            >
+                                                                                + 20 %
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
                                 </div>
@@ -389,6 +514,43 @@ export default function DecoratorStep3PoliciesAndCharges({
                                                         setCustomDatesEndDate(end);
                                                     }}
                                                 />
+                                            </div>
+
+                                            <div className="flex flex-col gap-1.5 mt-2">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303]">Label Price</span>
+                                                <div className="w-[140px] bg-white border border-[#E4E4E7] rounded-[8px] px-3 py-2 flex items-center gap-1.5 h-[42px]">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#71717B] flex-shrink-0">Rs.</span>
+                                                    <input
+                                                        type="text"
+                                                        value={customDatesInputVal ? new Intl.NumberFormat('en-IN').format(parseFloat(customDatesInputVal)) : ''}
+                                                        onChange={(e) => {
+                                                            setCustomDatesIncreaseType('Fixed Price');
+                                                            setCustomDatesValue(e.target.value.replace(/[^0-9]/g, ''));
+                                                        }}
+                                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                        className="w-full bg-transparent text-[14px] font-bold text-[#030303] focus:outline-none"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-col gap-2">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9]">Quick Add</span>
+                                                <div className="flex flex-wrap gap-2">
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue('10'); }}
+                                                        className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue === '10' ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'}`}
+                                                    >
+                                                        + 10 %
+                                                    </button>
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue('20'); }}
+                                                        className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue === '20' ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'}`}
+                                                    >
+                                                        + 20 %
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     )}
