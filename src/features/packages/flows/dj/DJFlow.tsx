@@ -227,7 +227,8 @@ export default function DJFlow({ onExitFlow }: Props) {
                 if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
                     const djDrafts = draftData.packages.filter((p: any) => p.vendorType === 'DJArtist');
                     if (djDrafts.length > 0) {
-                        const pkg = djDrafts[0];
+                        const requestedPackageId = localStorage.getItem('selected_package_id');
+                        const pkg = djDrafts.find((item: any) => item._id === requestedPackageId) || djDrafts[0];
                         setPackageId(pkg._id);
                         sessionStorage.setItem('draft_package_id_DJ', pkg._id);
 

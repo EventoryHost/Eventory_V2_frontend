@@ -114,13 +114,14 @@ export default function DJStep2PackageAndItems({
         }
     };
 
-    const PERF_TYPES = ["DJ", "Live Band", "Solo Singer", "Duo/Trio, Orchestra", "Dhol Players", "Nagada Shehnai", "Sufi Ensemble", "Qawwali Group", "Folk Artists", "Instrumental", "Rapper", "MC/Anchor", "Bhangra Band", "Garba Orchestra", "Cartoonist/Commentator", "Bagpipers", "Brass Band", "Acoustic", "Karaoke Host"];
-    const GENRE_SUGGESTIONS = ["Bollywood Old (70s-90s)", "Bollywood New (2000+)", "Punjabi/Bhangra", "Sufi", "Ghazal", "Classical (Hindustani/Carnatic)", "Folk(Rajasthani/ Haryanvi)", "Devotional/Aarti", "Regional", "Qawwali", "International"];
-    const LANGUAGE_SUGGESTIONS = ["Hindi", "English", "Punjabi", "Telugu", "Haryanvi", "Bhojpuri"];
+    const PERF_TYPES = ["DJ", "Live Band", "Solo Singer", "Duo/Trio, Orchestra", "Dhol Players", "Nagada Shehnai", "Sufi Ensemble", "Qawwali Group", "Folk Artists", "Instrumental", "Rapper", "MC/Anchor", "Bhangra Band", "Garba Orchestra", "Cartoonist/Commentator", "Bagpipers", "Brass Band", "Acoustic", "Karaoke Host", "Percussionist", "Saxophonist", "Violinist"];
+    const GENRE_SUGGESTIONS = ["Bollywood Old (70s-90s)", "Bollywood New (2000+)", "Punjabi/Bhangra", "Sufi", "Ghazal", "Classical (Hindustani/Carnatic)", "Folk(Rajasthani/ Haryanvi)", "Devotional/Aarti", "Regional", "Qawwali", "International", "EDM / House", "Hip-Hop / R&B", "Rock / Metal", "Retro & Disco", "Afrobeat", "Lo-fi Acoustic", "Jazz & Blues", "Indie Pop"];
+    const LANGUAGE_SUGGESTIONS = ["Hindi", "English", "Punjabi", "Telugu", "Haryanvi", "Bhojpuri", "Tamil", "Marathi", "Gujarati", "Bengali", "Kannada", "Malayalam", "Odia", "Urdu", "Spanish", "French", "Arabic", "Pahari", "Assamese"];
 
     // Helper for tag inputs in DJ Item
     const TagInput = ({ itemId, field, values, placeholder, title }: { itemId: string, field: 'performanceType' | 'genres' | 'languages', values: string[], placeholder: string, title: string }) => {
         const [inputValue, setInputValue] = React.useState('');
+        const [showSuggestions, setShowSuggestions] = React.useState(false);
 
         let suggestionsList: string[] = [];
         if (field === 'performanceType') suggestionsList = PERF_TYPES;
@@ -135,15 +136,17 @@ export default function DJStep2PackageAndItems({
             }
         };
 
-        const handleAddCustom = () => {
-            const val = inputValue.trim();
+        const handleAddCustom = (valToAdd?: string) => {
+            const val = (valToAdd !== undefined ? valToAdd : inputValue).trim();
             if (val && !values.includes(val)) {
                 updateDJItem(itemId, field, [...values, val]);
             }
             setInputValue('');
+            setShowSuggestions(false);
         };
 
         const allTags = Array.from(new Set([...suggestionsList, ...values]));
+        const matchingSuggestions = suggestionsList.filter(s => !values.includes(s) && s.toLowerCase().includes(inputValue.toLowerCase()));
 
         return (
             <div className="flex flex-col gap-2 relative">
@@ -165,15 +168,36 @@ export default function DJStep2PackageAndItems({
                             );
                         })}
                     </div>
-                    <input
-                        type="text"
-                        placeholder={placeholder}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
-                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent mt-2"
-                    />
+                    <div className="relative w-full mt-2">
+                        <input
+                            type="text"
+                            placeholder={placeholder}
+                            value={inputValue}
+                            onChange={(e) => { setInputValue(e.target.value); setShowSuggestions(true); }}
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
+                        />
+                        {showSuggestions && matchingSuggestions.length > 0 && inputValue.trim().length > 0 && (
+                            <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
+                                {matchingSuggestions.map((suggestion) => (
+                                    <div
+                                        key={suggestion}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAddCustom(suggestion);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"
+                                    >
+                                        {suggestion}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );

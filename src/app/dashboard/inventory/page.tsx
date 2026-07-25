@@ -1,10 +1,11 @@
 'use client';
 
 import { apiUrl } from '@/lib/api';
-import { Suspense, useState, useEffect } from 'react';
-import { Bell, Edit3, FileText, Loader2 } from 'lucide-react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { BarChart3, Bell, Check, Copy, Edit3, FileText, Layers3, Loader2, MoreVertical, Pause, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import CreateServiceModal from '@/components/CreateServiceModal';
+import styles from './inventory.module.css';
 
 interface PackageData {
     _id: string;
@@ -12,254 +13,358 @@ interface PackageData {
     vendorType: string;
     bookingType: string;
     updatedAt: string;
-    step1_eventAndCrew?: {
-        packageName?: string;
+    isTemplate?: boolean;
+    templateNote?: string;
+    completedSteps?: number[];
+    vendorId?: { businessName?: string; vendorType?: string };
+    step1_eventAndCrew?: { packageName?: string; eventCategories?: string[] };
+    step2_productsAndPricing?: any;
+    step3_policiesAndCharges?: any;
+    step4_sampleMedia?: { media?: Array<{ url?: string; type?: string }> };
+}
+
+type InventoryTab = 'Drafts' | 'Live' | 'Submitted';
+
+const VENDOR_TYPES = ['Decorator', 'Caterer', 'Makeup Artist', 'Venue Provider', 'Dj Artist', 'Photographer'];
+const SERVICE_TYPES = ['Birthday Party', 'Anniversary Party', 'Birthday Celebration', 'Corporate Meeting', 'Wedding Reception', 'Charity Fundraiser'];
+
+const getPackagePrefix = (vendorType: string) => ({
+    Caterer: 'CAT', Decorator: 'DEC', MakeupArtist: 'MAK', DJArtist: 'DJA', PAV: 'PAV', VenueProvider: 'VEN',
+}[vendorType] || 'MAK');
+
+function packageName(pkg: PackageData) {
+    return pkg.step1_eventAndCrew?.packageName || 'Untitled Package';
+}
+
+function getDraftProgress(pkg: PackageData) {
+    const stepsDone = new Set<number>(pkg.completedSteps || []);
+    if (pkg.step1_eventAndCrew?.packageName) stepsDone.add(1);
+    if (pkg.step2_productsAndPricing && Object.keys(pkg.step2_productsAndPricing).length > 0) stepsDone.add(2);
+    if (pkg.step3_policiesAndCharges && Object.keys(pkg.step3_policiesAndCharges).length > 0) stepsDone.add(3);
+    if (pkg.step4_sampleMedia?.media?.length) stepsDone.add(4);
+
+    const count = stepsDone.size;
+    const percent = count >= 4 ? 100 : count === 3 ? 75 : count === 2 ? 50 : count === 1 ? 30 : 8;
+    return {
+        percent,
+        isComplete: count >= 4 || percent === 100,
     };
 }
 
-function InventoryContent() {
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const searchParams = useSearchParams();
-    const router = useRouter();
+function getVendorIcon(vendorType?: string): string {
+    const type = (vendorType || '').toLowerCase();
+    if (type.includes('photo') || type === 'pav') return "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/photographer.png";
+    if (type.includes('decor')) return "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/decorator.png";
+    if (type.includes('dj')) return "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/dj%20artist.png";
+    if (type.includes('venue')) return "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/venue%20provider.png";
+    if (type.includes('cater')) return "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/caterer.png";
+    return "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/makeup.png";
+}
 
-    const [activeTab, setActiveTab] = useState<'Drafts' | 'Live' | 'Submitted'>('Drafts');
+function getVendorStepKey(vendorType?: string): string {
+    const vt = (vendorType || '').toLowerCase();
+    if (vt.includes('decor')) return 'decorator';
+    if (vt.includes('cater')) return 'caterer';
+    if (vt.includes('makeup') || vt === 'mak') return 'makeup';
+    if (vt.includes('dj')) return 'dj';
+    if (vt === 'pav' || vt.includes('photo')) return 'pav';
+    if (vt.includes('venue')) return 'venue';
+    return 'makeup';
+}
+
+function matchesVendorFilter(pkg: PackageData, selected: string[]) {
+    if (selected.length === 0) return true;
+    const type = (pkg.vendorType || '').toUpperCase().trim();
+    return selected.some((item) => {
+        const norm = item.toUpperCase().trim();
+        if (norm === 'VENUE PROVIDER' && (type === 'VENUEPROVIDER' || type === 'VENUE')) return true;
+        if (norm === 'PHOTOGRAPHER' && (type === 'PAV' || type === 'PHOTOGRAPHER')) return true;
+        if (norm === 'DJ ARTIST' && (type === 'DJARTIST' || type === 'DJ' || type === 'DJ ARTIST')) return true;
+        if (norm === 'MAKEUP ARTIST' && (type === 'MAKEUPARTIST' || type === 'MAKEUP' || type === 'MAKEUP ARTIST')) return true;
+        if (norm === 'CATERER' && type === 'CATERER') return true;
+        if (norm === 'DECORATOR' && type === 'DECORATOR') return true;
+        return type === norm;
+    });
+}
+
+function matchesServiceFilter(pkg: PackageData, selected: string[]) {
+    if (selected.length === 0) return true;
+    const categories: string[] = pkg.step1_eventAndCrew?.eventCategories || [];
+    return selected.some((sel) => categories.some((c) => c.toLowerCase().includes(sel.toLowerCase())));
+}
+
+function InventoryContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const [activeTab, setActiveTab] = useState<InventoryTab>('Drafts');
     const [packages, setPackages] = useState<PackageData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(() => searchParams.get('add') === 'true');
+    const [actionPackage, setActionPackage] = useState<PackageData | null>(null);
+    const [templatePackage, setTemplatePackage] = useState<PackageData | null>(null);
+    const [showTemplateSuccess, setShowTemplateSuccess] = useState(false);
+    const [templateNote, setTemplateNote] = useState('');
+    const [busyPackageId, setBusyPackageId] = useState<string | null>(null);
+    const [error, setError] = useState('');
+    const [query, setQuery] = useState('');
+    const [showFilterModal, setShowFilterModal] = useState(false);
+    const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
+    const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
-    useEffect(() => {
-        if (searchParams.get('add') === 'true') {
-            setIsCreateModalOpen(true);
+    const toggleFilter = (list: string[], setList: (val: string[]) => void, item: string) => {
+        if (list.includes(item)) setList(list.filter((i) => i !== item));
+        else setList([...list, item]);
+    };
+
+    const togglePause = async (pkg: PackageData, targetStatus: string) => {
+        setBusyPackageId(pkg._id); setError('');
+        try {
+            await fetch(apiUrl(`/packages/${pkg._id}`), {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ packageStatus: targetStatus })
+            });
+            setPackages((current) => current.map((item) => item._id === pkg._id ? { ...item, packageStatus: targetStatus } : item));
+            if (actionPackage?._id === pkg._id) setActionPackage(null);
+        } catch (caught) {
+            setError(caught instanceof Error ? caught.message : 'Could not change package status');
+        } finally {
+            setBusyPackageId(null);
         }
-    }, [searchParams]);
+    };
+
+    const loadPackages = async () => {
+        const vendorId = localStorage.getItem('vendor_id');
+        if (!vendorId) return;
+        const response = await fetch(apiUrl(`/packages/vendor/${vendorId}`), { cache: 'no-store' });
+        const data = await response.json();
+        if (!response.ok || data.status !== 'SUCCESS') throw new Error(data.message || 'Could not load packages');
+        setPackages(data.packages || []);
+    };
 
     useEffect(() => {
-        const fetchPackages = async () => {
-            const vendorId = localStorage.getItem('vendor_id');
-            if (!vendorId) {
-                setIsLoading(false);
-                return;
-            }
-            try {
-                // Fetch all packages for the vendor
-                const res = await fetch(apiUrl(`/packages/vendor/${vendorId}`));
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.status === 'SUCCESS') {
-                        setPackages(data.packages || []);
-                    }
-                }
-            } catch (err) {
-                console.error("Failed to fetch packages:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchPackages();
+        const loadTimer = window.setTimeout(() => {
+            loadPackages().catch(() => setError('Some inventory details could not be loaded. Please try again.')).finally(() => setIsLoading(false));
+        }, 0);
+        return () => window.clearTimeout(loadTimer);
     }, []);
 
-    // Filter packages based on active tab
-    const displayedPackages = packages.filter(pkg => {
-        if (activeTab === 'Drafts') return pkg.packageStatus === 'Draft';
-        if (activeTab === 'Live') return pkg.packageStatus === 'Live';
-        if (activeTab === 'Submitted') return pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted';
-        return false;
-    });
+    const displayedPackages = packages.filter((pkg) => (
+        activeTab === 'Drafts' ? pkg.packageStatus === 'Draft'
+            : activeTab === 'Live' ? (pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused')
+                : pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted'
+    ))
+    .filter((pkg) => packageName(pkg).toLowerCase().includes(query.trim().toLowerCase()))
+    .filter((pkg) => matchesVendorFilter(pkg, selectedVendors))
+    .filter((pkg) => matchesServiceFilter(pkg, selectedServices));
 
-    const handleResumeDraft = (pkg: PackageData) => {
-        let prefix = 'MAK';
-        switch (pkg.vendorType) {
-            case 'Caterer': prefix = 'CAT'; break;
-            case 'Decorator': prefix = 'DEC'; break;
-            case 'MakeupArtist': prefix = 'MAK'; break;
-            case 'DJArtist': prefix = 'DJA'; break;
-            case 'PAV': prefix = 'PAV'; break;
-            case 'VenueProvider': prefix = 'VEN'; break;
+    const tabCount = (tab: InventoryTab) => packages.filter((pkg) => (
+        tab === 'Drafts' ? pkg.packageStatus === 'Draft'
+            : tab === 'Live' ? (pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused')
+                : pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted'
+    )).length;
+
+    const openPackage = (pkg: PackageData) => {
+        localStorage.setItem('selected_package_id', pkg._id);
+        localStorage.setItem('service_id', `${getPackagePrefix(pkg.vendorType)}${pkg._id}`);
+        
+        // Take them to the last filled page or next uncompleted step from DB
+        const stepKey = `${getVendorStepKey(pkg.vendorType)}_active_step_${pkg._id}`;
+        let targetStep = 1;
+        const localStep = localStorage.getItem(stepKey);
+        if (localStep && !isNaN(parseInt(localStep, 10)) && parseInt(localStep, 10) >= 1 && parseInt(localStep, 10) <= 4) {
+            targetStep = parseInt(localStep, 10);
+        } else if (pkg.completedSteps && pkg.completedSteps.length > 0) {
+            targetStep = Math.min(4, Math.max(...pkg.completedSteps) + 1);
+        } else {
+            if (pkg.step3_policiesAndCharges && Object.keys(pkg.step3_policiesAndCharges).length > 0) targetStep = 4;
+            else if (pkg.step2_productsAndPricing && Object.keys(pkg.step2_productsAndPricing).length > 0) targetStep = 3;
+            else if (pkg.step1_eventAndCrew && Object.keys(pkg.step1_eventAndCrew).length > 0) targetStep = 2;
         }
-        localStorage.setItem('service_id', `${prefix}${pkg._id}`);
+        localStorage.setItem(stepKey, String(targetStep));
+
         router.push('/dashboard/packages/new');
     };
 
+    const deleteDraft = async (pkg: PackageData) => {
+        if (!window.confirm(`Delete draft “${packageName(pkg)}”?`)) return;
+        setBusyPackageId(pkg._id); setError('');
+        try {
+            const response = await fetch(apiUrl(`/packages/${pkg._id}`), { method: 'DELETE' });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'SUCCESS') throw new Error(data.message || 'Could not delete draft');
+            setPackages((current) => current.filter((item) => item._id !== pkg._id));
+        } catch (caught) {
+            setError(caught instanceof Error ? caught.message : 'Could not delete draft');
+        } finally { setBusyPackageId(null); setActionPackage(null); }
+    };
+
+    const saveTemplate = async () => {
+        if (!templatePackage) return;
+        const vendorId = localStorage.getItem('vendor_id');
+        if (!vendorId) {
+            setError('Vendor ID not found. Please log in again.');
+            return;
+        }
+        
+        setBusyPackageId(templatePackage._id); setError('');
+        try {
+            const response = await fetch(apiUrl(`/templates/vendor/${vendorId}`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sourcePackageId: templatePackage._id,
+                    note: templateNote
+                })
+            });
+            const data = await response.json();
+            if (!response.ok || data.status !== 'SUCCESS') throw new Error(data.message || 'Could not save template');
+            
+            // Mark the local package as a template so UI reflects it (optional, but good for UX)
+            setPackages((current) => current.map((item) => item._id === templatePackage._id ? { ...item, isTemplate: true, templateNote } : item));
+            setTemplatePackage(null); setTemplateNote(''); setShowTemplateSuccess(true);
+        } catch (caught) {
+            setError(caught instanceof Error ? caught.message : 'Could not save template');
+        } finally { setBusyPackageId(null); }
+    };
+
     return (
-        <div style={{ backgroundColor: 'white', paddingBottom: '96px', minHeight: '100vh' }}>
-            {/* Top Bar */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 24px 16px' }}>
-                <img
-                    src="https://dkuacgndftndz.cloudfront.net/inventory-page/clearLogoeventoryV2.svg"
-                    alt="Eventory Logo"
-                    style={{
-                        width: '40px',
-                        height: '40px',
-                        objectFit: 'contain',
-                        filter: 'brightness(0) invert(53%) sepia(55%) saturate(3731%) hue-rotate(324deg) brightness(96%) contrast(93%)'
-                    }}
-                />
-                <button style={{ padding: '8px', borderRadius: '50%', border: 'none', backgroundColor: 'transparent', cursor: 'pointer' }}>
-                    <Bell size={24} color="#111" />
-                </button>
+        <div className={styles.page}>
+            <header className={styles.header}>
+                <img className={styles.logo} src="https://dkuacgndftndz.cloudfront.net/inventory-page/clearLogoeventoryV2.svg" alt="Eventory Logo" />
+                <button className={styles.iconButton} aria-label="Notifications"><Bell size={23} /></button>
+            </header>
+            <section className={styles.titleRow}>
+                <div><h1>Inventory</h1><p>View and manage your Inventories.</p></div>
+                <button className={styles.addButton} onClick={() => setIsCreateModalOpen(true)}>+ Add</button>
+            </section>
+
+            <div className={styles.tabs} role="tablist" aria-label="Package status">
+                {(['Drafts', 'Live', 'Submitted'] as const).map((tab) => <button key={tab} role="tab" aria-selected={activeTab === tab} className={activeTab === tab ? styles.tabActive : styles.tab} onClick={() => setActiveTab(tab)}>{tab}{tabCount(tab) > 0 && <span>{tabCount(tab)}</span>}</button>)}
             </div>
 
-            {/* Page Title */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '0 24px 24px' }}>
-                <div>
-                    <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#000', letterSpacing: '-0.5px', lineHeight: 1.1, marginBottom: '4px', fontFamily: 'Figtree, sans-serif' }}>Inventory</h1>
-                    <p style={{ fontSize: '18px', color: '#9f9fa9', fontWeight: 400, fontFamily: 'Figtree, sans-serif' }}>View and manage your Inventories.</p>
-                </div>
-                {packages.length > 0 && (
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        style={{
-                            backgroundColor: '#04222D',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            padding: '8px 16px',
-                            fontSize: '14px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            fontFamily: 'Figtree, sans-serif',
-                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                            flexShrink: 0,
-                            marginTop: '4px'
-                        }}
-                    >
-                        + Add
-                    </button>
-                )}
+            {error && <p className={styles.error} role="alert">{error}</p>}
+            <div className={styles.searchRow}>
+                <label className={styles.searchBox}><Search size={22} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search" aria-label="Search packages" /></label>
+                <button className={styles.filterButton} aria-label="Filter packages" onClick={() => setShowFilterModal(true)}><SlidersHorizontal size={21} /></button>
             </div>
-
-            {/* Segmented Control Tabs */}
-            <div style={{ padding: '0 24px 24px' }}>
-                <div style={{ display: 'flex', backgroundColor: '#f4f4f5', borderRadius: '10px', padding: '6px', gap: '2px' }}>
-                    {(['Drafts', 'Live', 'Submitted'] as const).map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            style={{
-                                flex: 1,
-                                backgroundColor: activeTab === tab ? '#04222D' : 'transparent',
-                                color: activeTab === tab ? 'white' : '#a1a1aa',
-                                padding: '10px',
-                                borderRadius: '8px',
-                                fontSize: '14px',
-                                fontWeight: 500,
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s',
-                                fontFamily: 'Figtree, sans-serif'
-                            }}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Content Area */}
-            {isLoading ? (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
-                    <Loader2 size={32} className="animate-spin text-gray-400" />
-                </div>
-            ) : displayedPackages.length > 0 ? (
-                <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {displayedPackages.map((pkg) => (
-                        <div key={pkg._id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', border: '1px solid #E4E4E7', borderRadius: '16px', backgroundColor: '#FAFAFA', gap: '12px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1, minWidth: 0 }}>
-                                <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F4F4F5', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #E4E4E7', flexShrink: 0 }}>
-                                    <FileText size={24} color="#3F3F47" />
+            <section className={styles.packageList}>
+                {isLoading ? <div className={styles.loader}><Loader2 className="animate-spin" size={28} /></div>
+                    : displayedPackages.length ? displayedPackages.map((pkg) => {
+                        const progress = getDraftProgress(pkg);
+                        return (
+                            <article className={styles.packageCard} key={pkg._id}>
+                                <div className={styles.packageImage}>
+                                    {pkg.step4_sampleMedia?.media?.find((media) => media.type !== 'video')?.url ? <img src={pkg.step4_sampleMedia.media.find((media) => media.type !== 'video')?.url} alt="" /> : <div className={styles.imageFallback}><Layers3 size={38} /></div>}
+                                    {activeTab === 'Drafts' ? (
+                                        progress.isComplete ? (
+                                            <span className={styles.completeBadge}>COMPLETE</span>
+                                        ) : (
+                                            <span className={styles.inProgressBadge}>IN-PROGRESS</span>
+                                        )
+                                    ) : pkg.packageStatus === 'Live' ? (
+                                        <span className={styles.liveBadge}>LIVE</span>
+                                    ) : pkg.packageStatus === 'Paused' ? (
+                                        <span className={styles.pausedBadge}>PAUSED</span>
+                                    ) : (
+                                        <span className={styles.statusBadge}>{pkg.packageStatus === 'Under Review' ? 'SUBMITTED' : pkg.packageStatus.toUpperCase()}</span>
+                                    )}
+                                    <button className={styles.imageMenuButton} aria-label={`Actions for ${packageName(pkg)}`} onClick={() => setActionPackage(pkg)}><MoreVertical size={22} /></button>
                                 </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <h3 style={{ 
-                                        fontSize: '15px', 
-                                        fontWeight: 700, 
-                                        color: '#030303', 
-                                        margin: '0 0 4px 0', 
-                                        fontFamily: 'Figtree, sans-serif',
-                                        display: '-webkit-box',
-                                        WebkitLineClamp: 2,
-                                        WebkitBoxOrient: 'vertical',
-                                        overflow: 'hidden',
-                                        lineHeight: '1.3'
-                                    }}>
-                                        {pkg.step1_eventAndCrew?.packageName || 'Untitled Package'}
-                                    </h3>
-                                    <p style={{ 
-                                        fontSize: '13px', 
-                                        color: '#71717B', 
-                                        margin: 0, 
-                                        fontFamily: 'Figtree, sans-serif',
-                                        whiteSpace: 'nowrap',
-                                        overflow: 'hidden',
-                                        textOverflow: 'ellipsis'
-                                    }}>
-                                        {pkg.vendorType} • {pkg.bookingType} • {new Date(pkg.updatedAt).toLocaleDateString()}
-                                    </p>
+                                <div className={styles.cardBody}>
+                                    {activeTab === 'Drafts' && (
+                                        <div className={styles.progressRow}>
+                                            <div className={styles.progressBar}>
+                                                <div className={styles.progressFill} style={{ width: `${progress.percent}%` }} />
+                                            </div>
+                                            <span className={styles.progressText}>{progress.percent < 10 ? `0${progress.percent}%` : `${progress.percent}%`}</span>
+                                        </div>
+                                    )}
+                                    <div className={styles.packageMeta}>
+                                        <span className={styles.vendorTypePill}>
+                                            <img src={getVendorIcon(pkg.vendorType)} alt="" style={{ width: 13, height: 13 }} />
+                                            {pkg.vendorType ? pkg.vendorType.replace(/([A-Z])/g, ' $1').trim().toUpperCase() : 'VENDOR'}
+                                        </span>
+                                        {pkg.bookingType && <><i /> <span>{pkg.bookingType.toUpperCase()}</span></>}
+                                    </div>
+                                    <h2>{packageName(pkg)}</h2>
+                                    <p>{pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused' || activeTab === 'Live' ? 'Your package is active and visible to customers. You have 12 active bookings and 450 views this month.' : pkg.packageStatus === 'Draft' ? (progress.isComplete ? 'Your setup is 100% complete. Submit your package for review or review the details.' : 'Finish your package details and submit it for review.') : 'Your package is currently being reviewed.'}</p>
+                                    {activeTab === 'Drafts' ? (
+                                        <button className={styles.cardPrimaryButton} onClick={() => openPackage(pkg)}>Finish Setup</button>
+                                    ) : pkg.packageStatus === 'Paused' ? (
+                                        <button className={styles.cardPrimaryButton} onClick={() => togglePause(pkg, 'Live')}>Resume Listing</button>
+                                    ) : activeTab === 'Live' ? (
+                                        <button className={styles.cardPrimaryButton}>View Analytics</button>
+                                    ) : (
+                                        <button className={styles.cardPrimaryButton}>View Details</button>
+                                    )}
                                 </div>
-                            </div>
-                            
-                            {activeTab === 'Drafts' ? (
-                                <button 
-                                    onClick={() => handleResumeDraft(pkg)}
-                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', border: '1px solid #E4E4E7', padding: '8px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, color: '#030303', cursor: 'pointer', flexShrink: 0 }}
-                                >
-                                    <Edit3 size={16} /> Resume
-                                </button>
-                            ) : (
-                                <span style={{ padding: '6px 12px', backgroundColor: pkg.packageStatus === 'Live' ? '#dcfce7' : '#fef08a', color: pkg.packageStatus === 'Live' ? '#166534' : '#854d0e', borderRadius: '20px', fontSize: '12px', fontWeight: 600, flexShrink: 0 }}>
-                                    {pkg.packageStatus}
-                                </span>
-                            )}
+                            </article>
+                        );
+                    }) : <div className={styles.emptyState}><FileText size={36} strokeWidth={1.3} /><h2>No {activeTab.toLowerCase()} yet</h2><p>Create a package to start building your inventory.</p>{activeTab === 'Drafts' && <button className={styles.addButton} onClick={() => setIsCreateModalOpen(true)}>Create package</button>}</div>}
+            </section>
+
+            {actionPackage && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setActionPackage(null)}><section className={styles.actionSheet} role="dialog" aria-modal="true" aria-label="Package actions" onMouseDown={(event) => event.stopPropagation()}>
+                <button className={styles.sheetClose} aria-label="Close" onClick={() => setActionPackage(null)}><X size={21} /></button>
+                <button onClick={() => { setTemplatePackage(actionPackage); setTemplateNote(''); setActionPackage(null); }}><FileText size={20} />Save as template</button>
+                {actionPackage.packageStatus === 'Live' && <button onClick={() => togglePause(actionPackage, 'Paused')} disabled={busyPackageId === actionPackage._id}><Pause size={20} />Pause this package</button>}
+                {actionPackage.packageStatus === 'Paused' && <button onClick={() => togglePause(actionPackage, 'Live')} disabled={busyPackageId === actionPackage._id}><Check size={20} />Resume this package</button>}
+                <button className={styles.deleteAction} onClick={() => deleteDraft(actionPackage)} disabled={busyPackageId === actionPackage._id}><Trash2 size={20} />Delete this package</button>
+            </section></div>}
+            {templatePackage && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setTemplatePackage(null)}><section className={styles.templateModal} role="dialog" aria-modal="true" aria-labelledby="save-template-title" onMouseDown={(event) => event.stopPropagation()}><button className={styles.closeButton} aria-label="Close" onClick={() => setTemplatePackage(null)}><X size={20} /></button><h2 id="save-template-title">Save as Template</h2><p className={styles.modalHint}>Saving in template section during creation</p><div className={styles.templatePreview}>{templatePackage.step4_sampleMedia?.media?.[0]?.url ? <img src={templatePackage.step4_sampleMedia.media[0].url} alt="" /> : <Layers3 size={20} />}<div><span>{templatePackage.vendorType}</span><strong>{packageName(templatePackage)}</strong></div></div><label htmlFor="template-note">Template Note <span>(Optional)</span></label><textarea id="template-note" value={templateNote} onChange={(event) => setTemplateNote(event.target.value)} placeholder="This is for special event only" maxLength={500} /><small className={styles.noteHelp}>Helps you for remembering when creating new packages</small><button className={styles.saveTemplate} disabled={busyPackageId === templatePackage._id} onClick={saveTemplate}>{busyPackageId === templatePackage._id ? 'Saving…' : 'Continue'}</button></section></div>}
+            {showTemplateSuccess && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setShowTemplateSuccess(false)}><section className={styles.templateSuccess} role="dialog" aria-modal="true" aria-label="Template added" onMouseDown={(event) => event.stopPropagation()}><button className={styles.successClose} aria-label="Close" onClick={() => setShowTemplateSuccess(false)}><X size={22} /></button><div className={styles.successBurst}><span><Check size={40} strokeWidth={4} /></span></div><h2>Added to template</h2></section></div>}
+            <CreateServiceModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
+
+            {/* Filter Modal */}
+            {showFilterModal && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setShowFilterModal(false)} style={{ zIndex: 100 }}>
+                <section className={styles.filterModal} role="dialog" aria-modal="true" aria-label="Filter" onMouseDown={(event) => event.stopPropagation()}>
+                    <div className={styles.filterHeader}>
+                        <div>
+                            <h2 className={styles.filterTitle}>Filter</h2>
+                            <p className={styles.filterSubtitle}>Vendor type & Event type</p>
                         </div>
-                    ))}
-                </div>
-            ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px 24px 48px', textAlign: 'center' }}>
-                    <img
-                        src="https://dkuacgndftndz.cloudfront.net/inventory-page/cardbox_home.png"
-                        alt="Create first Package"
-                        style={{ width: '220px', height: '220px', objectFit: 'contain', marginBottom: '32px' }}
-                    />
-                    <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#030303', marginBottom: '8px', fontFamily: 'Figtree, sans-serif' }}>
-                        Create first Package
-                    </h2>
-                    <p style={{ fontSize: '14px', color: '#71717B', marginBottom: '32px', lineHeight: 1.5, maxWidth: '280px', fontFamily: 'Figtree, sans-serif' }}>
-                        Launch your first package, start receiving orders, and kickstart your business.
-                    </p>
-                    <button
-                        onClick={() => setIsCreateModalOpen(true)}
-                        style={{
-                            width: '280px',
-                            height: '56px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: '#04222D',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontSize: '16px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            fontFamily: 'Figtree, sans-serif'
-                        }}
-                    >
-                        Add
-                    </button>
-                </div>
-            )}
+                        <button className={styles.filterClose} aria-label="Close filters" onClick={() => setShowFilterModal(false)}><X size={22} /></button>
+                    </div>
 
-            <CreateServiceModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-            />
+                    <div className={styles.filterScrollArea}>
+                        <div className={styles.filterSection}>
+                            <span className={styles.filterSectionTitle}>VENDOR TYPE</span>
+                            <div className={styles.filterPills}>
+                                {VENDOR_TYPES.map(vt => (
+                                    <button 
+                                        key={vt} 
+                                        className={`${styles.filterPill} ${selectedVendors.includes(vt) ? styles.filterPillActive : ''}`}
+                                        onClick={() => toggleFilter(selectedVendors, setSelectedVendors, vt)}
+                                    >
+                                        {vt}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className={styles.filterSection}>
+                            <span className={styles.filterSectionTitle}>SERVICE TYPE</span>
+                            <div className={styles.filterPills}>
+                                {SERVICE_TYPES.map(st => (
+                                    <button 
+                                        key={st} 
+                                        className={`${styles.filterPill} ${selectedServices.includes(st) ? styles.filterPillActive : ''}`}
+                                        onClick={() => toggleFilter(selectedServices, setSelectedServices, st)}
+                                    >
+                                        {st}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={styles.filterFooter}>
+                        <button className={styles.filterSearchButton} onClick={() => setShowFilterModal(false)}>Search Now</button>
+                    </div>
+                </section>
+            </div>}
         </div>
     );
 }
 
-export default function InventoryPage() {
-    return (
-        <Suspense fallback={null}>
-            <InventoryContent />
-        </Suspense>
-    );
-}
+export default function InventoryPage() { return <Suspense fallback={null}><InventoryContent /></Suspense>; }

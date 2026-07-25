@@ -192,7 +192,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                     const decoratorDrafts = draftData.packages.filter((p: any) => p.vendorType === 'Decorator');
                     
                     if (decoratorDrafts.length > 0) {
-                        const pkg = decoratorDrafts[0];
+                        const requestedPackageId = localStorage.getItem('selected_package_id');
+                        const pkg = decoratorDrafts.find((item: any) => item._id === requestedPackageId) || decoratorDrafts[0];
                         setPackageId(pkg._id);
                         sessionStorage.setItem('draft_package_id_Decorator', pkg._id);
                         
@@ -375,6 +376,9 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         const savedStep = localStorage.getItem(`decorator_active_step_${pkg._id}`);
                         if (savedStep) {
                             setStep(parseInt(savedStep));
+                        } else if (pkg.completedSteps && pkg.completedSteps.length > 0) {
+                            const nextStep = Math.min(4, Math.max(...pkg.completedSteps) + 1);
+                            setStep(nextStep);
                         }
                         return;
                     }

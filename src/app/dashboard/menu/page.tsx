@@ -10,6 +10,7 @@ import {
     HelpCircle, Video, Headset, LogOut, ChevronRight, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { apiUrl } from '@/lib/api';
 
 export default function MenuPage() {
     const router = useRouter();
@@ -27,8 +28,7 @@ export default function MenuPage() {
         const fetchVendor = async () => {
             try {
                 const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-                const res = await fetch(`${baseUrl}/vendors/${vendorId}`);
+                const res = await fetch(apiUrl(`/vendors/${vendorId}`));
                 if (res.ok) {
                     const responseJson = await res.json();
                     const data = responseJson.data || responseJson;

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from '@/lib/api';
 import { 
     Calendar as CalendarIcon, 
     Bell, 
@@ -89,7 +90,7 @@ export default function CalendarPage() {
     const [activeFilter, setActiveFilter] = useState<string | null>(null);
     
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+    
 
     const populateDummyData = () => {
         const dummyBookings: Booking[] = [
@@ -158,7 +159,7 @@ export default function CalendarPage() {
     const handleMarkHoliday = async () => {
         setIsSubmitting(true);
         try {
-            const res = await fetch(`${baseUrl}/calendar/vendor/${vendorId}/block/holiday`, {
+            const res = await fetch(apiUrl(`/calendar/vendor/${vendorId}/block/holiday`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -195,7 +196,7 @@ export default function CalendarPage() {
             };
             const mappedServiceType = serviceTypeMap[oServiceType] || 'Decorator';
 
-            const res = await fetch(`${baseUrl}/calendar/vendor/${vendorId}/block/offline`, {
+            const res = await fetch(apiUrl(`/calendar/vendor/${vendorId}/block/offline`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -226,7 +227,7 @@ export default function CalendarPage() {
         if (!unblockTargetId) return;
         setIsSubmitting(true);
         try {
-            const res = await fetch(`${baseUrl}/calendar/block/${unblockTargetId}/unblock`, {
+            const res = await fetch(apiUrl(`/calendar/block/${unblockTargetId}/unblock`), {
                 method: 'PUT'
             });
             const data = await res.json();
@@ -249,9 +250,9 @@ export default function CalendarPage() {
             const targetDateStr = format(date, 'yyyy-MM-dd');
 
             const [overviewRes, bookingsRes, scheduleRes] = await Promise.all([
-                fetch(`${baseUrl}/calendar/vendor/${vendorId}/overview?startDate=${start}&endDate=${end}`),
-                fetch(`${baseUrl}/bookings/vendor/${vendorId}?startDate=${start}&endDate=${end}&limit=100`),
-                fetch(`${baseUrl}/calendar/vendor/${vendorId}/schedule?date=${targetDateStr}`)
+                fetch(apiUrl(`/calendar/vendor/${vendorId}/overview?startDate=${start}&endDate=${end}`)),
+                fetch(apiUrl(`/bookings/vendor/${vendorId}?startDate=${start}&endDate=${end}&limit=100`)),
+                fetch(apiUrl(`/calendar/vendor/${vendorId}/schedule?date=${targetDateStr}`))
             ]);
 
             const overviewData = await overviewRes.json();
@@ -267,7 +268,7 @@ export default function CalendarPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [vendorId, baseUrl]);
+    }, [vendorId]);
 
     // Fetch when selected month changes (we approximate by just fetching on week or date change)
     useEffect(() => {

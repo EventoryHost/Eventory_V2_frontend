@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -143,7 +144,7 @@ export default function EnquiryPage() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showMockData, setShowMockData] = useState(false);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+  
   const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || '' : '';
 
   const fetchEnquiries = useCallback(async () => {
@@ -151,7 +152,7 @@ export default function EnquiryPage() {
     setIsLoading(true);
     try {
       const statusParam = activeTab ? `&status=${activeTab}` : '';
-      const res = await fetch(`${baseUrl}/enquiries/vendor/${vendorId}?limit=50${statusParam}`);
+      const res = await fetch(apiUrl(`/enquiries/vendor/${vendorId}?limit=50${statusParam}`));
       if (res.ok) {
         const data = await res.json();
         setEnquiries(data.enquiries || []);
@@ -161,14 +162,14 @@ export default function EnquiryPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [vendorId, activeTab, baseUrl]);
+  }, [vendorId, activeTab]);
 
   useEffect(() => { fetchEnquiries(); }, [fetchEnquiries]);
 
   const updateStatus = async (enquiryId: string, newStatus: EnquiryStatus) => {
     setUpdatingId(enquiryId);
     try {
-      const res = await fetch(`${baseUrl}/enquiries/${enquiryId}/status`, {
+      const res = await fetch(apiUrl(`/enquiries/${enquiryId}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, CalendarIcon, Umbrella, CheckCircle2 } from 'lucide-react';
 import { format, parseISO, addDays, subDays } from 'date-fns';
@@ -39,15 +40,15 @@ export default function DailyViewPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+    
 
     const fetchDailyData = useCallback(async (date: Date) => {
         setIsLoading(true);
         try {
             const dateStr = format(date, 'yyyy-MM-dd');
             const [scheduleRes, bookingsRes] = await Promise.all([
-                fetch(`${baseUrl}/calendar/vendor/${vendorId}/schedule?date=${dateStr}`),
-                fetch(`${baseUrl}/bookings/vendor/${vendorId}?startDate=${dateStr}&endDate=${dateStr}&limit=100`)
+                fetch(apiUrl(`/calendar/vendor/${vendorId}/schedule?date=${dateStr}`)),
+                fetch(apiUrl(`/bookings/vendor/${vendorId}?startDate=${dateStr}&endDate=${dateStr}&limit=100`))
             ]);
 
             const scheduleData = await scheduleRes.json();
@@ -61,7 +62,7 @@ export default function DailyViewPage() {
         } finally {
             setIsLoading(false);
         }
-    }, [vendorId, baseUrl]);
+    }, [vendorId]);
 
     useEffect(() => {
         fetchDailyData(currentDate);
@@ -77,7 +78,7 @@ export default function DailyViewPage() {
     const handleMarkHoliday = async () => {
         setIsSubmitting(true);
         try {
-            const res = await fetch(`${baseUrl}/calendar/vendor/${vendorId}/block/holiday`, {
+            const res = await fetch(apiUrl(`/calendar/vendor/${vendorId}/block/holiday`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -113,7 +114,7 @@ export default function DailyViewPage() {
             };
             const mappedServiceType = serviceTypeMap[oServiceType] || 'Decorator';
 
-            const res = await fetch(`${baseUrl}/calendar/vendor/${vendorId}/block/offline`, {
+            const res = await fetch(apiUrl(`/calendar/vendor/${vendorId}/block/offline`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -143,7 +144,7 @@ export default function DailyViewPage() {
         if (!unblockTargetId) return;
         setIsSubmitting(true);
         try {
-            const res = await fetch(`${baseUrl}/calendar/block/${unblockTargetId}/unblock`, {
+            const res = await fetch(apiUrl(`/calendar/block/${unblockTargetId}/unblock`), {
                 method: 'PUT'
             });
             const data = await res.json();

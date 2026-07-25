@@ -51,6 +51,12 @@ const ITEM_TYPES = [
     { name: 'Albums/Hardcopy', desc: 'Physical or digital goods to sell', image: 'https://dkuacgndftndz.cloudfront.net/inventory-page/album.png' },
 ];
 
+const PAV_SUGGESTIONS: Record<string, string[]> = {
+    'Album Type': ['Lay-flat Photobook', 'Flush Mount Album', 'Coffee Table Book', 'Matted Album', 'Leather Cover Album', 'Acrylic Cover Album', 'Velvet Boxed Album', 'Mini Pocket Album'],
+    'Photography Styles': ['Candid Photography', 'Traditional Photography', 'Cinematic Portrait', 'Pre-Wedding Shoot', 'Bridal Portraits', 'Drone Photography', 'Black & White', 'Editorial Fashion Style', 'Documentary Style', 'Couple Romance Shoot', 'Baby Bump Shoot'],
+    'Videography Styles': ['Cinematic Wedding Film', 'Traditional Video Coverage', 'Teaser & Highlights', 'Reels & Shorts Shoot', 'Live Streaming / Broadcast', 'Drone & Aerial Videography', 'Pre-Wedding Song Shoot', 'Interview / Documentary Video', '360 Video Booth']
+};
+
 const OPTIONS = {
     coverType: ['Faux Leather', 'Acrylic Glass', 'Hardcover Image Wrap', 'Linen'],
     pageFinish: ['Lustre', 'Glossy', 'Matte', 'Silk'],
@@ -171,18 +177,24 @@ export default function PAVStep2PackageAndItems({
 
     const TagInput = ({ itemId, label, values, placeholder }: { itemId: string, label: string, values: string[], placeholder: string }) => {
         const [inputValue, setInputValue] = React.useState('');
-        const handleAdd = () => {
-            if (inputValue.trim() && !values.includes(inputValue.trim())) {
-                updateItem(itemId, 'categories', [...values, inputValue.trim()]);
+        const [showSuggestions, setShowSuggestions] = React.useState(false);
+
+        const handleAdd = (valToAdd?: string) => {
+            const val = (valToAdd !== undefined ? valToAdd : inputValue).trim();
+            if (val && !values.includes(val)) {
+                updateItem(itemId, 'categories', [...values, val]);
                 setInputValue('');
             }
+            setShowSuggestions(false);
         };
         const handleRemove = (tag: string) => updateItem(itemId, 'categories', values.filter(v => v !== tag));
 
+        const suggestions = (PAV_SUGGESTIONS[label] || []).filter(s => !values.includes(s) && s.toLowerCase().includes(inputValue.toLowerCase()));
+
         return (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 relative">
                 <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>{label}</label>
-                <div className="flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center">
+                <div className="flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center relative">
                     {values.length > 0 && (
                         <div className="flex flex-wrap gap-2">
                             {values.map(tag => (
@@ -195,16 +207,36 @@ export default function PAVStep2PackageAndItems({
                             ))}
                         </div>
                     )}
-                    <input
-                        type="text"
-                        placeholder={placeholder}
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
-                        onBlur={handleAdd}
-                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
-                    />
+                    <div className="relative w-full">
+                        <input
+                            type="text"
+                            placeholder={placeholder}
+                            value={inputValue}
+                            onChange={(e) => { setInputValue(e.target.value); setShowSuggestions(true); }}
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => { setShowSuggestions(false); if (inputValue.trim()) handleAdd(); }, 200)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
+                        />
+                        {showSuggestions && suggestions.length > 0 && (
+                            <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
+                                {suggestions.map((suggestion) => (
+                                    <div
+                                        key={suggestion}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAdd(suggestion);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"
+                                    >
+                                        {suggestion}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         );

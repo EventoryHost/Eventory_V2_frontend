@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { X, Star, Filter, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,8 +47,8 @@ export default function RatingsPage() {
         const fetchRatings = async () => {
             try {
                 const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-                const res = await fetch(`${baseUrl}/vendors/${vendorId}/reviews`);
+                
+                const res = await fetch(apiUrl(`/vendors/${vendorId}/reviews`));
                 if (res.ok) {
                     const responseJson = await res.json();
                     setRatingsData(responseJson.data || responseJson);

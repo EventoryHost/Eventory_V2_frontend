@@ -144,14 +144,17 @@ const MultiSelectPills = ({
     options, 
     selected, 
     onChange, 
-    customInputPlaceholder 
+    customInputPlaceholder,
+    suggestions = []
 }: { 
     options: string[], 
     selected: string[], 
     onChange: (val: string[]) => void,
-    customInputPlaceholder: string
+    customInputPlaceholder: string,
+    suggestions?: string[]
 }) => {
     const [customValue, setCustomValue] = React.useState('');
+    const [showSuggestions, setShowSuggestions] = React.useState(false);
 
     const toggle = (opt: string) => {
         if (selected.includes(opt)) {
@@ -168,13 +171,16 @@ const MultiSelectPills = ({
                 onChange([...selected, customValue.trim()]);
             }
             setCustomValue('');
+            setShowSuggestions(false);
         }
     };
 
     const allOptions = Array.from(new Set([...options, ...selected]));
+    const availableSuggestions = Array.from(new Set([...options, ...suggestions]))
+        .filter(opt => !selected.includes(opt) && opt.toLowerCase().includes(customValue.toLowerCase()));
 
     return (
-        <div className="flex flex-col gap-3 p-4 border border-[#E4E4E7] rounded-[16px] bg-white shadow-sm">
+        <div className="flex flex-col gap-3 p-4 border border-[#E4E4E7] rounded-[16px] bg-white shadow-sm relative">
             <div className="flex flex-wrap gap-2">
                 {allOptions.map(opt => (
                     <button
@@ -193,15 +199,40 @@ const MultiSelectPills = ({
                     </button>
                 ))}
             </div>
-            <input
-                type="text"
-                placeholder={customInputPlaceholder}
-                value={customValue}
-                onChange={(e) => setCustomValue(e.target.value)}
-                onKeyDown={handleCustomSubmit}
-                className="w-full text-[12px] bg-transparent border-none focus:outline-none placeholder:text-[#9F9FA9] text-[#030303] mt-1"
-                style={{ fontFamily: 'Figtree, sans-serif' }}
-            />
+            <div className="relative w-full">
+                <input
+                    type="text"
+                    placeholder={customInputPlaceholder}
+                    value={customValue}
+                    onChange={(e) => { setCustomValue(e.target.value); setShowSuggestions(true); }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    onKeyDown={handleCustomSubmit}
+                    className="w-full text-[14px] bg-transparent border-none focus:outline-none placeholder:text-[#9F9FA9] text-[#030303] mt-1"
+                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                />
+                {showSuggestions && availableSuggestions.length > 0 && customValue.trim().length > 0 && (
+                    <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-52 overflow-y-auto z-50 py-1 text-left">
+                        {availableSuggestions.map((suggestion) => (
+                            <div
+                                key={suggestion}
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    if (!selected.includes(suggestion)) {
+                                        onChange([...selected, suggestion]);
+                                    }
+                                    setCustomValue('');
+                                    setShowSuggestions(false);
+                                }}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className="px-4 py-2.5 cursor-pointer text-[14px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"
+                            >
+                                {suggestion}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
     );
 };
@@ -886,6 +917,7 @@ export default function DecoratorStep2SetupsAndPricing({
                                                 selected={setupDecoratingWhatList}
                                                 onChange={setSetupDecoratingWhatList}
                                                 customInputPlaceholder="Enter Object"
+                                                suggestions={['Mandap Area', 'Reception Stage', 'Selfie Wall', 'Photo Booth / Selfie Point', 'Aisle Walkway', 'VIP Lounge', 'Cocktail Bar Decor', 'Table Centerpieces', 'Welcome Board', 'Bridal Room', 'Haldi Setup', 'Mehendi Lounge']}
                                             />
                                         </div>
 
@@ -908,6 +940,7 @@ export default function DecoratorStep2SetupsAndPricing({
                                                 selected={setupStructures}
                                                 onChange={setSetupStructures}
                                                 customInputPlaceholder="Enter Structures you want to add"
+                                                suggestions={['LED Screen Frame', 'Flower Chandelier', 'Neon Backdrop Frame', 'Floral Walls', 'Photo Booth Arch', 'Welcoming Passage Arch']}
                                             />
                                         </div>
 
@@ -924,6 +957,7 @@ export default function DecoratorStep2SetupsAndPricing({
                                                 selected={setupThemes}
                                                 onChange={setSetupThemes}
                                                 customInputPlaceholder="Enter Theme"
+                                                suggestions={['Moroccan / Sufi', 'Royal Rajputana', 'Cyberpunk', 'Arabian Nights', 'Starry Night / Galaxy', 'Beach Coastal Boho', 'Sunset Vibes', 'Pastel Elegance']}
                                             />
                                         </div>
 

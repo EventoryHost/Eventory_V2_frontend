@@ -46,6 +46,8 @@ const HELPER = 'text-[11px] text-[#9F9FA9] mt-1 pl-1';
 const LAYOUT_OPTIONS = ['Theater', 'Classroom', 'Banquet', 'Reception', 'U-Shape', 'Boardroom', 'Hollow Square'];
 const ACTIVITY_SUGGESTIONS = ['Weddings', 'Corporate Events', 'Workshops', 'Product Launches', 'Art Gallery'];
 const AMENITY_SUGGESTIONS = ['Power', 'AC', 'Stage', 'Lighting', 'Security'];
+const EXTENDED_ACTIVITY_SUGGESTIONS = [ ...ACTIVITY_SUGGESTIONS, 'Cocktail Parties', 'Birthday Celebrations', 'Fashion Shows', 'Exhibitions & Fairs', 'Concerts & Musical Events', 'Private Dinners', 'Photo / Video Shoots', 'Yoga & Wellness Retreats', 'Charity Fundraisers', 'Engagement Parties', 'Sangeet & Mehendi'];
+const EXTENDED_AMENITY_SUGGESTIONS = [ ...AMENITY_SUGGESTIONS, 'Valet Parking', 'Wheelchair Accessibility', 'In-house Kitchen', 'Bridal Suite / Restrooms', 'Bar License', 'Pool Area', 'Outdoor Mist Fans', 'Wi-Fi / Audio-Visual', 'Power Generator Backup', 'Sound Setup'];
 
 export default function VenueStep2SpacesAndItems({
     spaces, setSpaces,
@@ -151,6 +153,7 @@ export default function VenueStep2SpacesAndItems({
 
     const TagSection = ({ title, options, selected, onChange }: { title: string, options: string[], selected: string[], onChange: (vals: string[]) => void }) => {
         const [customVal, setCustomVal] = React.useState('');
+        const [showSuggestions, setShowSuggestions] = React.useState(false);
 
         const toggleTag = (val: string) => {
             if (selected.includes(val)) {
@@ -160,12 +163,17 @@ export default function VenueStep2SpacesAndItems({
             }
         };
 
-        const addCustom = () => {
-            if (customVal.trim() && !selected.includes(customVal.trim())) {
-                onChange([...selected, customVal.trim()]);
+        const addCustom = (valToAdd?: string) => {
+            const target = valToAdd !== undefined ? valToAdd : customVal;
+            if (target.trim() && !selected.includes(target.trim())) {
+                onChange([...selected, target.trim()]);
             }
             setCustomVal('');
+            setShowSuggestions(false);
         };
+
+        const extendedList = title === "Amenities" ? EXTENDED_AMENITY_SUGGESTIONS : EXTENDED_ACTIVITY_SUGGESTIONS;
+        const availableSuggestions = extendedList.filter(s => !selected.includes(s) && s.toLowerCase().includes(customVal.toLowerCase()));
 
         return (
             <div className="flex flex-col gap-2">
@@ -192,12 +200,31 @@ export default function VenueStep2SpacesAndItems({
                             type="text"
                             placeholder={title === "Amenities" ? "Enter amenity" : "Enter activity"}
                             value={customVal}
-                            onChange={(e) => setCustomVal(e.target.value)}
+                            onChange={(e) => { setCustomVal(e.target.value); setShowSuggestions(true); }}
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
                             className="w-full bg-[#F4F4F5] border-none rounded-full px-4 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-gray-300"
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                         />
-                        <button type="button" onClick={addCustom} className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[#04222D]" style={{ fontFamily: 'Figtree, sans-serif' }}>Add</button>
+                        <button type="button" onClick={() => addCustom()} className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[#04222D]" style={{ fontFamily: 'Figtree, sans-serif' }}>Add</button>
+                        {showSuggestions && availableSuggestions.length > 0 && customVal.trim().length > 0 && (
+                            <div className="absolute top-[100%] left-0 right-0 mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
+                                {availableSuggestions.map((suggestion) => (
+                                    <div
+                                        key={suggestion}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            addCustom(suggestion);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"
+                                    >
+                                        {suggestion}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
                 {/* Render selected custom tags that are not in default options */}

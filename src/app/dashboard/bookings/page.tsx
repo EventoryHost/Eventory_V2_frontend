@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useCallback } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -112,7 +113,7 @@ export default function BookingsPage() {
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [showMockData, setShowMockData] = useState(false);
 
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+  
   const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || '' : '';
 
   const fetchBookings = useCallback(async () => {
@@ -120,7 +121,7 @@ export default function BookingsPage() {
     setIsLoading(true);
     try {
       const statusParam = activeTab ? `&status=${activeTab}` : '';
-      const res = await fetch(`${baseUrl}/bookings/vendor/${vendorId}?limit=50${statusParam}`);
+      const res = await fetch(apiUrl(`/bookings/vendor/${vendorId}?limit=50${statusParam}`));
       if (res.ok) {
         const data = await res.json();
         setBookings(data.bookings || []);
@@ -130,7 +131,7 @@ export default function BookingsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [vendorId, activeTab, baseUrl]);
+  }, [vendorId, activeTab]);
 
   useEffect(() => { fetchBookings(); }, [fetchBookings]);
 
@@ -139,7 +140,7 @@ export default function BookingsPage() {
   const handleAccept = async (bookingId: string) => {
     setActionLoadingId(bookingId);
     try {
-      const res = await fetch(`${baseUrl}/bookings/${bookingId}/accept`, { method: 'PUT' });
+      const res = await fetch(apiUrl(`/bookings/${bookingId}/accept`), { method: 'PUT' });
       if (res.ok) {
         setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, status: 'Accepted' } : b));
       }
@@ -150,7 +151,7 @@ export default function BookingsPage() {
   const handleDecline = async (bookingId: string) => {
     setActionLoadingId(bookingId);
     try {
-      const res = await fetch(`${baseUrl}/bookings/${bookingId}/decline`, { method: 'PUT' });
+      const res = await fetch(apiUrl(`/bookings/${bookingId}/decline`), { method: 'PUT' });
       if (res.ok) {
         setBookings(prev => prev.map(b => b.bookingId === bookingId ? { ...b, status: 'Declined' } : b));
       }

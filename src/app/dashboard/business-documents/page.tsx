@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { X, ShieldAlert, FileCheck, FileClock, CloudUpload, Upload, ChevronDown, Eye, Trash2, MoreVertical } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -120,13 +121,13 @@ export default function BusinessDocumentsPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+    
 
     // ── Fetch vendor data ────────────────────────────────────────────────────
     useEffect(() => {
         const fetchVendor = async () => {
             try {
-                const res = await fetch(`${baseUrl}/vendors/${vendorId}`);
+                const res = await fetch(apiUrl(`/vendors/${vendorId}`));
                 if (res.ok) {
                     const json = await res.json();
                     setVendor(json.data || json);
@@ -142,7 +143,7 @@ export default function BusinessDocumentsPage() {
 
     // ── Patch helper ─────────────────────────────────────────────────────────
     const patchVendor = async (payload: Record<string, any>) => {
-        const res = await fetch(`${baseUrl}/vendors/${vendorId}`, {
+        const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

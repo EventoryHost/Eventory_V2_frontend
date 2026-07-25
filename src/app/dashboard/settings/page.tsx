@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '@/lib/api';
 import Link from 'next/link';
 import { 
     /* Key, -- Commented out: Change Password feature disabled (OTP-only login, no sign-up) */
@@ -28,8 +29,19 @@ export default function SettingsPage() {
                 document.documentElement.classList.remove('dark');
                 localStorage.setItem('theme', 'light');
             }
+
+            // Sync with backend
+            const vendorId = localStorage.getItem('vendor_id');
+            if (vendorId) {
+                fetch(apiUrl(`/vendors/${vendorId}`), {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ isDarkMode: darkMode })
+                }).catch(err => console.error("Failed to sync dark mode preference", err));
+            }
         }
     }, [darkMode]);
+
 
     const handleDeactivate = async () => {
         const confirmed = window.confirm("Are you sure you want to deactivate your account? This action cannot be undone.");
@@ -38,9 +50,9 @@ export default function SettingsPage() {
         try {
             // Get vendorId from storage or use a placeholder if none exists
             const vendorId = localStorage.getItem("vendor_id") || "placeholder_id";
-            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
             
-            const res = await fetch(`${baseUrl}/vendors/${vendorId}`, {
+            
+            const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
                 method: 'DELETE',
             });
             

@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { X, Landmark, Info, ChevronRight, ChevronDown, TrendingUp, TrendingDown, Check, Circle, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -72,12 +73,12 @@ export default function EarningsPage() {
         const fetchDashboardData = async () => {
             try {
                 const vendorId = localStorage.getItem('vendor_id') || 'VEN-placeholder';
-                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+                
                 
                 const [earningRes, analyticsRes, upcomingRes] = await Promise.all([
-                    fetch(`${baseUrl}/transactions/vendor/${vendorId}/earnings?period=${period}`),
-                    fetch(`${baseUrl}/transactions/vendor/${vendorId}/analytics?period=${period}`),
-                    fetch(`${baseUrl}/transactions/vendor/${vendorId}/upcoming`)
+                    fetch(apiUrl(`/transactions/vendor/${vendorId}/earnings?period=${period}`)),
+                    fetch(apiUrl(`/transactions/vendor/${vendorId}/analytics?period=${period}`)),
+                    fetch(apiUrl(`/transactions/vendor/${vendorId}/upcoming`))
                 ]);
 
                 if (earningRes.ok) {
@@ -106,8 +107,8 @@ export default function EarningsPage() {
         setSelectedBooking(bookingId);
         setIsTimelineLoading(true);
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-            const res = await fetch(`${baseUrl}/transactions/booking/${bookingId}/timeline`);
+            
+            const res = await fetch(apiUrl(`/transactions/booking/${bookingId}/timeline`));
             if (res.ok) {
                 const data = await res.json();
                 setTimeline(data);

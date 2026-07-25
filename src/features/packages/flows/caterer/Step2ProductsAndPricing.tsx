@@ -39,6 +39,25 @@ interface Props {
 
 const CARD = 'bg-white p-6 rounded-[24px] border border-[#D4D4D8] flex flex-col gap-6';
 
+const CROCKERY_SUGGESTIONS = [
+    'Silverware', 'Melamine', 'Bone China', 'Ceramic Plates', 'Stainless Steel Thali', 
+    'Glassware', 'Disposable Plates', 'Eco-friendly Bamboo Plates', 'Copper Ware', 
+    'Porcelain', 'Wooden Cutlery', 'Banana Leaf Service', 'Gold-plated Cutlery'
+];
+
+const FOOD_SUGGESTIONS: Record<string, string[]> = {
+    'Salads': ['Green Salad', 'Russian Salad', 'Caesar Salad', 'Corn Salad', 'Greek Salad', 'Kachumber Salad', 'Sprout Salad'],
+    'Breads': ['Butter Naan', 'Garlic Naan', 'Plain Naan', 'Tandoori Roti', 'Missi Roti', 'Lachha Paratha', 'Kulcha', 'Roomali Roti', 'Poori'],
+    'Rice': ['Veg Biryani', 'Hyderabadi Biryani', 'Jeera Rice', 'Steamed Rice', 'Peas Pulao', 'Kashmiri Pulao', 'Curd Rice', 'Saffron Rice'],
+    'Starters': ['Paneer Tikka', 'Hara Bhara Kebab', 'Spring Rolls', 'Crispy Baby Corn', 'Chicken Tikka', 'Tandoori Chicken', 'Fish Fingers', 'Chilli Paneer', 'Veg Manchurian', 'Dahi Kebab', 'Corn Kebab', 'Aloo Tikki'],
+    'Main Course': ['Dal Makhani', 'Paneer Butter Masala', 'Shahi Paneer', 'Kadhai Paneer', 'Chana Masala', 'Malai Kofta', 'Dal Tadka', 'Dum Aloo', 'Mix Veg Curry', 'Butter Chicken', 'Chicken Curry', 'Mutton Rogan Josh'],
+    'Dessert': ['Gulab Jamun', 'Rasgulla', 'Rasmalai', 'Jalebi with Rabri', 'Moong Dal Halwa', 'Gajar Ka Halwa', 'Ice Cream with Hot Chocolate', 'Kulfi Falooda', 'Fruit Custard', 'Brownie with Ice Cream'],
+    'Desserts': ['Gulab Jamun', 'Rasgulla', 'Rasmalai', 'Jalebi with Rabri', 'Moong Dal Halwa', 'Gajar Ka Halwa', 'Ice Cream with Hot Chocolate', 'Kulfi Falooda', 'Fruit Custard', 'Brownie with Ice Cream'],
+    'Beverages': ['Virgin Mojito', 'Masala Cold Drink', 'Blue Lagoon', 'Fresh Fruit Juice', 'Masala Chai', 'Filter Coffee', 'Hot Espresso', 'Iced Tea', 'Pina Colada'],
+    'Chats': ['Pani Puri / Golgappa', 'Papdi Chat', 'Bhel Puri', 'Dahi Puri', 'Raj Kachori', 'Aloo Tikki Chat', 'Dahi Bhalla', 'Samosa Chat', 'Sev Puri'],
+    'Miscellaneous': ['Roasted Papad', 'Masala Papad', 'Mixed Pickle', 'Green Chutney', 'Tamarind Chutney', 'Raita', 'Pineapple Raita', 'Boondi Raita']
+};
+
 export default function CatererStep2ProductsAndPricing({
     menus,
     setMenus,
@@ -67,6 +86,8 @@ export default function CatererStep2ProductsAndPricing({
     // Inventory sub-tabs & text input states mapped by menu.id
     const [activeTabs, setActiveTabs] = React.useState<Record<string, string>>({});
     const [typedInputs, setTypedInputs] = React.useState<Record<string, string>>({});
+    const [showCrockerySuggestions, setShowCrockerySuggestions] = React.useState(false);
+    const [activeMenuSuggestionId, setActiveMenuSuggestionId] = React.useState<string | null>(null);
 
     // Food item classification modal state
     const [activeFoodItemChoice, setActiveFoodItemChoice] = React.useState<{
@@ -329,21 +350,56 @@ export default function CatererStep2ProductsAndPricing({
                                 {/* Add Custom Crockery Input with Add Button */}
                                 <div className="flex flex-col gap-2 mt-2">
                                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#71717B] uppercase tracking-wider">Crockery Type</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. Silverware, Melamine"
-                                            value={newCrockeryType}
-                                            onChange={(e) => setNewCrockeryType(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    handleAddCustomCrockery();
-                                                }
-                                            }}
-                                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                                            className="flex-1 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-[16px] font-normal text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                                        />
+                                    <div className="flex gap-2 relative">
+                                        <div className="flex-1 relative">
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Silverware, Melamine"
+                                                value={newCrockeryType}
+                                                onChange={(e) => { setNewCrockeryType(e.target.value); setShowCrockerySuggestions(true); }}
+                                                onFocus={() => setShowCrockerySuggestions(true)}
+                                                onBlur={() => setTimeout(() => setShowCrockerySuggestions(false), 200)}
+                                                onKeyDown={(e) => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        handleAddCustomCrockery();
+                                                        setShowCrockerySuggestions(false);
+                                                    }
+                                                }}
+                                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-[16px] font-normal text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                            />
+                                            {showCrockerySuggestions && (
+                                                <div className="absolute top-[100%] left-0 right-0 mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-52 overflow-y-auto z-50 py-1 text-left">
+                                                    {CROCKERY_SUGGESTIONS
+                                                        .filter(s => !customCrockery.includes(s) && s.toLowerCase().includes(newCrockeryType.toLowerCase()))
+                                                        .map(suggestion => (
+                                                            <div
+                                                                key={suggestion}
+                                                                onMouseDown={(e) => {
+                                                                    e.preventDefault();
+                                                                    setNewCrockeryType(suggestion);
+                                                                    setTimeout(() => {
+                                                                        if (!customCrockery.includes(suggestion)) {
+                                                                            setCustomCrockery(prev => [...prev, suggestion]);
+                                                                        }
+                                                                        const currentSelected = crockeryType.split(',').map(s => s.trim()).filter(Boolean);
+                                                                        if (!currentSelected.includes(suggestion)) {
+                                                                            setCrockeryType([...currentSelected, suggestion].join(', '));
+                                                                        }
+                                                                        setNewCrockeryType('');
+                                                                        setShowCrockerySuggestions(false);
+                                                                    }, 50);
+                                                                }}
+                                                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                className="px-4 py-2.5 cursor-pointer text-[15px] font-medium text-[#3F3F47] hover:bg-gray-100 transition-colors"
+                                                            >
+                                                                {suggestion}
+                                                            </div>
+                                                        ))}
+                                                </div>
+                                            )}
+                                        </div>
                                         <button
                                             type="button"
                                             onClick={handleAddCustomCrockery}
@@ -535,21 +591,53 @@ export default function CatererStep2ProductsAndPricing({
                                         </div>
 
                                         {/* Input & add block */}
-                                        <div className="flex gap-2 mt-1">
-                                            <input
-                                                type="text"
-                                                placeholder="Type the food"
-                                                value={currentInput}
-                                                onChange={(e) => setTypedInputs(prev => ({ ...prev, [menu.id]: e.target.value }))}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter') {
-                                                        e.preventDefault();
-                                                        handleAddFoodItem(menu.id, currentTab, currentInput);
-                                                    }
-                                                }}
-                                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                className="flex-1 p-4 bg-[#FAFAFA] border border-[#D4D4D8] rounded-[16px] text-[15px] font-medium text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                                            />
+                                        <div className="flex gap-2 mt-1 relative">
+                                            <div className="flex-1 relative">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Type the food"
+                                                    value={currentInput}
+                                                    onChange={(e) => { setTypedInputs(prev => ({ ...prev, [menu.id]: e.target.value })); setActiveMenuSuggestionId(menu.id); }}
+                                                    onFocus={() => setActiveMenuSuggestionId(menu.id)}
+                                                    onBlur={() => setTimeout(() => setActiveMenuSuggestionId(null), 200)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            e.preventDefault();
+                                                            handleAddFoodItem(menu.id, currentTab, currentInput);
+                                                            setActiveMenuSuggestionId(null);
+                                                        }
+                                                    }}
+                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                    className="w-full p-4 bg-[#FAFAFA] border border-[#D4D4D8] rounded-[16px] text-[15px] font-medium text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                                />
+                                                {activeMenuSuggestionId === menu.id && (
+                                                    (() => {
+                                                        const existingNames = ((menu.inventory && menu.inventory[currentTab]) || []).map(it => it.name.toLowerCase());
+                                                        const suggestions = (FOOD_SUGGESTIONS[currentTab] || FOOD_SUGGESTIONS['Starters']).filter(s => 
+                                                            !existingNames.includes(s.toLowerCase()) && s.toLowerCase().includes(currentInput.toLowerCase())
+                                                        );
+                                                        if (suggestions.length === 0) return null;
+                                                        return (
+                                                            <div className="absolute top-[100%] left-0 right-0 mt-1 bg-white border border-[#E4E4E7] rounded-[16px] shadow-lg max-h-56 overflow-y-auto z-50 py-1 text-left">
+                                                                {suggestions.map(suggestion => (
+                                                                    <div
+                                                                        key={suggestion}
+                                                                        onMouseDown={(e) => {
+                                                                            e.preventDefault();
+                                                                            handleAddFoodItem(menu.id, currentTab, suggestion);
+                                                                            setActiveMenuSuggestionId(null);
+                                                                        }}
+                                                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                        className="px-4 py-3 cursor-pointer text-[15px] font-medium text-[#3F3F47] hover:bg-gray-100 transition-colors"
+                                                                    >
+                                                                        {suggestion}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })()
+                                                )}
+                                            </div>
                                             <button
                                                 type="button"
                                                 disabled={!currentInput.trim()}

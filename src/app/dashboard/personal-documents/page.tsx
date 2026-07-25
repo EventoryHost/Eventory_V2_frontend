@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { X, ShieldAlert, FileCheck, FileText, Upload, ChevronUp, ChevronDown, User, RefreshCcw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,8 +20,8 @@ export default function PersonalDocumentsPage() {
         const fetchVendor = async () => {
             try {
                 const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-                const res = await fetch(`${baseUrl}/vendors/${vendorId}`);
+                
+                const res = await fetch(apiUrl(`/vendors/${vendorId}`));
                 if (res.ok) {
                     const responseJson = await res.json();
                     setVendor(responseJson.data || responseJson);
@@ -48,7 +49,7 @@ export default function PersonalDocumentsPage() {
 
         try {
             const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-            const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+            
             
             let updatePayload: any = {};
             if (selectedDocumentToUpload === 'Aadhaar Card') updatePayload.aadharNumber = inputValue;
@@ -58,7 +59,7 @@ export default function PersonalDocumentsPage() {
             // Optimistic update
             setVendor({ ...vendor, ...updatePayload });
             
-            await fetch(`${baseUrl}/vendors/${vendorId}`, {
+            await fetch(apiUrl(`/vendors/${vendorId}`), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(updatePayload)

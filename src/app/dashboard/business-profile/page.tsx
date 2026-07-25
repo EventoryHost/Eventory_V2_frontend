@@ -1,5 +1,6 @@
     'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { X, Image as ImageIcon, Edit3, User, Mail, Calendar, Users, Clock, Plus, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,14 +30,14 @@ export default function BusinessProfilePage() {
     const [showGalleryModal, setShowGalleryModal] = useState(false);
 
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+    
 
     useEffect(() => {
         const fetchVendor = async () => {
             try {
                 const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-                const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
-                const res = await fetch(`${baseUrl}/vendors/${vendorId}`);
+                
+                const res = await fetch(apiUrl(`/vendors/${vendorId}`));
                 if (res.ok) {
                     const responseJson = await res.json();
                     setVendor(responseJson.data || responseJson);
@@ -120,7 +121,7 @@ export default function BusinessProfilePage() {
     };
 
     const patchVendor = async (payload: Record<string, any>) => {
-        const res = await fetch(`${baseUrl}/vendors/${vendorId}`, {
+        const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),

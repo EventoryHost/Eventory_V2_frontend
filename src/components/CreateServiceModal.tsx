@@ -118,6 +118,9 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
     const handleOptionClick = (option: CreateOption) => {
         if (option.isPackageTrigger) {
             setStep('SELECT_VENDOR');
+        } else if (option.title === "Use a template") {
+            onClose();
+            router.push('/dashboard/inventory/templates');
         } else {
             option.action();
         }

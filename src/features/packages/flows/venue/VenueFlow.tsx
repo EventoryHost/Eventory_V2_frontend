@@ -79,9 +79,10 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 const draftData = await draftRes.json();
 
                 if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
-                    const venueDrafts = draftData.packages.filter((p: any) => p.vendorType === 'VEN');
+                    const venueDrafts = draftData.packages.filter((p: any) => p.vendorType === 'VenueProvider' || p.vendorType === 'VEN');
                     if (venueDrafts.length > 0) {
-                        const pkg = venueDrafts[0];
+                        const requestedPackageId = localStorage.getItem('selected_package_id');
+                        const pkg = venueDrafts.find((item: any) => item._id === requestedPackageId) || venueDrafts[0];
                         setPackageId(pkg._id);
                         sessionStorage.setItem('draft_package_id_VEN', pkg._id);
 
@@ -236,7 +237,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         vendorId,
-                        vendorType: 'VEN',
+                        vendorType: 'VenueProvider',
                         bookingType: 'Ready-to-Book'
                     })
                 });
@@ -273,7 +274,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         vendorId,
-                        vendorType: 'VEN',
+                        vendorType: 'VenueProvider',
                         bookingType: 'Ready-to-Book'
                     })
                 });

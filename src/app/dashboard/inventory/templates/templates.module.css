@@ -1,0 +1,69 @@
+.page { min-height: 100vh; padding: 28px 20px 112px; overflow-x: hidden; background: #fff; color: #070707; font-family: Figtree, Arial, sans-serif; }
+.header, .titleRow { display: flex; align-items: center; justify-content: space-between; }
+.header { padding-bottom: 48px; }
+.logo { width: 34px; height: 34px; object-fit: contain; filter: brightness(0) invert(53%) sepia(55%) saturate(3731%) hue-rotate(324deg) brightness(96%) contrast(93%); }
+.iconButton { display: grid; place-items: center; width: 39px; height: 39px; padding: 0; border: 0; border-radius: 50%; color: #090c12; background: transparent; cursor: pointer; }
+
+.titleRow { align-items: end; gap: 16px; padding-bottom: 30px; }
+.titleRow h1 { margin: 0; font-size: 36px; font-weight: 800; line-height: 1; letter-spacing: -1.2px; }
+.titleRow p { margin: 12px 0 0; color: #9b9ba8; font-size: 15px; line-height: 1.35; }
+
+.tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 3px; padding: 7px; border-radius: 12px; background: #f4f4f5; }
+.tab, .tabActive { min-width: 0; border: 0; border-radius: 9px; padding: 14px 4px; background: transparent; font: inherit; font-size: 15px; cursor: pointer; }
+.tab { color: #1f1f23; }
+.tabActive { color: #fff; background: #032733; font-weight: 700; }
+
+.searchRow { display: flex; gap: 14px; margin-top: 28px; }
+.searchBox { display: flex; flex: 1; align-items: center; gap: 10px; height: 58px; padding: 0 16px; border-radius: 11px; color: #a0a1ac; background: #f5f5f6; }
+.searchBox input { width: 100%; border: 0; outline: 0; color: #222; background: transparent; font: inherit; font-size: 15px; }
+.searchBox input::placeholder { color: #a0a1ac; }
+.filterButton { display: grid; place-items: center; width: 58px; height: 58px; flex: 0 0 auto; border: 0; border-radius: 11px; color: #fff; background: #032733; cursor: pointer; }
+
+.packageList { display: grid; gap: 18px; margin-top: 30px; }
+.packageCard { overflow: hidden; border: 1px solid #e7e7eb; border-radius: 14px; background: #fff; }
+.packageImage { position: relative; height: 196px; margin: 14px 14px 0; overflow: hidden; border-radius: 9px; background: #d9d5d1; }
+.packageImage img { width: 100%; height: 100%; object-fit: cover; }
+.imageFallback { display: grid; place-items: center; width: 100%; height: 100%; color: #fff; background: linear-gradient(135deg, #746a63, #2d2622); }
+.templateBadge { position: absolute; top: 13px; left: 12px; border-radius: 18px; padding: 6px 10px 6px 21px; font-size: 10px; font-weight: 800; line-height: 1; color: #3f3f46; background: #fff; }
+.templateBadge::before { position: absolute; left: 10px; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ''; transform: translateY(-50%); }
+
+.imageMenuButton { position: absolute; top: 8px; right: 5px; display: grid; place-items: center; width: 37px; height: 37px; border: 0; border-radius: 50%; color: #fff; background: rgb(0 0 0 / .22); cursor: pointer; }
+
+.cardBody { padding: 14px; }
+.packageMeta { display: flex; align-items: center; gap: 8px; overflow: hidden; white-space: nowrap; margin-bottom: 8px; }
+.vendorTypeBadge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px; background: #ffe4e6; color: #be123c; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+.cardBody h2 { margin: 0 0 4px; font-size: 18px; line-height: 1.15; letter-spacing: -.3px; }
+.cardBody p { margin: 0; color: #666672; font-size: 12px; line-height: 1.45; }
+.cardPrimaryButton { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 10px; color: #fff; background: #032733; font: inherit; font-weight: 700; cursor: pointer; width: 100%; min-height: 51px; margin-top: 18px; font-size: 14px; }
+
+.emptyState { display: grid; justify-items: center; gap: 8px; padding: 42px 16px; border: 1px dashed #d4d4d8; border-radius: 14px; color: #71717a; text-align: center; }
+.emptyState h2 { margin: 4px 0 0; color: #27272a; font-size: 17px; }
+.emptyState p { margin: 0 0 12px; font-size: 13px; }
+
+.loader { display: grid; min-height: 120px; place-items: center; color: #92929e; }
+
+.modalBackdrop { position: fixed; z-index: 70; inset: 0; display: flex; align-items: end; background: rgb(0 0 0 / .48); }
+.actionSheet { position: relative; width: 100%; padding: 32px 22px 24px; border-radius: 28px 28px 0 0; background: #fff; }
+.sheetClose { position: absolute; z-index: 10; bottom: calc(100% + 22px); left: 50%; transform: translateX(-50%); display: grid; place-items: center; width: 54px; height: 54px; border: 0; border-radius: 50%; color: #1f2937; background: #fff; box-shadow: 0 3px 8px rgb(0 0 0 / .12); cursor: pointer; }
+.actionSheet button:not(.sheetClose) { display: flex; align-items: center; width: 100%; gap: 16px; border: 0; border-bottom: 1px solid #ececee; padding: 20px 0; color: #24242a; background: transparent; font: inherit; font-size: 16px; text-align: left; cursor: pointer; }
+.actionSheet button:last-child { border-bottom: 0; }
+.actionSheet button.deleteAction { color: #e1281e; }
+.actionSheet button:disabled { opacity: .6; cursor: wait; }
+
+@media (max-width: 350px) { .page { padding-right: 15px; padding-left: 15px; }.titleRow h1 { font-size: 32px; }.header { padding-bottom: 38px; }.packageImage { height: 174px; } }
+
+.filterModal { position: relative; width: 100%; max-height: 85vh; padding: 0; border-radius: 28px 28px 0 0; background: #fff; display: flex; flex-direction: column; overflow: hidden; }
+.filterHeader { display: flex; align-items: flex-start; justify-content: space-between; padding: 24px 22px 16px; }
+.filterTitle { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+.filterSubtitle { margin: 4px 0 0; color: #a1a1aa; font-size: 13px; font-weight: 500; }
+.filterClose { display: grid; place-items: center; width: 44px; height: 44px; border: 0; border-radius: 50%; color: #3f3f46; background: #f4f4f5; cursor: pointer; }
+
+.filterScrollArea { flex: 1; overflow-y: auto; padding: 10px 22px 24px; }
+.filterSection { margin-bottom: 28px; }
+.filterSectionTitle { display: block; font-size: 11px; font-weight: 800; color: #18181b; letter-spacing: 0.5px; margin-bottom: 14px; }
+.filterPills { display: flex; flex-wrap: wrap; gap: 10px; }
+.filterPill { border: 0; border-radius: 20px; padding: 10px 16px; font-size: 13px; font-weight: 600; color: #3f3f46; background: #f4f4f5; cursor: pointer; transition: all 0.2s; }
+.filterPillActive { background: #032733; color: #fff; }
+
+.filterFooter { padding: 16px 22px 32px; border-top: 1px solid #f4f4f5; background: #fff; }
+.filterSearchButton { width: 100%; border: 0; border-radius: 12px; padding: 18px; font-size: 16px; font-weight: 700; color: #fff; background: #032733; cursor: pointer; }

@@ -135,7 +135,8 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
                     const pavDrafts = draftData.packages.filter((p: any) => p.vendorType === 'PAV');
                     if (pavDrafts.length > 0) {
-                        const pkg = pavDrafts[0];
+                        const requestedPackageId = localStorage.getItem('selected_package_id');
+                        const pkg = pavDrafts.find((item: any) => item._id === requestedPackageId) || pavDrafts[0];
                         setPackageId(pkg._id);
                         sessionStorage.setItem('draft_package_id_PAV', pkg._id);
 

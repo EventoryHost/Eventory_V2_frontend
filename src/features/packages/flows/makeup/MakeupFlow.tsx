@@ -236,8 +236,8 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                 const draftData = await draftRes.json();
                 
                 if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
-                    // Load the first active draft package
-                    const pkg = draftData.packages[0];
+                    const requestedPackageId = localStorage.getItem('selected_package_id');
+                    const pkg = draftData.packages.find((item: any) => item._id === requestedPackageId) || draftData.packages[0];
                     setPackageId(pkg._id);
                     sessionStorage.setItem('draft_package_id_Makeup', pkg._id);
                     

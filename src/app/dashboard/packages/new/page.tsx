@@ -25,11 +25,11 @@ export default function NewPackagePage() {
             const prefix = serviceId.substring(0, 3).toUpperCase();
             switch (prefix) {
                 case 'CAT': targetVendorType = 'Caterer'; break;
-                case 'MAK': targetVendorType = 'Makeup Artist'; break;
+                case 'MAK': targetVendorType = 'MakeupArtist'; break;
                 case 'DEC': targetVendorType = 'Decorator'; break;
-                case 'DJA': targetVendorType = 'DJ Artist'; break;
-                case 'PAV': targetVendorType = 'Photographer/Videographer'; break;
-                case 'VEN': targetVendorType = 'Venue'; break;
+                case 'DJA': targetVendorType = 'DJArtist'; break;
+                case 'PAV': targetVendorType = 'PAV'; break;
+                case 'VEN': targetVendorType = 'VenueProvider'; break;
             }
         }
 
@@ -37,7 +37,10 @@ export default function NewPackagePage() {
             const res = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`), { cache: 'no-store' });
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.packages && data.packages.length > 0) {
-                let pkg = targetVendorType 
+                const requestedPackageId = localStorage.getItem('selected_package_id');
+                let pkg = requestedPackageId
+                    ? data.packages.find((p: any) => p._id === requestedPackageId)
+                    : targetVendorType
                     ? data.packages.find((p: any) => p.vendorType === targetVendorType) 
                     : data.packages[0];
 

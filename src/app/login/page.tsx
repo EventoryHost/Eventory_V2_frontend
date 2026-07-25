@@ -117,6 +117,9 @@ export default function LoginPage() {
                     if (data.vendor?.businessName) localStorage.setItem('vendor_name', data.vendor.businessName);
                     if (data.token) localStorage.setItem('vendor_token', data.token);
                     if (data.vendor?.id) localStorage.setItem('vendor_id', data.vendor.id);
+                    if (data.vendor?.isDarkMode !== undefined) {
+                        localStorage.setItem('theme', data.vendor.isDarkMode ? 'dark' : 'light');
+                    }
                 }
                 setStatus({ ...status, loading: false, success: 'Login successful!' });
                 setTimeout(() => router.push('/dashboard'), 1000);

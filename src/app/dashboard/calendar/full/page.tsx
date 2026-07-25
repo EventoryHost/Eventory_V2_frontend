@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
+import { apiUrl } from '@/lib/api';
 import { 
     CalendarCheck, 
     ArrowLeft, 
@@ -39,7 +40,7 @@ export default function FullCalendarPage() {
     const monthPillRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
     const vendorId = typeof window !== 'undefined' ? localStorage.getItem('vendor_id') || 'placeholder_id' : 'placeholder_id';
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api';
+    
 
     useEffect(() => {
         const fetchMultipleMonths = async () => {
@@ -49,8 +50,8 @@ export default function FullCalendarPage() {
                 const endDateStr = format(endOfMonth(months[months.length - 1]), 'yyyy-MM-dd');
 
                 const [overviewRes, bookingsRes] = await Promise.all([
-                    fetch(`${baseUrl}/calendar/vendor/${vendorId}/overview?startDate=${startDateStr}&endDate=${endDateStr}`),
-                    fetch(`${baseUrl}/bookings/vendor/${vendorId}?startDate=${startDateStr}&endDate=${endDateStr}&limit=500`)
+                    fetch(apiUrl(`/calendar/vendor/${vendorId}/overview?startDate=${startDateStr}&endDate=${endDateStr}`)),
+                    fetch(apiUrl(`/bookings/vendor/${vendorId}?startDate=${startDateStr}&endDate=${endDateStr}&limit=500`))
                 ]);
 
                 const overviewData = await overviewRes.json();
@@ -75,7 +76,7 @@ export default function FullCalendarPage() {
         };
 
         fetchMultipleMonths();
-    }, [vendorId, baseUrl, startMonthDate]);
+    }, [vendorId, startMonthDate]);
 
     // Intersection observer for scrolling months
     useEffect(() => {

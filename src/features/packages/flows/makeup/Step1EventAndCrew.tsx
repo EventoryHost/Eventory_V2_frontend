@@ -25,12 +25,17 @@ const HEAD = 'text-[18px] font-bold text-[#030303] leading-[24px]';
 const RADIO_LABEL = 'text-[16px] font-normal text-[#27272A] leading-[24px]';
 
 const SUGGESTIONS = [
-    'Wedding', 'Corporate', 'Haldi', 'Birthday', 'Baby shower', 'Anniversary'
+    'Wedding', 'Corporate Event', 'Haldi Ceremony', 'Birthday Party', 'Baby Shower', 'Anniversary Party'
 ];
 const DROPDOWN_SUGGESTIONS = [
-    'Gala', 'Workshop', 'Conference', 'Exhibition'
+    'Birthday', 'Birthday Celebration', 'Kids Birthday Party', 'Milestone Birthday',
+    'Wedding Reception', 'Wedding Ceremony', 'Sangeet & Mehendi', 'Cocktail Party', 'Engagement Ceremony',
+    'Corporate Meeting', 'Corporate Conference', 'Corporate Workshop', 'Product Launch', 'Annual Gala',
+    'Charity Fundraiser', 'Bachelor Party', 'Bachelorette Party', 'Housewarming Party', 'Pool Party',
+    'Farewell Party', 'Exhibition & Seminar', 'Fashion Show', 'Concert & Live Music', 'Private Dining',
+    'Festival & Cultural Event', 'Religious Ceremony'
 ];
-const ALL_SUGGESTIONS = [...SUGGESTIONS, ...DROPDOWN_SUGGESTIONS];
+const ALL_SUGGESTIONS = Array.from(new Set([...SUGGESTIONS, ...DROPDOWN_SUGGESTIONS]));
 
 export default function MakeupStep1EventAndCrew({
     packageName, setPackageName,
@@ -159,7 +164,7 @@ export default function MakeupStep1EventAndCrew({
                         />
                     </div>
                     {isDropdownOpen && filteredSuggestions.length > 0 && (
-                        <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg overflow-hidden z-50 py-2">
+                        <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-60 overflow-y-auto z-50 py-2">
                             {filteredSuggestions.map((suggestion, index) => (
                                 <div
                                     key={suggestion}
