@@ -27,3 +27,51 @@
 .filterPillActive { background: #032733; color: #fff; }
 .filterFooter { padding: 16px 22px 32px; border-top: 1px solid #f4f4f5; background: #fff; }
 .filterSearchButton { width: 100%; border: 0; border-radius: 12px; padding: 18px; font-size: 16px; font-weight: 700; color: #fff; background: #032733; cursor: pointer; }
+
+/* Verification Badges */
+.actionRequiredBadge, .underReviewBadge, .approvedBadge { position: absolute; top: 13px; left: 12px; border-radius: 18px; padding: 6px 12px 6px 21px; font-size: 10px; font-weight: 800; line-height: 1; text-transform: uppercase; }
+.actionRequiredBadge { color: #b91c1c; background: #fef2f2; border: 1px solid #fee2e2; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+.actionRequiredBadge::before, .underReviewBadge::before, .approvedBadge::before { position: absolute; left: 10px; top: 50%; width: 5px; height: 5px; border-radius: 50%; background: currentColor; content: ''; transform: translateY(-50%); }
+.underReviewBadge { color: #1d4ed8; background: #eff6ff; border: 1px solid #dbeafe; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+.approvedBadge { color: #15803d; background: #f0fdf4; border: 1px solid #dcfce7; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08); }
+
+/* Section Group Headers in Submitted Tab */
+.sectionGroup { margin-top: 24px; margin-bottom: 24px; }
+.sectionGroupTitle { font-size: 18px; font-weight: 800; color: #18181b; margin: 0 0 16px 0; letter-spacing: -0.3px; }
+
+/* Profile & Review Warning Callout Boxes */
+.warningCallout, .reviewCallout, .trustCallout { margin: 14px 0 6px; padding: 12px 14px; border-radius: 10px; font-size: 12px; line-height: 1.45; }
+.warningCallout { background: #fef2f2; border: 1px solid #fca5a5; color: #7f1d1d; }
+.warningCalloutTitle { display: block; font-weight: 800; color: #991b1b; margin-bottom: 6px; font-size: 12px; }
+.warningCallout ul, .reviewCallout ul, .trustCallout ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
+.warningCallout li, .reviewCallout li, .trustCallout li { position: relative; padding-left: 2px; }
+
+.reviewCallout { background: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
+.reviewCalloutTitle { display: block; font-weight: 800; color: #0f172a; margin-bottom: 6px; font-size: 12px; }
+
+.trustCallout { background: #fff1f2; border: 1px solid #fecdd3; color: #881337; }
+.trustCalloutTitle { display: block; font-weight: 800; color: #e11d48; margin-bottom: 6px; font-size: 12px; }
+
+/* Document Upload Modal (Column 4) */
+.documentModal { position: relative; width: 100%; max-height: 90vh; padding: 26px 22px calc(24px + env(safe-area-inset-bottom)); border-radius: 32px 32px 0 0; background: #fff; overflow-y: auto; display: flex; flex-direction: column; }
+.documentModalTitle { text-align: center; margin: 10px 0 20px; font-size: 20px; font-weight: 800; color: #18181b; letter-spacing: -0.4px; }
+.documentSection { margin-bottom: 22px; }
+.documentLabel { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: #3f3f46; margin-bottom: 10px; }
+.documentLabelIcon { color: #16a34a; display: grid; place-items: center; }
+.dropZone { border: 2px dashed #e2e8f0; border-radius: 16px; padding: 24px 16px; text-align: center; background: #f8fafc; cursor: pointer; transition: all 0.2s; display: grid; justify-items: center; gap: 6px; }
+.dropZone:hover { border-color: #032733; background: #f1f5f9; }
+.dropIcon { width: 44px; height: 44px; border-radius: 50%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: grid; place-items: center; color: #475569; margin-bottom: 4px; }
+.dropTitle { font-size: 13px; font-weight: 700; color: #334155; margin: 0; }
+.dropSubtitle { font-size: 11px; color: #94a3b8; margin: 0 0 10px; }
+.browseButton { border: 0; background: transparent; color: #032733; font-size: 12px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; cursor: pointer; padding: 4px 8px; }
+.uploadedChip { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; margin-top: 8px; }
+.uploadedChipInfo { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.uploadedChipIcon { color: #334155; flex: 0 0 auto; }
+.uploadedChipText { display: grid; min-width: 0; text-align: left; }
+.uploadedChipText strong { font-size: 13px; font-weight: 700; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.uploadedChipText span { font-size: 11px; color: #64748b; margin-top: 2px; }
+.removeFileButton { border: 0; background: transparent; color: #94a3b8; cursor: pointer; padding: 4px; display: grid; place-items: center; }
+.removeFileButton:hover { color: #ef4444; }
+.submitDocumentsButton { width: 100%; border: 0; border-radius: 14px; padding: 18px; font-size: 15px; font-weight: 700; color: #fff; background: #032733; cursor: pointer; margin-top: 10px; }
+.submitDocumentsButton:hover { background: #021a22; }
+
