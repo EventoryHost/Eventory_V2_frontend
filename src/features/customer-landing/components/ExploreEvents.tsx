@@ -15,7 +15,7 @@ export default function ExploreEvents() {
 
       <div className="hidden lg:block w-px self-stretch bg-black/10" />
 
-      <div className="w-full lg:flex-1 flex flex-col items-center lg:items-start gap-4 text-center lg:text-left">
+      <div className="w-full lg:flex-1 flex flex-col items-center gap-4 text-center">
         <h2 className="font-figtree font-bold text-brand-950 text-[28px] sm:text-[36px] leading-[1.1] tracking-[-0.02em]">
           Events reimagined for your ease
         </h2>
@@ -25,7 +25,7 @@ export default function ExploreEvents() {
         </p>
         <button
           type="button"
-          className="mt-2 self-center rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
+          className="mt-2 rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
         >
           Explore Events
         </button>

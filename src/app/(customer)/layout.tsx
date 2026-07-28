@@ -18,7 +18,7 @@ export default function CustomerLayout({
 }) {
   return (
     <div
-      className={`${lora.variable} min-h-screen flex flex-col bg-customer-bg text-brand-950`}
+      className={`${lora.variable} min-h-screen flex flex-col overflow-x-hidden bg-customer-bg text-brand-950`}
     >
       <Navbar />
       <main className="flex-1">{children}</main>

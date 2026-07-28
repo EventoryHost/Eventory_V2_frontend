@@ -56,7 +56,7 @@ export default function ProductCard({
           <div
             className="flex w-[132px] shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
             style={{
-              background: "linear-gradient(to right, #FFE5E9, #ffffff)",
+              background: "linear-gradient(to left, #FFE5E9, #ffffff)",
             }}
           >
             <Image

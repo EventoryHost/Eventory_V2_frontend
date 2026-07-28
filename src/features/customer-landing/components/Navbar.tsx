@@ -1,7 +1,7 @@
 // src/features/customer-landing/components/Navbar.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
@@ -88,9 +88,38 @@ function SignupLoginLink({ className = "" }: { className?: string }) {
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+
+      if (currentScrollY <= 0) {
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY.current) {
+        setIsVisible(false);
+        setIsMenuOpen(false);
+      } else if (currentScrollY < lastScrollY.current) {
+        setIsVisible(true);
+      }
+
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <header className="w-full border-b border-black/5 bg-customer-bg relative">
+    <>
+    <header
+      className={`fixed top-0 inset-x-0 z-50 w-full border-b border-black/5 bg-customer-bg transition-transform duration-300 ${
+        isVisible ? "translate-y-0" : "-translate-y-full"
+      }`}
+    >
       <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-4">
         {/* First div: logo + location */}
         <div className="flex items-center gap-6">
@@ -137,5 +166,7 @@ export default function Navbar() {
         </div>
       )}
     </header>
+    <div className="h-[72px] w-full" />
+    </>
   );
 }
