@@ -164,20 +164,19 @@ const MultiSelectPills = ({
         }
     };
 
-    const handleCustomSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && customValue.trim() !== '') {
-            e.preventDefault();
-            if (!selected.includes(customValue.trim())) {
-                onChange([...selected, customValue.trim()]);
-            }
-            setCustomValue('');
-            setShowSuggestions(false);
+    const addCustomValue = (valToAdd?: string) => {
+        const val = (valToAdd !== undefined ? valToAdd : customValue).trim();
+        if (val && !selected.includes(val)) {
+            onChange([...selected, val]);
         }
+        setCustomValue('');
+        setShowSuggestions(false);
     };
 
     const allOptions = Array.from(new Set([...options, ...selected]));
     const availableSuggestions = Array.from(new Set([...options, ...suggestions]))
         .filter(opt => !selected.includes(opt) && opt.toLowerCase().includes(customValue.toLowerCase()));
+    const hasUnselectedCustom = customValue.trim().length > 0 && !selected.includes(customValue.trim());
 
     return (
         <div className="flex flex-col gap-3 p-4 border border-[#E4E4E7] rounded-[16px] bg-white shadow-sm relative">
@@ -200,29 +199,53 @@ const MultiSelectPills = ({
                 ))}
             </div>
             <div className="relative w-full">
-                <input
-                    type="text"
-                    placeholder={customInputPlaceholder}
-                    value={customValue}
-                    onChange={(e) => { setCustomValue(e.target.value); setShowSuggestions(true); }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                    onKeyDown={handleCustomSubmit}
-                    className="w-full text-[14px] bg-transparent border-none focus:outline-none placeholder:text-[#9F9FA9] text-[#030303] mt-1"
-                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                />
-                {showSuggestions && availableSuggestions.length > 0 && customValue.trim().length > 0 && (
+                <div className="flex items-center gap-2 mt-1">
+                    <input
+                        type="text"
+                        placeholder={customInputPlaceholder}
+                        value={customValue}
+                        onChange={(e) => { setCustomValue(e.target.value); setShowSuggestions(true); }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustomValue(); } }}
+                        className="w-full text-[14px] bg-transparent border-none focus:outline-none placeholder:text-[#9F9FA9] text-[#030303]"
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                    />
+                    {hasUnselectedCustom && (
+                        <button
+                            type="button"
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                addCustomValue();
+                            }}
+                            onClick={() => addCustomValue()}
+                            className="px-3 py-1 bg-[#04222D] text-white rounded-full text-[13px] font-medium transition-colors hover:bg-gray-800 flex items-center gap-1 shrink-0"
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                        >
+                            + Add
+                        </button>
+                    )}
+                </div>
+                {showSuggestions && customValue.trim().length > 0 && (availableSuggestions.length > 0 || hasUnselectedCustom) && (
                     <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-52 overflow-y-auto z-50 py-1 text-left">
+                        {hasUnselectedCustom && !availableSuggestions.includes(customValue.trim()) && (
+                            <div
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    addCustomValue(customValue);
+                                }}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className="px-4 py-2.5 cursor-pointer text-[14px] text-[#04222D] font-medium bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
+                            >
+                                <span>+ Add "{customValue.trim()}"</span>
+                            </div>
+                        )}
                         {availableSuggestions.map((suggestion) => (
                             <div
                                 key={suggestion}
                                 onMouseDown={(e) => {
                                     e.preventDefault();
-                                    if (!selected.includes(suggestion)) {
-                                        onChange([...selected, suggestion]);
-                                    }
-                                    setCustomValue('');
-                                    setShowSuggestions(false);
+                                    addCustomValue(suggestion);
                                 }}
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
                                 className="px-4 py-2.5 cursor-pointer text-[14px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"

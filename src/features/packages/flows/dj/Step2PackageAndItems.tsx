@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, ChevronDown, ChevronUp, Trash2, Check, Info, MoreHorizontal, Pencil } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Trash2, Check, Info, MoreHorizontal, Pencil, X } from 'lucide-react';
 import { AddonModal, Addon } from '../../components/AddonModal';
 
 export interface DJItem {
@@ -147,6 +147,7 @@ export default function DJStep2PackageAndItems({
 
         const allTags = Array.from(new Set([...suggestionsList, ...values]));
         const matchingSuggestions = suggestionsList.filter(s => !values.includes(s) && s.toLowerCase().includes(inputValue.toLowerCase()));
+        const hasUnselectedCustom = inputValue.trim().length > 0 && !values.includes(inputValue.trim());
 
         return (
             <div className="flex flex-col gap-2 relative">
@@ -161,27 +162,56 @@ export default function DJStep2PackageAndItems({
                                     type="button"
                                     onClick={() => handleToggle(tag)}
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors ${isSelected ? 'bg-[#04222D] text-white' : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-[#EAEBEB]'}`}
+                                    className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors flex items-center gap-1.5 ${isSelected ? 'bg-[#04222D] text-white' : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-[#EAEBEB]'}`}
                                 >
-                                    {tag}
+                                    <span>{tag}</span>
+                                    {isSelected && <X size={13} />}
                                 </button>
                             );
                         })}
                     </div>
                     <div className="relative w-full mt-2">
-                        <input
-                            type="text"
-                            placeholder={placeholder}
-                            value={inputValue}
-                            onChange={(e) => { setInputValue(e.target.value); setShowSuggestions(true); }}
-                            onFocus={() => setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
-                        />
-                        {showSuggestions && matchingSuggestions.length > 0 && inputValue.trim().length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder={placeholder}
+                                value={inputValue}
+                                onChange={(e) => { setInputValue(e.target.value); setShowSuggestions(true); }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCustom(); } }}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
+                            />
+                            {hasUnselectedCustom && (
+                                <button
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleAddCustom();
+                                    }}
+                                    onClick={() => handleAddCustom()}
+                                    className="px-3 py-1 bg-[#04222D] text-white rounded-full text-[13px] font-medium transition-colors hover:bg-gray-800 flex items-center gap-1 shrink-0"
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                >
+                                    + Add
+                                </button>
+                            )}
+                        </div>
+                        {showSuggestions && inputValue.trim().length > 0 && (matchingSuggestions.length > 0 || hasUnselectedCustom) && (
                             <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
+                                {hasUnselectedCustom && !matchingSuggestions.includes(inputValue.trim()) && (
+                                    <div
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAddCustom(inputValue);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#04222D] font-medium bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
+                                    >
+                                        <span>+ Add "{inputValue.trim()}"</span>
+                                    </div>
+                                )}
                                 {matchingSuggestions.map((suggestion) => (
                                     <div
                                         key={suggestion}

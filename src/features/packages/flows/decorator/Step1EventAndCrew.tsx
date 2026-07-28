@@ -78,6 +78,7 @@ export default function DecoratorStep1EventAndCrew({
     const filteredSuggestions = ALL_SUGGESTIONS.filter(s => 
         !categories.includes(s) && s.toLowerCase().includes(categoryInput.toLowerCase())
     );
+    const hasUnselectedCustomCat = categoryInput.trim().length > 0 && !categories.includes(categoryInput.trim());
 
     const handleAddCategoryFromInput = (val?: string) => {
         const text = val !== undefined ? val : categoryInput;
@@ -169,26 +170,54 @@ export default function DecoratorStep1EventAndCrew({
                                     );
                                 })}
                             </div>
-                            <input
-                                type="text"
-                                placeholder="Type Events Categories"
-                                value={categoryInput}
-                                onChange={(e) => {
-                                    setCategoryInput(e.target.value);
-                                    setIsDropdownOpen(true);
-                                    setHighlightedIndex(-1);
-                                }}
-                                onFocus={() => setIsDropdownOpen(true)}
-                                onKeyDown={handleCategoryKeyDown}
-                                onBlur={() => {
-                                    setTimeout(() => handleAddCategoryFromInput(), 150);
-                                }}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className="w-full min-w-0 text-[16px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
-                            />
+                            <div className="flex items-center gap-2 w-full">
+                                <input
+                                    type="text"
+                                    placeholder="Type Events Categories"
+                                    value={categoryInput}
+                                    onChange={(e) => {
+                                        setCategoryInput(e.target.value);
+                                        setIsDropdownOpen(true);
+                                        setHighlightedIndex(-1);
+                                    }}
+                                    onFocus={() => setIsDropdownOpen(true)}
+                                    onKeyDown={handleCategoryKeyDown}
+                                    onBlur={() => {
+                                        setTimeout(() => handleAddCategoryFromInput(), 150);
+                                    }}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className="w-full min-w-0 text-[16px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
+                                />
+                                {hasUnselectedCustomCat && (
+                                    <button
+                                        type="button"
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAddCategoryFromInput(categoryInput);
+                                        }}
+                                        onClick={() => handleAddCategoryFromInput(categoryInput)}
+                                        className="px-3 py-1 bg-[#04222D] text-white rounded-full text-[13px] font-medium transition-colors hover:bg-gray-800 flex items-center gap-1 shrink-0"
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    >
+                                        + Add
+                                    </button>
+                                )}
+                            </div>
                         </div>
-                        {isDropdownOpen && filteredSuggestions.length > 0 && (
+                        {isDropdownOpen && categoryInput.trim().length > 0 && (filteredSuggestions.length > 0 || hasUnselectedCustomCat) && (
                             <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-60 overflow-y-auto z-50 py-2">
+                                {hasUnselectedCustomCat && !filteredSuggestions.includes(categoryInput.trim()) && (
+                                    <div
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAddCategoryFromInput(categoryInput);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-3 cursor-pointer text-[15px] font-medium text-[#04222D] bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
+                                    >
+                                        + Add "{categoryInput.trim()}"
+                                    </div>
+                                )}
                                 {filteredSuggestions.map((suggestion, index) => (
                                     <div
                                         key={suggestion}
