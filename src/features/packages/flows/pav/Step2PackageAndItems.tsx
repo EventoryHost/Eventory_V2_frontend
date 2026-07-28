@@ -190,6 +190,7 @@ export default function PAVStep2PackageAndItems({
         const handleRemove = (tag: string) => updateItem(itemId, 'categories', values.filter(v => v !== tag));
 
         const suggestions = (PAV_SUGGESTIONS[label] || []).filter(s => !values.includes(s) && s.toLowerCase().includes(inputValue.toLowerCase()));
+        const hasUnselectedCustom = inputValue.trim().length > 0 && !values.includes(inputValue.trim());
 
         return (
             <div className="flex flex-col gap-1 relative">
@@ -208,19 +209,47 @@ export default function PAVStep2PackageAndItems({
                         </div>
                     )}
                     <div className="relative w-full">
-                        <input
-                            type="text"
-                            placeholder={placeholder}
-                            value={inputValue}
-                            onChange={(e) => { setInputValue(e.target.value); setShowSuggestions(true); }}
-                            onFocus={() => setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => { setShowSuggestions(false); if (inputValue.trim()) handleAdd(); }, 200)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
-                        />
-                        {showSuggestions && suggestions.length > 0 && (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="text"
+                                placeholder={placeholder}
+                                value={inputValue}
+                                onChange={(e) => { setInputValue(e.target.value); setShowSuggestions(true); }}
+                                onFocus={() => setShowSuggestions(true)}
+                                onBlur={() => setTimeout(() => { setShowSuggestions(false); if (inputValue.trim()) handleAdd(); }, 200)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className="w-full text-[14px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
+                            />
+                            {hasUnselectedCustom && (
+                                <button
+                                    type="button"
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        handleAdd();
+                                    }}
+                                    onClick={() => handleAdd()}
+                                    className="px-3 py-1 bg-[#04222D] text-white rounded-full text-[13px] font-medium transition-colors hover:bg-gray-800 flex items-center gap-1 shrink-0"
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                >
+                                    + Add
+                                </button>
+                            )}
+                        </div>
+                        {showSuggestions && inputValue.trim().length > 0 && (suggestions.length > 0 || hasUnselectedCustom) && (
                             <div className="absolute top-[100%] left-0 right-0 mt-2 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
+                                {hasUnselectedCustom && !suggestions.includes(inputValue.trim()) && (
+                                    <div
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            handleAdd(inputValue);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#04222D] font-medium bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
+                                    >
+                                        <span>+ Add "{inputValue.trim()}"</span>
+                                    </div>
+                                )}
                                 {suggestions.map((suggestion) => (
                                     <div
                                         key={suggestion}

@@ -173,29 +173,29 @@ export default function VenueStep2SpacesAndItems({
         };
 
         const extendedList = title === "Amenities" ? EXTENDED_AMENITY_SUGGESTIONS : EXTENDED_ACTIVITY_SUGGESTIONS;
+        const allTags = Array.from(new Set([...options, ...selected]));
         const availableSuggestions = extendedList.filter(s => !selected.includes(s) && s.toLowerCase().includes(customVal.toLowerCase()));
+        const hasUnselectedCustom = customVal.trim().length > 0 && !selected.includes(customVal.trim());
 
         return (
             <div className="flex flex-col gap-2">
                 <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>{title}</label>
                 <div className="flex flex-wrap gap-2">
-                    {options.map(opt => (
+                    {allTags.map(opt => (
                         <button
                             key={opt}
                             type="button"
                             onClick={() => toggleTag(opt)}
-                            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors border ${selected.includes(opt) ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-[#F4F4F5] text-[#3F3F47] border-[#E4E4E7] hover:bg-gray-200'}`}
+                            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors border flex items-center gap-1.5 ${selected.includes(opt) ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-[#F4F4F5] text-[#3F3F47] border-[#E4E4E7] hover:bg-gray-200'}`}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                         >
-                            {opt}
+                            <span>{opt}</span>
+                            {selected.includes(opt) && <X size={14} />}
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-2 mt-1">
-                    <button type="button" className="px-4 py-2 rounded-full text-[13px] font-medium bg-[#04222D] text-white" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                        Add Custom
-                    </button>
-                    <div className="flex-1 relative">
+                <div className="flex items-center gap-2 mt-1 relative">
+                    <div className="flex-1 relative flex items-center gap-2">
                         <input
                             type="text"
                             placeholder={title === "Amenities" ? "Enter amenity" : "Enter activity"}
@@ -204,12 +204,37 @@ export default function VenueStep2SpacesAndItems({
                             onFocus={() => setShowSuggestions(true)}
                             onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                             onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
-                            className="w-full bg-[#F4F4F5] border-none rounded-full px-4 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-gray-300"
+                            className="flex-1 bg-[#F4F4F5] border border-[#E4E4E7] rounded-full px-4 py-2.5 text-[13px] text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                         />
-                        <button type="button" onClick={() => addCustom()} className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-medium text-[#04222D]" style={{ fontFamily: 'Figtree, sans-serif' }}>Add</button>
-                        {showSuggestions && availableSuggestions.length > 0 && customVal.trim().length > 0 && (
+                        {hasUnselectedCustom && (
+                            <button
+                                type="button"
+                                onMouseDown={(e) => {
+                                    e.preventDefault();
+                                    addCustom();
+                                }}
+                                onClick={() => addCustom()}
+                                className="px-4 py-2 rounded-full text-[13px] font-medium bg-[#04222D] text-white hover:bg-gray-800 transition-colors shrink-0 flex items-center gap-1"
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                            >
+                                + Add
+                            </button>
+                        )}
+                        {showSuggestions && customVal.trim().length > 0 && (availableSuggestions.length > 0 || hasUnselectedCustom) && (
                             <div className="absolute top-[100%] left-0 right-0 mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
+                                {hasUnselectedCustom && !availableSuggestions.includes(customVal.trim()) && (
+                                    <div
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            addCustom(customVal);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#04222D] font-medium bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
+                                    >
+                                        <span>+ Add "{customVal.trim()}"</span>
+                                    </div>
+                                )}
                                 {availableSuggestions.map((suggestion) => (
                                     <div
                                         key={suggestion}
@@ -226,17 +251,6 @@ export default function VenueStep2SpacesAndItems({
                             </div>
                         )}
                     </div>
-                </div>
-                {/* Render selected custom tags that are not in default options */}
-                <div className="flex flex-wrap gap-2 mt-2">
-                    {selected.filter(s => !options.includes(s)).map(custom => (
-                        <div key={custom} className="flex items-center gap-1.5 bg-[#04222D] text-white px-3 py-1.5 rounded-full text-[12px]" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                            <span>{custom}</span>
-                            <button type="button" onClick={() => toggleTag(custom)} className="hover:text-gray-300">
-                                <X size={14} />
-                            </button>
-                        </div>
-                    ))}
                 </div>
             </div>
         );

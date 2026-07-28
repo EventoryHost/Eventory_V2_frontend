@@ -2,13 +2,14 @@
 
 import { apiUrl } from '@/lib/api';
 import { Suspense, useEffect, useState } from 'react';
-import { BarChart3, Bell, Check, Copy, Edit3, FileText, Layers3, Loader2, MoreVertical, Pause, Search, SlidersHorizontal, Trash2, X } from 'lucide-react';
+import { BarChart3, Bell, Check, CheckCircle2, Copy, Edit3, FileText, Layers3, Loader2, MoreVertical, Pause, Search, SlidersHorizontal, Trash2, UploadCloud, ArrowRight, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import CreateServiceModal from '@/components/CreateServiceModal';
 import styles from './inventory.module.css';
 
 interface PackageData {
     _id: string;
+    reviewStatus?: 'images' | 'trust' | 'documents' | 'approved' | 'under_review';
     packageStatus: string;
     vendorType: string;
     bookingType: string;
@@ -102,6 +103,11 @@ function InventoryContent() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(() => searchParams.get('add') === 'true');
     const [actionPackage, setActionPackage] = useState<PackageData | null>(null);
     const [templatePackage, setTemplatePackage] = useState<PackageData | null>(null);
+    const [isProfileComplete, setIsProfileComplete] = useState(false);
+    const [documentModalPkg, setDocumentModalPkg] = useState<PackageData | null>(null);
+    const [doc1File, setDoc1File] = useState<{ name: string; size: string } | null>(null);
+    const [doc2File, setDoc2File] = useState<{ name: string; size: string } | null>(null);
+    const [demoReviewMap, setDemoReviewMap] = useState<Record<string, string>>({});
     const [showTemplateSuccess, setShowTemplateSuccess] = useState(false);
     const [templateNote, setTemplateNote] = useState('');
     const [busyPackageId, setBusyPackageId] = useState<string | null>(null);
@@ -144,15 +150,32 @@ function InventoryContent() {
 
     useEffect(() => {
         const loadTimer = window.setTimeout(() => {
+            const step = localStorage.getItem('dashboard_step');
+            setIsProfileComplete(step === '3');
             loadPackages().catch(() => setError('Some inventory details could not be loaded. Please try again.')).finally(() => setIsLoading(false));
         }, 0);
         return () => window.clearTimeout(loadTimer);
     }, []);
 
+    const getEffectiveStatus = (pkg: PackageData) => {
+        const demo = demoReviewMap[pkg._id];
+        if (demo) return demo;
+        if (pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted') {
+            return 'under_review';
+        }
+        return pkg.packageStatus;
+    };
+
+    const isSubmittedStatus = (status: string, id: string) => {
+        const demo = demoReviewMap[id];
+        if (demo && demo !== 'draft' && demo !== 'live') return true;
+        return ['Under Review', 'Submitted', 'Action Required', 'Rejected', 'Needs Review', 'Documents Required', 'Approved', 'images', 'trust', 'documents', 'approved', 'under_review'].includes(status);
+    };
+
     const displayedPackages = packages.filter((pkg) => (
         activeTab === 'Drafts' ? pkg.packageStatus === 'Draft'
             : activeTab === 'Live' ? (pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused')
-                : pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted'
+                : isSubmittedStatus(getEffectiveStatus(pkg), pkg._id)
     ))
     .filter((pkg) => packageName(pkg).toLowerCase().includes(query.trim().toLowerCase()))
     .filter((pkg) => matchesVendorFilter(pkg, selectedVendors))
@@ -161,8 +184,146 @@ function InventoryContent() {
     const tabCount = (tab: InventoryTab) => packages.filter((pkg) => (
         tab === 'Drafts' ? pkg.packageStatus === 'Draft'
             : tab === 'Live' ? (pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused')
-                : pkg.packageStatus === 'Under Review' || pkg.packageStatus === 'Submitted'
+                : isSubmittedStatus(getEffectiveStatus(pkg), pkg._id)
     )).length;
+
+    const needsReviewPackages = displayedPackages.filter((p) => ['images', 'trust', 'documents', 'Action Required', 'Rejected', 'Needs Review', 'Documents Required'].includes(getEffectiveStatus(p)));
+    const inProcessPackages = displayedPackages.filter((p) => !needsReviewPackages.includes(p));
+
+    const renderPackageCard = (pkg: PackageData) => {
+        const progress = getDraftProgress(pkg);
+        const effStatus = getEffectiveStatus(pkg);
+        const isActionReq = ['images', 'trust', 'documents', 'Action Required', 'Rejected', 'Needs Review', 'Documents Required'].includes(effStatus);
+        const isApprov = effStatus === 'approved' || effStatus === 'Approved' || effStatus === 'Verified';
+
+        return (
+            <article className={styles.packageCard} key={pkg._id}>
+                <div className={styles.packageImage}>
+                    {pkg.step4_sampleMedia?.media?.find((media) => media.type !== 'video')?.url ? <img src={pkg.step4_sampleMedia.media.find((media) => media.type !== 'video')?.url} alt="" /> : <div className={styles.imageFallback}><Layers3 size={38} /></div>}
+                    {activeTab === 'Drafts' ? (
+                        progress.isComplete ? (
+                            <span className={styles.completeBadge}>COMPLETE</span>
+                        ) : (
+                            <span className={styles.inProgressBadge}>IN-PROGRESS</span>
+                        )
+                    ) : pkg.packageStatus === 'Live' ? (
+                        <span className={styles.liveBadge}>LIVE</span>
+                    ) : pkg.packageStatus === 'Paused' ? (
+                        <span className={styles.pausedBadge}>PAUSED</span>
+                    ) : isActionReq ? (
+                        <span className={styles.actionRequiredBadge}>ACTION REQUIRED</span>
+                    ) : isApprov ? (
+                        <span className={styles.approvedBadge}>APPROVED</span>
+                    ) : (
+                        <span className={styles.underReviewBadge}>UNDER REVIEW</span>
+                    )}
+                    <button className={styles.imageMenuButton} aria-label={`Actions for ${packageName(pkg)}`} onClick={() => setActionPackage(pkg)}><MoreVertical size={22} /></button>
+                </div>
+                <div className={styles.cardBody}>
+                    {activeTab === 'Drafts' && (
+                        <div className={styles.progressRow}>
+                            <div className={styles.progressBar}>
+                                <div className={styles.progressFill} style={{ width: `${progress.percent}%` }} />
+                            </div>
+                            <span className={styles.progressText}>{progress.percent < 10 ? `0${progress.percent}%` : `${progress.percent}%`}</span>
+                        </div>
+                    )}
+                    <div className={styles.packageMeta}>
+                        <span className={styles.vendorTypePill}>
+                            <img src={getVendorIcon(pkg.vendorType)} alt="" style={{ width: 13, height: 13 }} />
+                            {pkg.vendorType ? pkg.vendorType.replace(/([A-Z])/g, ' $1').trim().toUpperCase() : 'VENDOR'}
+                        </span>
+                        {pkg.bookingType && <><i /> <span>{pkg.bookingType.toUpperCase()}</span></>}
+                    </div>
+                    <h2>{packageName(pkg)}</h2>
+                    {activeTab === 'Live' || pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused' ? (
+                        <p>Your package is active and visible to customers. You have 12 active bookings and 450 views this month.</p>
+                    ) : activeTab === 'Drafts' ? (
+                        progress.isComplete ? (
+                            !isProfileComplete ? (
+                                <div className={styles.warningCallout}>
+                                    <strong className={styles.warningCalloutTitle}>Profile Setup Incomplete.</strong>
+                                    <ul>
+                                        <li>• Need to Complete Business Profile Setup</li>
+                                        <li>• Need to Complete Personal Document Verification</li>
+                                    </ul>
+                                </div>
+                            ) : (
+                                <p>All steps are finished and your package looks great! Submit it now for verification to start receiving bookings.</p>
+                            )
+                        ) : (
+                            <p>Your package needs a few updates before it can be approved. Check the checklist for details.</p>
+                        )
+                    ) : isActionReq ? (
+                        <>
+                            <p>Your package needs a few updates before it can be approved. Check the notes for details.</p>
+                            {effStatus === 'trust' ? (
+                                <div className={styles.trustCallout}>
+                                    <strong className={styles.trustCalloutTitle}>Quality/Authenticity Issues (Trust Violation)</strong>
+                                    <ul>
+                                        <li>• The portfolio images provided appear to be watermarked stock photos and do not represent original work.</li>
+                                        <li>• This listing was flagged as a duplicate of another existing account. Multiple listings for the same service are not allowed.</li>
+                                    </ul>
+                                </div>
+                            ) : effStatus === 'documents' ? (
+                                <div className={styles.reviewCallout}>
+                                    <strong className={styles.reviewCalloutTitle}>Documents Required</strong>
+                                    <ul>
+                                        <li>1. Business Document need Verification</li>
+                                        <li>2. Personal Documents need Verification</li>
+                                    </ul>
+                                </div>
+                            ) : (
+                                <div className={styles.reviewCallout}>
+                                    <ul>
+                                        <li>• Please upload at least <strong>3 high-resolution images</strong>. The current main cover photo is blurry.</li>
+                                        <li>• The &ldquo;Silver Package&rdquo; <strong>description is missing a clear breakdown</strong> of deliverables.</li>
+                                    </ul>
+                                </div>
+                            )}
+                        </>
+                    ) : isApprov ? (
+                        <p>Great news! Your package has been approved and is ready to go live on the marketplace.</p>
+                    ) : (
+                        <p>Our team is currently verifying your details. You can view this package while it&rsquo;s being reviewed.</p>
+                    )}
+                    {activeTab === 'Drafts' ? (
+                        progress.isComplete ? (
+                            !isProfileComplete ? (
+                                <button className={styles.cardPrimaryButton} onClick={() => router.push('/dashboard')}>
+                                    Complete Profile Setup <ArrowRight size={17} style={{ marginLeft: 6 }} />
+                                </button>
+                            ) : (
+                                <button className={styles.cardPrimaryButton} onClick={() => togglePause(pkg, 'Under Review')}>
+                                    Send for Verification
+                                </button>
+                            )
+                        ) : (
+                            <button className={styles.cardPrimaryButton} onClick={() => openPackage(pkg)}>Finish Setup</button>
+                        )
+                    ) : pkg.packageStatus === 'Paused' ? (
+                        <button className={styles.cardPrimaryButton} onClick={() => togglePause(pkg, 'Live')}>Resume Listing</button>
+                    ) : activeTab === 'Live' ? (
+                        <button className={styles.cardPrimaryButton}>View Analytics</button>
+                    ) : isActionReq ? (
+                        effStatus === 'documents' ? (
+                            <button className={styles.cardPrimaryButton} onClick={() => { setDocumentModalPkg(pkg); setDoc1File(null); setDoc2File(null); }}>
+                                Upload Documents &amp; Resubmit
+                            </button>
+                        ) : (
+                            <button className={styles.cardPrimaryButton} onClick={() => openPackage(pkg)}>
+                                Fix &amp; Resubmit
+                            </button>
+                        )
+                    ) : isApprov ? (
+                        <button className={styles.cardPrimaryButton} onClick={() => togglePause(pkg, 'Live')}>Go Live</button>
+                    ) : (
+                        <button className={styles.cardPrimaryButton} onClick={() => openPackage(pkg)}>View Submission</button>
+                    )}
+                </div>
+            </article>
+        );
+    };
 
     const openPackage = (pkg: PackageData) => {
         localStorage.setItem('selected_package_id', pkg._id);
@@ -248,69 +409,141 @@ function InventoryContent() {
                 <label className={styles.searchBox}><Search size={22} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search" aria-label="Search packages" /></label>
                 <button className={styles.filterButton} aria-label="Filter packages" onClick={() => setShowFilterModal(true)}><SlidersHorizontal size={21} /></button>
             </div>
-            <section className={styles.packageList}>
-                {isLoading ? <div className={styles.loader}><Loader2 className="animate-spin" size={28} /></div>
-                    : displayedPackages.length ? displayedPackages.map((pkg) => {
-                        const progress = getDraftProgress(pkg);
-                        return (
-                            <article className={styles.packageCard} key={pkg._id}>
-                                <div className={styles.packageImage}>
-                                    {pkg.step4_sampleMedia?.media?.find((media) => media.type !== 'video')?.url ? <img src={pkg.step4_sampleMedia.media.find((media) => media.type !== 'video')?.url} alt="" /> : <div className={styles.imageFallback}><Layers3 size={38} /></div>}
-                                    {activeTab === 'Drafts' ? (
-                                        progress.isComplete ? (
-                                            <span className={styles.completeBadge}>COMPLETE</span>
-                                        ) : (
-                                            <span className={styles.inProgressBadge}>IN-PROGRESS</span>
-                                        )
-                                    ) : pkg.packageStatus === 'Live' ? (
-                                        <span className={styles.liveBadge}>LIVE</span>
-                                    ) : pkg.packageStatus === 'Paused' ? (
-                                        <span className={styles.pausedBadge}>PAUSED</span>
-                                    ) : (
-                                        <span className={styles.statusBadge}>{pkg.packageStatus === 'Under Review' ? 'SUBMITTED' : pkg.packageStatus.toUpperCase()}</span>
-                                    )}
-                                    <button className={styles.imageMenuButton} aria-label={`Actions for ${packageName(pkg)}`} onClick={() => setActionPackage(pkg)}><MoreVertical size={22} /></button>
-                                </div>
-                                <div className={styles.cardBody}>
-                                    {activeTab === 'Drafts' && (
-                                        <div className={styles.progressRow}>
-                                            <div className={styles.progressBar}>
-                                                <div className={styles.progressFill} style={{ width: `${progress.percent}%` }} />
-                                            </div>
-                                            <span className={styles.progressText}>{progress.percent < 10 ? `0${progress.percent}%` : `${progress.percent}%`}</span>
-                                        </div>
-                                    )}
-                                    <div className={styles.packageMeta}>
-                                        <span className={styles.vendorTypePill}>
-                                            <img src={getVendorIcon(pkg.vendorType)} alt="" style={{ width: 13, height: 13 }} />
-                                            {pkg.vendorType ? pkg.vendorType.replace(/([A-Z])/g, ' $1').trim().toUpperCase() : 'VENDOR'}
-                                        </span>
-                                        {pkg.bookingType && <><i /> <span>{pkg.bookingType.toUpperCase()}</span></>}
-                                    </div>
-                                    <h2>{packageName(pkg)}</h2>
-                                    <p>{pkg.packageStatus === 'Live' || pkg.packageStatus === 'Paused' || activeTab === 'Live' ? 'Your package is active and visible to customers. You have 12 active bookings and 450 views this month.' : pkg.packageStatus === 'Draft' ? (progress.isComplete ? 'Your setup is 100% complete. Submit your package for review or review the details.' : 'Finish your package details and submit it for review.') : 'Your package is currently being reviewed.'}</p>
-                                    {activeTab === 'Drafts' ? (
-                                        <button className={styles.cardPrimaryButton} onClick={() => openPackage(pkg)}>Finish Setup</button>
-                                    ) : pkg.packageStatus === 'Paused' ? (
-                                        <button className={styles.cardPrimaryButton} onClick={() => togglePause(pkg, 'Live')}>Resume Listing</button>
-                                    ) : activeTab === 'Live' ? (
-                                        <button className={styles.cardPrimaryButton}>View Analytics</button>
-                                    ) : (
-                                        <button className={styles.cardPrimaryButton}>View Details</button>
-                                    )}
-                                </div>
-                            </article>
-                        );
-                    }) : <div className={styles.emptyState}><FileText size={36} strokeWidth={1.3} /><h2>No {activeTab.toLowerCase()} yet</h2><p>Create a package to start building your inventory.</p>{activeTab === 'Drafts' && <button className={styles.addButton} onClick={() => setIsCreateModalOpen(true)}>Create package</button>}</div>}
-            </section>
+            {activeTab === 'Submitted' && !isLoading && displayedPackages.length > 0 ? (
+                <div>
+                    <section className={styles.sectionGroup}>
+                        <h2 className={styles.sectionGroupTitle}>Needs Your Review</h2>
+                        {needsReviewPackages.length > 0 ? (
+                            <div className={styles.packageList}>
+                                {needsReviewPackages.map((pkg) => renderPackageCard(pkg))}
+                            </div>
+                        ) : (
+                            <p style={{ color: '#71717a', fontSize: '13px', margin: '0 0 20px 0' }}>No packages currently require admin edits or documents.</p>
+                        )}
+                    </section>
+                    <section className={styles.sectionGroup}>
+                        <h2 className={styles.sectionGroupTitle}>In Process &amp; Verified</h2>
+                        {inProcessPackages.length > 0 ? (
+                            <div className={styles.packageList}>
+                                {inProcessPackages.map((pkg) => renderPackageCard(pkg))}
+                            </div>
+                        ) : (
+                            <p style={{ color: '#71717a', fontSize: '13px' }}>No packages currently in verification or approved state.</p>
+                        )}
+                    </section>
+                </div>
+            ) : (
+                <section className={styles.packageList}>
+                    {isLoading ? <div className={styles.loader}><Loader2 className="animate-spin" size={28} /></div>
+                        : displayedPackages.length ? displayedPackages.map((pkg) => renderPackageCard(pkg)) : <div className={styles.emptyState}><FileText size={36} strokeWidth={1.3} /><h2>No {activeTab.toLowerCase()} yet</h2><p>Create a package to start building your inventory.</p>{activeTab === 'Drafts' && <button className={styles.addButton} onClick={() => setIsCreateModalOpen(true)}>Create package</button>}</div>}
+                </section>
+            )}
 
             {actionPackage && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setActionPackage(null)}><section className={styles.actionSheet} role="dialog" aria-modal="true" aria-label="Package actions" onMouseDown={(event) => event.stopPropagation()}>
                 <button className={styles.sheetClose} aria-label="Close" onClick={() => setActionPackage(null)}><X size={21} /></button>
                 <button onClick={() => { setTemplatePackage(actionPackage); setTemplateNote(''); setActionPackage(null); }}><FileText size={20} />Save as template</button>
+                {activeTab === 'Drafts' && (
+                    <button onClick={() => { setIsProfileComplete(!isProfileComplete); setActionPackage(null); }}>
+                        <CheckCircle2 size={20} color="#0284c7" /> Toggle Profile Setup Alert (Currently: {isProfileComplete ? 'Complete' : 'Incomplete'})
+                    </button>
+                )}
+                {activeTab === 'Submitted' && (
+                    <>
+                        <button onClick={() => { setDemoReviewMap(prev => ({ ...prev, [actionPackage._id]: 'images' })); setActionPackage(null); }}>
+                            <FileText size={20} color="#e11d48" /> Demo: Mark as Action Required (Image Fixes)
+                        </button>
+                        <button onClick={() => { setDemoReviewMap(prev => ({ ...prev, [actionPackage._id]: 'trust' })); setActionPackage(null); }}>
+                            <FileText size={20} color="#e11d48" /> Demo: Mark as Trust Violation (Red Alert)
+                        </button>
+                        <button onClick={() => { setDemoReviewMap(prev => ({ ...prev, [actionPackage._id]: 'documents' })); setActionPackage(null); }}>
+                            <FileText size={20} color="#0284c7" /> Demo: Mark as Documents Required (Modal)
+                        </button>
+                        <button onClick={() => { setDemoReviewMap(prev => ({ ...prev, [actionPackage._id]: 'approved' })); setActionPackage(null); }}>
+                            <CheckCircle2 size={20} color="#16a34a" /> Demo: Mark as Approved (Go Live)
+                        </button>
+                        <button onClick={() => { setDemoReviewMap(prev => ({ ...prev, [actionPackage._id]: 'under_review' })); setActionPackage(null); }}>
+                            <CheckCircle2 size={20} color="#2563eb" /> Demo: Reset to Under Review
+                        </button>
+                    </>
+                )}
                 {actionPackage.packageStatus === 'Live' && <button onClick={() => togglePause(actionPackage, 'Paused')} disabled={busyPackageId === actionPackage._id}><Pause size={20} />Pause this package</button>}
                 {actionPackage.packageStatus === 'Paused' && <button onClick={() => togglePause(actionPackage, 'Live')} disabled={busyPackageId === actionPackage._id}><Check size={20} />Resume this package</button>}
                 <button className={styles.deleteAction} onClick={() => deleteDraft(actionPackage)} disabled={busyPackageId === actionPackage._id}><Trash2 size={20} />Delete this package</button>
             </section></div>}
+            {documentModalPkg && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setDocumentModalPkg(null)} style={{ zIndex: 90 }}>
+                <section className={styles.documentModal} role="dialog" aria-modal="true" aria-labelledby="upload-doc-title" onMouseDown={(event) => event.stopPropagation()}>
+                    <button className={styles.closeButton} aria-label="Close" onClick={() => setDocumentModalPkg(null)}><X size={20} /></button>
+                    <h2 id="upload-doc-title" className={styles.documentModalTitle}>Upload Requires Documents</h2>
+                    
+                    <div className={styles.documentSection}>
+                        <div className={styles.documentLabel}>
+                            {doc1File && <span className={styles.documentLabelIcon}><CheckCircle2 size={17} /></span>}
+                            Document Name 1
+                        </div>
+                        {!doc1File ? (
+                            <label className={styles.dropZone}>
+                                <div className={styles.dropIcon}><UploadCloud size={24} /></div>
+                                <p className={styles.dropTitle}>Upload Required Documents</p>
+                                <p className={styles.dropSubtitle}>PDF, DOC up to 10MB</p>
+                                <span className={styles.browseButton}>BROWSE FILES</span>
+                                <input type="file" style={{ display: 'none' }} onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) setDoc1File({ name: file.name, size: `${(file.size / (1024 * 1024)).toFixed(1)} MB` });
+                                }} />
+                            </label>
+                        ) : (
+                            <div className={styles.uploadedChip}>
+                                <div className={styles.uploadedChipInfo}>
+                                    <FileText className={styles.uploadedChipIcon} size={24} />
+                                    <div className={styles.uploadedChipText}>
+                                        <strong>{doc1File.name}</strong>
+                                        <span>{doc1File.size} • Uploaded</span>
+                                    </div>
+                                </div>
+                                <button className={styles.removeFileButton} onClick={() => setDoc1File(null)}><X size={18} /></button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={styles.documentSection}>
+                        <div className={styles.documentLabel}>
+                            {doc2File && <span className={styles.documentLabelIcon}><CheckCircle2 size={17} /></span>}
+                            Document Name 2
+                        </div>
+                        {!doc2File ? (
+                            <label className={styles.dropZone}>
+                                <div className={styles.dropIcon}><UploadCloud size={24} /></div>
+                                <p className={styles.dropTitle}>Upload Required Documents</p>
+                                <p className={styles.dropSubtitle}>PDF, DOC up to 10MB</p>
+                                <span className={styles.browseButton}>BROWSE FILES</span>
+                                <input type="file" style={{ display: 'none' }} onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) setDoc2File({ name: file.name, size: `${(file.size / (1024 * 1024)).toFixed(1)} MB` });
+                                }} />
+                            </label>
+                        ) : (
+                            <div className={styles.uploadedChip}>
+                                <div className={styles.uploadedChipInfo}>
+                                    <FileText className={styles.uploadedChipIcon} size={24} />
+                                    <div className={styles.uploadedChipText}>
+                                        <strong>{doc2File.name}</strong>
+                                        <span>{doc2File.size} • Uploaded</span>
+                                    </div>
+                                </div>
+                                <button className={styles.removeFileButton} onClick={() => setDoc2File(null)}><X size={18} /></button>
+                            </div>
+                        )}
+                    </div>
+
+                    <button className={styles.submitDocumentsButton} onClick={() => {
+                        setDemoReviewMap(prev => ({ ...prev, [documentModalPkg._id]: 'under_review' }));
+                        setDocumentModalPkg(null);
+                        setShowTemplateSuccess(true);
+                    }}>
+                        Submit Documents
+                    </button>
+                </section>
+            </div>}
             {templatePackage && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setTemplatePackage(null)}><section className={styles.templateModal} role="dialog" aria-modal="true" aria-labelledby="save-template-title" onMouseDown={(event) => event.stopPropagation()}><button className={styles.closeButton} aria-label="Close" onClick={() => setTemplatePackage(null)}><X size={20} /></button><h2 id="save-template-title">Save as Template</h2><p className={styles.modalHint}>Saving in template section during creation</p><div className={styles.templatePreview}>{templatePackage.step4_sampleMedia?.media?.[0]?.url ? <img src={templatePackage.step4_sampleMedia.media[0].url} alt="" /> : <Layers3 size={20} />}<div><span>{templatePackage.vendorType}</span><strong>{packageName(templatePackage)}</strong></div></div><label htmlFor="template-note">Template Note <span>(Optional)</span></label><textarea id="template-note" value={templateNote} onChange={(event) => setTemplateNote(event.target.value)} placeholder="This is for special event only" maxLength={500} /><small className={styles.noteHelp}>Helps you for remembering when creating new packages</small><button className={styles.saveTemplate} disabled={busyPackageId === templatePackage._id} onClick={saveTemplate}>{busyPackageId === templatePackage._id ? 'Saving…' : 'Continue'}</button></section></div>}
             {showTemplateSuccess && <div className={styles.modalBackdrop} role="presentation" onMouseDown={() => setShowTemplateSuccess(false)}><section className={styles.templateSuccess} role="dialog" aria-modal="true" aria-label="Template added" onMouseDown={(event) => event.stopPropagation()}><button className={styles.successClose} aria-label="Close" onClick={() => setShowTemplateSuccess(false)}><X size={22} /></button><div className={styles.successBurst}><span><Check size={40} strokeWidth={4} /></span></div><h2>Added to template</h2></section></div>}
             <CreateServiceModal isOpen={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} />
