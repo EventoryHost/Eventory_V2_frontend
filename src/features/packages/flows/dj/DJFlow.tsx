@@ -820,17 +820,12 @@ export default function DJFlow({ onExitFlow }: Props) {
                     return;
                 }
 
-                // Submit package
-                const resSubmit = await fetch(apiUrl(`/packages/${currentPackageId}/submit`), {
-                    method: 'POST'
-                });
-                if (!resSubmit.ok) {
-                    const errorData = await resSubmit.json();
-                    throw new Error(errorData.errors ? errorData.errors.join(", ") : errorData.message || "Failed to submit package");
-                }
-
                 sessionStorage.removeItem('draft_package_id_DJ');
-                router.push('/dashboard/inventory');
+                if (onExitFlow) {
+                    onExitFlow();
+                } else {
+                    router.push('/dashboard/packages/new');
+                }
             }
         } catch (err: any) {
             console.error("Step navigation error:", err);

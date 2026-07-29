@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import PackageFlowManager from '@/features/packages/PackageFlowManager';
+import BookingSettingsFlowManager from '@/features/packages/booking_settings/BookingSettingsFlowManager';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
@@ -9,11 +10,15 @@ import { apiUrl } from '@/lib/api';
 export default function NewPackagePage() {
     const router = useRouter();
     const [vendorType, setVendorType] = useState<string | null>(null);
-    const [showStepsOverview, setShowStepsOverview] = useState(true);
+    const [activeView, setActiveView] = useState<'overview' | 'package_setup' | 'booking_settings'>('overview');
     const [hoveredStep1, setHoveredStep1] = useState(false);
+    const [hoveredStep2, setHoveredStep2] = useState(false);
     const [clickAttemptedStep2, setClickAttemptedStep2] = useState(false);
     const [completedStepsCount, setCompletedStepsCount] = useState(0);
     const [activeStepNum, setActiveStepNum] = useState(1);
+    const [isStep1Completed, setIsStep1Completed] = useState(false);
+    const [bookingCompletedStepsCount, setBookingCompletedStepsCount] = useState(0);
+    const [packageId, setPackageId] = useState<string | null>(null);
 
     const fetchProgress = async () => {
         const vendorId = localStorage.getItem('vendor_id');
@@ -46,24 +51,35 @@ export default function NewPackagePage() {
 
                 if (!pkg) pkg = data.packages[0];
 
-                if (pkg && pkg.completedSteps) {
-                    const completed = pkg.completedSteps;
-                    setCompletedStepsCount(completed.length);
+                if (pkg) {
+                    setPackageId(pkg._id || null);
+                    if (pkg.completedSteps) {
+                        const completed: number[] = pkg.completedSteps;
+                        setCompletedStepsCount(completed.length);
 
-                    // Determine active step from localStorage or completed steps
-                    let currentStep = completed.length > 0 ? Math.min(4, Math.max(...completed) + 1) : 1;
-                    if (pkg._id) {
-                        const localStep = localStorage.getItem(`decorator_active_step_${pkg._id}`)
-                            || localStorage.getItem(`caterer_active_step_${pkg._id}`)
-                            || localStorage.getItem(`makeup_active_step_${pkg._id}`)
-                            || localStorage.getItem(`dj_active_step_${pkg._id}`)
-                            || localStorage.getItem(`pav_active_step_${pkg._id}`)
-                            || localStorage.getItem(`venue_active_step_${pkg._id}`);
-                        if (localStep) {
-                            currentStep = parseInt(localStep, 10);
+                        // Determine if Package Setup (Steps 1-4) is done
+                        const step1Done = [1, 2, 3, 4].every(s => completed.includes(s)) || completed.includes(4);
+                        setIsStep1Completed(step1Done);
+
+                        // Determine booking completed count (Steps 5-8)
+                        const bookingDoneCount = [5, 6, 7, 8].filter(s => completed.includes(s)).length;
+                        setBookingCompletedStepsCount(bookingDoneCount);
+
+                        // Determine active step from localStorage or completed steps
+                        let currentStep = completed.length > 0 ? Math.min(4, Math.max(...completed) + 1) : 1;
+                        if (pkg._id) {
+                            const localStep = localStorage.getItem(`decorator_active_step_${pkg._id}`)
+                                || localStorage.getItem(`caterer_active_step_${pkg._id}`)
+                                || localStorage.getItem(`makeup_active_step_${pkg._id}`)
+                                || localStorage.getItem(`dj_active_step_${pkg._id}`)
+                                || localStorage.getItem(`pav_active_step_${pkg._id}`)
+                                || localStorage.getItem(`venue_active_step_${pkg._id}`);
+                            if (localStep) {
+                                currentStep = parseInt(localStep, 10);
+                            }
                         }
+                        setActiveStepNum(currentStep);
                     }
-                    setActiveStepNum(currentStep);
                 }
             }
         } catch (err) {
@@ -89,7 +105,7 @@ export default function NewPackagePage() {
     }, []);
 
     const handleExitFlow = () => {
-        setShowStepsOverview(true);
+        setActiveView('overview');
         fetchProgress();
     };
 
@@ -102,7 +118,7 @@ export default function NewPackagePage() {
         );
     }
 
-    if (showStepsOverview) {
+    if (activeView === 'overview') {
         return (
             <div style={{ backgroundColor: '#F9FAF9', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <div style={{ width: '100%', maxWidth: '448px', backgroundColor: '#FFFFFF', minHeight: '100vh', display: 'flex', flexDirection: 'column', boxShadow: '0 0 20px rgba(0,0,0,0.02)' }}>
@@ -163,9 +179,9 @@ export default function NewPackagePage() {
                     {/* Steps Content Area */}
                     <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: '20px', flex: 1, backgroundColor: '#FAFBFD' }}>
                         
-                        {/* Step 1 Card */}
+                        {/* Step 1 Card: Package Setup */}
                         <div 
-                            onClick={() => setShowStepsOverview(false)}
+                            onClick={() => setActiveView('package_setup')}
                             onMouseEnter={() => setHoveredStep1(true)}
                             onMouseLeave={() => setHoveredStep1(false)}
                             style={{
@@ -194,7 +210,7 @@ export default function NewPackagePage() {
                                         borderRadius: '100px',
                                         fontFamily: 'Figtree, sans-serif'
                                     }}>
-                                        Part 1
+                                        Step 1
                                     </span>
                                     <h2 style={{ 
                                         fontSize: '18px', 
@@ -232,7 +248,12 @@ export default function NewPackagePage() {
                             {/* Progress Track */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ height: '6px', backgroundColor: '#EAECEF', borderRadius: '100px', width: '100%' }}>
-                                    <div style={{ height: '100%', backgroundColor: '#04222D', borderRadius: '100px', width: `${completedStepsCount > 0 ? (activeStepNum / 4) * 100 : 0}%` }}></div>
+                                    <div style={{ 
+                                        height: '100%', 
+                                        backgroundColor: '#04222D', 
+                                        borderRadius: '100px', 
+                                        width: `${isStep1Completed ? 100 : (completedStepsCount > 0 ? (activeStepNum / 4) * 100 : 0)}%` 
+                                    }}></div>
                                 </div>
                                 <span style={{ 
                                     fontSize: '11.5px', 
@@ -241,7 +262,7 @@ export default function NewPackagePage() {
                                     alignSelf: 'flex-end', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    {completedStepsCount > 0 ? `Currently on Step ${activeStepNum} of 4` : '0 of 4 steps done'}
+                                    {isStep1Completed ? '4 of 4 steps done' : (completedStepsCount > 0 ? `Currently on Step ${activeStepNum} of 4` : '0 of 4 steps done')}
                                 </span>
                             </div>
 
@@ -255,30 +276,38 @@ export default function NewPackagePage() {
                                     color: '#04222D', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    {completedStepsCount > 0 ? 'Resume' : 'Start Now'}
+                                    {isStep1Completed ? 'Edit Package' : (completedStepsCount > 0 ? 'Resume' : 'Start Now')}
                                 </span>
                                 <ArrowRight size={18} color="#04222D" />
                             </div>
                         </div>
 
-                        {/* Step 2 Card (Disabled) */}
+                        {/* Step 2 Card: Booking Settings */}
                         <div 
                             onClick={() => {
-                                setClickAttemptedStep2(true);
-                                setTimeout(() => setClickAttemptedStep2(false), 3000);
+                                if (!isStep1Completed) {
+                                    setClickAttemptedStep2(true);
+                                    setTimeout(() => setClickAttemptedStep2(false), 3000);
+                                } else {
+                                    setActiveView('booking_settings');
+                                }
                             }}
+                            onMouseEnter={() => isStep1Completed && setHoveredStep2(true)}
+                            onMouseLeave={() => isStep1Completed && setHoveredStep2(false)}
                             style={{
                                 backgroundColor: '#FFFFFF',
                                 borderRadius: '20px',
-                                border: '1px solid #EAECEF',
+                                border: isStep1Completed ? (hoveredStep2 ? '1px solid #000000' : '1px solid #E4E4E7') : '1px solid #EAECEF',
                                 padding: '24px 20px',
                                 display: 'flex',
                                 flexDirection: 'column',
                                 gap: '16px',
-                                opacity: 0.55,
-                                cursor: 'not-allowed',
+                                opacity: isStep1Completed ? 1 : 0.55,
+                                cursor: isStep1Completed ? 'pointer' : 'not-allowed',
                                 position: 'relative',
-                                transition: 'all 0.2s ease'
+                                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                                transform: isStep1Completed && hoveredStep2 ? 'translateY(-2px)' : 'translateY(0)',
+                                boxShadow: isStep1Completed && hoveredStep2 ? '0 8px 24px rgba(0, 0, 0, 0.04)' : '0 4px 12px rgba(0, 0, 0, 0.01)'
                             }}
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -286,19 +315,19 @@ export default function NewPackagePage() {
                                     <span style={{ 
                                         alignSelf: 'flex-start',
                                         backgroundColor: '#EAECEF', 
-                                        color: '#71717B', 
+                                        color: isStep1Completed ? '#3F3F46' : '#71717B', 
                                         fontSize: '12px', 
                                         fontWeight: 700, 
                                         padding: '4px 12px', 
                                         borderRadius: '100px',
                                         fontFamily: 'Figtree, sans-serif'
                                     }}>
-                                        Part 2
+                                        Step 2
                                     </span>
                                     <h2 style={{ 
                                         fontSize: '18px', 
                                         fontWeight: 800, 
-                                        color: '#71717B', 
+                                        color: isStep1Completed ? '#000000' : '#71717B', 
                                         fontFamily: 'Figtree, sans-serif', 
                                         letterSpacing: '-0.3px',
                                         margin: 0 
@@ -307,7 +336,7 @@ export default function NewPackagePage() {
                                     </h2>
                                     <p style={{ 
                                         fontSize: '13.5px', 
-                                        color: '#8E8E93', 
+                                        color: isStep1Completed ? '#71717B' : '#8E8E93', 
                                         lineHeight: 1.45, 
                                         fontFamily: 'Figtree, sans-serif',
                                         margin: 0 
@@ -318,39 +347,51 @@ export default function NewPackagePage() {
                                 <img 
                                     src="https://dkuacgndftndz.cloudfront.net/inventory-page/create_package/step_2.png" 
                                     alt="Booking Settings Illustration" 
-                                    style={{ width: '80px', height: '80px', objectFit: 'contain', filter: 'grayscale(30%)' }} 
+                                    style={{ 
+                                        width: '80px', 
+                                        height: '80px', 
+                                        objectFit: 'contain', 
+                                        filter: isStep1Completed ? 'none' : 'grayscale(30%)',
+                                        transition: 'transform 0.2s ease',
+                                        transform: isStep1Completed && hoveredStep2 ? 'scale(1.05)' : 'scale(1)'
+                                    }} 
                                 />
                             </div>
 
                             {/* Progress Track */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ height: '6px', backgroundColor: '#EAECEF', borderRadius: '100px', width: '100%' }}>
-                                    <div style={{ height: '100%', backgroundColor: '#04222D', borderRadius: '100px', width: '0%' }}></div>
+                                    <div style={{ 
+                                        height: '100%', 
+                                        backgroundColor: '#04222D', 
+                                        borderRadius: '100px', 
+                                        width: `${(bookingCompletedStepsCount / 4) * 100}%` 
+                                    }}></div>
                                 </div>
                                 <span style={{ 
                                     fontSize: '11.5px', 
-                                    color: '#8E8E93', 
+                                    color: isStep1Completed ? '#71717B' : '#8E8E93', 
                                     fontWeight: 600, 
                                     alignSelf: 'flex-end', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    0 of 4 steps done
+                                    {bookingCompletedStepsCount > 0 ? `${bookingCompletedStepsCount} of 4 steps done` : '0 of 4 steps done'}
                                 </span>
                             </div>
 
-                            <div style={{ height: '0.5px', backgroundColor: '#EAECEF' }}></div>
+                            <div style={{ height: '0.5px', backgroundColor: '#E4E4E7' }}></div>
 
                             {/* Bottom CTA */}
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <span style={{ 
                                     fontSize: '15px', 
                                     fontWeight: 700, 
-                                    color: '#8E8E93', 
+                                    color: isStep1Completed ? '#04222D' : '#8E8E93', 
                                     fontFamily: 'Figtree, sans-serif' 
                                 }}>
-                                    Start Now
+                                    {bookingCompletedStepsCount > 0 ? (bookingCompletedStepsCount >= 4 ? 'Edit Settings' : 'Resume') : 'Start Now'}
                                 </span>
-                                <ArrowRight size={18} color="#8E8E93" />
+                                <ArrowRight size={18} color={isStep1Completed ? '#04222D' : '#8E8E93'} />
                             </div>
 
                             {/* Tooltip Overlay */}
@@ -382,9 +423,16 @@ export default function NewPackagePage() {
         );
     }
 
+    if (activeView === 'booking_settings') {
+        return (
+            <div className="flex flex-col relative w-full min-h-screen">
+                <BookingSettingsFlowManager packageId={packageId} onExitFlow={handleExitFlow} />
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col relative w-full min-h-screen">
-            {/* Mount the scalable dynamic feature */}
             <PackageFlowManager vendorType={vendorType} onExitFlow={handleExitFlow} />
         </div>
     );

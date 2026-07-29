@@ -587,14 +587,13 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/4`), {
                     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
                 });
-                if (!res.ok) throw new Error("Failed to save Step 4 (Sample & Media)");
-                
-                // Final submission
-                const submitRes = await fetch(apiUrl(`/packages/${currentPackageId}/submit`), { method: 'POST' });
-                if (!submitRes.ok) throw new Error("Failed to submit package");
                 localStorage.removeItem(`pav_active_step_${currentPackageId}`);
                 sessionStorage.removeItem('draft_package_id_PAV');
-                router.push('/dashboard/inventory');
+                if (onExitFlow) {
+                    onExitFlow();
+                } else {
+                    router.push('/dashboard/packages/new');
+                }
             }
         } catch (err: any) {
             console.error("Step navigation error:", err);

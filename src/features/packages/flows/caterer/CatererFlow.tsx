@@ -823,17 +823,12 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 });
                 if (!resStep4.ok) throw new Error("Failed to save Step 4 (Media files).");
 
-                // Submit package
-                const resSubmit = await fetch(apiUrl(`/packages/${packageId}/submit`), {
-                    method: 'POST'
-                });
-                if (!resSubmit.ok) {
-                    const errorData = await resSubmit.json();
-                    throw new Error(errorData.errors ? errorData.errors.join(", ") : errorData.message || "Failed to submit package");
-                }
-
                 sessionStorage.removeItem('draft_package_id_Caterer');
-                router.push('/dashboard/inventory');
+                if (onExitFlow) {
+                    onExitFlow();
+                } else {
+                    router.push('/dashboard/packages/new');
+                }
             }
         } catch (err: any) {
             console.error("Step navigation error:", err);

@@ -471,17 +471,11 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 
                 if (!res.ok) throw new Error("Failed to save Step 4.");
                 
-                // Final submission API call
-                const submitRes = await fetch(apiUrl(`/packages/${currentPackageId}/status`), {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'Under Review' })
-                });
-                
-                if (!submitRes.ok) throw new Error("Failed to submit package for review.");
-                
-                alert("Venue Package successfully submitted for review!");
-                router.push('/dashboard/inventory');
+                if (onExitFlow) {
+                    onExitFlow();
+                } else {
+                    router.push('/dashboard/packages/new');
+                }
             }
         } catch (err: any) {
             console.error("Step navigation error:", err);

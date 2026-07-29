@@ -45,10 +45,20 @@ function getDraftProgress(pkg: PackageData) {
     if (pkg.step4_sampleMedia?.media?.length) stepsDone.add(4);
 
     const count = stepsDone.size;
-    const percent = count >= 4 ? 100 : count === 3 ? 75 : count === 2 ? 50 : count === 1 ? 30 : 8;
+    
+    let percent = 5; // Start with a small percentage for visual feedback
+    if (count >= 8) percent = 100;
+    else if (count === 7) percent = 88;
+    else if (count === 6) percent = 75;
+    else if (count === 5) percent = 62;
+    else if (count === 4) percent = 50; // Halfway done (Package Setup complete)
+    else if (count === 3) percent = 38;
+    else if (count === 2) percent = 25;
+    else if (count === 1) percent = 12;
+
     return {
         percent,
-        isComplete: count >= 4 || percent === 100,
+        isComplete: count >= 8 || percent === 100,
     };
 }
 
