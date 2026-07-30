@@ -300,8 +300,8 @@ function InventoryContent() {
                     {activeTab === 'Drafts' ? (
                         progress.isComplete ? (
                             !isProfileComplete ? (
-                                <button className={styles.cardPrimaryButton} onClick={() => router.push('/dashboard')}>
-                                    Complete Profile Setup <ArrowRight size={17} style={{ marginLeft: 6 }} />
+                                <button className={styles.cardPrimaryButton} onClick={() => openPackage(pkg)}>
+                                    Publish Package <ArrowRight size={17} style={{ marginLeft: 6 }} />
                                 </button>
                             ) : (
                                 <button className={styles.cardPrimaryButton} onClick={() => togglePause(pkg, 'Under Review')}>
