@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import PackageFlowManager from '@/features/packages/PackageFlowManager';
 import BookingSettingsFlowManager from '@/features/packages/booking_settings/BookingSettingsFlowManager';
+import PublishSummary from '@/features/packages/publish_summary/PublishSummary';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
@@ -10,7 +11,7 @@ import { apiUrl } from '@/lib/api';
 export default function NewPackagePage() {
     const router = useRouter();
     const [vendorType, setVendorType] = useState<string | null>(null);
-    const [activeView, setActiveView] = useState<'overview' | 'package_setup' | 'booking_settings'>('overview');
+    const [activeView, setActiveView] = useState<'overview' | 'package_setup' | 'booking_settings' | 'publish_summary'>('overview');
     const [hoveredStep1, setHoveredStep1] = useState(false);
     const [hoveredStep2, setHoveredStep2] = useState(false);
     const [clickAttemptedStep2, setClickAttemptedStep2] = useState(false);
@@ -417,8 +418,44 @@ export default function NewPackagePage() {
                             )}
                         </div>
 
+                        {/* Submit for Review Button */}
+                        {isStep1Completed && bookingCompletedStepsCount >= 4 && (
+                            <button
+                                onClick={() => setActiveView('publish_summary')}
+                                style={{
+                                    width: '100%',
+                                    backgroundColor: '#04222D',
+                                    color: '#FFFFFF',
+                                    padding: '16px',
+                                    borderRadius: '16px',
+                                    fontWeight: 700,
+                                    fontSize: '16px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    marginTop: '8px',
+                                    fontFamily: 'Figtree, sans-serif',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    boxShadow: '0 4px 12px rgba(4, 34, 45, 0.15)'
+                                }}
+                            >
+                                Submit for Review
+                                <ArrowRight size={20} />
+                            </button>
+                        )}
+
                     </div>
                 </div>
+            </div>
+        );
+    }
+
+    if (activeView === 'publish_summary') {
+        return (
+            <div className="flex flex-col relative w-full min-h-screen">
+                <PublishSummary packageId={packageId} onBack={() => setActiveView('overview')} />
             </div>
         );
     }
