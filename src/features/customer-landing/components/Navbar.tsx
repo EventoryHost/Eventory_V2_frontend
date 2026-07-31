@@ -7,7 +7,7 @@ import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Events", hasDropdown: true },
+  { label: "Events", hasDropdown: true, href: "/events" },
   { label: "Packages", hasDropdown: true },
   { label: "Vendor", hasDropdown: true },
   { label: "Corporate", hasDropdown: true },
@@ -49,16 +49,27 @@ function CitySelect() {
 function NavLinks({ className = "" }: { className?: string }) {
   return (
     <>
-      {NAV_LINKS.map((item) => (
-        <button
-          key={item.label}
-          type="button"
-          className={`flex items-center gap-1 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] ${className}`}
-        >
-          {item.label}
-          {item.hasDropdown && <ChevronDown size={14} />}
-        </button>
-      ))}
+      {NAV_LINKS.map((item) =>
+        item.href ? (
+          <Link
+            key={item.label}
+            href={item.href}
+            className={`flex items-center gap-1 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] ${className}`}
+          >
+            {item.label}
+            {item.hasDropdown && <ChevronDown size={14} />}
+          </Link>
+        ) : (
+          <button
+            key={item.label}
+            type="button"
+            className={`flex items-center gap-1 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] ${className}`}
+          >
+            {item.label}
+            {item.hasDropdown && <ChevronDown size={14} />}
+          </button>
+        )
+      )}
     </>
   );
 }

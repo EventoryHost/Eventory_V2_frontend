@@ -26,7 +26,7 @@ export default function CorporateEventsBanner() {
           coordination, a dedicated event manager, and professional
           on-ground execution.
         </p>
-        <div className="mt-2 flex items-center gap-4">
+        <div className="mt-2 flex flex-wrap items-center gap-4">
           <button
             type="button"
             className="rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"

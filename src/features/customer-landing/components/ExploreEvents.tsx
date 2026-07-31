@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function ExploreEvents() {
   return (
@@ -23,12 +24,12 @@ export default function ExploreEvents() {
           Everything your event needs, booked together and handled by one team
           so you can actually be present at your own celebration.
         </p>
-        <button
-          type="button"
+        <Link
+          href="/events"
           className="mt-2 rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
         >
           Explore Events
-        </button>
+        </Link>
       </div>
     </div>
   );

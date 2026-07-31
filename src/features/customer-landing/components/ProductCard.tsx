@@ -12,7 +12,10 @@ export type ProductCardProps = {
   duration: string;
   guestCapacity: string;
   price: string;
+  priceSuffix?: string;
   locations: string[];
+  categoryGradientFrom?: string;
+  categoryGradientTo?: string;
 };
 
 function formatTags(tags: string[]) {
@@ -33,7 +36,10 @@ export default function ProductCard({
   duration,
   guestCapacity,
   price,
+  priceSuffix = "/event",
   locations,
+  categoryGradientFrom = "#FFE5E9",
+  categoryGradientTo = "#ffffff",
 }: ProductCardProps) {
   return (
     <div className="w-[316px] rounded-2xl border border-black/5 bg-white overflow-hidden">
@@ -56,7 +62,7 @@ export default function ProductCard({
           <div
             className="flex w-[132px] shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
             style={{
-              background: "linear-gradient(to left, #FFE5E9, #ffffff)",
+              background: `linear-gradient(to left, ${categoryGradientFrom}, ${categoryGradientTo})`,
             }}
           >
             <Image
@@ -119,7 +125,7 @@ export default function ProductCard({
           <p className="font-figtree text-[24px] font-bold text-brand-950">
             {price}
             <span className="text-[14px] font-medium text-[#71717B]">
-              /event
+              {priceSuffix}
             </span>
           </p>
         </div>
