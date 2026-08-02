@@ -78,7 +78,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
                 const draftData = await draftRes.json();
 
-                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
+                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0 && localStorage.getItem('selected_package_id') !== 'new') {
                     const venueDrafts = draftData.packages.filter((p: any) => p.vendorType === 'VenueProvider' || p.vendorType === 'VEN');
                     if (venueDrafts.length > 0) {
                         const requestedPackageId = localStorage.getItem('selected_package_id');
@@ -245,6 +245,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
                     sessionStorage.setItem('draft_package_id_VEN', data.packageId);
+                        localStorage.setItem('selected_package_id', data.packageId);
                 }
             } catch (err) {
                 console.error("Error restoring/initializing Venue package draft:", err);
@@ -283,6 +284,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
                     sessionStorage.setItem('draft_package_id_VEN', initData.packageId);
+                    localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
                     throw new Error(initData.message || "Could not initialize draft package on-the-fly.");
                 }
@@ -321,13 +323,9 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (!res.ok) throw new Error("Failed to save Step 1 (Event & Team).");
                 setStep(2);
             } else if (step === 2) {
-                const allAddons = [
-                    ...inHouseServices.map(a => ({ ...a, mappedType: 'InHouseService' })),
-                    ...addons.map(a => ({ ...a, mappedType: a.type === 'Product' ? 'Product' : 'Service' }))
-                ];
-
-                const addonsPayload = [];
-                for (const addon of allAddons) {
+                // Separate IHS and regular Addons
+                const regularAddonsPayload = [];
+                for (const addon of addons) {
                     let policyUrl = '';
                     if (addon.policies && addon.policies.length > 0) {
                         const pf = addon.policies[0];
@@ -347,43 +345,84 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                             } else if (m.preview && !m.preview.startsWith('blob:')) { mediaUrls.push(m.preview); }
                         }
                     }
-                    addonsPayload.push({
-                        addOnType: addon.mappedType,
+                    regularAddonsPayload.push({
+                        addOnType: addon.type || 'Service',
                         name: addon.name,
                         category: addon.category || "",
                         subCategory: addon.subCategory || "",
-                        quantity: parseInt(addon.quantity) || 1,
+                        quantity: parseInt(addon.quantity as any) || 1,
                         description: addon.description || "",
-                        price: parseFloat(addon.price) || 0,
+                        price: parseFloat(addon.price as any) || 0,
                         billingUnit: addon.billingUnit || "Per hour",
                         policyDocUrl: policyUrl,
-                        mediaUrls: mediaUrls
+                        mediaUrls: mediaUrls,
+                        ...(addon.type === 'Space' && (addon as any).spaceDetails ? { spaceDetails: (addon as any).spaceDetails } : {})
+                    });
+                }
+
+                const ihsPayload: any = {
+                    caterer: [],
+                    decorator: [],
+                    pav: [],
+                    djArtist: [],
+                    makeupArtist: []
+                };
+
+                for (const ihs of inHouseServices) {
+                    const mediaUrls = [];
+                    if (ihs.media && ihs.media.length > 0) {
+                        for (const m of ihs.media) {
+                            if (m.file) {
+                                const formData = new FormData(); formData.append('file', m.file);
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) { const data = await uploadRes.json(); if (data.url) mediaUrls.push(data.url); }
+                            } else if (m.preview && !m.preview.startsWith('blob:')) { mediaUrls.push(m.preview); }
+                        }
+                    }
+
+                    let cat = ihs.category?.toLowerCase() || '';
+                    if (cat === 'dj artist') cat = 'djArtist';
+                    if (cat === 'makeup artist') cat = 'makeupArtist';
+                    
+                    const targetCategory = ihsPayload[cat] ? cat : 'decorator';
+
+                    ihsPayload[targetCategory].push({
+                        serviceType: ihs.name,
+                        data: {
+                            totalPackagePrice: parseFloat(ihs.price as any) || 0,
+                            setups: [{ name: ihs.name, price: parseFloat(ihs.price as any) || 0 }],
+                            packageItems: [{ name: ihs.name, price: parseFloat(ihs.price as any) || 0 }]
+                        },
+                        sampleMedia: mediaUrls.map(url => ({ url, type: 'image' }))
                     });
                 }
 
                 const payload = {
-                    packageItems: spaces.map(space => ({
-                        itemType: space.billingUnit,
-                        contentDetails: {
-                            description: space.name,
-                            categories: [space.type],
-                            quantity: parseInt(space.area) || 0,
-                            style: space.layout
+                    spaces: spaces.map(space => ({
+                        name: space.name,
+                        spaceType: space.type,
+                        area: { value: parseInt(space.area) || 0, unit: space.areaUnit },
+                        height: { value: parseInt(space.height) || 0, unit: space.heightUnit },
+                        layout: space.layout,
+                        capacity: {
+                            standing: parseInt(space.capacityStanding) || 0,
+                            sitting: parseInt(space.capacitySitting) || 0,
+                            dining: parseInt(space.capacityDining) || 0
                         },
-                        albumSpecific: {
-                            pageCount: parseInt(space.height) || 0,
-                            coverType: space.heightUnit,
-                            pageFinish: space.activities.join(','),
-                            bindingType: space.amenities.join(','),
-                            price: parseFloat(space.price) || 0
+                        environment: space.environment,
+                        activities: space.activities,
+                        amenities: {
+                            power: space.amenities.includes('power'),
+                            ac: space.amenities.includes('ac'),
+                            stage: space.amenities.includes('stage'),
+                            lighting: space.amenities.includes('lighting'),
+                            security: space.amenities.includes('security')
                         },
-                        logisticsAndHandover: {
-                            deliveryFormat: space.areaUnit,
-                            deliveryMedium: space.environment,
-                            deliveryTimeline: `${space.capacityStanding},${space.capacitySitting},${space.capacityDining}`
-                        }
+                        price: parseFloat(space.price) || 0,
+                        billingUnit: space.billingUnit
                     })),
-                    addOns: addonsPayload,
+                    inHouseServices: ihsPayload,
+                    addOns: regularAddonsPayload,
                     included: providedDetails.split('\n').map(s => s.trim()).filter(Boolean),
                     notIncluded: notProvidedDetails.split('\n').map(s => s.trim()).filter(Boolean)
                 };

@@ -4,6 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { ArrowLeft, CheckCircle2, ChevronRight, Package as PackageIcon, CalendarDays, Wallet, BadgeCheck } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import MakeupPublishSummary from './MakeupPublishSummary';
+import DjPublishSummary from './DjPublishSummary';
+import PavPublishSummary from './PavPublishSummary';
+import DecoratorPublishSummary from './DecoratorPublishSummary';
+import VenuePublishSummary from './VenuePublishSummary';
+import CatererPublishSummary from './CatererPublishSummary';
 
 interface PublishSummaryProps {
     packageId: string | null;
@@ -80,8 +86,32 @@ export default function PublishSummary({ packageId, onBack }: PublishSummaryProp
         );
     }
 
-    const pkgName = packageData.step1_eventAndCrew?.packageName || packageData.step1_basicDetails?.packageName || packageData.step1_brandAndTheme?.packageName || 'Untitled Package';
+    const pkgName = packageData.step1_eventAndCrew?.packageName || packageData.step1_basicDetails?.packageName || packageData.step1_brandAndTheme?.packageName || '';
     const pkgPrice = packageData.step3_pricing?.basePrice || 0;
+
+    if (packageData.vendorType === 'MakeupArtist') {
+        return <MakeupPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+    }
+
+    if (packageData.vendorType === 'DJArtist') {
+        return <DjPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+    }
+
+    if (packageData.vendorType === 'PAV' || packageData.vendorType === 'Photographer' || packageData.vendorType === 'PhotographerAndVideographer') {
+        return <PavPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+    }
+
+    if (packageData.vendorType === 'Decorator') {
+        return <DecoratorPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+    }
+
+    if (packageData.vendorType === 'VenueProvider') {
+        return <VenuePublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+    }
+
+    if (packageData.vendorType === 'Caterer') {
+        return <CatererPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+    }
 
     return (
         <div className="flex flex-col min-h-screen bg-[#F9FAF9] max-w-[448px] mx-auto w-full shadow-[0_0_20px_rgba(0,0,0,0.02)]">
@@ -101,7 +131,7 @@ export default function PublishSummary({ packageId, onBack }: PublishSummaryProp
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 p-5 pb-32 overflow-y-auto">
+            <div className="flex-1 p-5 pb-48 overflow-y-auto">
                 <div className="flex flex-col gap-5">
                     
                     {/* Hero Success Icon */}
@@ -183,7 +213,7 @@ export default function PublishSummary({ packageId, onBack }: PublishSummaryProp
             </div>
 
             {/* Bottom CTA */}
-            <div className="fixed bottom-0 left-0 right-0 p-5 bg-white border-t border-[#F4F4F5] pb-safe z-20 mx-auto max-w-[448px]">
+            <div className="fixed bottom-[72px] left-0 right-0 p-5 bg-white border-t border-[#F4F4F5] pb-safe z-20 mx-auto max-w-[448px]">
                 <button
                     onClick={handleSubmitForReview}
                     disabled={isSubmitting}

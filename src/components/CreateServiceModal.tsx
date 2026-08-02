@@ -108,6 +108,7 @@ export default function CreateServiceModal({ isOpen, onClose }: CreateServiceMod
             }
 
             localStorage.setItem('service_id', `${prefix}${randomPart}`);
+            localStorage.setItem('selected_package_id', 'new');
             setTimeout(() => {
                 onClose();
                 router.push('/dashboard/packages/new');

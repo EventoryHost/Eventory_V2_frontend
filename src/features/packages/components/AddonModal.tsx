@@ -42,6 +42,8 @@ export interface Addon {
     environment?: 'Indoor' | 'Outdoor';
     activities?: string[];
     amenities?: string[];
+    colors?: string[];
+    dimensions?: string;
 }
 
 interface AddonModalProps {

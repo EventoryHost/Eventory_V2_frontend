@@ -235,7 +235,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                 const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
                 const draftData = await draftRes.json();
                 
-                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
+                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0 && localStorage.getItem('selected_package_id') !== 'new') {
                     const requestedPackageId = localStorage.getItem('selected_package_id');
                     const pkg = draftData.packages.find((item: any) => item._id === requestedPackageId) || draftData.packages[0];
                     setPackageId(pkg._id);
@@ -406,6 +406,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
                     sessionStorage.setItem('draft_package_id_Makeup', data.packageId);
+                        localStorage.setItem('selected_package_id', data.packageId);
                 }
             } catch (err) {
                 console.error("Error restoring/initializing package draft:", err);
@@ -444,6 +445,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
                     sessionStorage.setItem('draft_package_id_Makeup', initData.packageId);
+                    localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
                     throw new Error(initData.message || "Could not initialize draft package on-the-fly.");
                 }

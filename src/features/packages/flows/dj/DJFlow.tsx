@@ -224,7 +224,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                 const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`), { cache: 'no-store' });
                 const draftData = await draftRes.json();
 
-                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
+                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0 && localStorage.getItem('selected_package_id') !== 'new') {
                     const djDrafts = draftData.packages.filter((p: any) => p.vendorType === 'DJArtist');
                     if (djDrafts.length > 0) {
                         const requestedPackageId = localStorage.getItem('selected_package_id');
@@ -475,6 +475,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
                     sessionStorage.setItem('draft_package_id_DJ', data.packageId);
+                        localStorage.setItem('selected_package_id', data.packageId);
                 }
             } catch (err) {
                 console.error("Error restoring/initializing DJ package draft:", err);
@@ -517,6 +518,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
                     sessionStorage.setItem('draft_package_id_DJ', initData.packageId);
+                    localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
                     throw new Error(initData.message || "Could not initialize draft package on-the-fly.");
                 }

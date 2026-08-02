@@ -44,13 +44,17 @@ export default function NewPackagePage() {
             const data = await res.json();
             if (data.status === 'SUCCESS' && data.packages && data.packages.length > 0) {
                 const requestedPackageId = localStorage.getItem('selected_package_id');
-                let pkg = requestedPackageId
-                    ? data.packages.find((p: any) => p._id === requestedPackageId)
-                    : targetVendorType
-                    ? data.packages.find((p: any) => p.vendorType === targetVendorType) 
-                    : data.packages[0];
+                let pkg = null;
+                
+                if (requestedPackageId !== 'new') {
+                    pkg = requestedPackageId
+                        ? data.packages.find((p: any) => p._id === requestedPackageId)
+                        : targetVendorType
+                        ? data.packages.find((p: any) => p.vendorType === targetVendorType) 
+                        : data.packages[0];
 
-                if (!pkg) pkg = data.packages[0];
+                    if (!pkg) pkg = data.packages[0];
+                }
 
                 if (pkg) {
                     setPackageId(pkg._id || null);
@@ -81,7 +85,20 @@ export default function NewPackagePage() {
                         }
                         setActiveStepNum(currentStep);
                     }
+                } else {
+                    setPackageId(null);
+                    setCompletedStepsCount(0);
+                    setIsStep1Completed(false);
+                    setBookingCompletedStepsCount(0);
+                    setActiveStepNum(1);
                 }
+            } else if (data.status === 'SUCCESS' && (!data.packages || data.packages.length === 0)) {
+                // If there are no drafts at all, ensure we start fresh
+                setPackageId(null);
+                setCompletedStepsCount(0);
+                setIsStep1Completed(false);
+                setBookingCompletedStepsCount(0);
+                setActiveStepNum(1);
             }
         } catch (err) {
             console.error("Failed to fetch package draft progress:", err);

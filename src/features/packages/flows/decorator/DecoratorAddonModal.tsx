@@ -14,7 +14,7 @@ const PRESET_ADDONS = [
     { name: 'LED Wall', type: 'Product' as const },
 ];
 
-const POLICY_OPTIONS = ['Cancellation Policy', 'Last Minute Charges', 'General Policy', 'General Policy'];
+// Options now managed in component state to allow additions
 const CATEGORY_OPTIONS = ['Floral', 'Lighting', 'Furniture', 'Signage', 'Backdrop', 'Other'];
 
 interface PolicyFile { name: string; size: number; file?: File; preview?: string; }
@@ -49,6 +49,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
     const [customColorHex, setCustomColorHex] = React.useState('#000000');
     const [dimensions, setDimensions] = React.useState({ L: '', B: '', H: '', unit: 'CM' });
     const [policies, setPolicies] = React.useState<PolicyFile[]>([]);
+    const [policyOptions, setPolicyOptions] = React.useState<string[]>(['Cancellation Policy', 'Last Minute Charges', 'General Policy', 'General Policy']);
     const [mediaFiles, setMediaFiles] = React.useState<SampleMediaFile[]>([]);
     const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
 
@@ -94,10 +95,20 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
     };
 
     const handleSave = () => {
+        const dimStr = (dimensions.L || dimensions.B || dimensions.H) 
+            ? `${dimensions.L || 0} x ${dimensions.B || 0} x ${dimensions.H || 0} ${dimensions.unit}` 
+            : '';
+        const colorLabels = selectedColors.map(hex => {
+            const found = colors.find(c => c.hex === hex);
+            return found ? found.label : hex;
+        });
+
         const saved: Addon = {
             id: addon?.id || Math.random().toString(36).substring(7),
             type: addonType, name: addonName, category, subCategory,
             quantity, description, price, billingUnit, policies, media: mediaFiles,
+            colors: colorLabels.length > 0 ? colorLabels : undefined,
+            dimensions: dimStr ? dimStr : undefined
         };
         onSave(saved);
     };
@@ -446,7 +457,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                             Policies and other documents <span className="text-red-500">*</span>
                         </h3>
                         <div className={`${SECTION_CARD} flex flex-col gap-3`}>
-                            {POLICY_OPTIONS.map((pName, idx) => {
+                            {policyOptions.map((pName, idx) => {
                                 const uploaded = policies[idx];
                                 return (
                                     <div key={`${pName}-${idx}`} className="flex items-center justify-between gap-3">
@@ -488,6 +499,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                             })}
                             <button
                                 type="button"
+                                onClick={() => setPolicyOptions(prev => [...prev, 'General Policy'])}
                                 className="w-full py-3 bg-[#E6E9EA] rounded-[8px] flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] transition-colors hover:bg-gray-200"
                             >
                                 Add <PlusCircle size={16} />

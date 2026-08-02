@@ -118,7 +118,13 @@ export default function LoginPage() {
                     if (data.token) localStorage.setItem('vendor_token', data.token);
                     if (data.vendor?.id) localStorage.setItem('vendor_id', data.vendor.id);
                     if (data.vendor?.isDarkMode !== undefined) {
-                        localStorage.setItem('theme', data.vendor.isDarkMode ? 'dark' : 'light');
+                        const isDark = data.vendor.isDarkMode;
+                        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                        if (isDark) {
+                            document.documentElement.classList.add('dark');
+                        } else {
+                            document.documentElement.classList.remove('dark');
+                        }
                     }
                 }
                 setStatus({ ...status, loading: false, success: 'Login successful!' });
@@ -379,7 +385,8 @@ export default function LoginPage() {
                                                 autoFocus={index === 0}
                                                 type="text"
                                                 inputMode="numeric"
-                                                maxLength={1}
+                                                autoComplete="one-time-code"
+                                                maxLength={6}
                                                 value={formData.otp[index] || ''}
                                                 onChange={(event) => updateOtpDigit(index, event.target.value)}
                                                 onKeyDown={(event) => handleOtpKeyDown(index, event)}

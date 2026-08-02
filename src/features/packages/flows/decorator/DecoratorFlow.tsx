@@ -187,7 +187,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                 const draftRes = await fetch(apiUrl(`/packages/vendor/${vendorId}?status=Draft`));
                 const draftData = await draftRes.json();
                 
-                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0) {
+                if (draftData.status === 'SUCCESS' && draftData.packages && draftData.packages.length > 0 && localStorage.getItem('selected_package_id') !== 'new') {
                     // Filter to load Decorator type packages (discriminator)
                     const decoratorDrafts = draftData.packages.filter((p: any) => p.vendorType === 'Decorator');
                     
@@ -264,6 +264,11 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                                     billingUnit: a.billingUnit || 'Per hour',
                                     policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
                                     media: (a.mediaUrls || []).map((url: string, i: number) => ({ name: `Media ${i+1}`, size: 0, preview: url })),
+                                    // Read from physicalSpec where the schema stores them
+                                    colors: a.physicalSpec?.color ? a.physicalSpec.color.split(' & ') : undefined,
+                                    dimensions: a.physicalSpec?.dimensions
+                                        ? `${a.physicalSpec.dimensions.length || 0} x ${a.physicalSpec.dimensions.breadth || 0} x ${a.physicalSpec.dimensions.height || 0} ${a.physicalSpec.dimensions.unit || 'CM'}`
+                                        : undefined,
                                 })));
                             }
                             if (s2.included && s2.included.length > 0) {
@@ -398,6 +403,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
                     sessionStorage.setItem('draft_package_id_Decorator', data.packageId);
+                        localStorage.setItem('selected_package_id', data.packageId);
                 }
             } catch (err) {
                 console.error("Error restoring/initializing package draft:", err);
@@ -444,6 +450,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
                     sessionStorage.setItem('draft_package_id_Decorator', initData.packageId);
+                    localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
                     throw new Error(initData.message || "Could not initialize draft package.");
                 }
@@ -560,6 +567,21 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         description: a.description,
                         price: parseFloat(a.price) || 0,
                         billingUnit: a.billingUnit,
+                        physicalSpec: {
+                            // color stored as a single joined string e.g. "Red & Green"
+                            color: Array.isArray(a.colors) ? a.colors.join(' & ') : (a.colors || ''),
+                            // dimensions stored as structured object — parse back from "L x B x H UNIT"
+                            dimensions: (() => {
+                                if (!a.dimensions) return undefined;
+                                const parts = a.dimensions.split(' ');
+                                return {
+                                    length: parseFloat(parts[0]) || 0,
+                                    breadth: parseFloat(parts[2]) || 0,
+                                    height: parseFloat(parts[4]) || 0,
+                                    unit: parts[5] || 'CM',
+                                };
+                            })(),
+                        },
                         policyDocUrl,
                         mediaUrls
                     });
