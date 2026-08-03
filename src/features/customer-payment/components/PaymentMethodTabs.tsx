@@ -37,7 +37,7 @@ export default function PaymentMethodTabs({
               className={`flex flex-1 items-center justify-center gap-2 border-b-2 py-4 font-figtree text-[15px] font-medium transition-colors sm:flex-initial sm:px-8 ${
                 isActive
                   ? "border-[#0F172A] text-[#0F172A]"
-                  : "border-transparent text-[#6B7280]"
+                  : "border-transparent text-[#6B7280] hover:text-[#101828]"
               }`}
             >
               <Icon size={18} />

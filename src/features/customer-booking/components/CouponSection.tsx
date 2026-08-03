@@ -30,7 +30,7 @@ export default function CouponSection({ onApply }: CouponSectionProps) {
         <button
           type="button"
           onClick={() => onApply?.(code)}
-          className="shrink-0 font-figtree text-[14px] font-medium text-blue-600"
+          className="shrink-0 font-figtree text-[14px] font-medium text-blue-600 transition-colors hover:text-blue-800"
         >
           Apply
         </button>
@@ -38,7 +38,7 @@ export default function CouponSection({ onApply }: CouponSectionProps) {
 
       <button
         type="button"
-        className="flex items-center gap-1.5 self-start font-figtree text-[12px] font-normal text-[#F59E0B]"
+        className="flex items-center gap-1.5 self-start font-figtree text-[12px] font-normal text-[#F59E0B] transition-colors hover:text-[#D97706]"
       >
         <Tag size={14} />
         View Available Offers

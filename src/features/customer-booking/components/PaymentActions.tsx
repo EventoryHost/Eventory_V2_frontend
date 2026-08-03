@@ -18,7 +18,7 @@ export default function PaymentActions({
         href="/payment"
         onClick={onContinue}
         style={{ fontFamily: "var(--font-inter)" }}
-        className="flex h-12 w-full items-center justify-center gap-2 rounded-[8px] bg-[#F0596F] pt-[13.5px] pb-[14.5px] text-[14px] font-bold leading-[20px] tracking-[0.14px] text-white shadow-md"
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-[8px] bg-[#F0596F] pt-[13.5px] pb-[14.5px] text-[14px] font-bold leading-[20px] tracking-[0.14px] text-white shadow-md transition-colors hover:bg-[#E43F58]"
       >
         Continue
         <Send size={16} />
@@ -28,7 +28,7 @@ export default function PaymentActions({
         type="button"
         onClick={onContactSupport}
         style={{ fontFamily: "var(--font-inter)" }}
-        className="flex items-center gap-2 text-[14px] font-bold leading-[20px] tracking-[0.14px] text-[#0448FF]"
+        className="flex items-center gap-2 text-[14px] font-bold leading-[20px] tracking-[0.14px] text-[#0448FF] transition-colors hover:text-[#0336CC]"
       >
         <Headphones size={16} />
         Contact EMS Support

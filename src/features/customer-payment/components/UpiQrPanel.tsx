@@ -71,7 +71,7 @@ export default function UpiQrPanel({ amountLabel }: UpiQrPanelProps) {
         <button
           type="button"
           style={{ fontFamily: "var(--font-inter)" }}
-          className="mt-1 flex h-12 w-full items-center justify-center rounded-[8px] bg-[#0F172A] text-[16px] font-normal leading-[24px] tracking-[0px] text-white"
+          className="mt-1 flex h-12 w-full items-center justify-center rounded-[8px] bg-[#0F172A] text-[16px] font-normal leading-[24px] tracking-[0px] text-white transition-colors hover:bg-[#1E293B]"
         >
           Verify &amp; Pay {amountLabel}
         </button>

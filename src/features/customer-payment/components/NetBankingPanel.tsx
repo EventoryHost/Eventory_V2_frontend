@@ -32,7 +32,7 @@ export default function NetBankingPanel() {
               className={`flex h-[94px] flex-col items-center justify-center gap-2 rounded-[8px] border p-4 transition-colors ${
                 selectedBank === bank.name
                   ? "border-[#0F172A]"
-                  : "border-[#D4D4D8]"
+                  : "border-[#D4D4D8] hover:border-[#9CA3AF]"
               }`}
             >
               <div className="relative h-8 w-8 shrink-0">
@@ -57,7 +57,7 @@ export default function NetBankingPanel() {
         </h3>
         <button
           type="button"
-          className="flex h-12 w-full items-center justify-between rounded-[8px] border border-[#E5E5E5] px-4 font-figtree text-[14px] text-[#9CA3AF]"
+          className="flex h-12 w-full items-center justify-between rounded-[8px] border border-[#E5E5E5] px-4 font-figtree text-[14px] text-[#9CA3AF] transition-colors hover:border-[#9CA3AF]"
         >
           Select Bank
           <ChevronDown size={16} />

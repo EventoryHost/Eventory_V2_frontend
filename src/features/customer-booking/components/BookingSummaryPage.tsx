@@ -5,6 +5,9 @@ import CouponSection from "./CouponSection";
 import PriceBreakdown from "./PriceBreakdown";
 import TokenPaymentSection from "./TokenPaymentSection";
 import PaymentActions from "./PaymentActions";
+import StartConversationCard from "./StartConversationCard";
+import InquiryForm from "./InquiryForm";
+import SendInquirySection from "./SendInquirySection";
 
 const INCLUDED_ITEMS = [
   "Professional sound system setup",
@@ -83,6 +86,17 @@ export default function BookingSummaryPage() {
         </div>
 
         <div className="w-full lg:w-[424px] lg:shrink-0">
+          {/* TEMP PREVIEW: swapped in to preview StartConversationCard — revert by restoring the PaymentSummary block below */}
+          <StartConversationCard
+            avatar="/images/customer/user-review.png"
+            managerName="Glow by Kriti Sharma"
+            managerRole="Manager"
+            responseTime="Typically responds within 24h"
+          >
+            <InquiryForm />
+            <SendInquirySection />
+          </StartConversationCard>
+          {/* ORIGINAL (commented out for preview):
           <PaymentSummary vendorCount={BOOKINGS.length}>
             <CouponSection />
             <PriceBreakdown
@@ -97,6 +111,7 @@ export default function BookingSummaryPage() {
             <TokenPaymentSection percentageLabel="Token Amount (25%)" amount="₹5,000" />
             <PaymentActions />
           </PaymentSummary>
+          */}
         </div>
       </div>
     </div>

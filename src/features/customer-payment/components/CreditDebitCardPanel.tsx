@@ -23,7 +23,7 @@ function CardField({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-12 w-full rounded-[8px] border border-[#E5E5E5] px-4 font-figtree text-[14px] text-[#101828] placeholder:text-[#9CA3AF] outline-none"
+        className="h-12 w-full rounded-[8px] border border-[#E5E5E5] px-4 font-figtree text-[14px] text-[#101828] placeholder:text-[#9CA3AF] outline-none transition-colors hover:border-[#9CA3AF] focus:border-[#0F172A]"
       />
     </div>
   );
