@@ -3,7 +3,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, ChevronDown, MoreHorizontal, Pencil, Trash2, X, ShieldAlert, Check, PlusCircle, Camera, Edit2, ChevronRight, ArrowLeft, MinusCircle } from 'lucide-react';
+import { Plus, ChevronDown, MoreHorizontal, Pencil, Trash2, X, ShieldAlert, Check, RotateCcw, PlusCircle, Camera, Edit2, ChevronRight, ArrowLeft, MinusCircle } from 'lucide-react';
 import { Addon, AddonModal } from '../../components/AddonModal';
 
 // Setup types mapped to the backend mongoose schema
@@ -44,7 +44,7 @@ interface Props {
     deleteSetup: (id: string) => void;
     
     addons: Addon[];
-    handleOpenAddonForm: () => void;
+    handleOpenAddonForm: (addon?: Addon) => void;
     handleEditAddon: (addon: Addon) => void;
     deleteAddon: (id: string) => void;
     
@@ -52,6 +52,9 @@ interface Props {
     setNotProvidedDetails: (v: string) => void;
     providedDetails: string;
     setProvidedDetails: (v: string) => void;
+    
+    manualTotalPackagePrice: number | null;
+    setManualTotalPackagePrice: (v: number | null) => void;
 }
 
 // ── Figma Design Tokens & Typography Styles ──
@@ -273,15 +276,22 @@ export default function DecoratorStep2SetupsAndPricing({
     setNotProvidedDetails,
     providedDetails,
     setProvidedDetails,
+    manualTotalPackagePrice,
+    setManualTotalPackagePrice
 }: Props) {
     const [isSetupModalOpen, setIsSetupModalOpen] = React.useState(false);
     const [modalStage, setModalStage] = React.useState<'CHOOSE_STYLE' | 'EDIT_SETUP'>('CHOOSE_STYLE');
     const [selectedStyleId, setSelectedStyleId] = React.useState<string | null>(null);
     const [editingSetupId, setEditingSetupId] = React.useState<string | null>(null);
     const totalCalculatedPrice = setups.reduce((acc, setup) => {
-        const itemsTotal = (setup.items || []).reduce((iAcc, item) => iAcc + ((Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
+        const itemsTotal = (setup.items || []).reduce((iAcc, item) => iAcc + (Number(item.price) || 0), 0);
         return acc + (Number(setup.price) || 0) + itemsTotal;
     }, 0) + addons.reduce((acc, addon) => acc + (Number(addon.price) || 0), 0);
+    
+    const displayTotal = manualTotalPackagePrice !== null ? manualTotalPackagePrice : totalCalculatedPrice;
+
+    const [isEditingTotal, setIsEditingTotal] = React.useState(false);
+    const [tempTotal, setTempTotal] = React.useState('');
 
     // Setup Custom Form States
     const [setupName, setSetupName] = React.useState('');
@@ -494,17 +504,49 @@ export default function DecoratorStep2SetupsAndPricing({
                                 </span>
                                 <div className="flex items-center gap-4">
                                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[32px] font-bold text-[#030303] leading-none mt-1">₹</span>
-                                    <div className="flex items-center justify-center bg-white px-8 py-3 rounded-[12px] shadow-sm border border-black/5 min-w-[200px]">
-                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[32px] font-black tracking-tight text-[#030303] leading-none">
-                                            {totalCalculatedPrice.toLocaleString('en-IN')}
-                                        </span>
-                                    </div>
-                                    <button type="button" className="w-12 h-12 rounded-full bg-[#CBD5E1]/50 flex items-center justify-center text-[#475569] hover:bg-[#CBD5E1] transition-colors shadow-sm" title="Edit manual price">
-                                        <Pencil size={20} strokeWidth={1.5} />
-                                    </button>
+                                    
+                                    {isEditingTotal ? (
+                                        <div className="flex items-center gap-2">
+                                            <input 
+                                                autoFocus
+                                                type="number" 
+                                                value={tempTotal}
+                                                onChange={(e) => setTempTotal(e.target.value)}
+                                                className="w-[150px] bg-white px-4 py-3 rounded-[12px] shadow-sm border border-blue-500 text-[32px] font-black tracking-tight text-[#030303] leading-none outline-none focus:ring-1 focus:ring-blue-500"
+                                            />
+                                            <button onClick={() => {
+                                                if (tempTotal.trim() !== '') {
+                                                    setManualTotalPackagePrice(Number(tempTotal));
+                                                } else {
+                                                    setManualTotalPackagePrice(null);
+                                                }
+                                                setIsEditingTotal(false);
+                                            }} className="w-12 h-12 rounded-[12px] bg-blue-500 flex items-center justify-center text-white hover:bg-blue-600 transition-colors shadow-sm">
+                                                <Check size={20} strokeWidth={2} />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center justify-center bg-white px-8 py-3 rounded-[12px] shadow-sm border border-black/5 min-w-[200px]">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[32px] font-black tracking-tight text-[#030303] leading-none">
+                                                    {displayTotal.toLocaleString('en-IN')}
+                                                </span>
+                                            </div>
+                                            <div className="flex flex-col gap-2">
+                                                <button type="button" onClick={() => { setTempTotal(displayTotal.toString()); setIsEditingTotal(true); }} className="w-10 h-10 rounded-full bg-[#CBD5E1]/50 flex items-center justify-center text-[#475569] hover:bg-[#CBD5E1] transition-colors shadow-sm" title="Edit manual price">
+                                                    <Pencil size={18} strokeWidth={1.5} />
+                                                </button>
+                                                {manualTotalPackagePrice !== null && (
+                                                    <button type="button" onClick={() => setManualTotalPackagePrice(null)} className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 hover:bg-red-200 transition-colors shadow-sm" title="Reset to calculated">
+                                                        <RotateCcw size={16} strokeWidth={1.5} />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#4B5563]">
-                                    Calculated from items. Edit to override
+                                    {manualTotalPackagePrice !== null ? 'Manually overridden. Edit or reset.' : 'Calculated from items. Edit to override'}
                                 </span>
                             </div>
 
@@ -512,7 +554,7 @@ export default function DecoratorStep2SetupsAndPricing({
                             <div className="flex flex-col gap-3 mt-1">
                                 {setups.map((setup) => {
                                     const itemCount = setup.items?.length || 0;
-                                    const itemsTotal = (setup.items || []).reduce((acc, item) => acc + ((Number(item.price) || 0) * (Number(item.qty) || 1)), 0);
+                                    const itemsTotal = (setup.items || []).reduce((acc, item) => acc + (Number(item.price) || 0), 0);
                                     const setupTotal = (Number(setup.price) || 0) + itemsTotal;
                                     return (
                                         <div 
@@ -631,8 +673,8 @@ export default function DecoratorStep2SetupsAndPricing({
                             ))}
                             <button
                                 type="button"
-                                onClick={handleOpenAddonForm}
-                                className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
+                                onClick={() => handleOpenAddonForm()}
+                                className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE1E3] transition-colors"
                             >
                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">
                                     Add
@@ -642,14 +684,14 @@ export default function DecoratorStep2SetupsAndPricing({
                         </div>
                     ) : (
                         <div className="flex flex-col gap-4 mt-2">
-                            <div className="flex flex-col items-center justify-center py-8 border-[2px] border-dashed border-[#E4E4E7] rounded-[16px] bg-white cursor-pointer" onClick={handleOpenAddonForm}>
+                            <div className="flex flex-col items-center justify-center py-8 border-[2px] border-dashed border-[#E4E4E7] rounded-[16px] bg-white cursor-pointer" onClick={() => handleOpenAddonForm()}>
                                 <img src="https://dkuacgndftndz.cloudfront.net/inventory-page/decorationpage21.png" alt="No Add-ons" className="w-32 h-24 mb-3 object-contain grayscale opacity-60" />
                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-1">No Add-ons</span>
                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] text-center max-w-[200px]">To add an add-on click Add on top or in this box</span>
                             </div>
                             <button
                                 type="button"
-                                onClick={handleOpenAddonForm}
+                                onClick={() => handleOpenAddonForm()}
                                 className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
                             >
                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">

@@ -10,7 +10,7 @@ import PAVStep2PackageAndItems, { PAVItem } from './Step2PackageAndItems';
 import PAVStep3PricingAndPolicies, { DynamicPrice } from './Step3PricingAndPolicies';
 import PAVStep4SampleAndMedia from './Step4SampleAndMedia';
 import { AddonModal, Addon } from '../../components/AddonModal';
-import { PolicyFile, SampleMediaFile } from '../../shared/types';
+import { PolicyFile, SampleMediaFile, GuestTier } from '../../shared/types';
 
 const FLOW_CONFIG = {
     vendorName: 'Photographer',
@@ -98,6 +98,13 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const [customDatesValue, setCustomDatesValue] = React.useState('10');
     const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
     const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+
+    // Guest Count Pricing state
+    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '4000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '4000' }]);
+
+    const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
+    const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
+    const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
 
     const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
     const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
@@ -209,7 +216,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                     description: a.description || '',
                                     price: String(a.price || ''),
                                     billingUnit: a.billingUnit || 'Per hour',
-                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl } as any] : [],
+                                    policies: a.policyDocUrl ? a.policyDocUrl.split(',').map((u: string, i: number) => ({ name: `Policy Document ${i + 1}`, size: 0, preview: u } as any)) : [],
                                     media: (a.mediaUrls || []).map((url: string) => ({ name: 'Media File', size: 0, file: null, preview: url })),
                                     productType: a.productType || 'Product'
                                 })));
@@ -263,15 +270,15 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                         const fNames = Object.keys(dp.festivals.details);
                                         setSelectedFestivals(fNames);
                                         const newAvail = [...availableFestivals];
-                                        const newPrices: Record<string, { increaseType: string; value: string }> = {};
+                                        const fpMap: Record<string, { increaseType: string; value: string }> = {};
                                         fNames.forEach(fn => {
                                             if (!newAvail.includes(fn)) newAvail.push(fn);
                                             const fd = dp.festivals.details[fn];
-                                            if (fd.percentage) newPrices[fn] = { increaseType: 'Percentage', value: String(fd.percentage) };
-                                            else newPrices[fn] = { increaseType: 'Fixed Price', value: String(fd.price) };
+                                            if (fd.percentage) fpMap[fn] = { increaseType: 'Percentage', value: String(fd.percentage) };
+                                            else fpMap[fn] = { increaseType: 'Fixed Price', value: String(fd.price) };
                                         });
                                         setAvailableFestivals(newAvail);
-                                        setFestivalPrices(newPrices);
+                                        setFestivalPrices(fpMap);
                                     }
                                 }
                                 if (dp.customDates) {
@@ -288,6 +295,12 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                 }
                             } else if (s3.dateRangeDynamicPricing && s3.dateRangeDynamicPricing.length > 0) {
                                 setIsDynamicPricingEnabled(true);
+                            }
+                            if (s3.guestTiers && s3.guestTiers.length > 0) {
+                                setGuestTiers(s3.guestTiers.map((gt: any) => ({
+                                    range: `Upto ${gt.maxGuests}`,
+                                    price: String(gt.price || '')
+                                })));
                             }
                             if (s3.lastMinuteChargesDocUrl) setLastMinuteDocs([{ name: 'Existing Document', size: 0, preview: s3.lastMinuteChargesDocUrl }] as any);
                             if (s3.policiesDocUrl) setPolicyDocs([{ name: 'Existing Policy', size: 0, preview: s3.policiesDocUrl }] as any);
@@ -425,15 +438,24 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
             } else if (step === 2) {
                 const addonsPayload = [];
                 for (const addon of addons) {
-                    let policyUrl = '';
+                    const uploadedPolicyUrls: string[] = [];
                     if (addon.policies && addon.policies.length > 0) {
-                        const pf = addon.policies[0] as any;
-                        if (pf.file) {
-                            const formData = new FormData(); formData.append('file', pf.file);
-                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                            if (uploadRes.ok) { const data = await uploadRes.json(); policyUrl = data.url || ''; }
-                        } else if (pf.url) { policyUrl = pf.url; }
+                        for (const pf of addon.policies) {
+                            if (pf.file) {
+                                const formData = new FormData();
+                                formData.append('file', pf.file);
+                                formData.append('uploadType', 'policies');
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) uploadedPolicyUrls.push(uploadData.url);
+                                }
+                            } else if (pf.preview) {
+                                uploadedPolicyUrls.push(pf.preview);
+                            }
+                        }
                     }
+                    const policyDocUrl = uploadedPolicyUrls.join(',');
                     const mediaUrls = [];
                     if (addon.media && addon.media.length > 0) {
                         for (const m of addon.media) {
@@ -453,7 +475,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                         description: addon.description || "",
                         price: parseFloat(addon.price) || 0,
                         billingUnit: addon.billingUnit || "Per hour",
-                        policyDocUrl: policyUrl,
+                        policyDocUrl: policyDocUrl,
                         mediaUrls: mediaUrls
                     });
                 }
@@ -563,6 +585,10 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     teamAndEquipment: { price: parseFloat(teamPrice) || 0, billingUnit: teamChargeType },
                     overtimeCharges: { price: parseFloat(overtimeRate) || 0, billingUnit: 'Per Hour' },
                     gstInclusive: isGstInclusive,
+                    guestTiers: guestTiers.map(tier => ({
+                        maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
+                        price: parseFloat(tier.price) || 0
+                    })),
                     dynamicPricing: dpPayload,
                     lastMinuteChargesDocUrl: lastMinuteUrl,
                     policiesDocUrl: policyUrl,
@@ -686,6 +712,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     customDatesValue={customDatesValue} setCustomDatesValue={setCustomDatesValue}
                     customDatesStartDate={customDatesStartDate} setCustomDatesStartDate={setCustomDatesStartDate}
                     customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
+                    guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier} removeGuestTier={removeGuestTier}
                     cancellationDocs={cancellationDocs} setCancellationDocs={setCancellationDocs}
                     lastMinuteDocs={lastMinuteDocs} setLastMinuteDocs={setLastMinuteDocs}
                     policyDocs={policyDocs} setPolicyDocs={setPolicyDocs}

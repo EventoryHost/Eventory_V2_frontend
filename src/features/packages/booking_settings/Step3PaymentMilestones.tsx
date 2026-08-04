@@ -32,29 +32,45 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
     const [modalDueDays, setModalDueDays] = useState<string>('');
 
     useEffect(() => {
+        let tokenPercentage = 0;
+        if (packageData?.bookingSettings?.paymentType === 'Token' && packageData?.bookingSettings?.token?.tokenType === 'Percentage') {
+            tokenPercentage = packageData.bookingSettings.token.value || 0;
+        }
+
         if (initialData?.milestones?.length > 0) {
-            setMilestones(initialData.milestones.map((m: any, i: number) => ({
+            let mappedMilestones = initialData.milestones.map((m: any, i: number) => ({
                 id: i.toString(),
                 title: m.title,
-                percentage: m.percentage,
+                percentage: m.title === 'Token Amount' ? tokenPercentage : m.percentage,
                 dueDays: m.dueDays,
                 isFinal: m.title === 'Final Payment'
-            })));
+            }));
+
+            const hasToken = mappedMilestones.some((m: any) => m.title === 'Token Amount');
+            if (tokenPercentage > 0 && !hasToken) {
+                mappedMilestones.unshift({
+                    id: 'token_auto',
+                    title: 'Token Amount',
+                    percentage: tokenPercentage,
+                    dueDays: 'At the time of booking',
+                    isFinal: false
+                });
+            } else if (tokenPercentage === 0 && hasToken) {
+                mappedMilestones = mappedMilestones.filter((m: any) => m.title !== 'Token Amount');
+            }
+
+            setMilestones(mappedMilestones);
         } else {
             // Default setup based on packageData (if token exists)
             const defaultMilestones: Milestone[] = [];
-            let tokenPercentage = 0;
             
-            if (packageData?.bookingSettings?.paymentType === 'Token' && packageData?.bookingSettings?.token?.tokenType === 'Percentage') {
-                tokenPercentage = packageData.bookingSettings.token.value || 0;
-                if (tokenPercentage > 0) {
-                    defaultMilestones.push({
-                        id: '0',
-                        title: 'Token Amount',
-                        percentage: tokenPercentage,
-                        dueDays: 'At the time of booking'
-                    });
-                }
+            if (tokenPercentage > 0) {
+                defaultMilestones.push({
+                    id: '0',
+                    title: 'Token Amount',
+                    percentage: tokenPercentage,
+                    dueDays: 'At the time of booking'
+                });
             }
 
             defaultMilestones.push({

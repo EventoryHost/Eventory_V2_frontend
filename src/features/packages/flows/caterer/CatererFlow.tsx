@@ -104,7 +104,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const [overtimePrice, setOvertimePrice] = React.useState('');
     const [lastMinuteChargesDescription, setLastMinuteChargesDescription] = React.useState('');
     const lastMinuteInputRef = React.useRef<HTMLInputElement>(null);
-    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '2000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '8000' }]);
+    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '4000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '4000' }]);
     const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
     const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
     const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
@@ -142,8 +142,8 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const removeLastMinuteFile = (idx: number) => setLastMinuteFiles(prev => prev.filter((_, i) => i !== idx));
 
     const [customDatesPricing, setCustomDatesPricing] = React.useState(false);
-    const [customDatesIncreaseType, setCustomDatesIncreaseType] = React.useState('Fixed Price');
-    const [customDatesValue, setCustomDatesValue] = React.useState('');
+    const [customDatesIncreaseType, setCustomDatesIncreaseType] = React.useState('Percentage');
+    const [customDatesValue, setCustomDatesValue] = React.useState('10');
     const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
     const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
     const [festivalPrices, setFestivalPrices] = React.useState<Record<string, { increaseType: string; value: string }>>({});
@@ -332,7 +332,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                                 description: a.description || '',
                                 price: String(a.price || ''),
                                 billingUnit: a.billingUnit || 'Per hour',
-                                policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
+                                policies: a.policyDocUrl ? a.policyDocUrl.split(',').map((u: string, i: number) => ({ name: `Policy Document ${i + 1}`, size: 0, preview: u })) : [],
                                 media: (a.mediaUrls || []).map((url: string, i: number) => ({ name: `Media ${i+1}`, size: 0, preview: url })),
                                 productType: a.type || 'Food'
                             })));
@@ -354,7 +354,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                         if (s3.lastMinuteChargesDescription) {
                             setLastMinuteChargesDescription(s3.lastMinuteChargesDescription);
                         }
-                        if (s3.guestTiers) {
+                        if (s3.guestTiers && s3.guestTiers.length > 0) {
                             setGuestTiers(s3.guestTiers.map((gt: any) => ({
                                 range: `Upto ${gt.maxGuests}`,
                                 price: String(gt.price || '')
@@ -599,22 +599,24 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 // Upload addOn files
                 const processedAddons = [];
                 for (const a of addons) {
-                    let policyDocUrl = '';
+                    const uploadedPolicyUrls: string[] = [];
                     if (a.policies && a.policies.length > 0) {
-                        const pf = a.policies[0];
-                        if (pf.file) {
-                            const formData = new FormData();
-                            formData.append('file', pf.file);
-                            formData.append('uploadType', 'policies');
-                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                            if (uploadRes.ok) {
-                                const uploadData = await uploadRes.json();
-                                if (uploadData.url) policyDocUrl = uploadData.url;
+                        for (const pf of a.policies) {
+                            if (pf.file) {
+                                const formData = new FormData();
+                                formData.append('file', pf.file);
+                                formData.append('uploadType', 'policies');
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) uploadedPolicyUrls.push(uploadData.url);
+                                }
+                            } else if (pf.preview) {
+                                uploadedPolicyUrls.push(pf.preview);
                             }
-                        } else if (pf.preview) {
-                            policyDocUrl = pf.preview;
                         }
                     }
+                    const policyDocUrl = uploadedPolicyUrls.join(',');
 
                     const mediaUrls: string[] = [];
                     if (a.media && a.media.length > 0) {

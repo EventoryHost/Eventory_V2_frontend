@@ -11,7 +11,7 @@ import DecoratorStep4SampleAndMedia from './Step4SampleAndMedia';
 import { AddonModal, Addon } from '../../components/AddonModal';
 import { DecoratorAddonModal } from './DecoratorAddonModal';
 import { useFlowVariants } from '../../shared/useFlowVariants';
-import { PolicyFile, SampleMediaFile } from '../../shared/types';
+import { PolicyFile, SampleMediaFile, GuestTier } from '../../shared/types';
 
 const STEPS = ['Package basics', 'Setups and Pricing', 'Policies and Charges', 'Sample and Media'];
 const VENUE_NEEDS_OPTIONS = [
@@ -43,6 +43,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
     const [workers, setWorkers] = React.useState('');
     const [venueNeeds, setVenueNeeds] = React.useState<string[]>([]);
     const [venueRequest, setVenueRequest] = React.useState('');
+
+    const [manualTotalPackagePrice, setManualTotalPackagePrice] = React.useState<number | null>(null);
 
     // Step 2 States
     const [setups, setSetups] = React.useState<Setup[]>([]);
@@ -90,6 +92,13 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
     const [customDatesValue, setCustomDatesValue] = React.useState('10');
     const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
     const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+
+    // Guest Count Pricing state
+    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '4000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '4000' }]);
+
+    const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
+    const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
+    const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
 
     const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
     const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
@@ -233,8 +242,11 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         }
                         
                         // Populate Step 2 (Setups & Pricing)
-                        if (pkg.step2_productsAndPricing) {
-                            const s2 = pkg.step2_productsAndPricing;
+                        if (pkg.step2_setupsAndPricing) {
+                            const s2 = pkg.step2_setupsAndPricing;
+                            if (s2.totalPackagePrice && s2.totalPackagePrice > 0) {
+                                setManualTotalPackagePrice(s2.totalPackagePrice);
+                            }
                             if (s2.setups) {
                                 setSetups(s2.setups.map((s: any) => ({
                                     id: s._id || Math.random().toString(36).substring(7),
@@ -262,7 +274,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                                     description: a.description || '',
                                     price: String(a.price || ''),
                                     billingUnit: a.billingUnit || 'Per hour',
-                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
+                                    policies: a.policyDocUrl ? a.policyDocUrl.split(',').map((u: string, i: number) => ({ name: `Policy Document ${i + 1}`, size: 0, preview: u })) : [],
                                     media: (a.mediaUrls || []).map((url: string, i: number) => ({ name: `Media ${i+1}`, size: 0, preview: url })),
                                     // Read from physicalSpec where the schema stores them
                                     colors: a.physicalSpec?.color ? a.physicalSpec.color.split(' & ') : undefined,
@@ -317,13 +329,13 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                                     const fKeys = Object.keys(dp.festivals.details);
                                     setSelectedFestivals(fKeys);
                                     setAvailableFestivals(prev => Array.from(new Set([...prev, ...fKeys])));
-                                    const parsedFestivals: Record<string, { increaseType: string; value: string }> = {};
+                                    const fpMap: Record<string, { increaseType: string; value: string }> = {};
                                     for (const f of fKeys) {
                                         const spec = dp.festivals.details[f];
-                                        if (spec.percentage !== undefined) parsedFestivals[f] = { increaseType: 'Percentage', value: String(spec.percentage) };
-                                        else if (spec.price !== undefined) parsedFestivals[f] = { increaseType: 'Fixed Price', value: String(spec.price) };
+                                        if (spec.percentage !== undefined) fpMap[f] = { increaseType: 'Percentage', value: String(spec.percentage) };
+                                        else if (spec.price !== undefined) fpMap[f] = { increaseType: 'Fixed Price', value: String(spec.price) };
                                     }
-                                    setFestivalPrices(parsedFestivals);
+                                    setFestivalPrices(fpMap);
                                 }
                                 
                                 if (dp.customDates?.enabled) {
@@ -335,9 +347,15 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                                         setCustomDatesIncreaseType('Fixed Price');
                                         setCustomDatesValue(String(dp.customDates.price));
                                     }
-                                    setCustomDatesStartDate(dp.customDates.startDate || '');
-                                    setCustomDatesEndDate(dp.customDates.endDate || '');
+                                    if (dp.customDates.startDate !== undefined) setCustomDatesStartDate(dp.customDates.startDate);
+                                    if (dp.customDates.endDate !== undefined) setCustomDatesEndDate(dp.customDates.endDate);
                                 }
+                            }
+                            if (s3.guestTiers && s3.guestTiers.length > 0) {
+                                setGuestTiers(s3.guestTiers.map((gt: any) => ({
+                                    range: `Upto ${gt.maxGuests}`,
+                                    price: String(gt.price || '')
+                                })));
                             }
                             if (s3.cancellationDocUrl) {
                                 const urls = s3.cancellationDocUrl.split(',').map((u: string) => u.trim()).filter(Boolean);
@@ -519,27 +537,33 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                     .map(line => line.replace(/^•\s*/, '').trim())
                     .filter(Boolean);
 
-                const totalPackagePrice = setups.reduce((acc, curr) => acc + (parseFloat(curr.price) || 0), 0);
+                const calculatedTotal = setups.reduce((acc, setup) => {
+                    const itemsTotal = (setup.items || []).reduce((iAcc, item) => iAcc + (Number(item.price) || 0), 0);
+                    return acc + (Number(setup.price) || 0) + itemsTotal;
+                }, 0) + addons.reduce((acc, addon) => acc + (Number(addon.price) || 0), 0);
+                const totalPackagePrice = manualTotalPackagePrice !== null ? manualTotalPackagePrice : calculatedTotal;
 
                 // Upload addOn files
                 const processedAddons = [];
                 for (const a of addons) {
-                    let policyDocUrl = '';
+                    const uploadedPolicyUrls: string[] = [];
                     if (a.policies && a.policies.length > 0) {
-                        const pf = a.policies[0];
-                        if (pf.file) {
-                            const formData = new FormData();
-                            formData.append('file', pf.file);
-                            formData.append('uploadType', 'policies');
-                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                            if (uploadRes.ok) {
-                                const uploadData = await uploadRes.json();
-                                if (uploadData.url) policyDocUrl = uploadData.url;
+                        for (const pf of a.policies) {
+                            if (pf.file) {
+                                const formData = new FormData();
+                                formData.append('file', pf.file);
+                                formData.append('uploadType', 'policies');
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) uploadedPolicyUrls.push(uploadData.url);
+                                }
+                            } else if (pf.preview) {
+                                uploadedPolicyUrls.push(pf.preview);
                             }
-                        } else if (pf.preview) {
-                            policyDocUrl = pf.preview;
                         }
                     }
+                    const policyDocUrl = uploadedPolicyUrls.join(',');
 
                     const mediaUrls: string[] = [];
                     if (a.media && a.media.length > 0) {
@@ -691,6 +715,10 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         price: parseFloat(teamEquipmentPrice) || 0,
                         billingUnit: teamEquipmentUnit
                     },
+                    guestTiers: guestTiers.map(tier => ({
+                        maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
+                        price: parseFloat(tier.price) || 0
+                    })),
                     dynamicPricing: dpPayload,
                     policiesDocUrl: policyUrl,
                     lastMinuteChargesDocUrl: lastMinuteUrl,
@@ -1021,6 +1049,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         setProvidedDetails={setProvidedDetails}
                         notProvidedDetails={notProvidedDetails}
                         setNotProvidedDetails={setNotProvidedDetails}
+                        manualTotalPackagePrice={manualTotalPackagePrice}
+                        setManualTotalPackagePrice={setManualTotalPackagePrice}
                     />
                 )}
                 {step === 3 && (
@@ -1029,6 +1059,23 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         setTeamEquipmentPrice={setTeamEquipmentPrice}
                         teamEquipmentUnit={teamEquipmentUnit}
                         setTeamEquipmentUnit={setTeamEquipmentUnit}
+                        setups={setups}
+                        customDatesPricing={customDatesPricing}
+                        setCustomDatesPricing={setCustomDatesPricing}
+                        customDatesIncreaseType={customDatesIncreaseType}
+                        setCustomDatesIncreaseType={setCustomDatesIncreaseType}
+                        customDatesValue={customDatesValue}
+                        setCustomDatesValue={setCustomDatesValue}
+                        customDatesStartDate={customDatesStartDate}
+                        setCustomDatesStartDate={setCustomDatesStartDate}
+                        customDatesEndDate={customDatesEndDate}
+                        setCustomDatesEndDate={setCustomDatesEndDate}
+                        guestTiers={guestTiers}
+                        addGuestTierOption={addGuestTierOption}
+                        updateGuestTier={updateGuestTier}
+                        removeGuestTier={removeGuestTier}
+                        cancellationDocs={cancellationDocs}
+                        setCancellationDocs={setCancellationDocs}
                         isDynamicPricingEnabled={isDynamicPricingEnabled}
                         setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                         weekendPricing={weekendPricing}
@@ -1055,23 +1102,10 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         handleAddFestival={handleAddFestival}
                         festivalPrices={festivalPrices}
                         setFestivalPrices={setFestivalPrices}
-                        customDatesPricing={customDatesPricing}
-                        setCustomDatesPricing={setCustomDatesPricing}
-                        customDatesIncreaseType={customDatesIncreaseType}
-                        setCustomDatesIncreaseType={setCustomDatesIncreaseType}
-                        customDatesValue={customDatesValue}
-                        setCustomDatesValue={setCustomDatesValue}
-                        customDatesStartDate={customDatesStartDate}
-                        setCustomDatesStartDate={setCustomDatesStartDate}
-                        customDatesEndDate={customDatesEndDate}
-                        setCustomDatesEndDate={setCustomDatesEndDate}
-                        cancellationDocs={cancellationDocs}
-                        setCancellationDocs={setCancellationDocs}
-                        lastMinuteDocs={lastMinuteDocs}
-                        setLastMinuteDocs={setLastMinuteDocs}
-                        policyDocs={policyDocs}
-                        setPolicyDocs={setPolicyDocs}
-                        setups={setups}
+                        lastMinuteDocs={lastMinuteFiles}
+                        setLastMinuteDocs={setLastMinuteFiles}
+                        policyDocs={policyFiles}
+                        setPolicyDocs={setPolicyFiles}
                         addons={addons}
                     />
                 )}

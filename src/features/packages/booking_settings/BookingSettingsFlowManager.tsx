@@ -70,10 +70,25 @@ export default function BookingSettingsFlowManager({ packageId, onExitFlow }: Bo
     // Calculate dynamic progress across the 4 steps
     const progressPercentage = (currentStep / totalSteps) * 100;
 
+    const handleNext = async (nextStep: number) => {
+        if (packageId) {
+            try {
+                const res = await fetch(apiUrl(`/packages/${packageId}`));
+                if (res.ok) {
+                    const data = await res.json();
+                    setPackageData(data.package || data);
+                }
+            } catch (error) {
+                console.error("Failed to refetch package data on step change", error);
+            }
+        }
+        setCurrentStep(nextStep);
+    };
+
     if (loading) {
         return (
-            <div className="flex justify-center items-center h-[50vh]">
-                <div className="w-8 h-8 border-4 border-[#04222D] border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-full min-h-[50vh] flex items-center justify-center bg-[#FAFAFA]">
+                <p className="text-[#71717B] font-semibold text-[14px]">Loading...</p>
             </div>
         );
     }
@@ -129,9 +144,7 @@ export default function BookingSettingsFlowManager({ packageId, onExitFlow }: Bo
                             <Step1BookingType
                                 packageId={packageId}
                                 initialData={packageData?.bookingSettings}
-                                onNext={() => {
-                                    setCurrentStep(2);
-                                }}
+                                onNext={() => handleNext(2)}
                                 onBack={() => {
                                     if (onExitFlow) onExitFlow();
                                 }}
@@ -141,9 +154,7 @@ export default function BookingSettingsFlowManager({ packageId, onExitFlow }: Bo
                                 packageId={packageId}
                                 initialData={packageData?.availabilitySettings}
                                 onBack={() => setCurrentStep(1)}
-                                onNext={() => {
-                                    setCurrentStep(3);
-                                }}
+                                onNext={() => handleNext(3)}
                             />
                         ) : currentStep === 3 ? (
                             <Step3PaymentMilestones
@@ -151,9 +162,7 @@ export default function BookingSettingsFlowManager({ packageId, onExitFlow }: Bo
                                 initialData={packageData?.paymentMilestones}
                                 packageData={packageData}
                                 onBack={() => setCurrentStep(2)}
-                                onNext={() => {
-                                    setCurrentStep(4);
-                                }}
+                                onNext={() => handleNext(4)}
                             />
                         ) : currentStep === 4 ? (
                             <Step4BookingCapacity

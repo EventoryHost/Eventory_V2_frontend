@@ -93,7 +93,7 @@ export default function DecoratorPublishSummary({ packageId, packageData, onBack
                 body: JSON.stringify({})
             });
             if (res.ok) {
-                window.location.href = '/dashboard/packages';
+                window.location.href = '/dashboard/inventory';
             } else {
                 alert('Failed to submit for review');
             }
@@ -286,7 +286,7 @@ export default function DecoratorPublishSummary({ packageId, packageData, onBack
                                         <span className="text-[12px]">📦</span>
                                         <span className="text-[10px] text-[#71717B] font-medium">Decorator</span>
                                     </div>
-                                    <p className="text-[12px] font-bold text-[#000000] uppercase tracking-wide m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>ROYAL PASTEL MEADOW</p>
+                                    <p className="text-[12px] font-bold text-[#000000] uppercase tracking-wide m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>{setup.name || packageData?.title || 'SETUP'}</p>
                                 </div>
 
                                 <div className="flex items-center gap-3 mb-5">
@@ -295,31 +295,29 @@ export default function DecoratorPublishSummary({ packageId, packageData, onBack
                                     <div className="h-px bg-[#E4E4E7] flex-1"></div>
                                 </div>
 
-                                <p className="text-[12px] font-bold text-[#000000] uppercase tracking-wide text-center mb-4 m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>{setup.name || ''}</p>
-
                                 <div className="grid grid-cols-2 gap-y-4 gap-x-2 mb-6">
                                     <div>
                                         <p className="text-[10px] text-[#A1A1AA] mb-0.5 m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Decorating Elements</p>
                                         <p className="text-[12px] font-medium text-[#04222D] m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                            Hall, Doors <span className="text-[#3B82F6]">+2more</span>
+                                            {setup.decoratingWhat || 'N/A'}
                                         </p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] text-[#A1A1AA] mb-0.5 m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Included Structures</p>
                                         <p className="text-[12px] font-medium text-[#04222D] m-0 flex flex-wrap gap-1 items-center" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                            {setup.structuresIncluded?.slice(0, 1).join(', ') || ''}
-                                            {setup.structuresIncluded?.length > 1 ? <span className="text-[#3B82F6]">{`+${setup.structuresIncluded.length - 1}more`}</span> : <span className="text-[#3B82F6]">+2more</span>}
+                                            {setup.structuresIncluded?.slice(0, 2).join(', ') || 'None'}
+                                            {setup.structuresIncluded?.length > 2 && <span className="text-[#3B82F6]">{`+${setup.structuresIncluded.length - 2}more`}</span>}
                                         </p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] text-[#A1A1AA] mb-0.5 m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Type of Setup</p>
-                                        <p className="text-[12px] font-medium text-[#04222D] m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>{setup.referenceStyle || ''}</p>
+                                        <p className="text-[12px] font-medium text-[#04222D] m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>{setup.referenceStyle || 'N/A'}</p>
                                     </div>
                                     <div>
                                         <p className="text-[10px] text-[#A1A1AA] mb-0.5 m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Theme</p>
                                         <p className="text-[12px] font-medium text-[#04222D] m-0 flex flex-wrap gap-1 items-center" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                            {setup.themes?.slice(0, 2).join(', ') || ''}
-                                            {setup.themes?.length > 2 ? <span className="text-[#3B82F6]">{`+${setup.themes.length - 2}more`}</span> : <span className="text-[#3B82F6]">+2more</span>}
+                                            {setup.themes?.slice(0, 2).join(', ') || 'None'}
+                                            {setup.themes?.length > 2 && <span className="text-[#3B82F6]">{`+${setup.themes.length - 2}more`}</span>}
                                         </p>
                                     </div>
                                 </div>

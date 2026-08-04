@@ -7,10 +7,10 @@ import FlowShell from '../../shared/FlowShell';
 import { useFlowVariants } from '../../shared/useFlowVariants';
 import VenueStep1PackageAndTeam from './Step1PackageAndTeam';
 import VenueStep2SpacesAndItems, { VenueSpace } from './Step2SpacesAndItems';
-import VenueStep3PricingAndPolicies, { DynamicPrice } from './Step3PricingAndPolicies';
+import VenueStep3PricingAndPolicies from './Step3PricingAndPolicies';
 import VenueStep4SampleMedia from './Step4SampleMedia';
 import { Addon } from '../../components/AddonModal';
-import { PolicyFile, SampleMediaFile } from '../../shared/types';
+import { PolicyFile, SampleMediaFile, GuestTier } from '../../shared/types';
 
 const FLOW_CONFIG = {
     vendorName: 'Venue Provider',
@@ -46,7 +46,39 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const [teamChargeType, setTeamChargeType] = React.useState('Per Package');
     const [teamPrice, setTeamPrice] = React.useState('');
     const [overtimeRate, setOvertimeRate] = React.useState('');
-    const [dynamicPrices, setDynamicPrices] = React.useState<DynamicPrice[]>([]);
+    const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
+    const [weekendPricing, setWeekendPricing] = React.useState(true);
+    const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Fixed Price');
+    const [weekendValue, setWeekendValue] = React.useState('');
+    const [weekendDays, setWeekendDays] = React.useState<string[]>(['Saturday', 'Sunday']);
+    const [weekendSeason, setWeekendSeason] = React.useState(true);
+    const [seasonIncreaseType, setSeasonIncreaseType] = React.useState('Fixed Price');
+    const [seasonValue, setSeasonValue] = React.useState('');
+    const [festivalPricing, setFestivalPricing] = React.useState(true);
+    const [festivalIncreaseType, setFestivalIncreaseType] = React.useState('Fixed Price');
+    const [festivalValue, setFestivalValue] = React.useState('');
+    const [selectedFestivals, setSelectedFestivals] = React.useState<string[]>(['Diwali', 'New Year']);
+    const [availableFestivals, setAvailableFestivals] = React.useState<string[]>(['Diwali', 'New Year']);
+    const [isAddingFestival, setIsAddingFestival] = React.useState(false);
+    const [newFestivalName, setNewFestivalName] = React.useState('');
+    const handleAddFestival = () => {
+        if (newFestivalName.trim() && !availableFestivals.includes(newFestivalName.trim())) setAvailableFestivals(prev => [...prev, newFestivalName.trim()]);
+        if (newFestivalName.trim() && !selectedFestivals.includes(newFestivalName.trim())) setSelectedFestivals(prev => [...prev, newFestivalName.trim()]);
+        setNewFestivalName(''); setIsAddingFestival(false);
+    };
+    const [customDatesPricing, setCustomDatesPricing] = React.useState(false);
+    const [customDatesIncreaseType, setCustomDatesIncreaseType] = React.useState('Percentage');
+    const [customDatesValue, setCustomDatesValue] = React.useState('10');
+    const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
+    const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+
+    // Guest Count Pricing state
+    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '4000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '4000' }]);
+
+    const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
+    const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
+    const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
+    const [festivalPrices, setFestivalPrices] = React.useState<Record<string, { increaseType: string; value: string }>>({});
     const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
     const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
 
@@ -141,8 +173,8 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                     description: a.description || '',
                                     price: String(a.price || ''),
                                     billingUnit: a.billingUnit || 'Per hour',
-                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl }] : [],
-                                    media: (a.mediaUrls || []).map((url: string) => ({ name: 'Media File', size: 0, file: null, preview: url })),
+                                    policies: a.policyDocUrl ? a.policyDocUrl.split(',').map((u: string, i: number) => ({ name: `Policy Document ${i + 1}`, size: 0, preview: u } as any)) : [],
+                                    media: a.mediaUrls ? a.mediaUrls.map((u: string, i: number) => ({ name: `Sample ${i + 1}`, size: 0, preview: u } as any)) : [],
                                     productType: a.productType || 'Product'
                                 });
                                 
@@ -168,12 +200,50 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                 setOvertimeRate(String(s3.pricing.overtimeRate || ''));
                             }
                             if (s3.dynamicPricing) {
-                                setDynamicPrices(s3.dynamicPricing.map((dp: any) => ({
-                                    id: dp._id || Math.random().toString(36).substring(7),
-                                    fromDate: dp.fromDate?.split('T')[0] || '',
-                                    toDate: dp.toDate?.split('T')[0] || '',
-                                    price: String(dp.price || '')
-                                })));
+                                const dp = s3.dynamicPricing;
+                                // In case it's an array from old data, just enable if there's anything
+                                if (Array.isArray(dp)) {
+                                    setIsDynamicPricingEnabled(dp.length > 0);
+                                } else {
+                                    setIsDynamicPricingEnabled(!!(dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled));
+                                    const basePrice = s3.pricing?.packagePricing?.price || 0;
+                                    if (dp.weekends) {
+                                        setWeekendPricing(!!dp.weekends.enabled);
+                                        const isFixed = dp.weekends.price !== undefined && dp.weekends.price !== null && dp.weekends.price >= 0;
+                                        setWeekendIncreaseType((isFixed && dp.weekends.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                        setWeekendValue(String((isFixed && dp.weekends.percentage === 0) ? dp.weekends.price + basePrice : (dp.weekends.percentage || '')));
+                                    }
+                                    if (dp.weddingSeason) {
+                                        setWeekendSeason(!!dp.weddingSeason.enabled);
+                                        const isFixed = dp.weddingSeason.price !== undefined && dp.weddingSeason.price !== null && dp.weddingSeason.price >= 0;
+                                        setSeasonIncreaseType((isFixed && dp.weddingSeason.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                        setSeasonValue(String((isFixed && dp.weddingSeason.percentage === 0) ? dp.weddingSeason.price + basePrice : (dp.weddingSeason.percentage || '')));
+                                    }
+                                    if (dp.festivals) {
+                                        setFestivalPricing(!!dp.festivals.enabled);
+                                        if (dp.festivals.details) {
+                                            const parsedDetails: Record<string, { increaseType: string; value: string }> = {};
+                                            for (const [name, spec] of Object.entries(dp.festivals.details as any)) {
+                                                const specTyped = spec as any;
+                                                if (specTyped.increaseType === 'Fixed Price' || (specTyped.price !== undefined && specTyped.percentage === 0)) {
+                                                    parsedDetails[name] = { increaseType: 'Fixed Price', value: String((specTyped.price || 0) + basePrice) };
+                                                } else {
+                                                    parsedDetails[name] = { increaseType: 'Percentage', value: String(specTyped.percentage || '') };
+                                                }
+                                            }
+                                            setFestivalPrices(parsedDetails);
+                                            setSelectedFestivals(Object.keys(dp.festivals.details));
+                                        }
+                                    }
+                                    if (dp.customDates) {
+                                        setCustomDatesPricing(!!dp.customDates.enabled);
+                                        const isFixed = dp.customDates.price !== undefined && dp.customDates.price !== null && dp.customDates.price >= 0;
+                                        setCustomDatesIncreaseType((isFixed && dp.customDates.percentage === 0) ? 'Fixed Price' : 'Percentage');
+                                        setCustomDatesValue(String((isFixed && dp.customDates.percentage === 0) ? dp.customDates.price + basePrice : (dp.customDates.percentage || '')));
+                                        setCustomDatesStartDate(dp.customDates.startDate || '');
+                                        setCustomDatesEndDate(dp.customDates.endDate || '');
+                                    }
+                                }
                             }
                             if (s3.policies) {
                                 if (s3.policies.lastMinuteChangePolicy) {
@@ -190,6 +260,12 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                         preview: doc.url
                                     })));
                                 }
+                            }
+                            if (s3.guestTiers && s3.guestTiers.length > 0) {
+                                setGuestTiers(s3.guestTiers.map((gt: any) => ({
+                                    range: `Upto ${gt.maxGuests}`,
+                                    price: String(gt.price || '')
+                                })));
                             }
                         }
 
@@ -323,40 +399,57 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (!res.ok) throw new Error("Failed to save Step 1 (Event & Team).");
                 setStep(2);
             } else if (step === 2) {
-                // Separate IHS and regular Addons
-                const regularAddonsPayload = [];
-                for (const addon of addons) {
-                    let policyUrl = '';
-                    if (addon.policies && addon.policies.length > 0) {
-                        const pf = addon.policies[0];
-                        if (pf.file) {
-                            const formData = new FormData(); formData.append('file', pf.file);
-                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                            if (uploadRes.ok) { const data = await uploadRes.json(); policyUrl = data.url || ''; }
-                        } else if (pf.preview) { policyUrl = pf.preview; }
-                    }
-                    const mediaUrls = [];
-                    if (addon.media && addon.media.length > 0) {
-                        for (const m of addon.media) {
-                            if (m.file) {
-                                const formData = new FormData(); formData.append('file', m.file);
+                const processedAddons = [];
+                for (const a of addons) {
+                    const uploadedPolicyUrls: string[] = [];
+                    if (a.policies && a.policies.length > 0) {
+                        for (const pf of a.policies) {
+                            if (pf.file) {
+                                const formData = new FormData();
+                                formData.append('file', pf.file);
+                                formData.append('uploadType', 'policies');
                                 const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                                if (uploadRes.ok) { const data = await uploadRes.json(); if (data.url) mediaUrls.push(data.url); }
-                            } else if (m.preview && !m.preview.startsWith('blob:')) { mediaUrls.push(m.preview); }
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) uploadedPolicyUrls.push(uploadData.url);
+                                }
+                            } else if (pf.preview) {
+                                uploadedPolicyUrls.push(pf.preview);
+                            }
                         }
                     }
-                    regularAddonsPayload.push({
-                        addOnType: addon.type || 'Service',
-                        name: addon.name,
-                        category: addon.category || "",
-                        subCategory: addon.subCategory || "",
-                        quantity: parseInt(addon.quantity as any) || 1,
-                        description: addon.description || "",
-                        price: parseFloat(addon.price as any) || 0,
-                        billingUnit: addon.billingUnit || "Per hour",
-                        policyDocUrl: policyUrl,
+                    const policyDocUrl = uploadedPolicyUrls.join(',');
+                    
+                    const mediaUrls: string[] = [];
+                    if (a.media && a.media.length > 0) {
+                        for (const m of a.media) {
+                            if (m.file) {
+                                const formData = new FormData();
+                                formData.append('file', m.file);
+                                formData.append('uploadType', 'media');
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) mediaUrls.push(uploadData.url);
+                                }
+                            } else if (m.preview && !m.preview.startsWith('blob:')) {
+                                mediaUrls.push(m.preview);
+                            }
+                        }
+                    }
+
+                    processedAddons.push({
+                        addOnType: a.type || "Service",
+                        name: a.name || "",
+                        category: a.category || "",
+                        subCategory: a.subCategory || "",
+                        quantity: Number(a.quantity) || 1,
+                        description: a.description || "",
+                        price: parseFloat(a.price) || 0,
+                        billingUnit: a.billingUnit || "Per hour",
+                        policyDocUrl: policyDocUrl,
                         mediaUrls: mediaUrls,
-                        ...(addon.type === 'Space' && (addon as any).spaceDetails ? { spaceDetails: (addon as any).spaceDetails } : {})
+                        ...(a.type === 'Space' && (a as any).spaceDetails ? { spaceDetails: (a as any).spaceDetails } : {})
                     });
                 }
 
@@ -422,7 +515,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                         billingUnit: space.billingUnit
                     })),
                     inHouseServices: ihsPayload,
-                    addOns: regularAddonsPayload,
+                    addOns: processedAddons,
                     included: providedDetails.split('\n').map(s => s.trim()).filter(Boolean),
                     notIncluded: notProvidedDetails.split('\n').map(s => s.trim()).filter(Boolean)
                 };
@@ -452,13 +545,53 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 const lastMinuteUrls = await uploadFiles(lastMinuteDocs);
                 const policyUrls = await uploadFiles(policyDocs);
 
+                const basePriceForCalculation = parseFloat(packagePrice) || 0;
                 const payload = {
                     pricing: {
                         packagePricing: { chargeType: packageChargeType, price: parseFloat(packagePrice) || 0 },
                         teamAndEquipment: { chargeType: teamChargeType, price: parseFloat(teamPrice) || 0 },
                         overtimeRate: parseFloat(overtimeRate) || 0,
                     },
-                    dynamicPricing: dynamicPrices,
+                    guestTiers: guestTiers.map(tier => ({
+                        maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
+                        price: parseFloat(tier.price) || 0
+                    })),
+                    dynamicPricing: {
+                        weekends: {
+                            enabled: weekendPricing,
+                            price: weekendIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(weekendValue) || 0) - basePriceForCalculation) : 0,
+                            percentage: weekendIncreaseType === 'Percentage' ? (parseFloat(weekendValue) || 0) : 0
+                        },
+                        weddingSeason: {
+                            enabled: weekendSeason,
+                            price: seasonIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(seasonValue) || 0) - basePriceForCalculation) : 0,
+                            percentage: seasonIncreaseType === 'Percentage' ? (parseFloat(seasonValue) || 0) : 0
+                        },
+                        festivals: {
+                            enabled: festivalPricing,
+                            percentage: 0,
+                            details: Object.fromEntries(
+                                selectedFestivals.map(fest => {
+                                    const fp = festivalPrices[fest] || { increaseType: festivalIncreaseType, value: festivalValue };
+                                    return [
+                                        fest,
+                                        {
+                                            increaseType: fp.increaseType,
+                                            price: fp.increaseType === 'Fixed Price' ? Math.max(0, (parseFloat(fp.value) || 0) - basePriceForCalculation) : 0,
+                                            percentage: fp.increaseType === 'Percentage' ? (parseFloat(fp.value) || 0) : 0
+                                        }
+                                    ];
+                                })
+                            )
+                        },
+                        customDates: {
+                            enabled: customDatesPricing,
+                            price: customDatesIncreaseType === 'Fixed Price' ? Math.max(0, (parseFloat(customDatesValue) || 0) - basePriceForCalculation) : 0,
+                            percentage: customDatesIncreaseType === 'Percentage' ? (parseFloat(customDatesValue) || 0) : 0,
+                            startDate: customDatesStartDate,
+                            endDate: customDatesEndDate
+                        }
+                    },
                     policies: {
                         lastMinuteChangePolicy: lastMinuteUrls,
                         cancellationPolicy: policyUrls
@@ -580,7 +713,31 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     teamChargeType={teamChargeType} setTeamChargeType={setTeamChargeType}
                     teamPrice={teamPrice} setTeamPrice={setTeamPrice}
                     overtimeRate={overtimeRate} setOvertimeRate={setOvertimeRate}
-                    dynamicPrices={dynamicPrices} setDynamicPrices={setDynamicPrices}
+                    
+                    isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                    weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
+                    weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
+                    weekendValue={weekendValue} setWeekendValue={setWeekendValue}
+                    weekendDays={weekendDays} setWeekendDays={setWeekendDays}
+                    weekendSeason={weekendSeason} setWeekendSeason={setWeekendSeason}
+                    seasonIncreaseType={seasonIncreaseType} setSeasonIncreaseType={setSeasonIncreaseType}
+                    seasonValue={seasonValue} setSeasonValue={setSeasonValue}
+                    festivalPricing={festivalPricing} setFestivalPricing={setFestivalPricing}
+                    festivalIncreaseType={festivalIncreaseType} setFestivalIncreaseType={setFestivalIncreaseType}
+                    festivalValue={festivalValue} setFestivalValue={setFestivalValue}
+                    selectedFestivals={selectedFestivals} setSelectedFestivals={setSelectedFestivals}
+                    availableFestivals={availableFestivals} setAvailableFestivals={setAvailableFestivals}
+                    isAddingFestival={isAddingFestival} setIsAddingFestival={setIsAddingFestival}
+                    newFestivalName={newFestivalName} setNewFestivalName={setNewFestivalName}
+                    handleAddFestival={handleAddFestival}
+                    customDatesPricing={customDatesPricing} setCustomDatesPricing={setCustomDatesPricing}
+                    customDatesIncreaseType={customDatesIncreaseType} setCustomDatesIncreaseType={setCustomDatesIncreaseType}
+                    customDatesValue={customDatesValue} setCustomDatesValue={setCustomDatesValue}
+                    customDatesStartDate={customDatesStartDate} setCustomDatesStartDate={setCustomDatesStartDate}
+                    customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
+                    guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier} removeGuestTier={removeGuestTier}
+                    festivalPrices={festivalPrices} setFestivalPrices={setFestivalPrices}
+                    
                     lastMinuteDocs={lastMinuteDocs} setLastMinuteDocs={setLastMinuteDocs}
                     policyDocs={policyDocs} setPolicyDocs={setPolicyDocs}
                 />

@@ -44,17 +44,19 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
     const [billingUnit, setBillingUnit] = React.useState<'Per Event' | 'Per Hour'>('Per Event');
     const [price, setPrice] = React.useState('');
     const [setupEnv, setSetupEnv] = React.useState<'Indoor' | 'Outdoor' | 'Both'>('Indoor');
-    const [colors, setColors] = React.useState<Color[]>([...PRESET_COLORS]);
+    const [colors, setColors] = React.useState<Color[]>([
+        { hex: '#FF0000', label: 'Red' }, { hex: '#00FF00', label: 'Green' },
+        { hex: '#0000FF', label: 'Blue' }, { hex: '#FFFF00', label: 'Yellow' }
+    ]);
     const [selectedColors, setSelectedColors] = React.useState<string[]>([]);
     const [customColorHex, setCustomColorHex] = React.useState('#000000');
     const [dimensions, setDimensions] = React.useState({ L: '', B: '', H: '', unit: 'CM' });
     const [policies, setPolicies] = React.useState<PolicyFile[]>([]);
-    const [policyOptions, setPolicyOptions] = React.useState<string[]>(['Cancellation Policy', 'Last Minute Charges', 'General Policy', 'General Policy']);
     const [mediaFiles, setMediaFiles] = React.useState<SampleMediaFile[]>([]);
     const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
 
-    const policyInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
     const mediaInputRef = React.useRef<HTMLInputElement>(null);
+    const policyInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
         if (isOpen) {
@@ -113,11 +115,12 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
         onSave(saved);
     };
 
-    const handlePolicyUpload = (idx: number, e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) {
-            const file = e.target.files[0];
-            setPolicies(prev => { const u = [...prev]; u[idx] = { name: file.name, size: file.size, file }; return u; });
+    const handlePolicyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const files = Array.from(e.target.files).map(f => ({ name: f.name, size: f.size, file: f }));
+            setPolicies(prev => [...prev, ...files]);
         }
+        if (policyInputRef.current) policyInputRef.current.value = '';
     };
 
     const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -457,53 +460,44 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                             Policies and other documents <span className="text-red-500">*</span>
                         </h3>
                         <div className={`${SECTION_CARD} flex flex-col gap-3`}>
-                            {policyOptions.map((pName, idx) => {
-                                const uploaded = policies[idx];
-                                return (
-                                    <div key={`${pName}-${idx}`} className="flex items-center justify-between gap-3">
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            {uploaded ? (
+                            {policies.length > 0 && (
+                                <div className="flex flex-col gap-3">
+                                    {policies.map((file, idx) => (
+                                        <div key={idx} className="flex items-center justify-between gap-3 p-3 border border-[#F4F4F5] rounded-[12px] bg-white">
+                                            <div className="flex items-center gap-3 min-w-0">
                                                 <div className="w-9 h-9 rounded-full bg-[#22C55E] flex items-center justify-center flex-shrink-0">
                                                     <svg width="14" height="10" viewBox="0 0 10 8" fill="none">
                                                         <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                                                     </svg>
                                                 </div>
-                                            ) : (
-                                                <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center flex-shrink-0">
-                                                    <Info size={18} className="text-[#D45900]" />
-                                                </div>
-                                            )}
-                                            <span style={FF} className="text-[14px] font-semibold text-[#030303] truncate">{pName}</span>
+                                                <span style={FF} className="text-[14px] font-semibold text-[#030303] truncate">{file.name}</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPolicies(prev => prev.filter((_, i) => i !== idx))}
+                                                className="text-[#9F9FA9] hover:text-red-500 transition-colors flex-shrink-0 p-1"
+                                            >
+                                                <X size={16} />
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => policyInputRefs.current[idx]?.click()}
-                                            style={FF}
-                                            className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3F3F47] hover:text-[#030303] flex-shrink-0"
-                                        >
-                                            {uploaded ? (
-                                                <>Update <RefreshCw size={14} /></>
-                                            ) : (
-                                                <>Upload <Upload size={14} /></>
-                                            )}
-                                        </button>
-                                        <input
-                                            ref={el => { policyInputRefs.current[idx] = el; }}
-                                            type="file"
-                                            className="hidden"
-                                            accept=".pdf,.doc,.docx"
-                                            onChange={e => handlePolicyUpload(idx, e)}
-                                        />
-                                    </div>
-                                );
-                            })}
+                                    ))}
+                                </div>
+                            )}
                             <button
                                 type="button"
-                                onClick={() => setPolicyOptions(prev => [...prev, 'General Policy'])}
-                                className="w-full py-3 bg-[#E6E9EA] rounded-[8px] flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] transition-colors hover:bg-gray-200"
+                                onClick={() => policyInputRef.current?.click()}
+                                className="w-full py-3 bg-[#E6E9EA] rounded-[8px] flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] transition-colors hover:bg-gray-200 mt-1"
                             >
-                                Add <PlusCircle size={16} />
+                                Add Document <PlusCircle size={16} />
                             </button>
+                            <input
+                                ref={policyInputRef}
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.doc,.docx"
+                                multiple
+                                onChange={handlePolicyUpload}
+                            />
                         </div>
                     </div>
 

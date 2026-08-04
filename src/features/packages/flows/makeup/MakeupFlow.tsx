@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import FlowShell from '../../shared/FlowShell';
 import { useFlowVariants } from '../../shared/useFlowVariants';
 import { AddonModal, Addon } from '../../components/AddonModal';
-import { MakeupServiceItem, PolicyFile, SampleMediaFile } from '../../shared/types';
+import { MakeupServiceItem, PolicyFile, SampleMediaFile, GuestTier } from '../../shared/types';
 import MakeupStep1EventAndCrew from './Step1EventAndCrew';
 import MakeupStep2PackageAndItems from './Step2PackageAndItems';
 import MakeupStep3PriceAndPolicy from './Step3PriceAndPolicy';
@@ -151,6 +151,13 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
     const [customDatesValue, setCustomDatesValue] = React.useState('10');
     const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
     const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
+
+    // Guest Count Pricing state
+    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '4000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '4000' }]);
+
+    const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
+    const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
+    const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
     const [festivalPrices, setFestivalPrices] = React.useState<Record<string, { increaseType: string; value: string }>>({});
 
     const handleAddFestival = () => {
@@ -298,7 +305,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                                 description: a.description || '',
                                 price: String(a.price || ''),
                                 billingUnit: a.billingUnit || 'Per hour',
-                                policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl } as any] : [],
+                                policies: a.policyDocUrl ? a.policyDocUrl.split(',').map((u: string, i: number) => ({ name: `Policy Document ${i + 1}`, size: 0, preview: u } as any)) : [],
                                 media: (a.mediaUrls || []).map((url: string) => ({ name: 'Media File', size: 0, file: null, preview: url })),
                                 productType: a.productType || 'Food'
                             })));
@@ -367,6 +374,12 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                                 setCustomDatesValue(String((isFixed && dp.customDates.percentage === 0) ? dp.customDates.price + basePrice : (dp.customDates.percentage || '')));
                                 setCustomDatesStartDate(dp.customDates.startDate || '');
                                 setCustomDatesEndDate(dp.customDates.endDate || '');
+                            }
+                            if (s3.guestTiers && s3.guestTiers.length > 0) {
+                                setGuestTiers(s3.guestTiers.map((gt: any) => ({
+                                    range: `Upto ${gt.maxGuests}`,
+                                    price: String(gt.price || '')
+                                })));
                             }
                         }
                     }
@@ -505,21 +518,24 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                 // Upload any addon policies & media to S3
                 const addonsPayload = [];
                 for (const addon of addons) {
-                    let policyUrl = '';
+                    const uploadedPolicyUrls: string[] = [];
                     if (addon.policies && addon.policies.length > 0) {
-                        const pf = addon.policies[0] as any;
-                        if (pf.file) {
-                            const formData = new FormData();
-                            formData.append('file', pf.file);
-                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                            if (uploadRes.ok) {
-                                const uploadData = await uploadRes.json();
-                                policyUrl = uploadData.url || '';
+                        for (const pf of addon.policies) {
+                            if (pf.file) {
+                                const formData = new FormData();
+                                formData.append('file', pf.file);
+                                formData.append('uploadType', 'policies');
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) uploadedPolicyUrls.push(uploadData.url);
+                                }
+                            } else if (pf.preview) {
+                                uploadedPolicyUrls.push(pf.preview);
                             }
-                        } else if (pf.url) {
-                            policyUrl = pf.url;
                         }
                     }
+                    const policyDocUrl = uploadedPolicyUrls.join(',');
 
                     const mediaUrls = [];
                     if (addon.media && addon.media.length > 0) {
@@ -547,7 +563,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                         description: addon.description || "",
                         price: parseFloat(addon.price) || 0,
                         billingUnit: addon.billingUnit || "Per hour",
-                        policyDocUrl: policyUrl,
+                        policyDocUrl: policyDocUrl,
                         mediaUrls: mediaUrls
                     });
                 }
@@ -632,6 +648,10 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                         price: parseFloat(overtimePrice) || 0,
                         billingUnit: overtimeBillingUnit
                     },
+                    guestTiers: guestTiers.map(tier => ({
+                        maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
+                        price: parseFloat(tier.price) || 0
+                    })),
                     dynamicPricing: {
                         weekends: {
                             enabled: weekendPricing,
@@ -831,6 +851,10 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                         customDatesValue={customDatesValue} setCustomDatesValue={setCustomDatesValue}
                         customDatesStartDate={customDatesStartDate} setCustomDatesStartDate={setCustomDatesStartDate}
                         customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
+                        guestTiers={guestTiers}
+                        addGuestTierOption={addGuestTierOption}
+                        updateGuestTier={updateGuestTier}
+                        removeGuestTier={removeGuestTier}
                         festivalPrices={festivalPrices} setFestivalPrices={setFestivalPrices}
                         lastMinuteFiles={lastMinuteFiles}
                         lastMinuteInputRef={lastMinuteInputRef}

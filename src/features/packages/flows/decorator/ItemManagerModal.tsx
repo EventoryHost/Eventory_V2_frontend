@@ -320,11 +320,11 @@ export function ItemManagerModal({ isOpen, onClose, onSave, onDelete, initialIte
                                                 value={itemData.dimensions || ''}
                                                 onChange={e => setItemData({ ...itemData, dimensions: e.target.value })}
                                                 placeholder="Enter length of lighting"
-                                                className={`flex-1 ${INPUT_CLASS}`}
+                                                className={`flex-1 min-w-0 ${INPUT_CLASS.replace('w-full', '')}`}
                                                 style={INPUT_STYLE}
                                             />
                                             <select
-                                                className={`w-24 ${INPUT_CLASS}`}
+                                                className={`w-[100px] shrink-0 ${INPUT_CLASS.replace('w-full', '')}`}
                                                 style={INPUT_STYLE}
                                             >
                                                 <option value="CM">CM</option>

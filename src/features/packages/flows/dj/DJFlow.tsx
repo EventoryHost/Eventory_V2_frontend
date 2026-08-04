@@ -180,10 +180,15 @@ export default function DJFlow({ onExitFlow }: Props) {
     const [customDatesStartDate, setCustomDatesStartDate] = React.useState('');
     const [customDatesEndDate, setCustomDatesEndDate] = React.useState('');
 
-    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '' }]);
-    const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto 50', price: '' }]);
+    const [guestTiers, setGuestTiers] = React.useState<GuestTier[]>([{ range: 'Upto 50', price: '4000' }, { range: 'Upto 100', price: '4000' }, { range: 'Upto 200', price: '4000' }]);
+    const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
     const updateGuestTier = (index: number, field: 'range' | 'price', value: string) => {
-        setGuestTiers(prev => prev.map((t, i) => i === index ? { ...t, [field]: value } : t));
+        const newTiers = [...guestTiers];
+        newTiers[index][field] = value;
+        setGuestTiers(newTiers);
+    };
+    const removeGuestTier = (index: number) => {
+        setGuestTiers(prev => prev.filter((_, i) => i !== index));
     };
 
     const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
@@ -329,8 +334,8 @@ export default function DJFlow({ onExitFlow }: Props) {
                                     description: a.description || '',
                                     price: String(a.price || ''),
                                     billingUnit: a.billingUnit || 'Per hour',
-                                    policies: a.policyDocUrl ? [{ name: 'Existing Policy', size: 0, preview: a.policyDocUrl } as any] : [],
-                                    media: (a.mediaUrls || []).map((url: string) => ({ name: 'Media File', size: 0, file: null, preview: url })),
+                                    media: a.mediaUrls ? a.mediaUrls.map((u: string, i: number) => ({ name: `Sample ${i + 1}`, size: 0, preview: u } as any)) : [],
+                                    policies: a.policyDocUrl ? a.policyDocUrl.split(',').map((u: string, i: number) => ({ name: `Policy Document ${i + 1}`, size: 0, preview: u } as any)) : [],
                                     productType: a.productType || 'Food'
                                 })));
                             }
@@ -582,38 +587,55 @@ export default function DJFlow({ onExitFlow }: Props) {
                 if (afterSave === 'home') { onExitFlow?.(); return; }
                 setStep(2);
             } else if (step === 2) {
-                // Upload addon policies/media if any
-                const addonsPayload = [];
-                for (const addon of addons) {
-                    let policyUrl = '';
-                    if (addon.policies && addon.policies.length > 0) {
-                        const pf = addon.policies[0] as any;
-                        if (pf.file) {
-                            const formData = new FormData(); formData.append('file', pf.file);
-                            const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                            if (uploadRes.ok) { const data = await uploadRes.json(); policyUrl = data.url || ''; }
-                        } else if (pf.url) { policyUrl = pf.url; }
-                    }
-                    const mediaUrls = [];
-                    if (addon.media && addon.media.length > 0) {
-                        for (const m of addon.media) {
-                            if (m.file) {
-                                const formData = new FormData(); formData.append('file', m.file);
+                const processedAddons = [];
+                for (const a of addons) {
+                    const uploadedPolicyUrls: string[] = [];
+                    if (a.policies && a.policies.length > 0) {
+                        for (const pf of a.policies) {
+                            if (pf.file) {
+                                const formData = new FormData();
+                                formData.append('file', pf.file);
+                                formData.append('uploadType', 'policies');
                                 const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
-                                if (uploadRes.ok) { const data = await uploadRes.json(); if (data.url) mediaUrls.push(data.url); }
-                            } else if (m.preview && !m.preview.startsWith('blob:')) { mediaUrls.push(m.preview); }
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) uploadedPolicyUrls.push(uploadData.url);
+                                }
+                            } else if (pf.preview) {
+                                uploadedPolicyUrls.push(pf.preview);
+                            }
                         }
                     }
-                    addonsPayload.push({
-                        addOnType: addon.type === 'Product' ? 'Product' : 'Service',
-                        name: addon.name,
-                        category: addon.category || "",
-                        subCategory: addon.subCategory || "",
-                        quantity: parseInt(addon.quantity) || 1,
-                        description: addon.description || "",
-                        price: parseFloat(addon.price) || 0,
-                        billingUnit: addon.billingUnit || "Per hour",
-                        policyDocUrl: policyUrl,
+                    const policyDocUrl = uploadedPolicyUrls.join(',');
+                    
+                    const mediaUrls: string[] = [];
+                    if (a.media && a.media.length > 0) {
+                        for (const m of a.media) {
+                            if (m.file) {
+                                const formData = new FormData();
+                                formData.append('file', m.file);
+                                formData.append('uploadType', 'media');
+                                const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData });
+                                if (uploadRes.ok) {
+                                    const uploadData = await uploadRes.json();
+                                    if (uploadData.url) mediaUrls.push(uploadData.url);
+                                }
+                            } else if (m.preview) {
+                                mediaUrls.push(m.preview);
+                            }
+                        }
+                    }
+
+                    processedAddons.push({
+                        addOnType: a.type || "Service",
+                        name: a.name || "",
+                        category: a.category || "",
+                        subCategory: a.subCategory || "",
+                        quantity: Number(a.quantity) || 1,
+                        description: a.description || "",
+                        price: parseFloat(a.price) || 0,
+                        billingUnit: a.billingUnit || "Per hour",
+                        policyDocUrl: policyDocUrl,
                         mediaUrls: mediaUrls
                     });
                 }
@@ -652,7 +674,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                         subCategory: e.subCategory
                     })),
                     hasBackupEquipment,
-                    addOns: addonsPayload,
+                    addOns: processedAddons,
                     included: providedDetails.split('\n').map(s => s.trim()).filter(Boolean),
                     notIncluded: notProvidedDetails.split('\n').map(s => s.trim()).filter(Boolean)
                 };
@@ -957,7 +979,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                         policyDocs={policyDocs} setPolicyDocs={setPolicyDocs}
                         djItems={djItems}
                         addons={addons}
-                        guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier}
+                        guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier} removeGuestTier={removeGuestTier}
                     />
                 )}
                 

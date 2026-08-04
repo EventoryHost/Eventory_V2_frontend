@@ -41,7 +41,7 @@ interface Props {
     customDatesStartDate: string; setCustomDatesStartDate: (v: string) => void;
     customDatesEndDate: string; setCustomDatesEndDate: (v: string) => void;
 
-    guestTiers: GuestTier[]; addGuestTierOption: () => void; updateGuestTier: (i: number, f: 'range' | 'price', v: string) => void;
+    guestTiers: GuestTier[]; addGuestTierOption: () => void; updateGuestTier: (i: number, f: 'range' | 'price', v: string) => void; removeGuestTier: (i: number) => void;
 
     cancellationDocs: PolicyFile[]; setCancellationDocs: (docs: PolicyFile[]) => void;
     lastMinuteDocs: PolicyFile[]; setLastMinuteDocs: (docs: PolicyFile[]) => void;
@@ -653,7 +653,7 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                                 </div>
 
                                 {customDatesPricing && (
-                                    <div className="ml-[34px] p-5 bg-[#F8F9FA] rounded-[16px] flex flex-col gap-4 border border-[#E4E4E7]/60">
+                                    <div className="mt-1 p-5 bg-[#F8F9FA] rounded-[16px] flex flex-col gap-4 border border-[#E4E4E7]/60">
                                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B] uppercase tracking-wider block">SET CUSTOM DATES PRICE</span>
                                         
                                         <div className="grid grid-cols-2 gap-3">
@@ -741,30 +741,80 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                                 )}
                             </div>
 
-                            {/* Guest Count Pricing inside Dynamic Pricing */}
-                            <div className="mt-4 flex flex-col gap-4">
-                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Guest Count Pricing</h3>
-                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#3F3F47] mt-[-10px]">Set different prices based on how many guests attend</p>
+                            {/* Guest Count Pricing Section */}
+                            <div className="flex flex-col gap-4 border-t border-[#E4E4E7] pt-6 mt-4">
+                                <div className="flex flex-col gap-1">
+                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Guest Count Pricing</h4>
+                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] font-medium">
+                                        Set different prices based on how many guests attend
+                                    </p>
+                                </div>
                                 
-                                <div className="flex flex-col gap-3">
+                                <div className="flex flex-col gap-3 mt-1">
+                                    {/* Column Headers */}
+                                    <div className="flex items-center gap-2 mb-1 px-1">
+                                        <div className="flex-1">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">NO OF GUESTS</span>
+                                        </div>
+                                        <span className="px-1 opacity-0">-</span>
+                                        <div className="flex-1">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">COST PER PERSON</span>
+                                        </div>
+                                        <div className="w-8 flex-shrink-0"></div>
+                                    </div>
+
                                     {p.guestTiers.map((tier, i) => (
-                                        <div key={i} className="flex items-center gap-3 p-1">
+                                        <div key={i} className="flex items-center gap-2">
                                             <div className="relative flex-1">
-                                                <select value={tier.range} onChange={(e) => p.updateGuestTier(i, 'range', e.target.value)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full p-3.5 bg-white border border-[#E4E4E7] rounded-[8px] text-[14px] font-semibold text-[#3F3F47] appearance-none focus:outline-none">
-                                                    {['Upto 50','Upto 100','Upto 200','Upto 500','Upto 1000'].map(o => <option key={o}>{o}</option>)}
+                                                <select 
+                                                    value={tier.range} 
+                                                    onChange={(e) => p.updateGuestTier(i, 'range', e.target.value)} 
+                                                    style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                    className="w-full p-3 pr-10 bg-white border border-[#E4E4E7] rounded-[12px] text-[14px] font-medium text-[#030303] appearance-none focus:outline-none focus:border-[#04222D]"
+                                                >
+                                                    {['Upto 50','Upto 100','Upto 200','Upto 500','Upto 1000','Upto X'].map(o => (
+                                                        <option key={o} value={o}>{o}</option>
+                                                    ))}
                                                 </select>
-                                                <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                                             </div>
-                                            <span className="text-[#D4D4D8] font-bold">-</span>
-                                            <div className="flex-1 relative flex items-center bg-white border border-[#E4E4E7] rounded-[8px] overflow-hidden">
-                                                <span className="absolute left-4 text-[14px] font-semibold text-[#3F3F47]">₹</span>
-                                                <input type="text" placeholder="4000" value={tier.price} onChange={(e) => p.updateGuestTier(i, 'price', e.target.value.replace(/[^0-9]/g, ''))} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-3.5 pl-9 pr-10 text-[14px] font-semibold text-[#3F3F47] focus:outline-none" />
-                                                <button className="absolute right-3 text-[#71717B]"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
+                                            
+                                            <span className="text-gray-400 font-medium px-1">-</span>
+                                            
+                                            <div className="relative flex-1">
+                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-medium text-[#71717B]">₹</span>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="0" 
+                                                    value={tier.price} 
+                                                    onChange={(e) => p.updateGuestTier(i, 'price', e.target.value.replace(/[^0-9]/g, ''))} 
+                                                    style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                    className="w-full p-3 pl-8 bg-white border border-[#E4E4E7] rounded-[12px] text-[14px] font-medium text-[#030303] focus:outline-none focus:border-[#04222D]" 
+                                                />
                                             </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={() => p.removeGuestTier(i)}
+                                                className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                                            >
+                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                    <circle cx="12" cy="12" r="9" stroke="#030303" strokeWidth="1.5" />
+                                                    <line x1="8" y1="12" x2="16" y2="12" stroke="#030303" strokeWidth="1.5" />
+                                                </svg>
+                                            </button>
                                         </div>
                                     ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={p.addGuestTierOption}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] mt-2 py-2 hover:opacity-80 transition-opacity bg-transparent"
+                                    >
+                                        <Plus size={18} /> Add Guest Range
+                                    </button>
                                 </div>
-                                <button onClick={p.addGuestTierOption} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-3 bg-white text-[#3F3F47] font-bold text-[14px] flex items-center justify-center gap-2 hover:bg-gray-50"><PlusCircle size={16} /> Add Guest Range</button>
                             </div>
                         </div>
                     );
@@ -788,13 +838,24 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                         <Plus size={18} className="text-[#9F9FA9] shrink-0" />
                     </button>
                 ) : (
-                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{p.cancellationDocs[0].name}</span></div>
-                        <button onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
-                        <button onClick={() => p.setCancellationDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    <div className="flex flex-col gap-3">
+                        {p.cancellationDocs.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Cancellation Policy</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button onClick={() => {
+                                    const newDocs = [...p.cancellationDocs];
+                                    newDocs.splice(idx, 1);
+                                    p.setCancellationDocs(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -809,13 +870,24 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                         <Plus size={18} className="text-[#9F9FA9] shrink-0" />
                     </button>
                 ) : (
-                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{p.lastMinuteDocs[0].name}</span></div>
-                        <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
-                        <button onClick={() => p.setLastMinuteDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    <div className="flex flex-col gap-3">
+                        {p.lastMinuteDocs.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Last Minute Charges</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button onClick={() => {
+                                    const newDocs = [...p.lastMinuteDocs];
+                                    newDocs.splice(idx, 1);
+                                    p.setLastMinuteDocs(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -830,13 +902,24 @@ export default function DJStep3PricingAndPolicies(p: Props) {
                         <Plus size={18} className="text-[#9F9FA9] shrink-0" />
                     </button>
                 ) : (
-                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{p.policyDocs[0].name}</span></div>
-                        <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
-                        <button onClick={() => p.setPolicyDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    <div className="flex flex-col gap-3">
+                        {p.policyDocs.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">General Policy</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button onClick={() => {
+                                    const newDocs = [...p.policyDocs];
+                                    newDocs.splice(idx, 1);
+                                    p.setPolicyDocs(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
                     </div>
                 )}
 

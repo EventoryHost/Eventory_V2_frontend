@@ -174,7 +174,7 @@ export default function CatererPublishSummary({ packageId, packageData, onBack }
                 body: JSON.stringify({})
             });
             if (res.ok) {
-                window.location.href = '/dashboard/packages';
+                window.location.href = '/dashboard/inventory';
             } else {
                 alert('Failed to submit for review');
             }

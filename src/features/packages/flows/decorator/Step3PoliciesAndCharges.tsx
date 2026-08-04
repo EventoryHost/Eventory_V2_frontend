@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
-import { ChevronDown, Check, Info, RefreshCw, X, Plus, PlusCircle } from 'lucide-react';
+import { Upload, X, FileText, Check, Plus, ChevronDown, Info, RefreshCw } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import PolicyBottomSheet from '../pav/PolicyBottomSheet';
-import { PolicyFile } from '../../shared/types';
+import { PolicyFile, formatFileSize, GuestTier } from '../../shared/types';
 import CustomDateRangePicker from '../../components/CustomDateRangePicker';
 
 interface Props {
@@ -49,11 +50,11 @@ interface Props {
     setCustomDatesValue: (v: string) => void;
     customDatesStartDate: string;
     setCustomDatesStartDate: (v: string) => void;
-    customDatesEndDate: string;
-    setCustomDatesEndDate: (v: string) => void;
-
-    cancellationDocs: PolicyFile[];
-    setCancellationDocs: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
+    customDatesEndDate: string; setCustomDatesEndDate: (v: string) => void;
+    guestTiers: GuestTier[]; addGuestTierOption: () => void;
+    updateGuestTier: (i: number, f: 'range' | 'price', v: string) => void;
+    removeGuestTier: (i: number) => void;
+    cancellationDocs: PolicyFile[]; setCancellationDocs: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
     lastMinuteDocs: PolicyFile[];
     setLastMinuteDocs: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
     policyDocs: PolicyFile[];
@@ -106,17 +107,12 @@ export default function DecoratorStep3PoliciesAndCharges({
 
     customDatesPricing,
     setCustomDatesPricing,
-    customDatesIncreaseType,
-    setCustomDatesIncreaseType,
-    customDatesValue,
-    setCustomDatesValue,
-    customDatesStartDate,
-    setCustomDatesStartDate,
-    customDatesEndDate,
-    setCustomDatesEndDate,
-
-    cancellationDocs,
-    setCancellationDocs,
+    customDatesIncreaseType, setCustomDatesIncreaseType,
+    customDatesValue, setCustomDatesValue,
+    customDatesStartDate, setCustomDatesStartDate,
+    customDatesEndDate, setCustomDatesEndDate,
+    guestTiers, addGuestTierOption, updateGuestTier, removeGuestTier,
+    cancellationDocs, setCancellationDocs,
     lastMinuteDocs,
     setLastMinuteDocs,
     policyDocs,
@@ -503,61 +499,190 @@ export default function DecoratorStep3PoliciesAndCharges({
                                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-[#030303]">Custom Dates</span>
                                     </div>
 
-                                    {customDatesPricing && (
-                                        <div className="ml-8 p-5 bg-[#FAFAFA] border border-[#E4E4E7] rounded-[16px] flex flex-col gap-4">
-                                            <div className="w-full max-w-[280px]">
-                                                <CustomDateRangePicker 
-                                                    startDate={customDatesStartDate}
-                                                    endDate={customDatesEndDate}
-                                                    onDateChange={(start, end) => {
-                                                        setCustomDatesStartDate(start);
-                                                        setCustomDatesEndDate(end);
-                                                    }}
-                                                />
-                                            </div>
+                                        {customDatesPricing && (
+                                            <div className="mt-1 p-4 bg-[#FAFAFA] border border-[#D4D4D8] rounded-[16px] flex flex-col gap-5">
+                                                <div className="flex flex-col gap-3">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303]">Choose Date</span>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div className="flex flex-col gap-1">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#9F9FA9]">Start</span>
+                                                            <div className="relative">
+                                                                <input 
+                                                                    type="date" 
+                                                                    value={customDatesStartDate} 
+                                                                    onChange={(e) => setCustomDatesStartDate(e.target.value)} 
+                                                                    onClick={(e) => (e.target as HTMLInputElement).showPicker && (e.target as HTMLInputElement).showPicker()}
+                                                                    className="w-full bg-[#F4F4F5] border border-[#E4E4E7] rounded-[8px] px-2.5 py-2.5 text-[13px] font-medium text-[#030303] focus:outline-none cursor-pointer" 
+                                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex flex-col gap-1">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#9F9FA9]">End</span>
+                                                            <div className="relative">
+                                                                <input 
+                                                                    type="date" 
+                                                                    value={customDatesEndDate} 
+                                                                    onChange={(e) => setCustomDatesEndDate(e.target.value)} 
+                                                                    onClick={(e) => (e.target as HTMLInputElement).showPicker && (e.target as HTMLInputElement).showPicker()}
+                                                                    className="w-full bg-[#F4F4F5] border border-[#E4E4E7] rounded-[8px] px-2.5 py-2.5 text-[13px] font-medium text-[#030303] focus:outline-none cursor-pointer" 
+                                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-                                            <div className="flex flex-col gap-1.5 mt-2">
-                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#030303]">Label Price</span>
-                                                <div className="w-[140px] bg-white border border-[#E4E4E7] rounded-[8px] px-3 py-2 flex items-center gap-1.5 h-[42px]">
-                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#71717B] flex-shrink-0">Rs.</span>
-                                                    <input
-                                                        type="text"
-                                                        value={customDatesInputVal ? new Intl.NumberFormat('en-IN').format(parseFloat(customDatesInputVal)) : ''}
-                                                        onChange={(e) => {
-                                                            setCustomDatesIncreaseType('Fixed Price');
-                                                            setCustomDatesValue(e.target.value.replace(/[^0-9]/g, ''));
-                                                        }}
-                                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                                        className="w-full bg-transparent text-[14px] font-bold text-[#030303] focus:outline-none"
-                                                    />
+                                                <div className="flex flex-col gap-3">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">QUICK ADD</span>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue('10'); }}
+                                                            className={`px-4 py-2 rounded-full border text-[13px] font-semibold transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue === '10' ? 'bg-transparent text-[#030303] border-[#030303]' : 'bg-transparent text-[#9F9FA9] border-[#D4D4D8] hover:border-gray-400'}`}
+                                                        >
+                                                            + 10 %
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue('20'); }}
+                                                            className={`px-4 py-2 rounded-full border text-[13px] font-semibold transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue === '20' ? 'bg-transparent text-[#030303] border-[#030303]' : 'bg-transparent text-[#9F9FA9] border-[#D4D4D8] hover:border-gray-400'}`}
+                                                        >
+                                                            + 20 %
+                                                        </button>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue(''); }}
+                                                            className={`px-4 py-2 rounded-full border text-[13px] font-semibold transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue !== '10' && customDatesValue !== '20' ? 'bg-transparent text-[#030303] border-[#030303]' : 'bg-transparent text-[#9F9FA9] border-[#D4D4D8] hover:border-gray-400'}`}
+                                                        >
+                                                            Custom
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    {customDatesIncreaseType === 'Percentage' && customDatesValue !== '10' && customDatesValue !== '20' && (
+                                                        <div className="flex items-center justify-between w-full mt-1 bg-white border border-[#D4D4D8] rounded-[8px] p-3">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#9F9FA9]">Custom percentage</span>
+                                                            <div className="flex items-center gap-1">
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="0"
+                                                                    value={customDatesValue}
+                                                                    onChange={(e) => setCustomDatesValue(e.target.value.replace(/[^0-9]/g, ''))}
+                                                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                                                    className="w-8 bg-transparent text-[13px] font-semibold text-right text-[#030303] focus:outline-none placeholder:text-[#9F9FA9]"
+                                                                />
+                                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303]">%</span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                <div className="flex items-start gap-2 mt-1">
+                                                    <div className="min-w-[14px] mt-[3px]">
+                                                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M7 13C10.3137 13 13 10.3137 13 7C13 3.68629 10.3137 1 7 1C3.68629 1 1 3.68629 1 7C1 10.3137 3.68629 13 7 13Z" stroke="#71717B" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            <path d="M7 9.4V7" stroke="#71717B" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                            <path d="M7 4.6001H7.006" stroke="#71717B" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                                                        </svg>
+                                                    </div>
+                                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#71717B] leading-tight">
+                                                        {(() => {
+                                                            const base = parseFloat(teamEquipmentPrice) || 3000;
+                                                            let incAmt = 0;
+                                                            let pct = 0;
+                                                            if (customDatesIncreaseType === 'Percentage') {
+                                                                pct = parseFloat(customDatesValue) || 0;
+                                                                incAmt = base * (pct / 100);
+                                                            } else {
+                                                                const val = parseFloat(customDatesValue) || 0;
+                                                                incAmt = Math.max(0, val - base);
+                                                                pct = base > 0 ? Math.round((incAmt / base) * 100) : 0;
+                                                            }
+                                                            return `Weekday price: ₹${new Intl.NumberFormat('en-IN').format(base)}. You're charging ₹${new Intl.NumberFormat('en-IN').format(incAmt)} more (+${pct}%)`;
+                                                        })()}
+                                                    </p>
                                                 </div>
                                             </div>
-
-                                            <div className="flex flex-col gap-2">
-                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9]">Quick Add</span>
-                                                <div className="flex flex-wrap gap-2">
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue('10'); }}
-                                                        className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue === '10' ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'}`}
-                                                    >
-                                                        + 10 %
-                                                    </button>
-                                                    <button 
-                                                        type="button"
-                                                        onClick={() => { setCustomDatesIncreaseType('Percentage'); setCustomDatesValue('20'); }}
-                                                        className={`px-3 py-1.5 rounded-full border text-[12px] font-medium transition-colors ${customDatesIncreaseType === 'Percentage' && customDatesValue === '20' ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-white text-[#71717B] border-[#D4D4D8] hover:bg-gray-50'}`}
-                                                    >
-                                                        + 20 %
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
+                                </div>
                                 </div>
 
+                                {/* Guest Count Pricing Section */}
+                                <div className="flex flex-col gap-4 border-t border-[#E4E4E7] pt-6 mt-4">
+                                    <div className="flex flex-col gap-1">
+                                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Guest Count Pricing</h4>
+                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B] font-medium">
+                                            Set different prices based on how many guests attend
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="flex flex-col gap-3 mt-1">
+                                        {/* Column Headers */}
+                                        <div className="flex items-center gap-2 mb-1 px-1">
+                                            <div className="flex-1">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">NO OF GUESTS</span>
+                                            </div>
+                                            <span className="px-1 opacity-0">-</span>
+                                            <div className="flex-1">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">COST PER PERSON</span>
+                                            </div>
+                                            <div className="w-8 flex-shrink-0"></div>
+                                        </div>
+
+                                        {guestTiers.map((tier, i) => (
+                                            <div key={i} className="flex items-center gap-2">
+                                                <div className="relative flex-1">
+                                                    <select 
+                                                        value={tier.range} 
+                                                        onChange={(e) => updateGuestTier(i, 'range', e.target.value)} 
+                                                        style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                        className="w-full p-3 pr-10 bg-white border border-[#E4E4E7] rounded-[12px] text-[14px] font-medium text-[#030303] appearance-none focus:outline-none focus:border-[#04222D]"
+                                                    >
+                                                        {['Upto 50','Upto 100','Upto 200','Upto 500','Upto 1000','Upto X'].map(o => (
+                                                            <option key={o} value={o}>{o}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                                                </div>
+                                                
+                                                <span className="text-gray-400 font-medium px-1">-</span>
+                                                
+                                                <div className="relative flex-1">
+                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-medium text-[#71717B]">₹</span>
+                                                    <input 
+                                                        type="text" 
+                                                        placeholder="0" 
+                                                        value={tier.price} 
+                                                        onChange={(e) => updateGuestTier(i, 'price', e.target.value.replace(/[^0-9]/g, ''))} 
+                                                        style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                        className="w-full p-3 pl-8 bg-white border border-[#E4E4E7] rounded-[12px] text-[14px] font-medium text-[#030303] focus:outline-none focus:border-[#04222D]" 
+                                                    />
+                                                </div>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeGuestTier(i)}
+                                                    className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                                                >
+                                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                                        <circle cx="12" cy="12" r="9" stroke="#030303" strokeWidth="1.5" />
+                                                        <line x1="8" y1="12" x2="16" y2="12" stroke="#030303" strokeWidth="1.5" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        <button
+                                            type="button"
+                                            onClick={addGuestTierOption}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] mt-2 py-2 hover:opacity-80 transition-opacity bg-transparent"
+                                        >
+                                            <Plus size={18} /> Add Guest Range
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
                     );
                 })()}
             </div>
@@ -579,13 +704,21 @@ export default function DecoratorStep3PoliciesAndCharges({
                         <Plus size={18} className="text-[#9F9FA9] shrink-0" />
                     </button>
                 ) : (
-                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{cancellationDocs[0].name}</span></div>
-                        <button onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
-                        <button onClick={() => setCancellationDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    <div className="flex flex-col gap-3">
+                        {cancellationDocs.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Cancellation Policy</span><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span></div>
+                                <button onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button onClick={() => {
+                                    const newDocs = [...cancellationDocs];
+                                    newDocs.splice(idx, 1);
+                                    setCancellationDocs(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -600,13 +733,24 @@ export default function DecoratorStep3PoliciesAndCharges({
                         <Plus size={18} className="text-[#9F9FA9] shrink-0" />
                     </button>
                 ) : (
-                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{lastMinuteDocs[0].name}</span></div>
-                        <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
-                        <button onClick={() => setLastMinuteDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    <div className="flex flex-col gap-3">
+                        {lastMinuteDocs.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Last Minute Charges</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button onClick={() => {
+                                    const newDocs = [...lastMinuteDocs];
+                                    newDocs.splice(idx, 1);
+                                    setLastMinuteDocs(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
@@ -621,13 +765,24 @@ export default function DecoratorStep3PoliciesAndCharges({
                         <Plus size={18} className="text-[#9F9FA9] shrink-0" />
                     </button>
                 ) : (
-                    <div className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
-                        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-                            <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </div>
-                        <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{policyDocs[0].name}</span></div>
-                        <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
-                        <button onClick={() => setPolicyDocs([])} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                    <div className="flex flex-col gap-3">
+                        {policyDocs.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">General Policy</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button onClick={() => {
+                                    const newDocs = [...policyDocs];
+                                    newDocs.splice(idx, 1);
+                                    setPolicyDocs(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
                     </div>
                 )}
 
