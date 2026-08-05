@@ -1,28 +1,37 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, ShieldAlert, BadgeCheck, MapPin, Users, Clock, MinusCircle } from 'lucide-react';
 import { AddonModal } from '../components/AddonModal';
+import { EditableTotal } from '../components/EditableTotal';
 import { apiUrl } from '@/lib/api';
 
 interface Props {
     packageId: string | null;
     packageData: any;
+    allVariants: any[];
     onBack: () => void;
 }
 
-export default function DecoratorPublishSummary({ packageId, packageData, onBack }: Props) {
+export default function DecoratorPublishSummary({ packageId, packageData: initialPackageData, allVariants, onBack }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    // Variants
-    const dbVariants = packageData.step3_policiesAndCharges?.variantPricing || [];
-    const variants = dbVariants.length > 0 ? dbVariants : [
-        { variantName: 'Premium', price: packageData.step2_productsAndPricing?.totalPackagePrice || 0 },
-        { variantName: 'Standard', price: (packageData.step2_productsAndPricing?.totalPackagePrice || 0) * 0.8 },
-        { variantName: 'Basic', price: (packageData.step2_productsAndPricing?.totalPackagePrice || 0) * 0.5 },
-    ];
-    const hasVariants = variants.length > 0;
-    const [selectedVariant, setSelectedVariant] = useState(hasVariants ? variants[0].variantName : 'Base Package');
+    // Filter variants safely, handling the case where `allVariants` is empty
+    const variants = allVariants && allVariants.length > 0 ? allVariants : [initialPackageData];
+    const hasVariants = variants.length > 0; // Only show selector if > 1 variant
 
-    const basePrice = packageData.step2_productsAndPricing?.totalPackagePrice || 0;
+    const [selectedVariantId, setSelectedVariantId] = useState(variants[0]._id || initialPackageData._id);
+
+    // Active package data is based on selected variant
+    const packageData = variants.find(v => v._id === selectedVariantId) || initialPackageData;
+
+    // A helper to determine if a variant is "incomplete"
+    const isVariantIncomplete = (v: any) => {
+        const hasName = !!(v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName);
+        const hasPrice = v.step3_pricing?.basePrice > 0 || v.step2_productsAndPricing?.totalPackagePrice > 0;
+        const hasDeliverables = (v.step2_productsAndPricing?.setups?.length > 0) || (v.step2_productsAndPricing?.items?.length > 0);
+        return !(hasName && hasPrice && hasDeliverables);
+    };
+
+    const basePrice = packageData.step3_pricing?.basePrice || packageData.step2_productsAndPricing?.totalPackagePrice || 0;
 
     const pkgName = packageData.step1_eventAndCrew?.packageName || packageData.step1_basicDetails?.packageName || '';
     const cities = packageData.step1_eventAndCrew?.cities?.join(', ') || '';
@@ -175,8 +184,11 @@ export default function DecoratorPublishSummary({ packageId, packageData, onBack
         <div className="flex flex-col min-h-screen bg-white max-w-[448px] mx-auto w-full shadow-[0_0_20px_rgba(0,0,0,0.02)]">
             
             {/* Header */}
-            <div className="flex items-center justify-between p-4 bg-white sticky top-0 z-10 border-b border-[#F4F4F5]">
-                <h1 className="text-[18px] font-bold text-[#04222D] tracking-tight m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>
+            <div className="flex items-center gap-4 p-4 bg-white border-b border-[#F4F4F5] sticky top-0 z-20">
+                <button onClick={onBack} disabled={isSubmitting} className="p-1 -ml-1 rounded-full hover:bg-gray-100 transition-colors">
+                    <ArrowLeft size={24} color="#04222D" />
+                </button>
+                <h1 className="text-[18px] font-extrabold text-[#04222D] tracking-tight m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>
                     Publish your package
                 </h1>
             </div>
@@ -188,24 +200,30 @@ export default function DecoratorPublishSummary({ packageId, packageData, onBack
                 {hasVariants && (
                     <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5]">
-                            {variants.map((v: any, idx: number) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => setSelectedVariant(v.variantName)}
-                                    className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-[12px] font-bold transition-all ${
-                                        selectedVariant === v.variantName 
-                                        ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#04222D] border border-[#E4E4E7]' 
-                                        : 'text-[#71717B] hover:text-[#04222D] border border-transparent'
-                                    }`}
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                >
-                                    <div className="w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center">
-                                        <span className="text-white text-[10px] font-bold">i</span>
-                                    </div>
-                                    {v.variantName}
-                                </button>
-                            ))}
+                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                            {variants.map((v: any) => {
+                                const variantName = v.variantType || v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName || 'Untitled Variant';
+                                const incomplete = isVariantIncomplete(v);
+                                return (
+                                    <button
+                                        key={v._id}
+                                        onClick={() => setSelectedVariantId(v._id)}
+                                        className={`flex-none min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[12px] font-bold transition-all whitespace-nowrap ${
+                                            selectedVariantId === v._id 
+                                            ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#04222D] border border-[#E4E4E7]' 
+                                            : 'text-[#71717B] hover:text-[#04222D] border border-transparent'
+                                        }`}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    >
+                                        {incomplete && (
+                                            <div className="w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center">
+                                                <span className="text-white text-[10px] font-bold">!</span>
+                                            </div>
+                                        )}
+                                        {variantName}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -254,7 +272,7 @@ export default function DecoratorPublishSummary({ packageId, packageData, onBack
                             <div className="flex flex-col">
                                 <span className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-0.5">STARTING FROM</span>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-[20px] font-extrabold text-[#000000]" style={{ fontFamily: 'Figtree, sans-serif' }}>₹{basePrice?.toLocaleString('en-IN')}</span>
+                                    <EditableTotal packageId={selectedVariantId} vendorType="Decorator" initialPrice={basePrice || 0} />
                                     <span className="text-[13px] font-bold text-[#000000]" style={{ fontFamily: 'Figtree, sans-serif' }}>/event</span>
                                 </div>
                             </div>

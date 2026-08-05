@@ -12,6 +12,7 @@ import { AddonModal, Addon } from '../../components/AddonModal';
 import { DecoratorAddonModal } from './DecoratorAddonModal';
 import { useFlowVariants } from '../../shared/useFlowVariants';
 import { PolicyFile, SampleMediaFile, GuestTier } from '../../shared/types';
+import { VariantManager } from '../../components/VariantManager';
 
 const STEPS = ['Package basics', 'Setups and Pricing', 'Policies and Charges', 'Sample and Media'];
 const VENUE_NEEDS_OPTIONS = [
@@ -59,6 +60,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
     // Step 3 States
     const [teamEquipmentPrice, setTeamEquipmentPrice] = React.useState('');
     const [teamEquipmentUnit, setTeamEquipmentUnit] = React.useState('Per hour');
+    const [gstInclusive, setGstInclusive] = React.useState(false);
+    const [gstRatePercent, setGstRatePercent] = React.useState('');
     const [lastMinuteFiles, setLastMinuteFiles] = React.useState<PolicyFile[]>([]);
     const [policyFiles, setPolicyFiles] = React.useState<PolicyFile[]>([]);
     const [lastMinuteChargesDescription, setLastMinuteChargesDescription] = React.useState('');
@@ -114,6 +117,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
 
     // Database Integration States
     const [packageId, setPackageId] = React.useState<string | null>(null);
+    const [packageGroupId, setPackageGroupId] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
     const isInitializing = React.useRef(false);
 
@@ -204,6 +208,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         const requestedPackageId = localStorage.getItem('selected_package_id');
                         const pkg = decoratorDrafts.find((item: any) => item._id === requestedPackageId) || decoratorDrafts[0];
                         setPackageId(pkg._id);
+                        setPackageGroupId(pkg.packageGroupId);
                         sessionStorage.setItem('draft_package_id_Decorator', pkg._id);
                         
                         // Populate Step 1 (Event & Crew)
@@ -297,6 +302,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                             if (s3.teamAndEquipment) {
                                 setTeamEquipmentPrice(String(s3.teamAndEquipment.price || ''));
                                 setTeamEquipmentUnit(s3.teamAndEquipment.billingUnit || 'Per hour');
+                    if (s3.gstInclusive !== undefined) setGstInclusive(s3.gstInclusive);
+                    if (s3.gstRatePercent !== undefined) setGstRatePercent(String(s3.gstRatePercent));
                             }
                             if (s3.dynamicPricing) {
                                 const dp = s3.dynamicPricing;
@@ -420,6 +427,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                 const data = await res.json();
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
+                    setPackageGroupId(data.packageGroupId);
                     sessionStorage.setItem('draft_package_id_Decorator', data.packageId);
                         localStorage.setItem('selected_package_id', data.packageId);
                 }
@@ -467,6 +475,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                 if (initData.status === 'SUCCESS' && initData.packageId) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
+                    setPackageGroupId(initData.packageGroupId);
                     sessionStorage.setItem('draft_package_id_Decorator', initData.packageId);
                     localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
@@ -715,6 +724,8 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         price: parseFloat(teamEquipmentPrice) || 0,
                         billingUnit: teamEquipmentUnit
                     },
+                    gstInclusive,
+                    gstRatePercent: 18,
                     guestTiers: guestTiers.map(tier => ({
                         maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
                         price: parseFloat(tier.price) || 0
@@ -974,24 +985,21 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
             </div>
 
             {/* Variants Bar */}
-            <div className="px-6 pb-4 bg-white">
-                <div className="max-w-md mx-auto flex flex-col gap-3">
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase leading-[16px]">
-                        VARIANTS
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={() => variants.setIsVariantModalOpen(true)}
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className="px-4 py-2 rounded-full text-[14px] font-semibold border border-[#04222D] text-[#04222D] bg-white flex items-center gap-2 leading-[20px]"
-                        >
-                            {variants.selectedVariant}
-                            <ChevronDown size={15} />
-                        </button>
+            {packageId && packageGroupId && (
+                <div className="px-6 pt-6 pb-4 bg-white">
+                    <div className="max-w-md mx-auto">
+                        <VariantManager 
+                            packageId={packageId}
+                            packageGroupId={packageGroupId}
+                            vendorType="Decorator"
+                            onVariantChange={(newId) => {
+                                localStorage.setItem('selected_package_id', newId);
+                                window.dispatchEvent(new Event('refresh_package_flow'));
+                            }}
+                        />
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Step Progress Bar */}
             <div className="px-6 py-4 bg-white border-b border-[#F4F4F5]">
@@ -1035,8 +1043,10 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         venueNeedsOptions={VENUE_NEEDS_OPTIONS}
                     />
                 )}
-                {step === 2 && (
+                {step === 2 && packageId && packageGroupId && (
                     <DecoratorStep2SetupsAndPricing
+                        packageId={packageId}
+                        packageGroupId={packageGroupId}
                         setups={setups}
                         handleAddSetup={handleAddSetup}
                         handleEditSetup={handleEditSetup}
@@ -1059,6 +1069,10 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                         setTeamEquipmentPrice={setTeamEquipmentPrice}
                         teamEquipmentUnit={teamEquipmentUnit}
                         setTeamEquipmentUnit={setTeamEquipmentUnit}
+                        gstInclusive={gstInclusive}
+                        setGstInclusive={setGstInclusive}
+                        gstRatePercent={gstRatePercent}
+                        setGstRatePercent={setGstRatePercent}
                         setups={setups}
                         customDatesPricing={customDatesPricing}
                         setCustomDatesPricing={setCustomDatesPricing}

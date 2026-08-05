@@ -36,8 +36,11 @@ export interface Setup {
 }
 
 import { ItemManagerModal } from './ItemManagerModal';
+import { VariantManager } from '../../components/VariantManager';
 
 interface Props {
+    packageId: string;
+    packageGroupId: string;
     setups: Setup[];
     handleAddSetup: (setup: Setup) => void;
     handleEditSetup: (setup: Setup) => void;
@@ -264,6 +267,8 @@ const MultiSelectPills = ({
 };
 
 export default function DecoratorStep2SetupsAndPricing({
+    packageId,
+    packageGroupId,
     setups,
     handleAddSetup,
     handleEditSetup,
@@ -489,6 +494,16 @@ export default function DecoratorStep2SetupsAndPricing({
                 }
             ` }} />
             <div className="flex flex-col gap-6 pb-40">
+                <VariantManager 
+                    packageId={packageId} 
+                    packageGroupId={packageGroupId} 
+                    vendorType="Decorator"
+                    onVariantChange={(newId) => {
+                        localStorage.setItem('selected_package_id', newId);
+                        window.dispatchEvent(new Event('refresh_package_flow'));
+                    }}
+                />
+                
                 {/* ── SETUPS Section ── */}
                 <div className="flex flex-col gap-3">
                     <div className="flex items-center justify-between mb-1">

@@ -21,6 +21,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
+    const isInitializing = React.useRef(false);
 
     // --- Step 1 State ---
     const [packageName, setPackageName] = React.useState('');
@@ -46,6 +47,8 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const [teamChargeType, setTeamChargeType] = React.useState('Per Package');
     const [teamPrice, setTeamPrice] = React.useState('');
     const [overtimeRate, setOvertimeRate] = React.useState('');
+    const [gstInclusive, setGstInclusive] = React.useState(false);
+    const [gstRatePercent, setGstRatePercent] = React.useState("");
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(true);
     const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Fixed Price');
@@ -87,7 +90,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
 
     // Integration States
     const [packageId, setPackageId] = React.useState<string | null>(null);
-    const isInitializing = React.useRef(false);
+    const [packageGroupId, setPackageGroupId] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
 
     React.useEffect(() => {
@@ -116,6 +119,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                         const requestedPackageId = localStorage.getItem('selected_package_id');
                         const pkg = venueDrafts.find((item: any) => item._id === requestedPackageId) || venueDrafts[0];
                         setPackageId(pkg._id);
+                        setPackageGroupId(pkg.packageGroupId);
                         sessionStorage.setItem('draft_package_id_VEN', pkg._id);
 
                         // Populate Step 1
@@ -199,6 +203,8 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                                 }
                                 setOvertimeRate(String(s3.pricing.overtimeRate || ''));
                             }
+                            if (s3.gstInclusive !== undefined) setGstInclusive(s3.gstInclusive);
+                            if (s3.gstRatePercent !== undefined) setGstRatePercent(String(s3.gstRatePercent));
                             if (s3.dynamicPricing) {
                                 const dp = s3.dynamicPricing;
                                 // In case it's an array from old data, just enable if there's anything
@@ -320,6 +326,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 const data = await res.json();
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
+                    setPackageGroupId(data.packageGroupId);
                     sessionStorage.setItem('draft_package_id_VEN', data.packageId);
                         localStorage.setItem('selected_package_id', data.packageId);
                 }
@@ -359,6 +366,7 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (initData.status === 'SUCCESS' && initData.packageId) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
+                    setPackageGroupId(initData.packageGroupId);
                     sessionStorage.setItem('draft_package_id_VEN', initData.packageId);
                     localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
@@ -556,6 +564,8 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                         maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
                         price: parseFloat(tier.price) || 0
                     })),
+                    gstInclusive,
+                    gstRatePercent: gstRatePercent ? parseFloat(gstRatePercent) : undefined,
                     dynamicPricing: {
                         weekends: {
                             enabled: weekendPricing,
@@ -664,25 +674,13 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
             onBack={handleBack}
             onNext={handleNext}
             isSaving={isSaving}
-            variants={variants.variants}
-            selectedVariant={variants.selectedVariant}
-            onSelectVariant={variants.setSelectedVariant}
-            isAddingVariant={variants.isAddingVariant}
-            newVariantName={variants.newVariantName}
-            onSetNewVariantName={variants.setNewVariantName}
-            onAddVariant={variants.handleAddVariant}
-            onStartAddingVariant={() => variants.setIsAddingVariant(true)}
-            isVariantModalOpen={variants.isVariantModalOpen}
-            variantToManage={variants.variantToManage}
-            variantAction={variants.variantAction}
-            renameVariantValue={variants.renameVariantValue}
-            onSetRenameVariantValue={variants.setRenameVariantValue}
-            onOpenVariantModal={(v) => { variants.setVariantToManage(v); variants.setIsVariantModalOpen(true); }}
-            onCloseVariantModal={() => variants.setIsVariantModalOpen(false)}
-            onSetVariantAction={variants.setVariantAction}
-            onDuplicateVariant={variants.handleDuplicateVariant}
-            onRenameVariant={variants.handleRenameVariant}
-            onDeleteVariant={variants.handleDeleteVariant}
+            packageId={packageId}
+            packageGroupId={packageGroupId}
+            vendorType="Venue"
+            onVariantChange={(newId) => {
+                localStorage.setItem('selected_package_id', newId);
+                window.dispatchEvent(new Event('refresh_package_flow'));
+            }}
         >
             {step === 1 && (
                 <VenueStep1PackageAndTeam
@@ -696,8 +694,10 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     offerTours={offerTours} setOfferTours={setOfferTours}
                 />
             )}
-            {step === 2 && (
+            {step === 2 && packageId && packageGroupId && (
                 <VenueStep2SpacesAndItems
+                    packageId={packageId}
+                    packageGroupId={packageGroupId}
                     spaces={spaces} setSpaces={setSpaces}
                     inHouseServices={inHouseServices} setInHouseServices={setInHouseServices}
                     addons={addons} setAddons={setAddons}
@@ -714,7 +714,11 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     teamPrice={teamPrice} setTeamPrice={setTeamPrice}
                     overtimeRate={overtimeRate} setOvertimeRate={setOvertimeRate}
                     
-                    isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                    gstInclusive={gstInclusive}
+                        setGstInclusive={setGstInclusive}
+                        gstRatePercent={gstRatePercent}
+                        setGstRatePercent={setGstRatePercent}
+                        isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                     weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
                     weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
                     weekendValue={weekendValue} setWeekendValue={setWeekendValue}

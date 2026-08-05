@@ -4,14 +4,16 @@ import React, { useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Info, ExternalLink, Image as ImageIcon, MapPin, Clock, Users, ShieldAlert, Sparkles, Plus, Check, Map } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { EditableTotal } from '../components/EditableTotal';
 
 interface MakeupPublishSummaryProps {
     packageId: string | null;
     packageData: any;
+    allVariants: any[];
     onBack: () => void;
 }
 
-export default function MakeupPublishSummary({ packageId, packageData, onBack }: MakeupPublishSummaryProps) {
+export default function MakeupPublishSummary({ packageId, packageData: initialPackageData, allVariants, onBack }: MakeupPublishSummaryProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -21,18 +23,19 @@ export default function MakeupPublishSummary({ packageId, packageData, onBack }:
     const [addonsExpanded, setAddonsExpanded] = useState(false);
     const [venueNeedsExpanded, setVenueNeedsExpanded] = useState(false);
 
-    // Variant extraction (Makeup usually has variants if enabled, else just Base)
-    const dbVariants = packageData.step3_policiesAndCharges?.variantPricing || [];
-    
-    // For demonstration purposes based on the user's design, if no variants exist in the DB, we mock them.
-    const variants = dbVariants.length > 0 ? dbVariants : [
-        { variantName: 'Premium', price: packageData.step3_policiesAndCharges?.packagePricing?.price || 0 },
-        { variantName: 'Standard', price: (packageData.step3_policiesAndCharges?.packagePricing?.price || 0) * 0.8 },
-        { variantName: 'Basic', price: (packageData.step3_policiesAndCharges?.packagePricing?.price || 0) * 0.5 },
-    ];
-    
+    const variants = allVariants && allVariants.length > 0 ? allVariants : [initialPackageData];
     const hasVariants = variants.length > 0;
-    const [selectedVariant, setSelectedVariant] = useState(hasVariants ? variants[0].variantName : 'Base Package');
+
+    const [selectedVariantId, setSelectedVariantId] = useState(variants[0]._id || initialPackageData._id);
+
+    const packageData = variants.find(v => v._id === selectedVariantId) || initialPackageData;
+
+    const isVariantIncomplete = (v: any) => {
+        const hasName = !!(v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName);
+        const hasPrice = v.step3_policiesAndCharges?.packagePricing?.price > 0 || v.step3_policiesAndCharges?.overallPriceOfPackage?.price > 0;
+        const hasDeliverables = v.step2_productsAndPricing?.items?.length > 0 || v.step2_productsAndPricing?.makeupItems?.length > 0;
+        return !(hasName && hasPrice && hasDeliverables);
+    };
 
     const heroImage = packageData.step4_sampleMedia?.media?.[0]?.url || '';
     
@@ -43,12 +46,8 @@ export default function MakeupPublishSummary({ packageId, packageData, onBack }:
     const maxPpl = packageData.step1_eventAndCrew?.maxPeople || '';
     const teamSize = packageData.step1_eventAndCrew?.teamSize || '';
     
-    // Always use the real price they provided in step 3. 
-    // If they have real variants in DB, use the selected variant's price.
     const actualPrice = packageData.step3_policiesAndCharges?.packagePricing?.price || 0;
-    const basePrice = dbVariants.length > 0 
-        ? dbVariants.find((v:any) => v.variantName === selectedVariant)?.price || dbVariants[0]?.price 
-        : actualPrice;
+    const basePrice = actualPrice;
 
     const cities = packageData.step1_eventAndCrew?.cities?.join(', ') || '';
 
@@ -191,28 +190,32 @@ export default function MakeupPublishSummary({ packageId, packageData, onBack }:
             <div className="flex-1 bg-white pb-48">
                 {/* Variants Header */}
                 {hasVariants && (
-                    <div className="px-5 pt-5 pb-3">
+                    <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex gap-2 items-center">
-                            <div className="flex flex-1 gap-1.5 bg-[#F9FAF9] border border-[#F4F4F5] p-1 rounded-[12px]">
-                                {variants.map((v: any, idx: number) => (
+                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                            {variants.map((v: any) => {
+                                const variantName = v.variantType || v.step1_eventAndCrew?.packageName || 'Untitled Variant';
+                                const incomplete = isVariantIncomplete(v);
+                                return (
                                     <button
-                                        key={idx}
-                                        onClick={() => setSelectedVariant(v.variantName)}
-                                        className={`flex-1 py-2.5 px-2 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 transition-all ${
-                                            selectedVariant === v.variantName 
-                                                ? 'bg-white text-[#04222D] shadow-[0_2px_8px_rgba(0,0,0,0.05)]' 
-                                                : 'text-[#71717B] hover:bg-gray-100'
+                                        key={v._id}
+                                        onClick={() => setSelectedVariantId(v._id)}
+                                        className={`flex-none min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[12px] font-bold transition-all whitespace-nowrap ${
+                                            selectedVariantId === v._id 
+                                            ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#04222D] border border-[#E4E4E7]' 
+                                            : 'text-[#71717B] hover:text-[#04222D] border border-transparent'
                                         }`}
                                         style={{ fontFamily: 'Figtree, sans-serif' }}
                                     >
-                                        <div className="w-[15px] h-[15px] rounded-full bg-[#F97316] flex items-center justify-center text-white shrink-0">
-                                            <span className="text-[10px] font-bold font-serif italic leading-none mb-[1px] mr-[0.5px]">i</span>
-                                        </div>
-                                        {v.variantName}
+                                        {incomplete && (
+                                            <div className="w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center">
+                                                <span className="text-white text-[10px] font-bold">!</span>
+                                            </div>
+                                        )}
+                                        {variantName}
                                     </button>
-                                ))}
-                            </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -240,7 +243,7 @@ export default function MakeupPublishSummary({ packageId, packageData, onBack }:
                             </div>
 
                             <h2 className="text-[16px] font-extrabold text-[#04222D] leading-tight mb-4" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                {pkgName} {hasVariants ? `- ${selectedVariant} Package` : ''}
+                                {pkgName} {hasVariants ? `- ${packageData?.variantType || 'Premium'} Package` : ''}
                             </h2>
 
                             <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5">
@@ -261,9 +264,7 @@ export default function MakeupPublishSummary({ packageId, packageData, onBack }:
                             <div className="border-t border-[#F4F4F5] pt-5 mt-5 mb-4">
                                 <p className="text-[10px] text-[#A1A1AA] font-bold tracking-widest uppercase mb-0.5">STARTING FROM</p>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-[24px] font-extrabold text-[#000000]" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                        ₹{basePrice.toLocaleString('en-IN')}
-                                    </span>
+                                    <EditableTotal packageId={selectedVariantId} vendorType="Makeup" initialPrice={basePrice || 0} />
                                     <span className="text-[14px] font-bold text-[#000000]" style={{ fontFamily: 'Figtree, sans-serif' }}>/event</span>
                                 </div>
                             </div>

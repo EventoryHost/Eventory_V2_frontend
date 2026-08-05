@@ -3,6 +3,7 @@
 import React from 'react';
 import { Plus, ChevronDown, ChevronUp, Trash2, Info, X, MoreHorizontal } from 'lucide-react';
 import { AddonModal, Addon } from '../../components/AddonModal';
+import { VariantManager } from '../../components/VariantManager';
 
 export interface VenueSpace {
     id: string;
@@ -25,6 +26,8 @@ export interface VenueSpace {
 }
 
 interface Props {
+    packageId?: string | null;
+    packageGroupId?: string | null;
     spaces: VenueSpace[];
     setSpaces: React.Dispatch<React.SetStateAction<VenueSpace[]>>;
     inHouseServices: Addon[];
@@ -50,6 +53,8 @@ const EXTENDED_ACTIVITY_SUGGESTIONS = [ ...ACTIVITY_SUGGESTIONS, 'Cocktail Parti
 const EXTENDED_AMENITY_SUGGESTIONS = [ ...AMENITY_SUGGESTIONS, 'Valet Parking', 'Wheelchair Accessibility', 'In-house Kitchen', 'Bridal Suite / Restrooms', 'Bar License', 'Pool Area', 'Outdoor Mist Fans', 'Wi-Fi / Audio-Visual', 'Power Generator Backup', 'Sound Setup'];
 
 export default function VenueStep2SpacesAndItems({
+    packageId,
+    packageGroupId,
     spaces, setSpaces,
     inHouseServices, setInHouseServices,
     addons, setAddons,
@@ -404,6 +409,15 @@ export default function VenueStep2SpacesAndItems({
 
     return (
         <div className="flex flex-col gap-8 pb-32">
+            <VariantManager 
+                packageId={packageId || ''} 
+                packageGroupId={packageGroupId || ''} 
+                vendorType="Venue"
+                onVariantChange={(newId) => {
+                    localStorage.setItem('selected_package_id', newId);
+                    window.dispatchEvent(new Event('refresh_package_flow'));
+                }}
+            />
             {/* ── Spaces ── */}
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between px-2">

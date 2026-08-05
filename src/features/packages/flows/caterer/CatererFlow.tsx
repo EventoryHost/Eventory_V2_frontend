@@ -108,6 +108,8 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const addGuestTierOption = () => setGuestTiers(prev => [...prev, { range: 'Upto X', price: '' }]);
     const updateGuestTier = (i: number, f: 'range' | 'price', v: string) => setGuestTiers(prev => prev.map((t, idx) => idx === i ? { ...t, [f]: v } : t));
     const removeGuestTier = (i: number) => setGuestTiers(prev => prev.filter((_, idx) => idx !== i));
+    const [gstInclusive, setGstInclusive] = React.useState(false);
+    const [gstRatePercent, setGstRatePercent] = React.useState("");
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(true);
     const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Fixed Price');
@@ -158,6 +160,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
 
     // Integration States
     const [packageId, setPackageId] = React.useState<string | null>(null);
+    const [packageGroupId, setPackageGroupId] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
 
     // Step 4 — file list in parent; upload UI matches AddonModal (step 2 add-on) with local ref inside Step4.
@@ -243,6 +246,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                     const requestedPackageId = localStorage.getItem('selected_package_id');
                     const pkg = draftData.packages.find((item: any) => item._id === requestedPackageId) || draftData.packages[0];
                     setPackageId(pkg._id);
+                    setPackageGroupId(pkg.packageGroupId);
                     sessionStorage.setItem('draft_package_id_Caterer', pkg._id);
                     
                     // Populate Step 1 (Event & Crew)
@@ -376,7 +380,9 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                                 preview: url
                             })));
                         }
-                        if (s3.dynamicPricing) {
+                        if (s3.gstInclusive !== undefined) setGstInclusive(s3.gstInclusive);
+                            if (s3.gstRatePercent !== undefined) setGstRatePercent(String(s3.gstRatePercent));
+                            if (s3.dynamicPricing) {
                             const dp = s3.dynamicPricing;
                             setIsDynamicPricingEnabled(!!(dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled));
                             const basePrice = s3.teamAndEquipment?.price || 0;
@@ -488,6 +494,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 const data = await res.json();
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
+                    setPackageGroupId(data.packageGroupId);
                     sessionStorage.setItem('draft_package_id_Caterer', data.packageId);
                         localStorage.setItem('selected_package_id', data.packageId);
                 }
@@ -527,6 +534,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 if (initData.status === 'SUCCESS' && initData.packageId) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
+                    setPackageGroupId(initData.packageGroupId);
                     sessionStorage.setItem('draft_package_id_Caterer', initData.packageId);
                     localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
@@ -743,6 +751,8 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                         maxGuests: parseInt(tier.range.replace(/\D/g, '')) || 0,
                         price: parseFloat(tier.price) || 0
                     })),
+                    gstInclusive,
+                    gstRatePercent: gstRatePercent ? parseFloat(gstRatePercent) : undefined,
                     dynamicPricing: {
                         weekends: {
                             enabled: weekendPricing,
@@ -970,17 +980,13 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
 
         <FlowShell
             config={FLOW_CONFIG} step={step} onBack={handleBack} onNext={handleNext} isSaving={isSaving}
-            variants={variants.variants} selectedVariant={variants.selectedVariant} onSelectVariant={variants.setSelectedVariant}
-            isAddingVariant={variants.isAddingVariant} newVariantName={variants.newVariantName}
-            onSetNewVariantName={variants.setNewVariantName} onAddVariant={variants.handleAddVariant}
-            onStartAddingVariant={() => variants.setIsAddingVariant(true)}
-            isVariantModalOpen={variants.isVariantModalOpen} variantToManage={variants.variantToManage}
-            variantAction={variants.variantAction} renameVariantValue={variants.renameVariantValue}
-            onSetRenameVariantValue={variants.setRenameVariantValue}
-            onOpenVariantModal={(v) => { variants.setVariantToManage(v); variants.setIsVariantModalOpen(true); }}
-            onCloseVariantModal={() => variants.setIsVariantModalOpen(false)}
-            onSetVariantAction={variants.setVariantAction}
-            onDuplicateVariant={variants.handleDuplicateVariant} onRenameVariant={variants.handleRenameVariant} onDeleteVariant={variants.handleDeleteVariant}
+            packageId={packageId}
+            packageGroupId={packageGroupId}
+            vendorType="Caterer"
+            onVariantChange={(newId) => {
+                localStorage.setItem('selected_package_id', newId);
+                window.dispatchEvent(new Event('refresh_package_flow'));
+            }}
         >
             {step === 1 && <CatererStep1EventAndCrew
                 packageName={packageName} setPackageName={setPackageName}
@@ -997,7 +1003,9 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 venueRequest={venueRequest} setVenueRequest={setVenueRequest}
                 venueNeedsOptions={VENUE_NEEDS_OPTIONS}
             />}
-            {step === 2 && <CatererStep2ProductsAndPricing
+            {step === 2 && packageId && packageGroupId && <CatererStep2ProductsAndPricing
+                packageId={packageId}
+                packageGroupId={packageGroupId}
                 menus={menus} setMenus={setMenus} toggleMenuExpand={toggleMenuExpand} deleteMenu={deleteMenu} handleAddMenu={handleAddMenu}
                 activeMenuDropdown={activeMenuDropdown} setActiveMenuDropdown={setActiveMenuDropdown}
                 crockeryIncluded={crockeryIncluded} setCrockeryIncluded={setCrockeryIncluded}
@@ -1016,7 +1024,11 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 overtimePrice={overtimePrice} setOvertimePrice={setOvertimePrice}
                 lastMinuteChargesDescription={lastMinuteChargesDescription} setLastMinuteChargesDescription={setLastMinuteChargesDescription}
                 guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier} removeGuestTier={removeGuestTier}
-                isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                gstInclusive={gstInclusive}
+                        setGstInclusive={setGstInclusive}
+                        gstRatePercent={gstRatePercent}
+                        setGstRatePercent={setGstRatePercent}
+                        isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                 weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
                 weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
                 weekendValue={weekendValue} setWeekendValue={setWeekendValue}

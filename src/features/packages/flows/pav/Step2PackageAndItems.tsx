@@ -4,6 +4,7 @@ import React from 'react';
 import { Plus, PlusCircle, ChevronDown, ChevronUp, Trash2, ShieldAlert, Camera, Video, BookOpen, Aperture, X, MoreHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddonModal, Addon } from '../../components/AddonModal';
+import { VariantManager } from '../../components/VariantManager';
 
 export interface PAVItem {
     id: string;
@@ -27,6 +28,8 @@ export interface PAVItem {
 }
 
 interface Props {
+    packageId?: string | null;
+    packageGroupId?: string | null;
     pavItems: PAVItem[];
     setPavItems: React.Dispatch<React.SetStateAction<PAVItem[]>>;
     addons: Addon[];
@@ -94,6 +97,8 @@ const Section = ({ title, defaultExpanded = true, children, isCompleted = false,
 };
 
 export default function PAVStep2PackageAndItems({
+    packageId,
+    packageGroupId,
     pavItems, setPavItems,
     addons, handleOpenAddonForm, handleEditAddon, deleteAddon,
     providedDetails, setProvidedDetails,
@@ -399,6 +404,15 @@ export default function PAVStep2PackageAndItems({
 
     return (
         <div className="flex flex-col gap-8 pb-32">
+            <VariantManager 
+                packageId={packageId || ''} 
+                packageGroupId={packageGroupId || ''} 
+                vendorType="PAV"
+                onVariantChange={(newId) => {
+                    localStorage.setItem('selected_package_id', newId);
+                    window.dispatchEvent(new Event('refresh_package_flow'));
+                }}
+            />
             {/* ── Items ── */}
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">

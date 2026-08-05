@@ -19,6 +19,7 @@ interface PublishSummaryProps {
 export default function PublishSummary({ packageId, onBack }: PublishSummaryProps) {
     const router = useRouter();
     const [packageData, setPackageData] = useState<any>(null);
+    const [allVariants, setAllVariants] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -31,6 +32,14 @@ export default function PublishSummary({ packageId, onBack }: PublishSummaryProp
                 const data = await res.json();
                 if (data.status === 'SUCCESS') {
                     setPackageData(data.package);
+                    
+                    if (data.package.packageGroupId) {
+                        const groupRes = await fetch(apiUrl(`/packages/group/${data.package.packageGroupId}`));
+                        const groupData = await groupRes.json();
+                        if (groupData.status === 'SUCCESS') {
+                            setAllVariants(groupData.packages || []);
+                        }
+                    }
                 } else {
                     setError('Failed to load package details');
                 }
@@ -90,27 +99,27 @@ export default function PublishSummary({ packageId, onBack }: PublishSummaryProp
     const pkgPrice = packageData.step3_pricing?.basePrice || 0;
 
     if (packageData.vendorType === 'MakeupArtist') {
-        return <MakeupPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+        return <MakeupPublishSummary packageId={packageId} packageData={packageData} allVariants={allVariants} onBack={onBack} />;
     }
 
     if (packageData.vendorType === 'DJArtist') {
-        return <DjPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+        return <DjPublishSummary packageId={packageId} packageData={packageData} allVariants={allVariants} onBack={onBack} />;
     }
 
     if (packageData.vendorType === 'PAV' || packageData.vendorType === 'Photographer' || packageData.vendorType === 'PhotographerAndVideographer') {
-        return <PavPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+        return <PavPublishSummary packageId={packageId} packageData={packageData} allVariants={allVariants} onBack={onBack} />;
     }
 
     if (packageData.vendorType === 'Decorator') {
-        return <DecoratorPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+        return <DecoratorPublishSummary packageId={packageId} packageData={packageData} allVariants={allVariants} onBack={onBack} />;
     }
 
     if (packageData.vendorType === 'VenueProvider') {
-        return <VenuePublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+        return <VenuePublishSummary packageId={packageId} packageData={packageData} allVariants={allVariants} onBack={onBack} />;
     }
 
     if (packageData.vendorType === 'Caterer') {
-        return <CatererPublishSummary packageId={packageId} packageData={packageData} onBack={onBack} />;
+        return <CatererPublishSummary packageId={packageId} packageData={packageData} allVariants={allVariants} onBack={onBack} />;
     }
 
     return (

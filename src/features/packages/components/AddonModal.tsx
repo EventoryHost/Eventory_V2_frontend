@@ -1,5 +1,6 @@
 import React from 'react';
-import { ArrowLeft, Upload, FileText, X, ChevronDown, Check } from 'lucide-react';
+import { ArrowLeft, Upload, FileText, X, ChevronDown, Check, Plus, PlusCircle, Info, RefreshCw } from 'lucide-react';
+import PolicyBottomSheet from '../flows/pav/PolicyBottomSheet';
 import { createPortal } from 'react-dom';
 
 import { PolicyFile, SampleMediaFile, formatFileSize } from '../shared/types';
@@ -63,7 +64,10 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
     const [addonDescription, setAddonDescription] = React.useState('');
     const [addonPrice, setAddonPrice] = React.useState('');
     const [addonBillingUnit, setAddonBillingUnit] = React.useState('Per hour');
-    const [addonPolicies, setAddonPolicies] = React.useState<PolicyFile[]>([]);
+        const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
+    const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
+    const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
+    const [activePolicySheet, setActivePolicySheet] = React.useState<'cancellation' | 'lastMinute' | 'general' | null>(null);
     const [addonMedia, setAddonMedia] = React.useState<SampleMediaFile[]>([]);
     const [addonProductType, setAddonProductType] = React.useState<string>('Food');
     const [previewFile, setPreviewFile] = React.useState<{ url: string | null; name: string } | null>(null);
@@ -105,7 +109,15 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
 
                 setAddonPrice(addon.price);
                 setAddonBillingUnit(addon.billingUnit || 'Per hour');
-                setAddonPolicies(addon.policies || []);
+                if (addon.policies) {
+                    setCancellationDocs(addon.policies.filter(p => p.name.includes('Cancellation')));
+                    setLastMinuteDocs(addon.policies.filter(p => p.name.includes('Last Minute')));
+                    setPolicyDocs(addon.policies.filter(p => !p.name.includes('Cancellation') && !p.name.includes('Last Minute')));
+                } else {
+                    setCancellationDocs([]);
+                    setLastMinuteDocs([]);
+                    setPolicyDocs([]);
+                }
                 setAddonMedia(addon.media || []);
                 setAddonProductType(addon.productType || 'Food');
                 setAddonSpaceType(addon.spaceType || '');
@@ -125,7 +137,9 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonDescription('');
                 setAddonPrice('');
                 setAddonBillingUnit(isCaterer ? 'Per Event' : 'Per hour');
-                setAddonPolicies([]);
+                setCancellationDocs([]);
+                setLastMinuteDocs([]);
+                setPolicyDocs([]);
                 setAddonMedia([]);
                 setAddonProductType('Food');
                 setAddonSpaceType('');
@@ -162,7 +176,11 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
             description: descriptionWithNonVeg,
             price: addonPrice,
             billingUnit: billingUnitVal,
-            policies: addonPolicies,
+            policies: [
+                ...cancellationDocs.map(d => ({ ...d, name: d.name.includes('Cancellation') ? d.name : `Cancellation Policy: ${d.name}` })),
+                ...lastMinuteDocs.map(d => ({ ...d, name: d.name.includes('Last Minute') ? d.name : `Last Minute Charges: ${d.name}` })),
+                ...policyDocs
+            ],
             media: addonMedia,
             ...(addonType === 'Product' && { productType: addonProductType }),
             ...(addonType !== 'Service' && addonType !== 'Product' && {
@@ -179,21 +197,9 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
         onSave(newAddon);
     };
 
-    const handleAddonPolicyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const filesArray = Array.from(e.target.files).map(file => ({
-                name: file.name,
-                size: file.size,
-                file: file
-            }));
-            setAddonPolicies(prev => [...prev, ...filesArray]);
-        }
-        if (addonPolicyInputRef.current) addonPolicyInputRef.current.value = '';
-    };
+    
 
-    const removeAddonPolicy = (indexToRemove: number) => {
-        setAddonPolicies(prev => prev.filter((_, idx) => idx !== indexToRemove));
-    };
+    
 
     const handleAddonMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -667,46 +673,7 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         )}
                     </div>
 
-                    {/* POLICIES & RULES */}
-                    <div>
-                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider mb-4">POLICIES & RULES</p>
-                        <button onClick={() => addonPolicyInputRef.current?.click()} className="w-full py-8 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4">
-                            <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4">
-                                <Upload size={24} className="text-[#3F3F47] stroke-2" />
-                            </div>
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload Policy Documents</p>
-                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
-                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide">BROWSE FILES</span>
-                        </button>
-                        <input type="file" ref={addonPolicyInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={handleAddonPolicyUpload} multiple />
 
-                        {addonPolicies.length > 0 && (
-                            <div className="flex flex-col gap-3">
-                                {addonPolicies.map((file, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px] gap-3">
-                                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                                            <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
-                                                <FileText size={16} className="text-[#3F3F47] stroke-2" />
-                                            </div>
-                                            <div 
-                                                className="flex-1 min-w-0 cursor-pointer hover:underline"
-                                                onClick={() => {
-                                                    const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null);
-                                                    if (url) setPreviewFile({ url, name: file.name });
-                                                }}
-                                            >
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] truncate">{file.name}</p>
-                                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSizeLocal(file.size)}</p>
-                                            </div>
-                                        </div>
-                                        <button onClick={() => removeAddonPolicy(idx)} className="text-[#3F3F47] hover:text-[#030303] flex-shrink-0">
-                                            <X size={20} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
 
                     {/* SAMPLE MEDIA */}
                     <div>
@@ -787,6 +754,31 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                     fileName={previewFile.name}
                 />
             )}
+            {/* Policy Bottomsheets */}
+            <PolicyBottomSheet
+                isOpen={activePolicySheet === 'cancellation'}
+                onClose={() => setActivePolicySheet(null)}
+                title="Cancellation Policy"
+                subtitle="Select or upload cancellation policy for your package"
+                initialDocs={cancellationDocs}
+                onSaveDocs={(docs) => setCancellationDocs(docs)}
+            />
+            <PolicyBottomSheet
+                isOpen={activePolicySheet === 'lastMinute'}
+                onClose={() => setActivePolicySheet(null)}
+                title="Last Minute Charges"
+                subtitle="Set your charges for last minute changes or extensions"
+                initialDocs={lastMinuteDocs}
+                onSaveDocs={(docs) => setLastMinuteDocs(docs)}
+            />
+            <PolicyBottomSheet
+                isOpen={activePolicySheet === 'general'}
+                onClose={() => setActivePolicySheet(null)}
+                title="General Policy"
+                subtitle="Upload or write general terms and conditions for customers"
+                initialDocs={policyDocs}
+                onSaveDocs={(docs) => setPolicyDocs(docs)}
+            />
         </div>,
         document.body
     );

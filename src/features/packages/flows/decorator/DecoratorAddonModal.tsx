@@ -2,6 +2,7 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, X, Upload, Plus, ChevronRight, ChevronDown, RefreshCw, PlusCircle, Info } from 'lucide-react';
+import PolicyBottomSheet from '../pav/PolicyBottomSheet';
 import { motion } from 'framer-motion';
 import { Addon } from '../../components/AddonModal';
 import { formatFileSize, SampleMediaFile } from '../../shared/types';
@@ -51,7 +52,10 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
     const [selectedColors, setSelectedColors] = React.useState<string[]>([]);
     const [customColorHex, setCustomColorHex] = React.useState('#000000');
     const [dimensions, setDimensions] = React.useState({ L: '', B: '', H: '', unit: 'CM' });
-    const [policies, setPolicies] = React.useState<PolicyFile[]>([]);
+        const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
+    const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
+    const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
+    const [activePolicySheet, setActivePolicySheet] = React.useState<'cancellation' | 'lastMinute' | 'general' | null>(null);
     const [mediaFiles, setMediaFiles] = React.useState<SampleMediaFile[]>([]);
     const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
 
@@ -70,7 +74,15 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                 setDescription(addon.description || '');
                 setBillingUnit((addon.billingUnit as 'Per Event' | 'Per Hour') || 'Per Event');
                 setPrice(addon.price || '');
-                setPolicies(addon.policies || []);
+                if (addon.policies) {
+                    setCancellationDocs(addon.policies.filter(p => p.name.includes('Cancellation')));
+                    setLastMinuteDocs(addon.policies.filter(p => p.name.includes('Last Minute')));
+                    setPolicyDocs(addon.policies.filter(p => !p.name.includes('Cancellation') && !p.name.includes('Last Minute')));
+                } else {
+                    setCancellationDocs([]);
+                    setLastMinuteDocs([]);
+                    setPolicyDocs([]);
+                }
                 setMediaFiles(addon.media || []);
             } else {
                 setStage('PICK');
@@ -82,7 +94,9 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                 setDescription('');
                 setBillingUnit('Per Event');
                 setPrice('');
-                setPolicies([]);
+                setCancellationDocs([]);
+                setLastMinuteDocs([]);
+                setPolicyDocs([]);
                 setMediaFiles([]);
                 setSelectedColors([]);
                 setDimensions({ L: '', B: '', H: '', unit: 'CM' });
@@ -108,20 +122,19 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
         const saved: Addon = {
             id: addon?.id || Math.random().toString(36).substring(7),
             type: addonType, name: addonName, category, subCategory,
-            quantity, description, price, billingUnit, policies, media: mediaFiles,
+            quantity, description, price, billingUnit, 
+            policies: [
+                ...cancellationDocs.map(d => ({ ...d, name: d.name.includes('Cancellation') ? d.name : `Cancellation Policy: ${d.name}` })),
+                ...lastMinuteDocs.map(d => ({ ...d, name: d.name.includes('Last Minute') ? d.name : `Last Minute Charges: ${d.name}` })),
+                ...policyDocs
+            ],
+            media: mediaFiles,
             colors: colorLabels.length > 0 ? colorLabels : undefined,
             dimensions: dimStr ? dimStr : undefined
         };
         onSave(saved);
     };
 
-    const handlePolicyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const files = Array.from(e.target.files).map(f => ({ name: f.name, size: f.size, file: f }));
-            setPolicies(prev => [...prev, ...files]);
-        }
-        if (policyInputRef.current) policyInputRef.current.value = '';
-    };
 
     const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
@@ -459,45 +472,93 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                         <h3 style={FF} className="text-[14px] font-bold text-[#030303] mb-3">
                             Policies and other documents <span className="text-red-500">*</span>
                         </h3>
-                        <div className={`${SECTION_CARD} flex flex-col gap-3`}>
-                            {policies.length > 0 && (
+                        <div className="flex flex-col gap-3">
+                            {/* Cancellation Policy */}
+                            {cancellationDocs.length === 0 ? (
+                                <button type="button" onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] text-left hover:bg-gray-50 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                        <span className="text-[14px] font-bold text-[#030303]">Cancellation Policy</span>
+                                        <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                                    </div>
+                                    <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                                </button>
+                            ) : (
                                 <div className="flex flex-col gap-3">
-                                    {policies.map((file, idx) => (
-                                        <div key={idx} className="flex items-center justify-between gap-3 p-3 border border-[#F4F4F5] rounded-[12px] bg-white">
-                                            <div className="flex items-center gap-3 min-w-0">
-                                                <div className="w-9 h-9 rounded-full bg-[#22C55E] flex items-center justify-center flex-shrink-0">
-                                                    <svg width="14" height="10" viewBox="0 0 10 8" fill="none">
-                                                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                                                    </svg>
-                                                </div>
-                                                <span style={FF} className="text-[14px] font-semibold text-[#030303] truncate">{file.name}</span>
+                                    {cancellationDocs.map((doc, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                            <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                                <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setPolicies(prev => prev.filter((_, i) => i !== idx))}
-                                                className="text-[#9F9FA9] hover:text-red-500 transition-colors flex-shrink-0 p-1"
-                                            >
-                                                <X size={16} />
-                                            </button>
+                                            <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Cancellation Policy</span><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span></div>
+                                            <button type="button" onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                            <button type="button" onClick={() => {
+                                                const newDocs = [...cancellationDocs];
+                                                newDocs.splice(idx, 1);
+                                                setCancellationDocs(newDocs);
+                                            }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
                                         </div>
                                     ))}
                                 </div>
                             )}
-                            <button
-                                type="button"
-                                onClick={() => policyInputRef.current?.click()}
-                                className="w-full py-3 bg-[#E6E9EA] rounded-[8px] flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] transition-colors hover:bg-gray-200 mt-1"
-                            >
-                                Add Document <PlusCircle size={16} />
-                            </button>
-                            <input
-                                ref={policyInputRef}
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.doc,.docx"
-                                multiple
-                                onChange={handlePolicyUpload}
-                            />
+
+                            {/* Last Minute Charges */}
+                            {lastMinuteDocs.length === 0 ? (
+                                <button type="button" onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] text-left hover:bg-gray-50 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                        <span className="text-[14px] font-bold text-[#030303]">Last Minute Charges</span>
+                                        <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                                    </div>
+                                    <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                                </button>
+                            ) : (
+                                <div className="flex flex-col gap-3">
+                                    {lastMinuteDocs.map((doc, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                            <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                                <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Last Minute Charges</span><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span></div>
+                                            <button type="button" onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                            <button type="button" onClick={() => {
+                                                const newDocs = [...lastMinuteDocs];
+                                                newDocs.splice(idx, 1);
+                                                setLastMinuteDocs(newDocs);
+                                            }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* General Policy */}
+                            {policyDocs.length === 0 ? (
+                                <button type="button" onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] text-left hover:bg-gray-50 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                                    <div className="flex flex-col flex-1 min-w-0">
+                                        <span className="text-[14px] font-bold text-[#030303]">General Policy</span>
+                                        <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                                    </div>
+                                    <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                                </button>
+                            ) : (
+                                <div className="flex flex-col gap-3">
+                                    {policyDocs.map((doc, idx) => (
+                                        <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                                            <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                                <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">General Policy</span><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span></div>
+                                            <button type="button" onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                            <button type="button" onClick={() => {
+                                                const newDocs = [...policyDocs];
+                                                newDocs.splice(idx, 1);
+                                                setPolicyDocs(newDocs);
+                                            }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -573,6 +634,31 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                     </button>
                 </div>
             </div>
+            {/* Policy Bottomsheets */}
+            <PolicyBottomSheet
+                isOpen={activePolicySheet === 'cancellation'}
+                onClose={() => setActivePolicySheet(null)}
+                title="Cancellation Policy"
+                subtitle="Select or upload cancellation policy for your package"
+                initialDocs={cancellationDocs}
+                onSaveDocs={(docs) => setCancellationDocs(docs)}
+            />
+            <PolicyBottomSheet
+                isOpen={activePolicySheet === 'lastMinute'}
+                onClose={() => setActivePolicySheet(null)}
+                title="Last Minute Charges"
+                subtitle="Set your charges for last minute changes or extensions"
+                initialDocs={lastMinuteDocs}
+                onSaveDocs={(docs) => setLastMinuteDocs(docs)}
+            />
+            <PolicyBottomSheet
+                isOpen={activePolicySheet === 'general'}
+                onClose={() => setActivePolicySheet(null)}
+                title="General Policy"
+                subtitle="Upload or write general terms and conditions for customers"
+                initialDocs={policyDocs}
+                onSaveDocs={(docs) => setPolicyDocs(docs)}
+            />
         </div>
     );
 

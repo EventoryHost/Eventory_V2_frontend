@@ -146,6 +146,8 @@ export default function DJFlow({ onExitFlow }: Props) {
     const [overtimePrice, setOvertimePrice] = React.useState('');
     const [isGstInclusive, setIsGstInclusive] = React.useState(false);
 
+    const [gstInclusive, setGstInclusive] = React.useState(false);
+    const [gstRatePercent, setGstRatePercent] = React.useState("");
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(false);
     const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Percentage');
@@ -205,6 +207,7 @@ export default function DJFlow({ onExitFlow }: Props) {
 
     // Integration States
     const [packageId, setPackageId] = React.useState<string | null>(null);
+    const [packageGroupId, setPackageGroupId] = React.useState<string | null>(null);
     const isInitializing = React.useRef(false);
     const [isSaving, setIsSaving] = React.useState(false);
 
@@ -235,6 +238,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                         const requestedPackageId = localStorage.getItem('selected_package_id');
                         const pkg = djDrafts.find((item: any) => item._id === requestedPackageId) || djDrafts[0];
                         setPackageId(pkg._id);
+                        setPackageGroupId(pkg.packageGroupId);
                         sessionStorage.setItem('draft_package_id_DJ', pkg._id);
 
                         // Populate Step 1 (Event & Team)
@@ -369,6 +373,8 @@ export default function DJFlow({ onExitFlow }: Props) {
                                 })));
                             }
 
+                            if (s3.gstInclusive !== undefined) setGstInclusive(s3.gstInclusive);
+                            if (s3.gstRatePercent !== undefined) setGstRatePercent(String(s3.gstRatePercent));
                             if (s3.dynamicPricing) {
                                 const dp = s3.dynamicPricing;
                                 const enabled = dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled;
@@ -479,6 +485,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                 const data = await res.json();
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
+                    setPackageGroupId(data.packageGroupId);
                     sessionStorage.setItem('draft_package_id_DJ', data.packageId);
                         localStorage.setItem('selected_package_id', data.packageId);
                 }
@@ -522,6 +529,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                 if (initData.status === 'SUCCESS' && initData.packageId) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
+                    setPackageGroupId(initData.packageGroupId);
                     sessionStorage.setItem('draft_package_id_DJ', initData.packageId);
                     localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
@@ -776,6 +784,7 @@ export default function DJFlow({ onExitFlow }: Props) {
                         billingUnit: 'Per Hour'
                     },
                     gstInclusive: isGstInclusive,
+                    gstRatePercent: 18,
                     guestTiers: validTiers,
                     dynamicPricing: dpPayload,
                     lastMinuteChargesDocUrl: lastMinuteUrl,
@@ -869,25 +878,13 @@ export default function DJFlow({ onExitFlow }: Props) {
                 onBack={handleBack}
                 onNext={handleNext}
                 isSaving={isSaving}
-                variants={variants.variants}
-                selectedVariant={variants.selectedVariant}
-                onSelectVariant={variants.setSelectedVariant}
-                isAddingVariant={variants.isAddingVariant}
-                newVariantName={variants.newVariantName}
-                onSetNewVariantName={variants.setNewVariantName}
-                onAddVariant={variants.handleAddVariant}
-                onStartAddingVariant={() => variants.setIsAddingVariant(true)}
-                isVariantModalOpen={variants.isVariantModalOpen}
-                variantToManage={variants.variantToManage}
-                variantAction={variants.variantAction}
-                renameVariantValue={variants.renameVariantValue}
-                onSetRenameVariantValue={variants.setRenameVariantValue}
-                onOpenVariantModal={(v) => { variants.setVariantToManage(v); variants.setIsVariantModalOpen(true); }}
-                onCloseVariantModal={() => variants.setIsVariantModalOpen(false)}
-                onSetVariantAction={variants.setVariantAction}
-                onDuplicateVariant={variants.handleDuplicateVariant}
-                onRenameVariant={variants.handleRenameVariant}
-                onDeleteVariant={variants.handleDeleteVariant}
+                packageId={packageId}
+                packageGroupId={packageGroupId}
+                vendorType="DJ"
+                onVariantChange={(newId) => {
+                    localStorage.setItem('selected_package_id', newId);
+                    window.dispatchEvent(new Event('refresh_package_flow'));
+                }}
                 onSaveDraft={handleSaveDraft}
             >
                 {step === 1 && (
@@ -911,6 +908,8 @@ export default function DJFlow({ onExitFlow }: Props) {
                 
                 {step === 2 && (
                     <DJStep2PackageAndItems
+                        packageId={packageId}
+                        packageGroupId={packageGroupId}
                         djItems={djItems}
                         handleAddDJItem={handleAddDJItem}
                         updateDJItem={updateDJItem}
@@ -948,6 +947,10 @@ export default function DJFlow({ onExitFlow }: Props) {
                         teamEquipmentPrice={teamEquipmentPrice} setTeamEquipmentPrice={setTeamEquipmentPrice}
                         overtimePrice={overtimePrice} setOvertimePrice={setOvertimePrice}
                         isGstInclusive={isGstInclusive} setIsGstInclusive={setIsGstInclusive}
+                        gstInclusive={gstInclusive}
+                        setGstInclusive={setGstInclusive}
+                        gstRatePercent={gstRatePercent}
+                        setGstRatePercent={setGstRatePercent}
                         isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                         weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
                         weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}

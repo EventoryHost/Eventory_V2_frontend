@@ -3,9 +3,12 @@
 import React from 'react';
 import { ChevronUp, ChevronDown, MoreHorizontal, Trash2 } from 'lucide-react';
 import { MenuData } from '../../shared/types';
-import { Addon } from '../../components/AddonModal';
+import { AddonModal, Addon } from '../../components/AddonModal';
+import { VariantManager } from '../../components/VariantManager';
 
 interface Props {
+    packageId?: string | null;
+    packageGroupId?: string | null;
     menus: MenuData[];
     setMenus: React.Dispatch<React.SetStateAction<MenuData[]>>;
     toggleMenuExpand: (id: string) => void;
@@ -59,6 +62,8 @@ const FOOD_SUGGESTIONS: Record<string, string[]> = {
 };
 
 export default function CatererStep2ProductsAndPricing({
+    packageId,
+    packageGroupId,
     menus,
     setMenus,
     toggleMenuExpand,
@@ -212,6 +217,15 @@ export default function CatererStep2ProductsAndPricing({
 
     return (
         <div className="flex flex-col gap-6 mt-6 pb-32">
+            <VariantManager 
+                packageId={packageId || ''} 
+                packageGroupId={packageGroupId || ''} 
+                vendorType="Caterer"
+                onVariantChange={(newId) => {
+                    localStorage.setItem('selected_package_id', newId);
+                    window.dispatchEvent(new Event('refresh_package_flow'));
+                }}
+            />
 
             {/* ── Crockery Panel ── */}
             <div className={CARD}>

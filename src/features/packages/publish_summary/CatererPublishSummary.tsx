@@ -1,6 +1,7 @@
 'use client';
 import { apiUrl } from '@/lib/api';
-
+import { useRouter } from 'next/navigation';
+import { EditableTotal } from '../components/EditableTotal';
 import React, { useState } from 'react';
 import { ArrowLeft, Check, ShieldAlert, MinusCircle, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 
@@ -9,6 +10,7 @@ const FF = { fontFamily: 'var(--font-inter), sans-serif' };
 interface Props {
     packageId: string | null;
     packageData: any;
+    allVariants: any[];
     onBack: () => void;
 }
 
@@ -89,9 +91,22 @@ function MenuCard({ menu, idx }: { menu: any; idx: number }) {
     );
 }
 
-export default function CatererPublishSummary({ packageId, packageData, onBack }: Props) {
+export default function CatererPublishSummary({ packageId, packageData: initialPackageData, allVariants, onBack }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedVariant, setSelectedVariant] = useState('');
+
+    const variants = allVariants && allVariants.length > 0 ? allVariants : [initialPackageData];
+    const hasVariants = variants.length > 0;
+
+    const [selectedVariantId, setSelectedVariantId] = useState(variants[0]._id || initialPackageData._id);
+
+    const packageData = variants.find(v => v._id === selectedVariantId) || initialPackageData;
+
+    const isVariantIncomplete = (v: any) => {
+        const hasName = !!(v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName);
+        const hasPrice = v.step3_policiesAndCharges?.teamAndEquipment?.price > 0 || v.step3_policiesAndCharges?.overallPriceOfPackage?.price > 0 || v.step2_productsAndPricing?.totalPackagePrice > 0;
+        const hasDeliverables = v.step2_productsAndPricing?.menus?.length > 0 || v.step2_productsAndPricing?.items?.length > 0;
+        return !(hasName && hasPrice && hasDeliverables);
+    };
 
     const pkgName = packageData.step1_eventAndCrew?.packageName || '';
     const allCategories: string[] = packageData.step1_eventAndCrew?.eventCategories || [];
@@ -110,16 +125,8 @@ export default function CatererPublishSummary({ packageId, packageData, onBack }
 
     // Pricing
     // Caterer uses teamAndEquipment.price. If they entered a random number in step 3, it's saved there.
-    const basePrice: number = packageData.step3_policiesAndCharges?.teamAndEquipment?.price || packageData.step3_policiesAndCharges?.overallPriceOfPackage?.price || 0;
 
-    // Variants
-    const dbVariants = packageData.step3_policiesAndCharges?.variantPricing || [];
-    const variantType = packageData.variantType || 'Premium';
-    const variants = dbVariants.length > 0 ? dbVariants : [{ variantName: variantType, price: basePrice }];
-
-    if (variants.length > 0 && !selectedVariant) {
-        setSelectedVariant(variants[0].variantName);
-    }
+    const basePrice: number = packageData.step3_policiesAndCharges?.teamAndEquipment?.price || packageData.step3_policiesAndCharges?.overallPriceOfPackage?.price || packageData.step2_productsAndPricing?.totalPackagePrice || 0;
 
     // Deliverables
     const menus: any[] = packageData.step2_productsAndPricing?.menus || [];
@@ -198,25 +205,33 @@ export default function CatererPublishSummary({ packageId, packageData, onBack }
 
             <div className="flex-1 overflow-y-auto pb-32">
 
-                {variants.length > 0 && (
-                    <div className="px-5 pt-5 pb-3">
-                        <p style={FF} className="text-[13px] font-bold text-[#04222D] mb-3">Variants</p>
-                        <div className="flex gap-2 flex-wrap">
-                            {variants.map((v: any) => (
-                                <button
-                                    key={v.variantName}
-                                    onClick={() => setSelectedVariant(v.variantName)}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-bold transition-all ${
-                                        selectedVariant === v.variantName
-                                            ? 'bg-[#FFF7E6] border-[#F59E0B] text-[#92400E]'
-                                            : 'bg-white border-[#E4E4E7] text-[#71717B]'
-                                    }`}
-                                    style={FF}
-                                >
-                                    <span className="text-[#F59E0B]">&#9432;</span>
-                                    {v.variantName}
-                                </button>
-                            ))}
+                {hasVariants && (
+                    <div className="px-5 pt-4">
+                        <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
+                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                            {variants.map((v: any) => {
+                                const variantName = v.variantType || v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName || 'Untitled Variant';
+                                const incomplete = isVariantIncomplete(v);
+                                return (
+                                    <button
+                                        key={v._id}
+                                        onClick={() => setSelectedVariantId(v._id)}
+                                        className={`flex-none min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[12px] font-bold transition-all whitespace-nowrap ${
+                                            selectedVariantId === v._id 
+                                            ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#04222D] border border-[#E4E4E7]' 
+                                            : 'text-[#71717B] hover:text-[#04222D] border border-transparent'
+                                        }`}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    >
+                                        {incomplete && (
+                                            <div className="w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center">
+                                                <span className="text-white text-[10px] font-bold">!</span>
+                                            </div>
+                                        )}
+                                        {variantName}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -274,7 +289,7 @@ export default function CatererPublishSummary({ packageId, packageData, onBack }
                                     <div className="flex flex-col pt-3">
                                         <span style={FF} className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-0.5">STARTING FROM</span>
                                         <div className="flex items-baseline gap-1">
-                                            <span style={FF} className="text-[20px] font-extrabold text-[#000000]">₹{basePrice.toLocaleString('en-IN')}</span>
+                                            <EditableTotal packageId={selectedVariantId} vendorType="Caterer" initialPrice={basePrice || 0} />
                                             <span style={FF} className="text-[13px] font-bold text-[#000000]">/event</span>
                                         </div>
                                     </div>

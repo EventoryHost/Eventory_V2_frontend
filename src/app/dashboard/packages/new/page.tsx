@@ -12,6 +12,7 @@ export default function NewPackagePage() {
     const router = useRouter();
     const [vendorType, setVendorType] = useState<string | null>(null);
     const [activeView, setActiveView] = useState<'overview' | 'package_setup' | 'booking_settings' | 'publish_summary'>('overview');
+    const [isViewInitialized, setIsViewInitialized] = useState(false);
     const [hoveredStep1, setHoveredStep1] = useState(false);
     const [hoveredStep2, setHoveredStep2] = useState(false);
     const [clickAttemptedStep2, setClickAttemptedStep2] = useState(false);
@@ -20,6 +21,7 @@ export default function NewPackagePage() {
     const [isStep1Completed, setIsStep1Completed] = useState(false);
     const [bookingCompletedStepsCount, setBookingCompletedStepsCount] = useState(0);
     const [packageId, setPackageId] = useState<string | null>(null);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     const fetchProgress = async () => {
         const vendorId = localStorage.getItem('vendor_id');
@@ -118,8 +120,27 @@ export default function NewPackagePage() {
             setVendorType("MAK");
         }
 
+        // Restore active view from localStorage
+        const savedView = localStorage.getItem('package_new_active_view');
+        if (savedView && ['overview', 'package_setup', 'booking_settings', 'publish_summary'].includes(savedView)) {
+            setActiveView(savedView as any);
+        }
+        setIsViewInitialized(true);
+
         // Fetch draft package progress
         fetchProgress();
+    }, []);
+
+    useEffect(() => {
+        if (isViewInitialized) {
+            localStorage.setItem('package_new_active_view', activeView);
+        }
+    }, [activeView, isViewInitialized]);
+
+    useEffect(() => {
+        const handleRefresh = () => setRefreshKey(prev => prev + 1);
+        window.addEventListener('refresh_package_flow', handleRefresh);
+        return () => window.removeEventListener('refresh_package_flow', handleRefresh);
     }, []);
 
     const handleExitFlow = () => {
@@ -487,7 +508,7 @@ export default function NewPackagePage() {
 
     return (
         <div className="flex flex-col relative w-full min-h-screen">
-            <PackageFlowManager vendorType={vendorType} onExitFlow={handleExitFlow} />
+            <PackageFlowManager key={refreshKey} vendorType={vendorType} onExitFlow={handleExitFlow} />
         </div>
     );
 }

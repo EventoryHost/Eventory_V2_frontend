@@ -23,6 +23,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
+    const isInitializing = React.useRef(false);
 
     // --- Step 1 State ---
     const [packageName, setPackageName] = React.useState('');
@@ -65,6 +66,8 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const [teamPrice, setTeamPrice] = React.useState('');
     const [overtimeRate, setOvertimeRate] = React.useState('');
     const [isGstInclusive, setIsGstInclusive] = React.useState(false);
+    const [gstInclusive, setGstInclusive] = React.useState(false);
+    const [gstRatePercent, setGstRatePercent] = React.useState("");
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(false);
     const [weekendIncreaseType, setWeekendIncreaseType] = React.useState('Percentage');
@@ -115,7 +118,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
 
     // Integration States
     const [packageId, setPackageId] = React.useState<string | null>(null);
-    const isInitializing = React.useRef(false);
+    const [packageGroupId, setPackageGroupId] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
 
     // Save current step to localStorage to preserve state on reload
@@ -145,6 +148,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                         const requestedPackageId = localStorage.getItem('selected_package_id');
                         const pkg = pavDrafts.find((item: any) => item._id === requestedPackageId) || pavDrafts[0];
                         setPackageId(pkg._id);
+                        setPackageGroupId(pkg.packageGroupId);
                         sessionStorage.setItem('draft_package_id_PAV', pkg._id);
 
                         // Populate Step 1 (Event & Team)
@@ -239,6 +243,8 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                             if (s3.overtimeCharges) setOvertimeRate(String(s3.overtimeCharges.price || ''));
                             if (typeof s3.gstInclusive === 'boolean') setIsGstInclusive(s3.gstInclusive);
                             
+                            if (s3.gstInclusive !== undefined) setGstInclusive(s3.gstInclusive);
+                            if (s3.gstRatePercent !== undefined) setGstRatePercent(String(s3.gstRatePercent));
                             if (s3.dynamicPricing) {
                                 const dp = s3.dynamicPricing;
                                 const enabled = dp.weekends?.enabled || dp.weddingSeason?.enabled || dp.festivals?.enabled || dp.customDates?.enabled;
@@ -341,6 +347,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 const data = await res.json();
                 if (data.status === 'SUCCESS' && data.packageId) {
                     setPackageId(data.packageId);
+                    setPackageGroupId(data.packageGroupId);
                     sessionStorage.setItem('draft_package_id_PAV', data.packageId);
                         localStorage.setItem('selected_package_id', data.packageId);
                 }
@@ -380,6 +387,7 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (initData.status === 'SUCCESS' && initData.packageId) {
                     currentPackageId = initData.packageId;
                     setPackageId(initData.packageId);
+                    setPackageGroupId(initData.packageGroupId);
                     sessionStorage.setItem('draft_package_id_PAV', initData.packageId);
                     localStorage.setItem('selected_package_id', initData.packageId);
                 } else {
@@ -638,25 +646,13 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
             onBack={handleBack}
             onNext={handleNext}
             isSaving={isSaving}
-            variants={variants.variants}
-            selectedVariant={variants.selectedVariant}
-            onSelectVariant={variants.setSelectedVariant}
-            isAddingVariant={variants.isAddingVariant}
-            newVariantName={variants.newVariantName}
-            onSetNewVariantName={variants.setNewVariantName}
-            onAddVariant={variants.handleAddVariant}
-            onStartAddingVariant={() => variants.setIsAddingVariant(true)}
-            isVariantModalOpen={variants.isVariantModalOpen}
-            variantToManage={variants.variantToManage}
-            variantAction={variants.variantAction}
-            renameVariantValue={variants.renameVariantValue}
-            onSetRenameVariantValue={variants.setRenameVariantValue}
-            onOpenVariantModal={(v) => { variants.setVariantToManage(v); variants.setIsVariantModalOpen(true); }}
-            onCloseVariantModal={() => variants.setIsVariantModalOpen(false)}
-            onSetVariantAction={variants.setVariantAction}
-            onDuplicateVariant={variants.handleDuplicateVariant}
-            onRenameVariant={variants.handleRenameVariant}
-            onDeleteVariant={variants.handleDeleteVariant}
+            packageId={packageId}
+            packageGroupId={packageGroupId}
+            vendorType="PAV"
+            onVariantChange={(newId) => {
+                localStorage.setItem('selected_package_id', newId);
+                window.dispatchEvent(new Event('refresh_package_flow'));
+            }}
         >
             {step === 1 && (
                 <PAVStep1EventAndTeam
@@ -673,8 +669,10 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     venueNeedsOptions={VENUE_NEEDS_OPTIONS}
                 />
             )}
-            {step === 2 && (
+            {step === 2 && packageId && packageGroupId && (
                 <PAVStep2PackageAndItems
+                    packageId={packageId}
+                    packageGroupId={packageGroupId}
                     pavItems={pavItems} setPavItems={setPavItems}
                     addons={addons} handleOpenAddonForm={handleOpenAddonForm} handleEditAddon={handleEditAddon} deleteAddon={deleteAddon}
                     providedDetails={providedDetails} setProvidedDetails={setProvidedDetails}
@@ -690,7 +688,11 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     teamPrice={teamPrice} setTeamPrice={setTeamPrice}
                     overtimeRate={overtimeRate} setOvertimeRate={setOvertimeRate}
                     isGstInclusive={isGstInclusive} setIsGstInclusive={setIsGstInclusive}
-                    isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
+                    gstInclusive={gstInclusive}
+                        setGstInclusive={setGstInclusive}
+                        gstRatePercent={gstRatePercent}
+                        setGstRatePercent={setGstRatePercent}
+                        isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
                     weekendPricing={weekendPricing} setWeekendPricing={setWeekendPricing}
                     weekendIncreaseType={weekendIncreaseType} setWeekendIncreaseType={setWeekendIncreaseType}
                     weekendValue={weekendValue} setWeekendValue={setWeekendValue}

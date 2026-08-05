@@ -27,6 +27,10 @@ interface Props {
     overtimeRate: string; setOvertimeRate: (v: string) => void;
     isGstInclusive: boolean; setIsGstInclusive: (v: boolean) => void;
 
+    gstInclusive: boolean;
+    setGstInclusive: (v: boolean) => void;
+    gstRatePercent: string;
+    setGstRatePercent: (v: string) => void;
     isDynamicPricingEnabled: boolean; setIsDynamicPricingEnabled: (v: boolean) => void;
     weekendPricing: boolean; setWeekendPricing: (v: boolean) => void;
     weekendIncreaseType: string; setWeekendIncreaseType: (v: string) => void;
@@ -79,6 +83,10 @@ export default function PAVStep3PricingAndPolicies({
     teamPrice, setTeamPrice,
     overtimeRate, setOvertimeRate,
     isGstInclusive, setIsGstInclusive,
+    gstInclusive,
+    setGstInclusive,
+    gstRatePercent,
+    setGstRatePercent,
     isDynamicPricingEnabled, setIsDynamicPricingEnabled,
     weekendPricing, setWeekendPricing,
     weekendIncreaseType, setWeekendIncreaseType,
@@ -191,6 +199,30 @@ export default function PAVStep3PricingAndPolicies({
                     </div>
                 </div>
             </div>
+
+                            <div className="pt-2 mb-6">
+                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-3">
+                        GST Charges <span className="text-red-500">*</span>
+                    </h4>
+                    
+                    
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">GST Inclusive</h4>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mt-0.5">Is GST already included in the prices<br/>you entered?</p>
+                        </div>
+                        <div className="bg-[#E4E4E7] rounded-full p-1 flex items-center w-[96px] relative h-9 cursor-pointer" onClick={() => setGstInclusive(!gstInclusive)}>
+                            <div className={`absolute top-1 bottom-1 w-[44px] bg-white rounded-full transition-transform shadow-sm ${gstInclusive ? 'translate-x-[42px]' : 'translate-x-0'}`} />
+                            <div className="flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold text-[#71717B] transition-colors">
+                                No
+                            </div>
+                            <div className={`flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold transition-colors ${gstInclusive ? 'text-[#030303]' : 'text-[#71717B]'}`}>
+                                Yes
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             {/* ── Dynamic Pricing ── */}
             <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col shadow-[0_2px_8px_rgba(0,0,0,0.02)]">

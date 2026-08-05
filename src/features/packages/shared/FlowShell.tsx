@@ -8,6 +8,7 @@ import {
     ArrowLeft, Menu, Plus, ChevronDown, MoreHorizontal,
     Copy, Pencil, Trash2, X
 } from 'lucide-react';
+import { VariantManager } from '../components/VariantManager';
 
 interface FlowConfig {
     vendorName: string;
@@ -20,27 +21,32 @@ interface FlowShellProps {
     children: React.ReactNode;
     onBack: () => void;
     onNext: () => void;
-    // Variant state
-    variants: string[];
-    selectedVariant: string;
-    onSelectVariant: (v: string) => void;
-    isAddingVariant: boolean;
-    newVariantName: string;
-    onSetNewVariantName: (v: string) => void;
-    onAddVariant: (e?: React.KeyboardEvent) => void;
-    onStartAddingVariant: () => void;
-    // Variant modal
-    isVariantModalOpen: boolean;
-    variantToManage: string;
-    variantAction: 'none' | 'rename' | 'delete';
-    renameVariantValue: string;
-    onSetRenameVariantValue: (v: string) => void;
-    onOpenVariantModal: (v: string) => void;
-    onCloseVariantModal: () => void;
-    onSetVariantAction: (a: 'none' | 'rename' | 'delete') => void;
-    onDuplicateVariant: () => void;
-    onRenameVariant: () => void;
-    onDeleteVariant: () => void;
+    // Variant Manager Props
+    packageId?: string | null;
+    packageGroupId?: string | null;
+    vendorType: string;
+    onVariantChange?: (newId: string) => void;
+    
+    // Legacy Variant props (keep optional so we don't break parent flows until we update them if needed)
+    variants?: string[];
+    selectedVariant?: string;
+    onSelectVariant?: (v: string) => void;
+    isAddingVariant?: boolean;
+    newVariantName?: string;
+    onSetNewVariantName?: (v: string) => void;
+    onAddVariant?: (e?: React.KeyboardEvent) => void;
+    onStartAddingVariant?: () => void;
+    isVariantModalOpen?: boolean;
+    variantToManage?: string;
+    variantAction?: 'none' | 'rename' | 'delete';
+    renameVariantValue?: string;
+    onSetRenameVariantValue?: (v: string) => void;
+    onOpenVariantModal?: (v: string) => void;
+    onCloseVariantModal?: () => void;
+    onSetVariantAction?: (a: 'none' | 'rename' | 'delete') => void;
+    onDuplicateVariant?: () => void;
+    onRenameVariant?: () => void;
+    onDeleteVariant?: () => void;
     isSaving?: boolean;
     saveLabel?: string;
     onSaveDraft?: () => void;
@@ -71,6 +77,10 @@ export default function FlowShell({
     onDuplicateVariant,
     onRenameVariant,
     onDeleteVariant,
+    packageId,
+    packageGroupId,
+    vendorType,
+    onVariantChange,
     isSaving = false,
     saveLabel,
     onSaveDraft,
@@ -95,54 +105,19 @@ export default function FlowShell({
                 </div>
             </div>
 
-            {/* Variant Selector */}
-            <div className="px-6 pt-6 bg-white">
-                <div className="max-w-md mx-auto flex flex-col gap-3">
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider">VARIANTS</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        {variants.map((v) => (
-                            <div key={v} className="relative group">
-                                <button
-                                    onClick={() => {
-                                        if (selectedVariant === v) {
-                                            onOpenVariantModal(v);
-                                        } else {
-                                            onSelectVariant(v);
-                                        }
-                                    }}
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className={`px-6 py-2.5 rounded-full text-[14px] font-semibold border transition-all flex items-center gap-2 ${selectedVariant === v ? 'bg-white text-[#04222D] border-[#04222D]' : 'bg-white text-[#3F3F47] border-[#E4E4E7] hover:border-gray-400'}`}
-                                >
-                                    {v}
-                                    {selectedVariant === v && <ChevronDown size={16} className="text-[#04222D]" />}
-                                </button>
-                            </div>
-                        ))}
-                        {isAddingVariant ? (
-                            <div className="flex items-center gap-2">
-                                <input
-                                    type="text"
-                                    value={newVariantName}
-                                    onChange={(e) => onSetNewVariantName(e.target.value)}
-                                    onKeyDown={onAddVariant}
-                                    autoFocus
-                                    placeholder="Variant name"
-                                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className="px-4 py-2 border border-[#04222D] rounded-full text-[14px] focus:outline-none w-32"
-                                />
-                                <button onClick={() => onAddVariant()} className="p-2 bg-[#04222D] text-white rounded-full"><Plus size={16} /></button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={onStartAddingVariant}
-                                className="w-10 h-10 rounded-full border border-dashed border-[#D4D4D8] flex items-center justify-center text-[#9F9FA9] hover:border-gray-400 hover:text-gray-600 transition-all"
-                            >
-                                <Plus size={20} />
-                            </button>
-                        )}
+            {/* Variant Manager */}
+            {packageId && packageGroupId && vendorType && onVariantChange && (
+                <div className="px-6 pt-6 bg-white">
+                    <div className="max-w-md mx-auto">
+                        <VariantManager 
+                            packageId={packageId}
+                            packageGroupId={packageGroupId}
+                            vendorType={vendorType}
+                            onVariantChange={onVariantChange}
+                        />
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Stepper */}
             <div className="px-6 py-6 bg-white border-b border-gray-50">
@@ -228,11 +203,11 @@ export default function FlowShell({
                                                 <div className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0"><Copy size={18} className="text-gray-900" /></div>
                                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-gray-900">Duplicate Variant</span>
                                             </button>
-                                            <button onClick={() => { onSetRenameVariantValue(variantToManage); onSetVariantAction('rename'); }} className="flex items-center gap-4 w-full p-4 hover:bg-gray-50 rounded-[12px] transition-colors text-left">
+                                            <button onClick={() => { onSetRenameVariantValue?.(variantToManage || ''); onSetVariantAction?.('rename'); }} className="flex items-center gap-4 w-full p-4 hover:bg-gray-50 rounded-[12px] transition-colors text-left">
                                                 <div className="w-10 h-10 rounded-full bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0"><Pencil size={18} className="text-gray-900" /></div>
                                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-gray-900">Rename Variant</span>
                                             </button>
-                                            <button onClick={() => onSetVariantAction('delete')} className="flex items-center gap-4 w-full p-4 hover:bg-red-50 rounded-[12px] transition-colors text-left">
+                                            <button onClick={() => onSetVariantAction?.('delete')} className="flex items-center gap-4 w-full p-4 hover:bg-red-50 rounded-[12px] transition-colors text-left">
                                                 <div className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center flex-shrink-0"><Trash2 size={18} className="text-[#DE350B]" /></div>
                                                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-semibold text-[#DE350B]">Delete Variant</span>
                                             </button>
@@ -241,22 +216,22 @@ export default function FlowShell({
                                 </motion.div>
                             )}
                             {variantAction === 'rename' && (
-                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => onSetVariantAction('none')}>
+                                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => onSetVariantAction?.('none')}>
                                      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm bg-white rounded-[24px] p-6 relative" onClick={(e) => e.stopPropagation()}>
-                                         <button onClick={() => onSetVariantAction('none')} className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"><X size={18} /></button>
+                                         <button onClick={() => onSetVariantAction?.('none')} className="absolute right-4 top-4 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"><X size={18} /></button>
                                          <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">ACTION REQUIRED</p>
                                          <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-gray-900 mb-2">Rename Variant</h2>
                                          <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-gray-600 mb-6 leading-relaxed">Enter a new name for this variant to keep your crew setup organized.</p>
                                          <div className="mb-6">
                                              <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-gray-600 mb-2">Variant Name</label>
-                                             <input type="text" value={renameVariantValue} onChange={(e) => onSetRenameVariantValue(e.target.value)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full p-3.5 bg-white border border-gray-300 rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900" />
+                                             <input type="text" value={renameVariantValue} onChange={(e) => onSetRenameVariantValue?.(e.target.value)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full p-3.5 bg-white border border-gray-300 rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900" />
                                          </div>
                                          <button onClick={onRenameVariant} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] hover:bg-opacity-90 transition-colors">Save</button>
                                      </motion.div>
                                 </motion.div>
                             )}
                             {variantAction === 'delete' && (
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => onSetVariantAction('none')}>
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-[100]" onClick={() => onSetVariantAction?.('none')}>
                                     <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="w-full max-w-sm bg-white rounded-[24px] p-6 pt-8 flex flex-col items-center text-center relative" onClick={(e) => e.stopPropagation()}>
                                         <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mb-6"><Trash2 size={24} className="text-[#DE350B]" /></div>
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-2">ACTION REQUIRED</p>
@@ -264,7 +239,7 @@ export default function FlowShell({
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-gray-600 mb-2 leading-relaxed">Are you sure you want to delete the &ldquo;{variantToManage}&rdquo; variant?</p>
                                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-gray-600 mb-6 leading-relaxed">All associated configurations will be permanently removed.</p>
                                         <button onClick={onDeleteVariant} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-4 bg-[#DE350B] text-white rounded-[12px] font-semibold text-[16px] mb-4 hover:bg-opacity-90 transition-colors">Delete</button>
-                                        <button onClick={() => onSetVariantAction('none')} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-2 text-[#9F9FA9] font-semibold text-[16px] hover:text-gray-900 transition-colors">Cancel</button>
+                                        <button onClick={() => onSetVariantAction?.('none')} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full py-2 text-[#9F9FA9] font-semibold text-[16px] hover:text-gray-900 transition-colors">Cancel</button>
                                     </motion.div>
                                 </motion.div>
                             )}

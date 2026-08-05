@@ -17,6 +17,10 @@ interface Props {
     
     overtimeRate: string; setOvertimeRate: (v: string) => void;
     
+    gstInclusive: boolean;
+    setGstInclusive: (v: boolean) => void;
+    gstRatePercent: string;
+    setGstRatePercent: (v: string) => void;
     isDynamicPricingEnabled: boolean; setIsDynamicPricingEnabled: (v: boolean) => void;
     weekendPricing: boolean; setWeekendPricing: (v: boolean) => void;
     weekendIncreaseType: string; setWeekendIncreaseType: (v: string) => void;
@@ -60,6 +64,10 @@ export default function VenueStep3PricingAndPolicies({
     teamChargeType, setTeamChargeType,
     teamPrice, setTeamPrice,
     overtimeRate, setOvertimeRate,
+    gstInclusive,
+    setGstInclusive,
+    gstRatePercent,
+    setGstRatePercent,
     isDynamicPricingEnabled, setIsDynamicPricingEnabled,
     weekendPricing, setWeekendPricing,
     weekendIncreaseType, setWeekendIncreaseType,
@@ -178,6 +186,45 @@ export default function VenueStep3PricingAndPolicies({
                     </div>
                 </div>
             </div>
+
+                            <div className="pt-2 mb-6">
+                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-3">
+                        GST Charges <span className="text-red-500">*</span>
+                    </h4>
+                    
+                    <div className="flex flex-col gap-2 mb-5">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#71717B]">Choose GST percentage</label>
+                        <div className="relative">
+                            <select
+                                value={gstRatePercent}
+                                onChange={(e) => setGstRatePercent(e.target.value)}
+                                style={{ fontFamily: 'Figtree, sans-serif', appearance: 'none' }}
+                                className="w-full p-4 pr-10 bg-white border border-[#E4E4E7] rounded-[16px] text-[15px] font-semibold text-[#030303] focus:outline-none focus:border-[#04222D]"
+                            >
+                                <option value="" disabled className="text-gray-400">Select percentage</option>
+                                <option value="5">5 %</option>
+                                <option value="18">18 %</option>
+                            </select>
+                            <ChevronDown size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
+                        </div>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">GST Inclusive</h4>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mt-0.5">Is GST already included in the prices<br/>you entered?</p>
+                        </div>
+                        <div className="bg-[#E4E4E7] rounded-full p-1 flex items-center w-[96px] relative h-9 cursor-pointer" onClick={() => setGstInclusive(!gstInclusive)}>
+                            <div className={`absolute top-1 bottom-1 w-[44px] bg-white rounded-full transition-transform shadow-sm ${gstInclusive ? 'translate-x-[42px]' : 'translate-x-0'}`} />
+                            <div className="flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold text-[#71717B] transition-colors">
+                                No
+                            </div>
+                            <div className={`flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold transition-colors ${gstInclusive ? 'text-[#030303]' : 'text-[#71717B]'}`}>
+                                Yes
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
             {/* ── Dynamic Pricing ── */}
             <div className="p-6 flex flex-col bg-white border border-[#E4E4E7] rounded-[16px]">

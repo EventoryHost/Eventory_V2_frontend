@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Check, ShieldAlert, BadgeCheck, MapPin, Users, Clock, MinusCircle, ChevronDown } from 'lucide-react';
+import { AddonModal } from '../components/AddonModal';
+import { EditableTotal } from '../components/EditableTotal';
 import { apiUrl } from '@/lib/api';
 
 interface Props {
     packageId: string | null;
     packageData: any;
+    allVariants: any[];
     onBack: () => void;
 }
 
@@ -124,9 +127,22 @@ function SpaceCard({ space, idx }: { space: any; idx: number }) {
     );
 }
 
-export default function VenuePublishSummary({ packageId, packageData, onBack }: Props) {
+export default function VenuePublishSummary({ packageId, packageData: initialPackageData, allVariants, onBack }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [selectedVariant, setSelectedVariant] = useState('Premium');
+
+    const variants = allVariants && allVariants.length > 0 ? allVariants : [initialPackageData];
+    const hasVariants = variants.length > 0;
+
+    const [selectedVariantId, setSelectedVariantId] = useState(variants[0]._id || initialPackageData._id);
+
+    const packageData = variants.find(v => v._id === selectedVariantId) || initialPackageData;
+
+    const isVariantIncomplete = (v: any) => {
+        const hasName = !!(v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName);
+        const hasPrice = v.step3_policiesAndCharges?.overallPriceOfPackage?.price > 0;
+        const hasDeliverables = v.step2_productsAndPricing?.spaces?.length > 0;
+        return !(hasName && hasPrice && hasDeliverables);
+    };
 
     // ── Data extraction — all from DB schema, no invented values ──
     const pkgName = packageData.step1_eventAndCrew?.packageName || '';
@@ -136,11 +152,6 @@ export default function VenuePublishSummary({ packageId, packageData, onBack }: 
 
     // Pricing — from step3_policiesAndCharges.overallPriceOfPackage
     const basePrice: number = packageData.step3_policiesAndCharges?.overallPriceOfPackage?.price || 0;
-
-    // Variants — from step3_policiesAndCharges.variantPricing if present, else derive from variantType
-    const dbVariants = packageData.step3_policiesAndCharges?.variantPricing || [];
-    const variantType = packageData.variantType;
-    const variants = dbVariants.length > 0 ? dbVariants : (variantType ? [{ variantName: variantType, price: basePrice }] : []);
 
     // Deliverables
     const spaces: any[] = packageData.step2_productsAndPricing?.spaces || [];
@@ -213,26 +224,33 @@ export default function VenuePublishSummary({ packageId, packageData, onBack }: 
 
             <div className="flex-1 overflow-y-auto pb-32">
 
-                {/* Variants */}
-                {variants.length > 0 && (
-                    <div className="px-5 pt-5 pb-3">
-                        <p style={FF} className="text-[13px] font-bold text-[#04222D] mb-3">Variants</p>
-                        <div className="flex gap-2 flex-wrap">
-                            {variants.map((v: any) => (
-                                <button
-                                    key={v.variantName}
-                                    onClick={() => setSelectedVariant(v.variantName)}
-                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-[12px] font-bold transition-all ${
-                                        selectedVariant === v.variantName
-                                            ? 'bg-[#FFF7E6] border-[#F59E0B] text-[#92400E]'
-                                            : 'bg-white border-[#E4E4E7] text-[#71717B]'
-                                    }`}
-                                    style={FF}
-                                >
-                                    <span className="text-[#F59E0B]">&#9432;</span>
-                                    {v.variantName}
-                                </button>
-                            ))}
+                {hasVariants && (
+                    <div className="px-5 pt-4">
+                        <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
+                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                            {variants.map((v: any) => {
+                                const variantName = v.variantType || v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName || 'Untitled Variant';
+                                const incomplete = isVariantIncomplete(v);
+                                return (
+                                    <button
+                                        key={v._id}
+                                        onClick={() => setSelectedVariantId(v._id)}
+                                        className={`flex-none min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[12px] font-bold transition-all whitespace-nowrap ${
+                                            selectedVariantId === v._id 
+                                            ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#04222D] border border-[#E4E4E7]' 
+                                            : 'text-[#71717B] hover:text-[#04222D] border border-transparent'
+                                        }`}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    >
+                                        {incomplete && (
+                                            <div className="w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center">
+                                                <span className="text-white text-[10px] font-bold">!</span>
+                                            </div>
+                                        )}
+                                        {variantName}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -298,7 +316,7 @@ export default function VenuePublishSummary({ packageId, packageData, onBack }: 
                                     <div className="flex flex-col">
                                         <span style={FF} className="text-[9px] font-bold text-[#A1A1AA] uppercase tracking-widest mb-0.5">STARTING FROM</span>
                                         <div className="flex items-baseline gap-1">
-                                            <span style={FF} className="text-[20px] font-extrabold text-[#000000]">₹{basePrice.toLocaleString('en-IN')}</span>
+                                            <EditableTotal packageId={selectedVariantId} vendorType="Venue" initialPrice={basePrice || 0} />
                                             <span style={FF} className="text-[13px] font-bold text-[#000000]">/event</span>
                                         </div>
                                     </div>

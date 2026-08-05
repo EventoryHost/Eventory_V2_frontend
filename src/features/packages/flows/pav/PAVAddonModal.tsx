@@ -35,7 +35,10 @@ export function PAVAddonModal({ isOpen, onClose, onSave, addon }: PAVAddonModalP
     const [resolution, setResolution] = React.useState('');
     const [videoType, setVideoType] = React.useState('');
 
-    const [policies, setPolicies] = React.useState<PolicyFile[]>([]);
+        const [cancellationDocs, setCancellationDocs] = React.useState<PolicyFile[]>([]);
+    const [lastMinuteDocs, setLastMinuteDocs] = React.useState<PolicyFile[]>([]);
+    const [policyDocs, setPolicyDocs] = React.useState<PolicyFile[]>([]);
+    const [activePolicySheet, setActivePolicySheet] = React.useState<'cancellation' | 'lastMinute' | 'general' | null>(null);
     const [media, setMedia] = React.useState<SampleMediaFile[]>([]);
     const [previewFile, setPreviewFile] = React.useState<{ url: string | null; name: string } | null>(null);
 
@@ -68,8 +71,7 @@ export function PAVAddonModal({ isOpen, onClose, onSave, addon }: PAVAddonModalP
             setResolution(addon.resolution || '');
             setVideoType(addon.videoType || '');
 
-            setPolicies(addon.policies || []);
-            setMedia(addon.media || []);
+                        setMedia(addon.media || []);
             
             if (addon.name === 'Extra Crew') setFormTemplate('extra-crew');
             else if (addon.name === 'Same-day Edit') setFormTemplate('social');
@@ -82,8 +84,7 @@ export function PAVAddonModal({ isOpen, onClose, onSave, addon }: PAVAddonModalP
             setName(''); setCategory(''); setQuantity(''); setDescription(''); setPrice(''); setBillingUnit('Per Event');
             setContentType(''); setDuration(''); setPageCount(''); setCoverType(''); setAlbumColors([]); setPageFinish('');
             setBindingType(''); setRevisions(''); setNoOfEditedPhotos(''); setFileFormat(''); setResolution(''); setVideoType('');
-            setPolicies([]); setMedia([]);
-            setFormTemplate('standard');
+                        setFormTemplate('standard');
         }
     }, [isOpen, addon]);
 
@@ -101,18 +102,17 @@ export function PAVAddonModal({ isOpen, onClose, onSave, addon }: PAVAddonModalP
         onSave({
             id: addon && addon.id && addon.id.length > 5 ? addon.id : Math.random().toString(36).substring(7),
             type: 'Service',
-            name, category, subCategory: '', quantity, description, price, billingUnit, policies, media, 
+            name, category, subCategory: '', quantity, description, price, billingUnit, 
+            policies: [
+                ...cancellationDocs.map(d => ({ ...d, name: d.name.includes('Cancellation') ? d.name : `Cancellation Policy: ${d.name}` })),
+                ...lastMinuteDocs.map(d => ({ ...d, name: d.name.includes('Last Minute') ? d.name : `Last Minute Charges: ${d.name}` })),
+                ...policyDocs
+            ], 
+            media, 
             contentType, duration, pageCount, coverType, albumColors, pageFinish, bindingType, revisions, noOfEditedPhotos, fileFormat, resolution, videoType
         });
     };
 
-    const handlePolicyUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const filesArray = Array.from(e.target.files).map(file => ({ name: file.name, size: file.size, file: file }));
-            setPolicies(prev => [...prev, ...filesArray]);
-        }
-        if (policyRef.current) policyRef.current.value = '';
-    };
 
     const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -286,45 +286,7 @@ export function PAVAddonModal({ isOpen, onClose, onSave, addon }: PAVAddonModalP
                                 </div>
                             </div>
 
-                            {/* Policies */}
-                            <div>
-                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-3">Policies and other documents <span className="text-red-500">*</span></h3>
-                                {policies.length > 0 && (
-                                    <div className="flex flex-col gap-3 mb-3">
-                                        {policies.map((file, idx) => (
-                                            <div key={idx} className="flex items-center justify-between p-4 border border-[#F4F4F5] rounded-[12px] shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-                                                <div className="flex items-center gap-2 text-[#D45900] flex-1 min-w-0 pr-2">
-                                                    <span className="w-[18px] h-[18px] border-2 border-[#D45900] rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0">i</span>
-                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-semibold text-[#030303] truncate">{file.name}</span>
-                                                </div>
-                                                <div className="flex items-center gap-3 flex-shrink-0">
-                                                    <button onClick={() => {
-                                                        const input = document.createElement('input');
-                                                        input.type = 'file';
-                                                        input.accept = '.pdf,.doc,.docx';
-                                                        input.onchange = (e: any) => {
-                                                            if (e.target.files && e.target.files.length > 0) {
-                                                                const newFile = e.target.files[0];
-                                                                setPolicies(prev => prev.map((p, i) => i === idx ? { name: newFile.name, size: newFile.size, file: newFile } : p));
-                                                            }
-                                                        };
-                                                        input.click();
-                                                    }} className="flex items-center gap-1.5 text-[12px] font-semibold text-[#3F3F47] hover:text-[#030303]">
-                                                        Update <RefreshCw size={14} />
-                                                    </button>
-                                                    <button onClick={() => setPolicies(prev => prev.filter((_, i) => i !== idx))} className="text-[#9F9FA9] hover:text-[#3F3F47]">
-                                                        <X size={16}/>
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                                <button onClick={() => policyRef.current?.click()} className="w-full py-3 bg-[#E6E9EA] rounded-[8px] flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] transition-colors hover:bg-gray-200">
-                                    Add <PlusCircle size={16} />
-                                </button>
-                                <input type="file" ref={policyRef} className="hidden" accept=".pdf,.doc,.docx" onChange={handlePolicyUpload} multiple />
-                            </div>
+
 
                             {/* Sample Media */}
                             <div>

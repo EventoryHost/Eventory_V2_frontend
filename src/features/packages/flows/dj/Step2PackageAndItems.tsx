@@ -3,6 +3,7 @@
 import React from 'react';
 import { Plus, ChevronDown, ChevronUp, Trash2, Check, Info, MoreHorizontal, Pencil, X } from 'lucide-react';
 import { AddonModal, Addon } from '../../components/AddonModal';
+import { VariantManager } from '../../components/VariantManager';
 
 export interface DJItem {
     id: string;
@@ -40,6 +41,8 @@ export interface Equipment {
 }
 
 interface Props {
+    packageId?: string | null;
+    packageGroupId?: string | null;
     djItems: DJItem[];
     handleAddDJItem: () => void;
     updateDJItem: (id: string, field: keyof DJItem, value: any) => void;
@@ -80,6 +83,8 @@ const INPUT = 'w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[1
 const HEAD = 'text-[18px] font-bold text-[#030303] leading-[24px] uppercase tracking-wider';
 
 export default function DJStep2PackageAndItems({
+    packageId,
+    packageGroupId,
     djItems, handleAddDJItem, updateDJItem, toggleDJItemExpand, deleteDJItem,
     playlists, handleAddPlaylist, updatePlaylist, togglePlaylistExpand, deletePlaylist, addSongToPlaylist, removeSongFromPlaylist,
     customerPlaylistAllowed, setCustomerPlaylistAllowed,
@@ -247,6 +252,15 @@ export default function DJStep2PackageAndItems({
 
     return (
         <div className="flex flex-col gap-8 pb-32">
+            <VariantManager 
+                packageId={packageId || ''} 
+                packageGroupId={packageGroupId || ''} 
+                vendorType="DJArtist"
+                onVariantChange={(newId) => {
+                    localStorage.setItem('selected_package_id', newId);
+                    window.dispatchEvent(new Event('refresh_package_flow'));
+                }}
+            />
             {/* ── Items ── */}
             <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between px-2">

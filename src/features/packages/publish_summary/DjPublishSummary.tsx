@@ -2,17 +2,33 @@ import React, { useState } from 'react';
 import { Check, ShieldAlert, ChevronLeft, MapPin, CheckCircle2, Clock, Users, User, Music, Disc, MinusCircle, Minus, Plus, Map } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import { EditableTotal } from '../components/EditableTotal';
 
 interface DjPublishSummaryProps {
     packageId: string | null;
     packageData: any;
+    allVariants: any[];
     onBack: () => void;
 }
 
-export default function DjPublishSummary({ packageId, packageData, onBack }: DjPublishSummaryProps) {
+export default function DjPublishSummary({ packageId, packageData: initialPackageData, allVariants, onBack }: DjPublishSummaryProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+
+    const variants = allVariants && allVariants.length > 0 ? allVariants : [initialPackageData];
+    const hasVariants = variants.length > 0;
+
+    const [selectedVariantId, setSelectedVariantId] = useState(variants[0]._id || initialPackageData._id);
+
+    const packageData = variants.find(v => v._id === selectedVariantId) || initialPackageData;
+
+    const isVariantIncomplete = (v: any) => {
+        const hasName = !!(v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName);
+        const hasPrice = v.step3_pricing?.price > 0 || v.step3_policiesAndCharges?.packagePricing?.price > 0 || v.step3_policiesAndCharges?.overallPriceOfPackage?.price > 0;
+        const hasDeliverables = v.step2_productsAndPricing?.items?.length > 0 || v.step2_productsAndPricing?.playlists?.length > 0 || v.step2_productsAndPricing?.equipment?.length > 0;
+        return !(hasName && hasPrice && hasDeliverables);
+    };
 
     const pkgName = packageData.step1_eventAndCrew?.packageName || '';
     const eventCategories = packageData.step1_eventAndCrew?.eventCategories || [];
@@ -28,23 +44,9 @@ export default function DjPublishSummary({ packageId, packageData, onBack }: DjP
     const maxGuests = packageData.step1_eventAndCrew?.capacity?.maxGuests || 80;
     const teamSize = packageData.step1_eventAndCrew?.crewSize?.minPeople || 3;
 
-    // Variants & Pricing
-    const dbVariants = packageData.step3_pricing?.variantPricing || [];
+    // Pricing
     const actualPrice = packageData.step3_pricing?.price || 0;
-    
-    // For demonstration purposes based on the user's design, if no variants exist in the DB, we mock them.
-    const variants = dbVariants.length > 0 ? dbVariants : [
-        { variantName: 'Premium', price: actualPrice },
-        { variantName: 'Standard', price: actualPrice * 0.8 },
-        { variantName: 'Basic', price: actualPrice * 0.5 },
-    ];
-    
-    const hasVariants = variants.length > 0;
-    const [selectedVariant, setSelectedVariant] = useState(hasVariants ? variants[0].variantName : 'Base Package');
-    
-    const basePrice = dbVariants.length > 0 
-        ? dbVariants.find((v:any) => v.variantName === selectedVariant)?.price || dbVariants[0]?.price 
-        : (variants.find((v:any) => v.variantName === selectedVariant)?.price || actualPrice);
+    const basePrice = actualPrice;
 
     const cities = packageData.step1_eventAndCrew?.cities?.join(', ') || '';
 
@@ -142,28 +144,32 @@ export default function DjPublishSummary({ packageId, packageData, onBack }: DjP
             <div className="flex-1 bg-white pb-48">
                 {/* Variants Header */}
                 {hasVariants && (
-                    <div className="px-5 pt-5 pb-3">
+                    <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex gap-2 items-center">
-                            <div className="flex flex-1 gap-1.5 bg-[#F9FAF9] border border-[#F4F4F5] p-1 rounded-[12px]">
-                                {variants.map((v: any, idx: number) => (
+                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                            {variants.map((v: any) => {
+                                const variantName = v.variantType || v.step1_eventAndCrew?.packageName || 'Untitled Variant';
+                                const incomplete = isVariantIncomplete(v);
+                                return (
                                     <button
-                                        key={idx}
-                                        onClick={() => setSelectedVariant(v.variantName)}
-                                        className={`flex-1 py-2.5 px-2 rounded-xl text-[13px] font-medium flex items-center justify-center gap-1.5 transition-all ${
-                                            selectedVariant === v.variantName 
-                                                ? 'bg-white text-[#04222D] shadow-[0_2px_8px_rgba(0,0,0,0.05)]' 
-                                                : 'text-[#71717B] hover:bg-gray-100'
+                                        key={v._id}
+                                        onClick={() => setSelectedVariantId(v._id)}
+                                        className={`flex-none min-w-[100px] flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[12px] font-bold transition-all whitespace-nowrap ${
+                                            selectedVariantId === v._id 
+                                            ? 'bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)] text-[#04222D] border border-[#E4E4E7]' 
+                                            : 'text-[#71717B] hover:text-[#04222D] border border-transparent'
                                         }`}
                                         style={{ fontFamily: 'Figtree, sans-serif' }}
                                     >
-                                        <div className="w-[15px] h-[15px] rounded-full bg-[#F97316] flex items-center justify-center text-white shrink-0">
-                                            <span className="text-[10px] font-bold font-serif italic leading-none mb-[1px] mr-[0.5px]">i</span>
-                                        </div>
-                                        {v.variantName}
+                                        {incomplete && (
+                                            <div className="w-4 h-4 rounded-full bg-[#F97316] flex items-center justify-center">
+                                                <span className="text-white text-[10px] font-bold">!</span>
+                                            </div>
+                                        )}
+                                        {variantName}
                                     </button>
-                                ))}
-                            </div>
+                                );
+                            })}
                         </div>
                     </div>
                 )}
@@ -192,7 +198,7 @@ export default function DjPublishSummary({ packageId, packageData, onBack }: DjP
                             </div>
 
                             <h2 className="text-[18px] font-bold text-[#04222D] leading-snug mb-4" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                {pkgName} {hasVariants ? `- ${selectedVariant} Package` : ''}
+                                {pkgName} {hasVariants ? `- ${packageData?.variantType || 'Premium'} Package` : ''}
                             </h2>
 
                             <div className="grid grid-cols-2 gap-y-3 mb-5">
@@ -213,9 +219,7 @@ export default function DjPublishSummary({ packageId, packageData, onBack }: DjP
                             <div className="border-t border-[#F4F4F5] pt-5 mt-5 mb-4">
                                 <p className="text-[10px] text-[#A1A1AA] font-bold tracking-widest uppercase mb-0.5">STARTING FROM</p>
                                 <div className="flex items-baseline gap-1">
-                                    <span className="text-[24px] font-extrabold text-[#000000]" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                        ₹{basePrice.toLocaleString('en-IN')}
-                                    </span>
+                                    <EditableTotal packageId={selectedVariantId} vendorType="DJ" initialPrice={basePrice || 0} />
                                     <span className="text-[14px] font-bold text-[#000000]" style={{ fontFamily: 'Figtree, sans-serif' }}>/event</span>
                                 </div>
                             </div>

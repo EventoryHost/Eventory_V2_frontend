@@ -12,6 +12,10 @@ interface Props {
     setTeamEquipmentPrice: (v: string) => void;
     teamEquipmentUnit: string;
     setTeamEquipmentUnit: (v: string) => void;
+    gstInclusive: boolean;
+    setGstInclusive: (v: boolean) => void;
+    gstRatePercent: string;
+    setGstRatePercent: (v: string) => void;
 
     isDynamicPricingEnabled: boolean;
     setIsDynamicPricingEnabled: (v: boolean) => void;
@@ -75,6 +79,10 @@ export default function DecoratorStep3PoliciesAndCharges({
     setTeamEquipmentPrice,
     teamEquipmentUnit,
     setTeamEquipmentUnit,
+    gstInclusive,
+    setGstInclusive,
+    gstRatePercent,
+    setGstRatePercent,
 
     isDynamicPricingEnabled,
     setIsDynamicPricingEnabled,
@@ -169,6 +177,30 @@ export default function DecoratorStep3PoliciesAndCharges({
                             style={{ fontFamily: 'Figtree, sans-serif' }} 
                             className="w-full p-4 pl-12 bg-[#FAFAFA] border border-[#E4E4E7] rounded-[16px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]" 
                         />
+                    </div>
+                </div>
+
+                <div className="pt-2">
+                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-3">
+                        GST Charges <span className="text-red-500">*</span>
+                    </h4>
+                    
+                    
+
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">GST Inclusive</h4>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mt-0.5">Is GST already included in the prices<br/>you entered?</p>
+                        </div>
+                        <div className="bg-[#E4E4E7] rounded-full p-1 flex items-center w-[96px] relative h-9 cursor-pointer" onClick={() => setGstInclusive(!gstInclusive)}>
+                            <div className={`absolute top-1 bottom-1 w-[44px] bg-white rounded-full transition-transform shadow-sm ${gstInclusive ? 'translate-x-[42px]' : 'translate-x-0'}`} />
+                            <div className="flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold text-[#71717B] transition-colors">
+                                No
+                            </div>
+                            <div className={`flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold transition-colors ${gstInclusive ? 'text-[#030303]' : 'text-[#71717B]'}`}>
+                                Yes
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

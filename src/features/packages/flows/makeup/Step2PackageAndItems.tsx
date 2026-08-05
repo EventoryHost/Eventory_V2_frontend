@@ -6,8 +6,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, ChevronUp, ChevronDown, MoreHorizontal, Pencil, Trash2, Sparkles, Scissors, Droplets, Palette, Hand, HelpCircle, X, ShieldAlert } from 'lucide-react';
 import { MakeupServiceItem } from '../../shared/types';
 import { Addon } from '../../components/AddonModal';
+import { VariantManager } from '../../components/VariantManager';
 
 interface Props {
+    packageId?: string | null;
+    packageGroupId?: string | null;
+    onVariantChange: (newId: string) => void;
     makeupItems: MakeupServiceItem[];
     isItemTypeModalOpen: boolean;
     setIsItemTypeModalOpen: (v: boolean) => void;
@@ -49,6 +53,9 @@ const INPUT = 'p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[16px] fo
 const SMALL_LABEL = 'text-[14px] font-normal text-[#3F3F47] leading-[20px]';
 
 export default function MakeupStep2PackageAndItems({
+    packageId,
+    packageGroupId,
+    onVariantChange,
     makeupItems,
     isItemTypeModalOpen,
     setIsItemTypeModalOpen,
@@ -99,6 +106,15 @@ export default function MakeupStep2PackageAndItems({
     return (
         <>
             <div className="flex flex-col gap-6 pb-32">
+                <VariantManager 
+                    packageId={packageId || ''} 
+                    packageGroupId={packageGroupId || ''} 
+                    vendorType="MakeupArtist"
+                    onVariantChange={(newId) => {
+                        localStorage.setItem('selected_package_id', newId);
+                        window.dispatchEvent(new Event('refresh_package_flow'));
+                    }}
+                />
                 {/* Service Items Header */}
                 <div className="flex items-center justify-between">
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className={SECTION_LABEL}>Service Items</p>
