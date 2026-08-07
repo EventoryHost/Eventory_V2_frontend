@@ -3,7 +3,7 @@ import { apiUrl } from '@/lib/api';
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ArrowLeft, ArrowRight, X, Search, Check, Upload, CheckCircle2, XCircle, Plus, Image as ImageIcon } from 'lucide-react';
+import { ChevronLeft, ArrowLeft, ArrowRight, X, Search, Check, Upload, CheckCircle2, XCircle, Plus, Image as ImageIcon, MoreVertical } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { StepTerms } from './StepTerms';
 import { StepBusinessName, StepPOCName, StepEmail, StepSingleChoice, StepDescription } from './StepBasics';
@@ -107,6 +107,7 @@ export default function SetupBusinessProfile() {
             const savedName = localStorage.getItem('vendor_name');
             const savedPoc = localStorage.getItem('vendor_poc');
             const savedEmail = localStorage.getItem('vendor_email');
+            const savedIsIndividual = localStorage.getItem('vendor_is_individual');
             const savedTeamSize = localStorage.getItem('vendor_team_size');
             const savedBookings = localStorage.getItem('vendor_bookings');
             const savedExperience = localStorage.getItem('vendor_experience');
@@ -139,28 +140,43 @@ export default function SetupBusinessProfile() {
                     .catch(err => console.error('Failed to auto-recover vendor_id:', err));
             }
 
-            if (savedName) setFormData(prev => ({ ...prev, businessName: savedName }));
-            if (savedPoc) setFormData(prev => ({ ...prev, pocName: savedPoc }));
-            if (savedEmail) setFormData(prev => ({ ...prev, email: savedEmail }));
-            if (savedTeamSize) setFormData(prev => ({ ...prev, teamSize: savedTeamSize }));
-            if (savedBookings) setFormData(prev => ({ ...prev, bookingsPerYear: savedBookings }));
-            if (savedExperience) setFormData(prev => ({ ...prev, experience: savedExperience }));
-            if (savedVendorType) {
-                const parsedVendorTypes = savedVendorType.trim().startsWith('[')
-                    ? JSON.parse(savedVendorType)
-                    : savedVendorType.split(',').map((item) => item.trim()).filter(Boolean);
-                setFormData(prev => ({ ...prev, vendorType: parsedVendorTypes }));
+            const loadVendorData = async (vid: string) => {
+                try {
+                    const res = await fetch(`${API_BASE}/vendors/${vid}`);
+                    const data = await res.json();
+                    const vendor = (data.success && data.data) ? data.data : {};
+
+                    setFormData(prev => ({
+                        ...prev,
+                        businessName: savedName || vendor.businessName || '',
+                        isIndividual: savedIsIndividual ? savedIsIndividual === 'true' : !!vendor.isIndividual,
+                        pocName: savedPoc || vendor.pocName || '',
+                        email: savedEmail || vendor.email || '',
+                        teamSize: savedTeamSize || vendor.teamSize || '1-5',
+                        bookingsPerYear: savedBookings || vendor.bookingsPerYear || '',
+                        experience: savedExperience || vendor.experience || '1-3',
+                        vendorType: savedVendorType
+                            ? (savedVendorType.trim().startsWith('[') ? JSON.parse(savedVendorType) : savedVendorType.split(',').map((item: string) => item.trim()).filter(Boolean))
+                            : (vendor.vendorType ? vendor.vendorType.split(',').map((v: string) => v.trim()) : []),
+                        categories: savedCategories ? JSON.parse(savedCategories) : (vendor.categories || []),
+                        city: savedCity || vendor.city || '',
+                        serviceAreas: savedServiceAreas ? JSON.parse(savedServiceAreas) : (vendor.serviceAreas || []),
+                        profilePicture: savedProfilePic || vendor.profilePicture || '',
+                        description: savedDescription || vendor.description || '',
+                        businessPhotos: savedPhotos ? JSON.parse(savedPhotos) : (vendor.businessPhotos || []),
+                        coverImage: savedCover || vendor.coverImage || ''
+                    }));
+                    if (savedProfilePic || vendor.profilePicture) {
+                        setTempImage(savedProfilePic || vendor.profilePicture);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch vendor data:', err);
+                }
+            };
+
+            if (savedVendorId) {
+                loadVendorData(savedVendorId);
             }
-            if (savedCategories) setFormData(prev => ({ ...prev, categories: JSON.parse(savedCategories) }));
-            if (savedCity) setFormData(prev => ({ ...prev, city: savedCity }));
-            if (savedServiceAreas) setFormData(prev => ({ ...prev, serviceAreas: JSON.parse(savedServiceAreas) }));
-            if (savedProfilePic) {
-                setFormData(prev => ({ ...prev, profilePicture: savedProfilePic }));
-                setTempImage(savedProfilePic);
-            }
-            if (savedDescription) setFormData(prev => ({ ...prev, description: savedDescription }));
-            if (savedPhotos) setFormData(prev => ({ ...prev, businessPhotos: JSON.parse(savedPhotos) }));
-            if (savedCover) setFormData(prev => ({ ...prev, coverImage: savedCover }));
             if (savedStep) {
                 const savedFlowVersion = localStorage.getItem('vendor_setup_flow_version');
                 const parsedStep = parseInt(savedStep);
@@ -240,6 +256,7 @@ export default function SetupBusinessProfile() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     businessName: formData.businessName,
+                    isIndividual: formData.isIndividual,
                     pocName: formData.pocName,
                     email: formData.email,
                     teamSize: formData.teamSize,
@@ -263,6 +280,7 @@ export default function SetupBusinessProfile() {
                 console.log('Update successful, current step:', step);
                 // Save locally too
                 localStorage.setItem('vendor_name', formData.businessName);
+                localStorage.setItem('vendor_is_individual', formData.isIndividual.toString());
                 localStorage.setItem('vendor_poc', formData.pocName);
                 localStorage.setItem('vendor_email', formData.email);
                 localStorage.setItem('vendor_team_size', formData.teamSize);
@@ -472,7 +490,7 @@ export default function SetupBusinessProfile() {
     return (
         <div className="min-h-[100dvh] bg-white flex flex-col font-figtree">
             {/* Top Bar */}
-            {step < 15 && (
+            {step < 15 && step !== 14 && (
                 <div className={`${step === 1 ? 'px-[22px] pt-[61px] pb-[10px] border-b border-[#F0F0F1]' : 'px-6 pt-12'}`}>
                     {/* Progress Bar */}
                     <div
@@ -488,13 +506,46 @@ export default function SetupBusinessProfile() {
                         />
                     </div>
 
-                    {/* Save & Exit */}
-                    <button
-                        onClick={handleSaveAndExit}
-                        className={`${step === 1 ? 'py-0' : 'py-2'} flex items-center gap-1 text-[#030303] text-[14px] font-medium active:opacity-60 transition-all`}
-                    >
-                        <ChevronLeft size={step === 1 ? 18 : 20} />
-                        <span>Save & Exit</span>
+                    {/* Top Bar Controls */}
+                    <div className="flex items-center justify-between">
+                        {/* Save & Exit */}
+                        <button
+                            onClick={handleSaveAndExit}
+                            className={`${step === 1 ? 'py-0' : 'py-2'} flex items-center gap-1 text-[#030303] text-[14px] font-medium active:opacity-60 transition-all`}
+                        >
+                            <ChevronLeft size={step === 1 ? 18 : 20} />
+                            <span>Save & Exit</span>
+                        </button>
+
+                        {/* Skip Button for Email Step */}
+                        {step === 3 && (
+                            <button
+                                onClick={() => {
+                                    const nextStep = step + 1;
+                                    setStep(nextStep);
+                                    localStorage.setItem('vendor_setup_step', nextStep.toString());
+                                }}
+                                className="text-[14px] font-bold text-[#030303] active:opacity-60 transition-all"
+                            >
+                                Skip
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            {step === 14 && (
+                <div className="px-6 pt-12 pb-4 flex items-center justify-between bg-white sticky top-0 z-50">
+                    <div className="flex items-center gap-3">
+                        <button onClick={handleBack} className="p-1 -ml-1 text-[#030303]">
+                            <ArrowLeft size={24} />
+                        </button>
+                        <h1 className="text-[18px] font-bold text-[#030303] font-figtree m-0">
+                            Vendor Agreement
+                        </h1>
+                    </div>
+                    <button className="text-[#030303]">
+                        <MoreVertical size={24} />
                     </button>
                 </div>
             )}
@@ -631,6 +682,11 @@ export default function SetupBusinessProfile() {
                         <StepTerms
                             hasAcceptedTerms={hasAcceptedTerms}
                             setHasAcceptedTerms={setHasAcceptedTerms}
+                            vendorName={formData.businessName}
+                            brandName={formData.businessName}
+                            pocName={formData.pocName}
+                            email={formData.email}
+                            vendorId={vendorId || undefined}
                         />
                     )}
 
@@ -675,7 +731,7 @@ export default function SetupBusinessProfile() {
                                 backgroundColor: isContinueDisabled ? '#E5E7EB' : CONTINUE_BUTTON_COLOR
                             }}
                         >
-                            {loading ? 'Saving...' : (step === 3 && formData.email.trim() === '') ? 'Skip' : 'Continue'}
+                            {loading ? 'Saving...' : step === 14 ? 'Submit' : (step === 3 && formData.email.trim() === '') ? 'Skip' : 'Continue'}
                         </button>
                         {step === 13 && isButtonDisabled() && !loading && (
                             <p className="text-[12px] font-medium text-rose-500 animate-pulse">

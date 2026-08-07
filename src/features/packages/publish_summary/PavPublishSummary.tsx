@@ -49,7 +49,7 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
     const addons = packageData.step2_productsAndPricing?.addOns || [];
     const requirements: string[] = [];
     const venueNeedsObj = packageData.step1_eventAndCrew?.venueNeeds;
-    let venueDescription = 'We require a secure, lockable room for equipment storage throughout the event duration. Additionally, we need access to at least two dedicated 15A power points near the stage and the main floor for our lighting stands and charging station. If a drone is being used, we require verbal clearance from the venue manager regarding overhead obstructions.';
+    let venueDescription = '';
     
     if (venueNeedsObj) {
         if (venueNeedsObj.power) requirements.push('Power points for lighting & charging');
@@ -68,10 +68,6 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
                 venueDescription = longParts.join('. ');
             }
         }
-    }
-
-    if (requirements.length === 0) {
-        requirements.push('Power points for lighting & charging', 'Drone flying permission', 'Internet', 'Parking access');
     }
 
     const allRequirements = requirements;
@@ -175,7 +171,7 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
                 {hasVariants && (
                     <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                        <div className="inline-flex max-w-full bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
                             {variants.map((v: any) => {
                                 const variantName = v.variantType || v.step1_eventAndCrew?.packageName || 'Untitled Variant';
                                 const incomplete = isVariantIncomplete(v);

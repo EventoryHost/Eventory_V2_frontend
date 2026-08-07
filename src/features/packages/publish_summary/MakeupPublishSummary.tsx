@@ -192,7 +192,7 @@ export default function MakeupPublishSummary({ packageId, packageData: initialPa
                 {hasVariants && (
                     <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                        <div className="inline-flex max-w-full bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
                             {variants.map((v: any) => {
                                 const variantName = v.variantType || v.step1_eventAndCrew?.packageName || 'Untitled Variant';
                                 const incomplete = isVariantIncomplete(v);

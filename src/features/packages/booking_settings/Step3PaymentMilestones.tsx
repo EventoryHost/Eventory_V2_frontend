@@ -33,8 +33,31 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
 
     useEffect(() => {
         let tokenPercentage = 0;
-        if (packageData?.bookingSettings?.paymentType === 'Token' && packageData?.bookingSettings?.token?.tokenType === 'Percentage') {
-            tokenPercentage = packageData.bookingSettings.token.value || 0;
+        if (packageData?.bookingSettings?.paymentType === 'Token') {
+            if (packageData?.bookingSettings?.token?.tokenType === 'Percentage') {
+                tokenPercentage = packageData.bookingSettings.token.value || 0;
+            } else if (packageData?.bookingSettings?.token?.tokenType === 'Fixed') {
+                const s3 = packageData?.step3_policiesAndCharges || {};
+                const s2 = packageData?.step2_setupsAndPricing || packageData?.step2_productsAndPricing || {};
+                const s1 = packageData?.step1_eventAndCrew || {};
+                
+                const totalPrice = s3.packagePricing?.price 
+                                || s3.teamAndEquipment?.price 
+                                || s3.overallPriceOfPackage?.price 
+                                || s2.totalPackagePrice
+                                || s1.packagePrice 
+                                || 0;
+                
+                const tokenAmount = packageData.bookingSettings.token.value || 0;
+                if (totalPrice > 0) {
+                    let calcPct = (tokenAmount / totalPrice) * 100;
+                    tokenPercentage = Math.round(calcPct);
+                    // If they entered a very small amount, at least show 1% so the UI updates
+                    if (tokenAmount > 0 && tokenPercentage === 0) {
+                        tokenPercentage = 1;
+                    }
+                }
+            }
         }
 
         if (initialData?.milestones?.length > 0) {

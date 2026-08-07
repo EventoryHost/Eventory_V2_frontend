@@ -1,369 +1,580 @@
 'use client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState } from 'react';
 
 const sv = { initial: { x: 20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: -20, opacity: 0 } };
+
+// ── Collapsible Section ──────────────────────────────────
+function Section({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+    const [open, setOpen] = useState(defaultOpen);
+    return (
+        <div className="border border-[#E5E5E5] rounded-[12px] overflow-hidden">
+            {/* Header */}
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-white text-left"
+            >
+                <span className="text-[#1C398E] font-figtree text-[16px] font-semibold leading-[24px]">{title}</span>
+                <motion.svg
+                    animate={{ rotate: open ? 180 : 0 }}
+                    transition={{ duration: 0.22, ease: 'easeInOut' }}
+                    width="18" height="18" viewBox="0 0 24 24" fill="none"
+                    stroke="#1C398E" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+                    className="flex-shrink-0"
+                >
+                    <polyline points="6 9 12 15 18 9" />
+                </motion.svg>
+            </button>
+
+            {/* Body */}
+            <AnimatePresence initial={false}>
+                {open && (
+                    <motion.div
+                        key="body"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: 'easeInOut' }}
+                        className="overflow-hidden"
+                    >
+                        <div className="px-4 pb-4 pt-1 border-t border-[#E5E5E5] space-y-3">
+                            {children}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    );
+}
 
 interface Props {
     hasAcceptedTerms: boolean;
     setHasAcceptedTerms: (v: boolean) => void;
+    vendorName?: string;
+    brandName?: string;
+    pocName?: string;
+    email?: string;
+    vendorId?: string;
 }
 
-export function StepTerms({ hasAcceptedTerms, setHasAcceptedTerms }: Props) {
+// ── Design tokens ────────────────────────────────────────
+// Heading: #1C398E, 20px, 600, 28px line-height
+const headingCls = 'text-[#1C398E] font-figtree text-[20px] font-semibold leading-[28px] tracking-[0]';
+// Normal body text: #030303, 16px, 400, 24px line-height
+const bodyCls = 'text-[#030303] font-figtree text-[16px] font-normal leading-[24px] tracking-[0]';
+// Bold body text: #030303, 16px, 700, 24px line-height, justify
+const boldCls = 'text-[#030303] font-figtree text-[16px] font-bold leading-[24px] tracking-[0] text-justify';
+// Summary / small text
+const smallCls = 'text-[#3F3F47] font-figtree text-[13px] font-normal leading-[20px]';
+
+// ── Table style helpers ──────────────────────────────────
+const tbl = 'w-full border-collapse text-[13px]';
+const thC = 'border border-[#C8C8C8] bg-[#F5F5F5] px-3 py-2 font-semibold text-center text-[12px] font-figtree';
+const thL = 'border border-[#C8C8C8] bg-[#F5F5F5] px-3 py-2 font-semibold text-left text-[12px] font-figtree';
+const tdC = 'border border-[#C8C8C8] px-3 py-2 text-center font-figtree';
+const tdL = 'border border-[#C8C8C8] px-3 py-2 text-left font-figtree';
+
+// ── Data ────────────────────────────────────────────────
+const dayHeaders = ['25+\nDays', '18-25\nDays', '13-18\nDays', '8-12\nDays', '4-7\nDays', '1-3\nDays', 'Event\nDay'];
+
+const cancellationRows = [
+    { range: '0-15K',    vals: ['0%','16%','24%','32%','40%','48%','56%'] },
+    { range: '15-30K',   vals: ['0%','18%','26%','34%','42%','50%','58%'] },
+    { range: '30-50K',   vals: ['0%','20%','28%','36%','44%','52%','60%'] },
+    { range: '50-75K',   vals: ['0%','20%','32%','45%','57%','70%','82%'] },
+    { range: '75-100K',  vals: ['0%','25%','37%','50%','62%','75%','87%'] },
+    { range: '100-125K', vals: ['0%','28%','38%','48%','58%','68%','78%'] },
+    { range: '125-150K', vals: ['0%','30%','40%','50%','60%','70%','80%'] },
+    { range: '150-175K', vals: ['0%','32%','42%','52%','62%','72%','80%'] },
+    { range: '175-200K', vals: ['0%','34%','44%','54%','64%','74%','80%'] },
+    { range: '200-250K', vals: ['0%','38%','48%','58%','68%','78%','80%'] },
+    { range: '250-300K', vals: ['0%','42%','52%','62%','72%','80%','80%'] },
+];
+
+const commissionRows = [
+    { range: '0-15K',    val: '11%' },
+    { range: '15-30K',   val: '10%' },
+    { range: '30-50K',   val: '9%'  },
+    { range: '50-75K',   val: '8%'  },
+    { range: '75-100K',  val: '7%'  },
+    { range: '100-125K', val: '6%'  },
+    { range: '125-150K', val: '5%'  },
+    { range: '150-175K', val: '4%'  },
+    { range: '175-200K', val: '3%'  },
+    { range: '200-250K', val: '2%'  },
+    { range: '250-300K', val: '1%'  },
+];
+
+const tierRows = [
+    { tier: 'CAT_1', commission: '2% to 12.8%',     cancellation: '10% to 100%' },
+    { tier: 'CAT_2', commission: '1% to 11.8%',     cancellation: '0% to 87.5%' },
+    { tier: 'CAT_3', commission: '0.5% to 11.3%',   cancellation: '0% to 78.5%' },
+    { tier: 'CAT_4', commission: '0.5% to 11.3%',   cancellation: '0% to 69%'   },
+    { tier: 'CAT_5', commission: '0.5% to 11.3%',   cancellation: '0% to 59%'   },
+    { tier: 'CAT_6', commission: '0.25% to 11.05%', cancellation: '0% to 49%'   },
+];
+
+const profileScoreRows: [string, string, string, string][] = [
+    ['0 – 24',     '0 – 2',     '1 – 5',    '5'],
+    ['25 – 49',    '3 – 6',     '6 – 15',   '4'],
+    ['50 – 74',    '7 – 10',    '16 – 30',  '3'],
+    ['75 – 99',    '10 – 15',   '31 – 50',  '2'],
+    ['100 – 1000', '15 – 1000', '50 – 100', '1'],
+];
+
+const consentItems = [
+    'I confirm my business, KYC, bank, tax, and service details are accurate.',
+    'I understand Eventory may assign/update my commercial tier based on profile, capacity, risk, and performance.',
+    'I accept commission, convenience fee, cancellation, refund, and settlement rules shown in the app/admin-configured rate card.',
+    'I agree to honor acknowledged/paid bookings and understand that settlement may be held until acknowledgement and verification.',
+    'I agree that Eventory may reassign bookings, handle customer refunds, and recover applicable charges in exceptional cases.',
+    'I agree to receive operational communication through app, phone, email, SMS, or WhatsApp.',
+];
+
+function DayHeaders() {
     return (
-        <motion.div key="step13" {...sv} className="space-y-6 pb-10">
-            <div className="space-y-2">
-                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">
-                    Terms of Service
-                </h1>
-                <p className="text-[#71717B] text-[13px] font-medium font-figtree">
-                    Last updated on October 2024
+        <>
+            {dayHeaders.map(h => (
+                <th key={h} className={thC}>
+                    {h.split('\n').map((l, i) => <span key={i} className="block">{l}</span>)}
+                </th>
+            ))}
+        </>
+    );
+}
+
+function ProfileScoreTable() {
+    return (
+        <div className="overflow-x-auto rounded-[8px] border border-[#C8C8C8]">
+            <table className={tbl}>
+                <thead>
+                    <tr>
+                        <th className={thC}>Booking<br/>per year</th>
+                        <th className={thC}>Years of<br/>Operation</th>
+                        <th className={thC}>Team<br/>size</th>
+                        <th className={thC}>Reference<br/>Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {profileScoreRows.map(([b, y, t, s]) => (
+                        <tr key={b}>
+                            <td className={tdC}>{b}</td>
+                            <td className={tdC}>{y}</td>
+                            <td className={tdC}>{t}</td>
+                            <td className={`${tdC} font-bold`}>{s}</td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+// Bullet list item
+function Bullet({ children }: { children: React.ReactNode }) {
+    return (
+        <li className="flex gap-2">
+            <span className="mt-[4px] flex-shrink-0">•</span>
+            <span className={bodyCls}>{children}</span>
+        </li>
+    );
+}
+
+export function StepTerms({ hasAcceptedTerms, setHasAcceptedTerms, vendorName, brandName, pocName, email, vendorId }: Props) {
+    const [checkedItems, setCheckedItems] = useState<boolean[]>(new Array(consentItems.length).fill(false));
+    const allChecked = checkedItems.every(Boolean);
+
+    const toggleItem = (i: number) => {
+        setCheckedItems(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
+    };
+    const toggleAll = () => setCheckedItems(new Array(consentItems.length).fill(!allChecked));
+
+    const now = new Date();
+    const acceptedAt = now.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' })
+        + ' at ' + now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+    return (
+        <motion.div key="step14" {...sv} className="space-y-6 pb-10">
+
+            {/* ── Main Title ── */}
+            <h1 className="text-[#030303] font-figtree text-[22px] font-bold leading-[30px]">
+                Eventory Vendor Agreement and Onboarding Consent Form
+            </h1>
+
+            {/* ── Summary Box ── */}
+            <div className="bg-[#F4F4F5] rounded-[12px] p-4 space-y-1.5">
+                <p className="text-[14px] font-bold text-[#030303] font-figtree">Summary of Key Points</p>
+                <p className={smallCls}>
+                    This document is designed to be shown at the final step of vendor onboarding. It explains the vendor&apos;s obligations, commercial terms, settlement logic, cancellation impact, and consent captured by Eventory. This is an operational draft and should be reviewed by legal counsel before production use.
                 </p>
             </div>
 
-            <div className="text-[13px] text-[#3F3F47] leading-[20px] font-figtree select-text space-y-4">
-                <p className="font-semibold">AGREEMENT TO OUR LEGAL TERMS</p>
-                <p>
-                    We are EVENTORY TECH SOLUTIONS PRIVATE LIMITED, doing business as Eventory (&apos;Company&apos;, &apos;we&apos;, &apos;us&apos;, or &apos;our&apos;), a company registered in India at 13 D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi, Delhi 110001.
-                </p>
-                <p>
-                    We operate the website <a href="https://eventory.in" target="_blank" rel="noopener noreferrer" className="text-[#04222D] underline font-medium">https://eventory.in</a> (the &apos;Site&apos;), the mobile application Eventory Business (the &apos;App&apos;), as well as any other related products and services that refer or link to these legal terms (the &apos;Legal Terms&apos;) (collectively, the &apos;Services&apos;).
-                </p>
-                <p>
-                    Eventory is a comprehensive online platform that revolutionises the way events are planned and managed. Whether you&apos;re organising a wedding, corporate event, birthday party, or any special occasion, Eventory serves as your one-stop solution for all your event planning needs. Our platform connects event organizers with a diverse network of top-rated vendors, including venues, caterers, decorators, photographers, entertainers, and more. Eventory offers a seamless and user-friendly experience, allowing users to browse, compare, and book services that perfectly match their event requirements. With a focus on customisation, we provide tailored packages that cater to various themes, budgets, and preferences. Our platform not only simplifies the event planning process but also enhances it by offering expert recommendations, ensuring that every detail is meticulously planned and executed. In addition to vendor management, Eventory empowers vendors by giving them a dedicated space to showcase their services, reach a wider audience, and grow their business. With advanced features such as real-time booking management, customer reviews, and analytics, Eventory is designed to make event planning stress-free, efficient, and enjoyable for both organizers and vendors alike.
-                </p>
-                <p>
-                    You can contact us by phone at (+91)8800725840, email at <a href="mailto:support@eventory.in" className="text-[#04222D] underline font-medium">support@eventory.in</a>, or by mail to 13 D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi, Delhi 110001, India.
-                </p>
-                <p>
-                    These Legal Terms constitute a legally binding agreement made between you, whether personally or on behalf of an entity (&apos;you&apos;), and EVENTORY TECH SOLUTIONS PRIVATE LIMITED, concerning your access to and use of the Services. You agree that by accessing the Services, you have read, understood, and agreed to be bound by all of these Legal Terms. IF YOU DO NOT AGREE WITH ALL OF THESE LEGAL TERMS, THEN YOU ARE EXPRESSLY PROHIBITED FROM USING THE SERVICES AND YOU MUST DISCONTINUE USE IMMEDIATELY.
-                </p>
-                <p>
-                    We will provide you with prior notice of any scheduled changes to the Services you are using. Changes to Legal Terms will become effective two (2) days after the notice is given, except if the changes apply to new functionality and bug fixes, in which case the changes will be effective immediately. By continuing to use the Services after the effective date of any changes, you agree to be bound by the modified terms. If you disagree with such changes, you may terminate Services as per the section &apos;TERM AND TERMINATION&apos;.
-                </p>
-                <p>
-                    The Services are intended for users who are at least 13 years of age. All users who are minors in the jurisdiction in which they reside (generally under the age of 18) must have the permission of, and be directly supervised by, their parent or guardian to use the Services. If you are a minor, you must have your parent or guardian read and agree to these Legal Terms prior to you using the Services.
-                </p>
-                <p>
-                    We recommend that you print a copy of these Legal Terms for your records.
-                </p>
-                
-                <div className="font-semibold pt-2">TABLE OF CONTENTS</div>
-                <div className="pl-2 space-y-0.5">
-                    <div>1. OUR SERVICES</div>
-                    <div>2. INTELLECTUAL PROPERTY RIGHTS</div>
-                    <div>3. USER REPRESENTATIONS</div>
-                    <div>4. USER REGISTRATION</div>
-                    <div>5. PURCHASES AND PAYMENT</div>
-                    <div>6. SUBSCRIPTIONS</div>
-                    <div>7. POLICY</div>
-                    <div>8. PROHIBITED ACTIVITIES</div>
-                    <div>9. USER GENERATED CONTRIBUTIONS</div>
-                    <div>10. CONTRIBUTION LICENCE</div>
-                    <div>11. GUIDELINES FOR REVIEWS</div>
-                    <div>12. MOBILE APPLICATION LICENCE</div>
-                    <div>13. SOCIAL MEDIA</div>
-                    <div>14. THIRD-PARTY WEBSITES AND CONTENT</div>
-                    <div>15. SERVICES MANAGEMENT</div>
-                    <div>16. PRIVACY POLICY</div>
-                    <div>17. COPYRIGHT INFRINGEMENTS</div>
-                    <div>18. TERM AND TERMINATION</div>
-                    <div>19. MODIFICATIONS AND INTERRUPTIONS</div>
-                    <div>20. GOVERNING LAW</div>
-                    <div>21. DISPUTE RESOLUTION</div>
-                    <div>22. CORRECTIONS</div>
-                    <div>23. DISCLAIMER</div>
-                    <div>24. LIMITATIONS OF LIABILITY</div>
-                    <div>25. INDEMNIFICATION</div>
-                    <div>26. USER DATA</div>
-                    <div>27. ELECTRONIC COMMUNICATIONS, TRANSACTIONS, AND SIGNATURES</div>
-                    <div>28. SMS TEXT MESSAGING</div>
-                    <div>29. MISCELLANEOUS</div>
-                    <div>30. CONTACT US</div>
+            {/* ── Cancellation Table ── */}
+            <div className="space-y-2">
+                <p className="text-[14px] font-bold text-center text-[#04222D] font-figtree">Vendor Cancellation Range</p>
+                <div className="overflow-x-auto rounded-[8px] border border-[#C8C8C8]">
+                    <table className={tbl}>
+                        <thead>
+                            <tr>
+                                <th className={thC}>Price<br/>Range</th>
+                                <DayHeaders />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {cancellationRows.map(row => (
+                                <tr key={row.range}>
+                                    <td className={`${tdL} font-medium`}>{row.range}</td>
+                                    {row.vals.map((v, i) => <td key={i} className={tdC}>{v}</td>)}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* ── Commission Table ── */}
+            <div className="space-y-2">
+                <p className="text-[14px] font-bold text-center text-[#04222D] font-figtree">Vendor Commission Range</p>
+                <div className="overflow-x-auto rounded-[8px] border border-[#C8C8C8]">
+                    <table className={tbl}>
+                        <thead>
+                            <tr>
+                                <th className={thC}>Price<br/>Range</th>
+                                <DayHeaders />
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {commissionRows.map(row => (
+                                <tr key={row.range}>
+                                    <td className={`${tdL} font-medium`}>{row.range}</td>
+                                    {dayHeaders.map((_, i) => <td key={i} className={tdC}>{row.val}</td>)}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* ══════════════ POLICY SECTIONS ══════════════ */}
+            <div className="space-y-2">
+
+                {/* 1 */}
+                <Section title="1. Parties and Acceptance">
+                    <p className={bodyCls}>This Vendor Agreement and Onboarding Consent Form is entered between Eventory Tech Solutions Private Limited, having its principal place of business at 13-D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi-110001, and the vendor/business entity completing onboarding on the Eventory vendor app.</p>
+                    <ul className="space-y-2 list-none">
+                        <Bullet>The vendor confirms that all business profile, KYC, bank, tax, team, availability, service, package, pricing, and document details submitted during onboarding are true and current.</Bullet>
+                        <Bullet>The vendor agrees that onboarding may cover one or multiple service lines, packages, cities, teams, or inventory types.</Bullet>
+                        <Bullet>The vendor agrees that final activation, listing visibility, commercial tier, and settlement eligibility are subject to Eventory verification and approval.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 2 */}
+                <Section title="2. Definitions">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>2.1 Platform:</span> Eventory&apos;s online and offline event booking platform where services are offered to users</Bullet>
+                        <Bullet><span className={boldCls}>2.2 Vendors:</span> The entity providing goods or services for events listed on the Platform.</Bullet>
+                        <Bullet><span className={boldCls}>2.3 Users/Clients:</span> Individuals or businesses that hire the Vendor via the Platform.</Bullet>
+                        <Bullet><span className={boldCls}>2.4 Services:</span> The services provided by the Vendor listed on the Platform (e.g., catering, photography, event planning, etc.)</Bullet>
+                        <Bullet><span className={boldCls}>2.5 Booking Amount:</span> The base price of the goods or services offered by the Vendor (inclusive of applicable taxes)</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 3 */}
+                <Section title="3. Scope of Services">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>3.1 Description of Services:</span> The Vendor agrees to provide the following services as listed during onboarding.</Bullet>
+                        <Bullet><span className={boldCls}>3.2 Service Standards:</span> The Vendor agrees to deliver services in a professional manner, adhering to industry standards, and will comply with all legal and regulatory requirements.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 4 */}
+                <Section title="4. Term and Termination">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>4.1 Description of Services:</span> This Agreement is effective as of the date of onboarding completion and shall remain in effect until terminated by either Party as provided in this section.</Bullet>
+                        <Bullet><span className={boldCls}>4.2 Service Standards:</span> The Vendor may terminate this Agreement by providing a written notice to the platform within 7 days of registration.</Bullet>
+                        <Bullet><span className={boldCls}>4.3 Service Standards:</span> The Platform may terminate this Agreement immediately if the Vendor breaches any terms of this Agreement or fails to provide services up to the required standards.</Bullet>
+                        <Bullet><span className={boldCls}>4.4 Effect of Termination:</span> Upon termination, all pending transactions or bookings will be completed unless mutually agreed otherwise. The Vendor shall be responsible for all commitments made prior to the date of termination.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 5 */}
+                <Section title="5. Multi-Service Onboarding Model">
+                    <p className={bodyCls}>Eventory&apos;s vendor onboarding is not limited to a single service category. A vendor may provide catering, photography/videography, venue, decor, makeup, DJ, artist, package bundles, or other event services. Commercial category and commission treatment should therefore be calculated at the vendor profile and booking level, not only by the service label selected during onboarding.</p>
+                    <div className="overflow-x-auto rounded-[8px] border border-[#C8C8C8]">
+                        <table className={tbl}>
+                            <thead>
+                                <tr>
+                                    <th className={thL}>Factor</th>
+                                    <th className={thL}>How Eventory uses it</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    ['Bookings per year',   'Indicates vendor maturity, operational capacity, and expected platform dependency.'],
+                                    ['Years of operation',  'Helps determine experience level and service reliability.'],
+                                    ['Team size',           'Helps determine whether the vendor can handle concurrent bookings, large events, and reassignment cases.'],
+                                    ['Service criticality', 'High-impact services such as venue, caterer, decorator, photographer may require stricter review and higher operational controls.'],
+                                    ['Verification status', 'Business documents, personal documents, bank verification, GST/PAN, address proof, and internal approval affect activation and payouts.'],
+                                    ['Performance history', 'Acknowledgement speed, cancellation history, customer rating, package quality, and dispute record can update the tier over time.'],
+                                ].map(([f, d]) => (
+                                    <tr key={f}>
+                                        <td className={`${tdL} align-top w-[38%]`}>{f}</td>
+                                        <td className={`${tdL} align-top`}>{d}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Section>
+
+                {/* 6 */}
+                <Section title="6. Multi-Service Vendor Category Assignment">
+                    <p className={bodyCls}>Eventory&apos;s vendor onboarding is not limited to a single service category. A vendor may provide catering, photography/videography, venue, decor, makeup, DJ, artist, package bundles, or other event services.</p>
+                    <p className={bodyCls}>While general operational factors (such as experience and team size) apply across the profile, <strong>the assigned category is dependent on both the overall profile score and the specific service type.</strong> Therefore, for multi-service vendors, commercial category and commission treatment are calculated per service line and booking level, rather than applying a single blanket category to the entire profile.</p>
+                    <p className={boldCls}>A. Vendor Profile Inputs Captured</p>
+                    <p className={bodyCls}>During onboarding, the system captures the following primary profile inputs from the vendor:</p>
+                    <ul className="space-y-2 list-none">
+                        <Bullet><strong>Selected Service(s):</strong> (e.g., Caterer OR Decorator &amp; DJ OR Venue &amp; Caterer &amp; DJ)</Bullet>
+                        <Bullet><strong>Bookings / Year:</strong> Selected annual capacity range</Bullet>
+                        <Bullet><strong>Years of Operation:</strong> Total operational history</Bullet>
+                        <Bullet><strong>Team Size:</strong> Total dedicated staff count</Bullet>
+                    </ul>
+                    <p className={boldCls}>B. Profile Reference Score Table</p>
+                    <p className={bodyCls}>Based on the operational inputs selected (Bookings/Year, Years of Operation, Team Size), a baseline profile reference score is assigned:</p>
+                    <ProfileScoreTable />
+                    <p className={boldCls}>C. Multi-Service Vendor Category Assignment</p>
+                    <p className={bodyCls}>Because single profile factors evaluate overall capability while category mapping is service-dependent, a vendor onboarding multiple services will be assigned specific categories for each service line:</p>
+                    <div className="rounded-[8px] border border-[#C8C8C8] overflow-hidden">
+                        <div className="bg-[#F5F5F5] px-3 py-2 border-b border-[#C8C8C8]">
+                            <p className="text-[13px] font-semibold text-[#030303] font-figtree">Onboarding Input Selected</p>
+                        </div>
+                        <div className="px-3 py-2 border-b border-[#C8C8C8] space-y-1">
+                            <p className="text-[13px] font-medium text-[#3F3F47] font-figtree">Multi-Vendor Selection:</p>
+                            <ul className="text-[13px] text-[#3F3F47] font-figtree pl-2 space-y-0.5">
+                                <li>• Venue</li><li>• Decorator</li><li>• DJ</li>
+                            </ul>
+                        </div>
+                        <table className={tbl}>
+                            <thead><tr><th className={thL}>Service Line Offered</th><th className={thL}>Category Assigned</th></tr></thead>
+                            <tbody>
+                                {[['Venue','CAT_2'],['Decorator','CAT_3'],['DJ','CAT_4']].map(([s, c]) => (
+                                    <tr key={s}><td className={tdL}>{s}</td><td className={tdC}>{c}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Section>
+
+                {/* 7 */}
+                <Section title="7. Commercial Tiering and Fees">
+                    <p className={bodyCls}>After the Eventory Free trial period, Eventory will assign you a category tag, and commission fees will be applied to every booking.</p>
+                    <p className={bodyCls}>Eventory assigns commercial tiers <strong>(from CAT_1 to CAT_6)</strong> based on the vendor profile score, service type criticality, operational risk, and business rules configured in the admin portal. The final commission, convenience fee, and cancellation impact for each booking depend on the assigned tier, booking value slab, and days remaining until the event.</p>
+                    <div className="overflow-x-auto rounded-[8px] border border-[#C8C8C8]">
+                        <table className={tbl}>
+                            <thead><tr><th className={thC}>Tier</th><th className={thC}>Vendor Commission Range 🔵</th><th className={thC}>Vendor Cancellation Range 🔵</th></tr></thead>
+                            <tbody>
+                                {tierRows.map(r => (
+                                    <tr key={r.tier}><td className={`${tdC} font-bold`}>{r.tier}</td><td className={tdC}>{r.commission}</td><td className={tdC}>{r.cancellation}</td></tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="bg-[#EEF2FF] rounded-[8px] p-3 space-y-1">
+                        <p className="text-[13px] font-semibold text-[#030303] font-figtree">View Details 🔵 Breakdown Note:</p>
+                        <p className={smallCls}>🔵 icon next to any percentage range in the app displays the exact breakdown by <strong>days remaining before the event</strong> (event-date proximity slabs). Category-wise day breakdown tables and exact commercial values are mapped per category in the Eventory commercial configuration table.</p>
+                    </div>
+                    <p className={boldCls}>Vendor Profile Score Reference</p>
+                    <ProfileScoreTable />
+                    <p className={bodyCls}>The score is a reference input, not the only determinant. Eventory may adjust tiering using verification status, service risk, customer complaints, cancellation behavior, operational reliability, or manual admin review.</p>
+                </Section>
+
+                {/* 8 */}
+                <Section title="8. Booking, Payment and Settlement Terms">
+                    <ol className="space-y-2 list-none">
+                        {[
+                            'Customers may book through instant booking, enquiry-first flow, free booking/zero-advance booking, or advance-payment booking, depending on the vendor package configuration.',
+                            'For paid bookings, Eventory collects customer payment through its payment gateway and records the payment against the booking ledger.',
+                            'Vendor settlement is processed after required booking acknowledgement, internal verification, and applicable event/payment milestone completion.',
+                            'Eventory may deduct platform commission, applicable taxes, gateway charges, penalties, refunds, cancellation charges, or adjustment entries before vendor payout.',
+                            'For zero-advance/free bookings, vendors may be required to accept or decline within the defined time window. For paid confirmed bookings, vendors are required to acknowledge the booking and fulfill it.',
+                            'If a paid booking is not acknowledged, Eventory may contact the vendor, hold settlement, reassign the booking through admin operations, or apply operational penalties as per policy.',
+                        ].map((text, i) => (
+                            <li key={i} className="flex gap-2">
+                                <span className={`${bodyCls} flex-shrink-0`}>{i + 1}.</span>
+                                <span className={bodyCls}>{text}</span>
+                            </li>
+                        ))}
+                    </ol>
+                </Section>
+
+                {/* 9 */}
+                <Section title="9. Vendor Obligations">
+                    <ul className="space-y-2 list-none">
+                        <Bullet>Maintain accurate package, pricing, menu, inventory, availability, time slots, service area, and team capacity.</Bullet>
+                        <Bullet>Honor all acknowledged bookings and avoid off-platform diversion of customers acquired through Eventory.</Bullet>
+                        <Bullet>Hold valid business documents, licenses, permits, tax registrations, food/service licenses, insurance, and local permissions where applicable.</Bullet>
+                        <Bullet>Provide safe, lawful, professional, and timely service delivery as represented in the package listing.</Bullet>
+                        <Bullet>Inform Eventory immediately about capacity issues, unavoidable delays, force majeure, quality incidents, or customer disputes.</Bullet>
+                        <Bullet>Accept that package content, payment breakdowns, refund logic, and cancellation handling may be reviewed or corrected through the admin portal for compliance and customer protection.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 10 */}
+                <Section title="10. Cancellation, Refund and Reassignment">
+                    <p className={bodyCls}>Cancellation charges are applied according to the booking value, commercial tier, and number of days remaining before the event. Vendor-side cancellation after confirmation may result in cancellation charges, recovery of disbursed advance, reduced visibility, temporary listing suspension, or internal reassignment.</p>
+                    <ul className="space-y-2 list-none">
+                        <Bullet>If the customer cancels, applicable customer cancellation charges and refund treatment are calculated by Eventory and shown in customer/vendor records.</Bullet>
+                        <Bullet>If the vendor cancels or refuses to fulfill an acknowledged booking, Eventory may assign another available vendor and recover applicable charges from the original vendor.</Bullet>
+                        <Bullet>If a booking has been paid by the customer, vendor payout may be held until acknowledgement and operational confirmation are complete.</Bullet>
+                        <Bullet>Refunds, replacements, chargebacks, disputes, and exception approvals are handled through the Eventory admin portal with audit logs.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 11 */}
+                <Section title="11. Cancellation, Refund and Reassignment">
+                    <p className={bodyCls}>Cancellation charges are applied according to the booking value, commercial tier, and number of days remaining before the event. Vendor-side cancellation after confirmation may result in cancellation charges, recovery of disbursed advance, reduced visibility, temporary listing suspension, or internal reassignment.</p>
+                    <ul className="space-y-2 list-none">
+                        <Bullet>If the customer cancels, applicable customer cancellation charges and refund treatment are calculated by Eventory and shown in customer/vendor records.</Bullet>
+                        <Bullet>If the vendor cancels or refuses to fulfill an acknowledged booking, Eventory may assign another available vendor and recover applicable charges from the original vendor.</Bullet>
+                        <Bullet>If a booking has been paid by the customer, vendor payout may be held until acknowledgement and operational confirmation are complete.</Bullet>
+                        <Bullet>Refunds, replacements, chargebacks, disputes, and exception approvals are handled through the Eventory admin portal with audit logs.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 12 */}
+                <Section title="12. Data, Consent and Audit Trail">
+                    <ul className="space-y-2 list-none">
+                        <Bullet>Vendor consent is captured with timestamp, user ID, business ID, device/app metadata, agreement version, IP/location where available, and accepted checkbox states.</Bullet>
+                        <Bullet>Eventory may store onboarding documents, agreement acceptance, booking records, payment ledger, settlement ledger, communication logs, and support history.</Bullet>
+                        <Bullet>Vendors may receive an email/SMS/WhatsApp confirmation or downloadable copy of the accepted agreement.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 13 */}
+                <Section title="13. Vendor's Representation and Warranties">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>13.1 Performance:</span> The Vendor warrants that it has the necessary skills, experience, and resources to perform the services professionally and efficiently.</Bullet>
+                        <Bullet><span className={boldCls}>13.2 Non-Infringement:</span> The Vendor warrants that all services provided do not infringe on any third-party intellectual property rights.</Bullet>
+                        <Bullet><span className={boldCls}>13.3 Compliance:</span> The Vendor represents that it complies with all laws and regulations related to the performance of its services.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 14 */}
+                <Section title="14. Vendor Visibility, Booking Numbers, and ROI">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>14.1 Visibility and Marketing:</span> The Vendor&apos;s visibility on the Platform depends on factors such as quality of service, pricing competitiveness, and profile updates.</Bullet>
+                        <Bullet><span className={boldCls}>14.2 No Guarantee of Bookings:</span> The Platform does not guarantee a fixed number of bookings or orders to any Vendor. Success depends on several factors such as customer preferences and service quality.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 15 */}
+                <Section title="15. Dispute Resolution">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>15.1 Disputes with Users:</span> The Platform will act as an intermediary in any disputes between the Vendor and the user.</Bullet>
+                        <Bullet><span className={boldCls}>15.2 Arbitration:</span> Any disputes between the Vendor and Platform shall be settled by arbitration in accordance with the rules of [Arbitration Body]</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 16 */}
+                <Section title="16. Governing Law">
+                    <p className={bodyCls}>This Agreement shall be governed by and construed in accordance with the laws of India.</p>
+                </Section>
+
+                {/* 17 */}
+                <Section title="17. Miscellaneous">
+                    <ul className="space-y-2 list-none">
+                        <Bullet><span className={boldCls}>17.1 Amendments:</span> This Agreement may only be amended in writing signed by both Parties.</Bullet>
+                        <Bullet><span className={boldCls}>17.2 Entire Agreement:</span> This Agreement constitutes the entire agreement between the Parties regarding its subject matter and supersedes any prior agreements.</Bullet>
+                    </ul>
+                </Section>
+
+                {/* 18 */}
+                <Section title="18. Signature / Digital Acceptance Block">
+                    <div className="rounded-[12px] border border-[#C8C8C8] overflow-hidden">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr className="bg-[#F5F5F5]">
+                                    <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#030303] font-figtree w-[40%] border-b border-[#C8C8C8]">Field</th>
+                                    <th className="text-left px-4 py-3 text-[13px] font-semibold text-[#030303] font-figtree border-b border-[#C8C8C8]">Captured Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {[
+                                    ['Vendor\nLegal Name',    vendorName || '—'],
+                                    ['Brand\nName',           brandName  || vendorName || '—'],
+                                    ['Authorised\nSignatory', pocName    || vendorName || '—'],
+                                    ['Mobile/\nEmail',        email      || '—'],
+                                    ['Vendor\nID',            vendorId   || '—'],
+                                    ['Accepted\nat',          acceptedAt],
+                                ].map(([field, val], idx, arr) => (
+                                    <tr key={field} className={idx < arr.length - 1 ? 'border-b border-[#E5E5E5]' : ''}>
+                                        <td className="px-4 py-3 text-[14px] text-[#71717B] font-figtree align-top whitespace-pre-line">{field}</td>
+                                        <td className="px-4 py-3 text-[14px] text-[#030303] font-figtree align-top">{val}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </Section>
+
+                {/* 19 — App Consent Checklist (not collapsible — user must interact) */}
+                <div className="border border-[#E5E5E5] rounded-[12px] overflow-hidden">
+                    <div className="px-4 py-3 bg-white border-b border-[#E5E5E5]">
+                        <p className="text-[#1C398E] font-figtree text-[16px] font-semibold leading-[24px]">19. App Consent Checklist</p>
+                    </div>
+                    <div className="px-4 pb-4 pt-3 space-y-4">
+                        {consentItems.map((item, i) => (
+                            <div key={i} className="flex items-start gap-3 cursor-pointer" onClick={() => toggleItem(i)}>
+                                <div className={`mt-[2px] w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checkedItems[i] ? 'border-[#04222D] bg-[#04222D]' : 'border-[#C8C8C8] bg-white'}`}>
+                                    {checkedItems[i] && (
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <p className={`${checkedItems[i] ? bodyCls : 'text-[#71717B] font-figtree text-[16px] font-normal leading-[24px]'}`}>{item}</p>
+                            </div>
+                        ))}
+                        <div className="border-t border-[#E6E9EA] pt-3">
+                            <div className="flex items-center gap-3 cursor-pointer" onClick={toggleAll}>
+                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${allChecked ? 'border-[#04222D] bg-[#04222D]' : 'border-[#C8C8C8] bg-white'}`}>
+                                    {allChecked && (
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <polyline points="20 6 9 17 4 12" />
+                                        </svg>
+                                    )}
+                                </div>
+                                <p className="text-[16px] font-semibold text-[#030303] font-figtree">Agree all</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <p className="font-semibold pt-2">1. OUR SERVICES</p>
-                <p>
-                    The information provided when using the Services is not intended for distribution to or use by any person or entity in any jurisdiction or country where such distribution or use would be contrary to law or regulation or which would subject us to any registration requirement within such jurisdiction or country. Accordingly, those persons who choose to access the Services from other locations do so on their own initiative and are solely responsible for compliance with local laws, if and to the extent local laws are applicable.
-                </p>
+                {/* Legal Review Note */}
+                <div className="bg-[#F5F5F5] border border-[#E5E5E5] rounded-[12px] p-4 space-y-1.5">
+                    <p className="text-[14px] font-bold text-[#030303] font-figtree">Legal Review Note</p>
+                    <p className={smallCls}>
+                        This document is a product and operations draft intended for transparent vendor onboarding. Before production deployment, Eventory should have counsel review governing law, arbitration, indemnity, limitation of liability, chargeback handling, tax treatment, data protection, and e-sign enforceability.
+                    </p>
+                </div>
 
-                <p className="font-semibold pt-2">2. INTELLECTUAL PROPERTY RIGHTS</p>
-                <p className="underline">Our intellectual property</p>
-                <p>
-                    We are the owner or the licensee of all intellectual property rights in our Services, including all source code, databases, functionality, software, website designs, audio, video, text, photographs, and graphics in the Services (collectively, the &apos;Content&apos;), as well as the trademarks, service marks, and logos contained therein (the &apos;Marks&apos;). Our Content and Marks are protected by copyright and trademark laws (and various other intellectual property rights and unfair competition laws) and treaties around the world.
-                </p>
-                <p>
-                    The Content and Marks are provided in or through the Services &apos;AS IS&apos; for your personal, non-commercial use or internal business purpose only. Your use of our Services is Subject to your compliance with these Legal Terms, including the &apos;PROHIBITED ACTIVITIES&apos; section below, we grant you a non-exclusive, non-transferable, revocable licence to:
-                </p>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li>access the Services and</li>
-                    <li>download or print a copy of any portion of the Content to which you have properly gained access, solely for your personal, non-commercial use or internal business purpose.</li>
-                </ul>
-                <p>
-                    Except as set out in this section or elsewhere in our Legal Terms, no part of the Services and no Content or Marks may be copied, reproduced, aggregated, republished, uploaded, posted, publicly displayed, encoded, translated, transmitted, distributed, sold, licensed, or otherwise exploited for any commercial purpose whatsoever, without our express prior written permission.
-                </p>
-                <p>
-                    If you wish to make any use of the Services, Content, or Marks other than as set out in this section or elsewhere in our Legal Terms, please address your request to: <a href="mailto:support@eventory.in" className="text-[#04222D] underline font-medium">support@eventory.in</a>. If we ever grant you the permission to post, reproduce, or publicly display any part of our Services or Content, you must identify us as the owners or licensors of the Services, Content, or Marks and ensure that any copyright or proprietary notice appears or is visible on posting, reproducing, or displaying our Content.
-                </p>
-                <p>
-                    We reserve all rights not expressly granted to you in and to the Services, Content, and Marks.
-                </p>
-                <p>
-                    Any breach of these Intellectual Property Rights will constitute a material breach of our Legal Terms and your right to use our Services will terminate immediately.
-                </p>
+            </div>{/* end policy sections */}
 
-                <p className="underline pt-2">Your submissions and contributions</p>
-                <p>
-                    Please review this section and the &apos;PROHIBITED ACTIVITIES&apos; section carefully prior to using our Services to understand the (a) rights you give us and (b) obligations you have when you post or upload any content through the Services.
-                </p>
-                <p>
-                    <strong>Submissions:</strong> By directly sending us any question, comment, suggestion, idea, feedback, or other information about the Services (&apos;Submissions&apos;), you agree to assign to us all intellectual property rights in such Submission. You agree that we shall own this Submission and be entitled to its unrestricted use and dissemination for any lawful purpose, commercial or otherwise, without acknowledgment or compensation to you.
-                </p>
-                <p>
-                    <strong>Contributions:</strong> The Services may invite you to chat, contribute to, or participate in blogs, message boards, online forums, and other functionality during which you may create, submit, post, display, transmit, publish, distribute, or broadcast content and materials to us or through the Services, including but not limited to text, writings, video, audio, photographs, music, graphics, comments, reviews, rating suggestions, personal information, or other material (&apos;Contributions&apos;). Any Submission that is publicly posted shall also be treated as a Contribution.
-                </p>
-                <p>
-                    You understand that Contributions may be viewable by other users of the Services and possibly through third-party websites.
-                </p>
-                <p>
-                    <strong>When you post Contributions, you grant us a licence (including use of your name, trademarks, and logos):</strong> By posting any Contributions, you grant us an unrestricted, unlimited, irrevocable, perpetual, non-exclusive, transferable, royalty-free, fully-paid, worldwide right, and licence to: use, copy, reproduce, distribute, sell, resell, publish, broadcast, retitle, store, publicly perform, publicly display, reformat, translate, excerpt (in whole or in part), and exploit your Contributions (including, without limitation, your image, name, and voice) for any purpose, commercial, advertising, or otherwise, to prepare derivative works of, or incorporate into other works, your Contributions, and to sublicense the licences granted in this section. Our use and distribution may occur in any media formats and through any media channels.
-                </p>
-                <p>
-                    This licence includes our use of your name, company name, and franchise name, as applicable, and any of the trademarks, service marks, trade names, logos, and personal and commercial images you provide.
-                </p>
-                <p>
-                    <strong>You are responsible for what you post or upload:</strong> By sending us Submissions and/or posting Contributions through any part of the Services or making Contributions accessible through the Services by linking your account through the Services to any of your social networking accounts, you:
-                </p>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li>confirm that you have read and agree with our &apos;PROHIBITED ACTIVITIES&apos; and will not post, send, publish, upload, or transmit through the Services any Submission nor post any Contribution that is illegal, harassing, hateful, harmful, defamatory, obscene, bullying, abusive, discriminatory, threatening to any person or group, sexually explicit, false, inaccurate, deceitful, or misleading;</li>
-                    <li>to the extent permissible by applicable law, waive any and all moral rights to any such Submission and/or Contribution;</li>
-                    <li>warrant that any such Submission and/or Contributions are original to you or that you have the necessary rights and licences to submit such Submissions and/or Contributions and that you have full authority to grant us the above-mentioned rights in relation to your Submissions and/or Contributions; and</li>
-                    <li>warrant and represent that your Submissions and/or Contributions do not constitute confidential information.</li>
-                </ul>
-                <p>
-                    You are solely responsible for your Submissions and/or Contributions and you expressly agree to reimburse us for any and all losses that we may suffer because of your breach of (a) this section, (b) any third party&apos;s intellectual property rights, or (c) applicable law.
-                </p>
-                <p>
-                    <strong>We may remove or edit your Content:</strong> Although we have no obligation to monitor any Contributions, we shall have the right to remove or edit any Contributions at any time without notice if in our reasonable opinion we consider such Contributions harmful or in breach of these Legal Terms. If we remove or edit any such Contributions, we may also suspend or disable your account and report you to the authorities.
-                </p>
-                <p>
-                    <strong>Copyright infringement:</strong> We respect the intellectual property rights of others. If you believe that any material available on or through the Services infringes upon any copyright you own or control, please immediately refer to the &apos;COPYRIGHT INFRINGEMENTS&apos; section below.
-                </p>
-
-                <p className="font-semibold pt-2">3. USER REPRESENTATIONS</p>
-                <p>
-                    By using the Services, you represent and warrant that: (1) all registration information you submit will be true, accurate, current, and complete; (2) you will maintain the accuracy of such information and promptly update such registration information as necessary; (3) you have the legal capacity and you agree to comply with these Legal Terms; (4) you are not under the age of 13; (5) you are not a minor in the jurisdiction in which you reside, or if a minor, you have received parental permission to use the Services; (6) you will not access the Services through automated or non-human means, whether through a bot, script or otherwise; (7) you will not use the Services for any illegal or unauthorised purpose; and (8) your use of the Services will not violate any applicable law or regulation.
-                </p>
-                <p>
-                    If you provide any information that is untrue, inaccurate, not current, or incomplete, we have the right to suspend or terminate your account and refuse any and all current or future use of the Services (or any portion thereof).
-                </p>
-
-                <p className="font-semibold pt-2">4. USER REGISTRATION</p>
-                <p>
-                    You may be required to register to use the Services. You agree to keep your password confidential and will be responsible for all use of your account and password. We reserve the right to remove, reclaim, or change a username you select if we determine, in our sole discretion, that such username is inappropriate, obscene, or otherwise objectionable.
-                </p>
-
-                <p className="font-semibold pt-2">5. PURCHASES AND PAYMENT</p>
-                <p>We accept the following forms of payment:</p>
-                <ul className="list-disc pl-5 space-y-0.5">
-                    <li>Visa</li>
-                    <li>Mastercard</li>
-                    <li>UPI</li>
-                    <li>Netbanking</li>
-                    <li>American Express</li>
-                </ul>
-                <p>
-                    You agree to provide current, complete, and accurate purchase and account information for all purchases made via the Services. You further agree to promptly update account and payment information, including email address, payment method, and payment card expiration date, so that we can complete your transactions and contact you as needed. Sales tax will be added to the price of purchases as deemed required by us. We may change prices at any time. All payments shall be in Indian Rupees.
-                </p>
-                <p>
-                    You agree to pay all charges at the prices then in effect for your purchases and any applicable shipping fees, and you authorise us to charge your chosen payment provider for any such amounts upon placing your order. We reserve the right to correct any errors or mistakes in pricing, even if we have already requested or received payment.
-                </p>
-                <p>
-                    We reserve the right to refuse any order placed through the Services. We may, in our sole discretion, limit or cancel quantities purchased per person, per household, or per order. These restrictions may include orders placed by or under the same customer account, the same payment method, and/or orders that use the same billing or shipping address. We reserve the right to limit or prohibit orders that, in our sole judgement, appear to be placed by dealers, resellers, or distributors.
-                </p>
-
-                <p className="font-semibold pt-2">6. SUBSCRIPTIONS</p>
-                <p className="underline">Billing and Renewal</p>
-                <p>
-                    Your subscription will continue and automatically renew unless cancelled. You consent to our charging your payment method on a recurring basis without requiring your prior approval for each recurring charge, until such time as you cancel the applicable order. The length of your billing cycle will depend on the type of subscription plan you choose when you subscribed to the Services.
-                </p>
-                <p className="underline">Free Trial</p>
-                <p>
-                    We offer a 60-day free trial to new users who register with the Services. The account will not be charged and the subscription will be suspended until upgraded to a paid version at the end of the free trial.
-                </p>
-                <p className="underline">Cancellation</p>
-                <p>
-                    You can cancel your subscription at any time by logging into your account. Your cancellation will take effect at the end of the current paid term. If you have any questions or are unsatisfied with our Services, please email us at <a href="mailto:support@eventory.in" className="text-[#04222D] underline font-medium">support@eventory.in</a>.
-                </p>
-                <p className="underline">Fee Changes</p>
-                <p>
-                    We may, from time to time, make changes to the subscription fee and will communicate any price changes to you in accordance with applicable law.
-                </p>
-
-                <p className="font-semibold pt-2">7. POLICY</p>
-                <p>Please review our Return Policy posted on the Services prior to making any purchases.</p>
-
-                <p className="font-semibold pt-2">8. PROHIBITED ACTIVITIES</p>
-                <p>
-                    You may not access or use the Services for any purpose other than that for which we make the Services available. The Services may not be used in connection with any commercial endeavours except those that are specifically endorsed or approved by us.
-                </p>
-                <p>As a user of the Services, you agree not to:</p>
-                <ul className="list-disc pl-5 space-y-1">
-                    <li>Systematically retrieve data or other content from the Services to create or compile, directly or indirectly, a collection, compilation, database, or directory without written permission from us.</li>
-                    <li>Trick, defraud, or mislead us and other users, especially in any attempt to learn sensitive account information such as user passwords.</li>
-                    <li>Circumvent, disable, or otherwise interfere with security-related features of the Services, including features that prevent or restrict the use or copying of any Content or enforce limitations on the use of the Services and/or the Content contained therein.</li>
-                    <li>Disparage, tarnish, or otherwise harm, in our opinion, us and/or the Services.</li>
-                    <li>Use any information obtained from the Services in order to harass, abuse, or harm another person.</li>
-                    <li>Make improper use of our support services or submit false reports of abuse or misconduct.</li>
-                    <li>Use the Services in a manner inconsistent with any applicable laws or regulations.</li>
-                    <li>Engage in unauthorised framing of or linking to the Services.</li>
-                    <li>Upload or transmit (or attempt to upload or to transmit) viruses, Trojan horses, or other material, including excessive use of capital letters and spamming (continuous posting of repetitive text), that interferes with any party&apos;s uninterrupted use and enjoyment of the Services or modifies, impairs, disrupts, alters, or interferes with the use, features, functions, operation, or maintenance of the Services.</li>
-                    <li>Engage in any automated use of the system, such as using scripts to send comments or messages, or using any data mining, robots, or similar data gathering and extraction tools.</li>
-                    <li>Delete the copyright or other proprietary rights notice from any Content.</li>
-                    <li>Attempt to impersonate another user or person or use the username of another user.</li>
-                    <li>Upload or transmit (or attempt to upload or to transmit) any material that acts as a passive or active information collection or transmission mechanism, including without limitation, clear graphics interchange formats (&apos;gifs&apos;), 1*1 pixels, web bugs, cookies, or other similar devices (sometimes referred to as &apos;spyware&apos; or &apos;passive collection mechanisms&apos; or &apos;pems&apos;).</li>
-                    <li>Interfere with, disrupt, or create an undue burden on the Services or the networks or services connected to the Services.</li>
-                    <li>Harass, annoy, intimidate, or threaten any of our employees or agents engaged in providing any portion of the Services to you.</li>
-                    <li>Attempt to bypass any measures of the Services designed to prevent or restrict access to the Services, or any portion of the Services.</li>
-                    <li>Copy or adapt the Services&apos; software, including but not limited to Flash, PHP, HTML, JavaScript, or other code.</li>
-                    <li>Except as permitted by applicable law, decipher, decompile, disassemble, or reverse engineer any of the software comprising or in any way making up a part of the Services.</li>
-                    <li>Except as may be the result of standard search engine or Internet browser usage, use, launch, develop, or distribute any automated system, including without limitation, any spider, robot, cheat utility, scraper, or offline reader that accesses the Services, or use or launch any unauthorised script or other software.</li>
-                    <li>Use a buying agent or purchasing agent to make purchases on the Services.</li>
-                    <li>Make any unauthorised use of the Services, including collecting usernames and/or email addresses of users by electronic or other means for the purpose of sending unsolicited email, or creating user accounts by automated means or under false pretences.</li>
-                    <li>Use the Services as part of any effort to compete with us or otherwise use the Services and/or the Content for any revenue-generating endeavour or commercial enterprise.</li>
-                    <li>Sell or otherwise transfer your profile.</li>
-                </ul>
-
-                <p className="font-semibold pt-2">9. USER GENERATED CONTRIBUTIONS</p>
-                <p>
-                    The Services may invite you to chat, contribute to, or participate in blogs, message boards, online forums, and other functionality. Any content you submit or post shall be deemed &apos;Contributions&apos;. You are responsible for ensuring that your Contributions comply with these Legal Terms and do not infringe any third-party rights.
-                </p>
-
-                <p className="font-semibold pt-2">10. CONTRIBUTION LICENCE</p>
-                <p>
-                    By posting Contributions to any part of the Services, you automatically grant, and you represent and warrant that you have the right to grant, to us an unrestricted, unlimited, irrevocable, perpetual, non-exclusive, transferable, royalty-free, fully-paid, worldwide right, and licence to host, use, copy, reproduce, disclose, sell, resell, publish, broadcast, retitle, archive, store, cache, publicly perform, publicly display, reformat, translate, transmit, excerpt, and distribute such Contributions for any purpose.
-                </p>
-
-                <p className="font-semibold pt-2">11. GUIDELINES FOR REVIEWS</p>
-                <p>
-                    We may provide you areas on the Services to leave reviews or ratings. When posting a review, you must comply with the following criteria: (1) you should have firsthand experience with the person/entity being reviewed; (2) your reviews should not contain offensive profanity, or abusive, racist, offensive, or hate language; (3) your reviews should not contain discriminatory references based on religion, race, gender, national origin, age, marital status, sexual orientation, or disability; (4) your reviews should not contain references to illegal activity; (5) you should not be affiliated with competitors if posting negative reviews; (6) you should not make any conclusions as to the legality of conduct; (7) you may not post any false or misleading statements; and (8) you may not organise a campaign encouraging others to post reviews, whether positive or negative.
-                </p>
-
-                <p className="font-semibold pt-2">12. MOBILE APPLICATION LICENCE</p>
-                <p>
-                    If you access the Services via a mobile application, then we grant you a revocable, non-exclusive, non-transferable, limited right to install and use the mobile application on wireless electronic devices owned or controlled by you, and to access and use the mobile application on such devices strictly in accordance with the terms and conditions of this mobile application licence.
-                </p>
-
-                <p className="font-semibold pt-2">13. SOCIAL MEDIA</p>
-                <p>
-                    As part of the functionality of the Services, you may link your account with online accounts you have with third-party service providers. By granting us access to any third-party accounts, you understand that we may access, make available, and store any content that you have provided to and stored in your third-party account so that it is available on and through the Services.
-                </p>
-
-                <p className="font-semibold pt-2">14. THIRD-PARTY WEBSITES AND CONTENT</p>
-                <p>
-                    The Services may contain links to other websites (&apos;Third-Party Websites&apos;) as well as articles, photographs, text, graphics, pictures, designs, music, sound, video, information, applications, software, and other content or items belonging to or originating from third parties (&apos;Third-Party Content&apos;). We are not responsible for any Third-Party Websites accessed through the Services or any Third-Party Content posted on, available through, or installed from the Services.
-                </p>
-
-                <p className="font-semibold pt-2">15. SERVICES MANAGEMENT</p>
-                <p>
-                    We reserve the right, but not the obligation, to: (1) monitor the Services for violations of these Legal Terms; (2) take appropriate legal action against anyone who, in our sole discretion, violates the law or these Legal Terms; (3) in our sole discretion and without limitation, refuse, restrict access to, limit the availability of, or disable any of your Contributions; and (4) otherwise manage the Services in a manner designed to protect our rights and property and to facilitate the proper functioning of the Services.
-                </p>
-
-                <p className="font-semibold pt-2">16. PRIVACY POLICY</p>
-                <p>
-                    We care about data privacy and security. Please review our Privacy Policy: <a href="https://eventorydev.netlify.app/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#04222D] underline font-medium">https://eventorydev.netlify.app/privacy-policy</a>. By using the Services, you agree to be bound by our Privacy Policy, which is incorporated into these Legal Terms. Please be advised the Services are hosted in India. If you access the Services from any other region of the world with laws or other requirements governing personal data collection, use, or disclosure that differ from applicable laws in India, then through your continued use of the Services, you are transferring your data to India, and you expressly consent to have your data transferred to and processed in India.
-                </p>
-
-                <p className="font-semibold pt-2">17. COPYRIGHT INFRINGEMENTS</p>
-                <p>
-                    We respect the intellectual property rights of others. If you believe that any material available on or through the Services infringes upon any copyright you own or control, please immediately notify us using the contact information provided below. A copy of your Notification will be sent to the person who posted or stored the material addressed in the Notification.
-                </p>
-
-                <p className="font-semibold pt-2">18. TERM AND TERMINATION</p>
-                <p>
-                    These Legal Terms shall remain in full force and effect while you use the Services. WITHOUT LIMITING ANY OTHER PROVISION OF THESE LEGAL TERMS, WE RESERVE THE RIGHT TO, IN OUR SOLE DISCRETION AND WITHOUT NOTICE OR LIABILITY, DENY ACCESS TO AND USE OF THE SERVICES (INCLUDING BLOCKING CERTAIN IP ADDRESSES), TO ANY PERSON FOR ANY REASON OR FOR NO REASON, INCLUDING WITHOUT LIMITATION FOR BREACH OF ANY REPRESENTATION, WARRANTY, OR COVENANT CONTAINED IN THESE LEGAL TERMS OR OF ANY APPLICABLE LAW OR REGULATION.
-                </p>
-
-                <p className="font-semibold pt-2">19. MODIFICATIONS AND INTERRUPTIONS</p>
-                <p>
-                    We reserve the right to change, modify, or remove the contents of the Services at any time or for any reason at our sole discretion without notice. However, we have no obligation to update any information on our Services. We will not be liable to you or any third party for any modification, price change, suspension, or discontinuance of the Services.
-                </p>
-
-                <p className="font-semibold pt-2">20. GOVERNING LAW</p>
-                <p>
-                    These Legal Terms and your use of the Services are governed by and construed in accordance with the laws of India, without regard to its conflict of law principles.
-                </p>
-
-                <p className="font-semibold pt-2">21. DISPUTE RESOLUTION</p>
-                <p>
-                    Any legal action of whatever nature brought by either you or us shall be commenced or prosecuted in the courts located in New Delhi, Delhi, India, and you hereby consent to, and waive all defences of lack of personal jurisdiction and forum non conveniens with respect to venue and jurisdiction in such courts.
-                </p>
-
-                <p className="font-semibold pt-2">22. CORRECTIONS</p>
-                <p>
-                    There may be information on the Services that contains typographical errors, inaccuracies, or omissions, including descriptions, pricing, availability, and various other information. We reserve the right to correct any errors, inaccuracies, or omissions and to change or update the information on the Services at any time, without prior notice.
-                </p>
-
-                <p className="font-semibold pt-2">23. DISCLAIMER</p>
-                <p>
-                    THE SERVICES ARE PROVIDED ON AN AS-IS AND AS-AVAILABLE BASIS. YOU AGREE THAT YOUR USE OF THE SERVICES WILL BE AT YOUR SOLE RISK. TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM ALL WARRANTIES, EXPRESS OR IMPLIED, IN CONNECTION WITH THE SERVICES AND YOUR USE THEREOF.
-                </p>
-
-                <p className="font-semibold pt-2">24. LIMITATIONS OF LIABILITY</p>
-                <p>
-                    IN NO EVENT WILL WE OR OUR DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE TO YOU OR ANY THIRD PARTY FOR ANY DIRECT, INDIRECT, CONSEQUENTIAL, EXEMPLARY, INCIDENTAL, SPECIAL, OR PUNITIVE DAMAGES, INCLUDING LOST PROFIT, LOST REVENUE, LOSS OF DATA, OR OTHER DAMAGES ARISING FROM YOUR USE OF THE SERVICES.
-                </p>
-
-                <p className="font-semibold pt-2">25. INDEMNIFICATION</p>
-                <p>
-                    You agree to defend, indemnify, and hold us harmless, including our subsidiaries, affiliates, and all of our respective officers, agents, partners, and employees, from and against any loss, damage, liability, claim, or demand, including reasonable attorneys&apos; fees and expenses, made by any third party due to or arising out of: (1) your Contributions; (2) use of the Services; (3) breach of these Legal Terms; (4) any breach of your representations and warranties set forth in these Legal Terms; (5) your violation of the rights of a third party, including but not limited to intellectual property rights; or (6) any overt harmful act toward any other user of the Services with whom you connected via the Services.
-                </p>
-
-                <p className="font-semibold pt-2">26. USER DATA</p>
-                <p>
-                    We will maintain certain data that you transmit to the Services for the purpose of managing the performance of the Services, as well as data relating to your use of the Services. Although we perform regular routine backups of data, you are solely responsible for all data that you transmit or that relates to any activity you have undertaken using the Services.
-                </p>
-
-                <p className="font-semibold pt-2">27. ELECTRONIC COMMUNICATIONS, TRANSACTIONS, AND SIGNATURES</p>
-                <p>
-                    Visiting the Services, sending us emails, and completing online forms constitute electronic communications. You consent to receive electronic communications, and you agree that all agreements, notices, disclosures, and other communications we provide to you electronically, via email and on the Services, satisfy any legal requirement that such communication be in writing.
-                </p>
-
-                <p className="font-semibold pt-2">28. SMS TEXT MESSAGING</p>
-                <p>
-                    By creating an Account, you agree that the Services may send you informational text (SMS) messages as part of the normal business operation of your use of the Services. You may opt-out of receiving text (SMS) messages from us at any time by contacting us.
-                </p>
-
-                <p className="font-semibold pt-2">29. MISCELLANEOUS</p>
-                <p>
-                    These Legal Terms and any policies or operating rules posted by us on the Services constitute the entire agreement and understanding between you and us. Our failure to exercise or enforce any right or provision of these Legal Terms shall not operate as a waiver of such right or provision. These Legal Terms operate to the fullest extent permissible by law.
-                </p>
-
-                <p className="font-semibold pt-2">30. CONTACT US</p>
-                <p>
-                    In order to resolve a complaint regarding the Services or to receive further information regarding use of the Services, please contact us at:
-                </p>
-                <p className="font-medium">
-                    EVENTORY TECH SOLUTIONS PRIVATE LIMITED<br />
-                    13 D, Atmaram House, 1-Tolstoy Marg, Connaught Place, New Delhi, Delhi 110001, India<br />
-                    Phone: (+91)8800725840<br />
-                    Email: <a href="mailto:support@eventory.in" className="text-[#04222D] underline font-medium">support@eventory.in</a>
-                </p>
-            </div>
-
-            {/* Checkbox wrapper */}
-            <div 
-                className="flex items-start gap-3 pt-6 cursor-pointer select-none border-t border-[#E6E9EA]"
+            {/* ── Final Agreement Checkbox ── */}
+            <div
+                className="flex items-start gap-3 pt-4 cursor-pointer select-none border-t border-[#E6E9EA]"
                 onClick={() => setHasAcceptedTerms(!hasAcceptedTerms)}
             >
-                <div className={`mt-0.5 w-5 h-5 rounded border flex items-center justify-center transition-all flex-shrink-0 ${hasAcceptedTerms ? 'border-[#04222D] bg-[#04222D]' : 'border-[#D4D4D8] bg-white'}`}>
+                <div className={`mt-[2px] w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${hasAcceptedTerms ? 'border-[#04222D] bg-[#04222D]' : 'border-[#D4D4D8] bg-white'}`}>
                     {hasAcceptedTerms && (
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                             <polyline points="20 6 9 17 4 12" />
                         </svg>
                     )}
                 </div>
-                <span className="text-[13px] text-[#3F3F47] font-semibold font-figtree">
-                    I agree to all terms and services
+                <span className="text-[14px] text-[#3F3F47] font-semibold font-figtree leading-[22px]">
+                    I have read and agree to the Eventory Vendor Agreement and Onboarding Consent Form
                 </span>
             </div>
         </motion.div>

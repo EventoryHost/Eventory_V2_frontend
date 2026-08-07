@@ -4,42 +4,75 @@ import { X, Plus, Image as ImageIcon } from 'lucide-react';
 
 const sv = { initial: { x: 20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: -20, opacity: 0 } };
 
+const s3Base = "https://dkuacgndftndz.cloudfront.net/inventory-page/create_package";
+
+const guidelineSections = [
+    {
+        title: "Clear, In-focus photos",
+        correctLabel: "Sharp",
+        correctImg: `${s3Base}/sharpfood.svg`,
+        incorrectLabel: "Blurry",
+        incorrectImg: `${s3Base}/blurryfood.svg`,
+        description: "Keep photos sharp and in focus. Blurry shots are hard to trust."
+    },
+    {
+        title: "No Branding text or watermarks",
+        correctLabel: "Clean",
+        correctImg: `${s3Base}/cleandj.svg`,
+        incorrectLabel: "Has watermark",
+        incorrectImg: `${s3Base}/watermarkdj.svg`,
+        description: "Skip photos with logos, prices, or watermarks. These can get your listing removed."
+    },
+    {
+        title: "Your own work only",
+        correctLabel: "Real",
+        correctImg: `${s3Base}/realwork.svg`,
+        incorrectLabel: "From the internet",
+        incorrectImg: `${s3Base}/internetwork.svg`,
+        description: "Upload photos of your actual work. Never use images from the internet."
+    },
+    {
+        title: "Good lighting",
+        correctLabel: "Bright",
+        correctImg: `${s3Base}/bright.svg`,
+        incorrectLabel: "Too dark",
+        incorrectImg: `${s3Base}/dark.svg`,
+        description: "Shoot in bright, even light so your work is easy to see."
+    },
+    {
+        title: "Clean background",
+        correctLabel: "Tidy",
+        correctImg: `${s3Base}/tidyfood.svg`,
+        incorrectLabel: "Cluttered",
+        incorrectImg: `${s3Base}/clutteredfood.svg`,
+        description: "Clear the space around your subject. A messy background distracts from your work."
+    }
+];
+
 interface GuidelinesProps { stepKey: string; }
 export function StepGuidelines({ stepKey }: GuidelinesProps) {
     return (
         <motion.div key={stepKey} {...sv} className="space-y-8 pb-10">
-            <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">Uploading images guidelines</h1>
-            <div className="space-y-6">
-                <div className="space-y-4">
-                    <h2 className="text-[14px] font-bold text-[#3F3F47] uppercase tracking-wider font-figtree">SUITABLE</h2>
-                    <div className="w-full h-48 rounded-2xl overflow-hidden">
-                        <img src="https://dkuacgndftndz.cloudfront.net/inventory-page/correctguidelineimage.png"
-                            alt="Suitable example" className="w-full h-full object-cover" />
+            <div className="space-y-2">
+                <h1 className="text-[#030303] text-[24px] font-semibold leading-[32px] font-figtree">Uploading images guidelines</h1>
+                <p className="text-[#3F3F47] text-[15px] font-figtree leading-relaxed">
+                    A few things to check before you upload — better photos get more bookings.
+                </p>
+            </div>
+            
+            <div className="space-y-8">
+                {guidelineSections.map((section, idx) => (
+                    <div key={idx} className="space-y-3">
+                        <h2 className="text-[16px] font-bold text-[#030303] font-figtree">{section.title}</h2>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <img src={section.correctImg} alt={section.correctLabel} className="w-full object-contain" />
+                            <img src={section.incorrectImg} alt={section.incorrectLabel} className="w-full object-contain" />
+                        </div>
+
+                        <p className="text-[13px] text-[#3F3F47] font-figtree leading-relaxed">{section.description}</p>
                     </div>
-                    <div className="space-y-3">
-                        {['Clear images of your space', 'At least 5 Images', 'Images should be high resolution'].map(t => (
-                            <div key={t} className="flex items-center gap-3 text-green-600">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                <span className="text-[14px] font-medium font-figtree">{t}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-                <div className="space-y-4 pt-6">
-                    <h2 className="text-[14px] font-bold text-[#3F3F47] uppercase tracking-wider font-figtree">UNSUITABLE</h2>
-                    <div className="w-full h-40 rounded-2xl overflow-hidden">
-                        <img src="https://dkuacgndftndz.cloudfront.net/inventory-page/wrongguidelineimage.png"
-                            alt="Unsuitable example" className="w-full h-full object-cover" />
-                    </div>
-                    <div className="space-y-3">
-                        {['Stock Image', 'Logos and brand Image'].map(t => (
-                            <div key={t} className="flex items-center gap-3 text-rose-500">
-                                <X size={18} />
-                                <span className="text-[14px] font-medium font-figtree">{t}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                ))}
             </div>
         </motion.div>
     );

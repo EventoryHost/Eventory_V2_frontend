@@ -16,6 +16,15 @@ function GSTINContent() {
     const [businessDetails, setBusinessDetails] = useState<any>(null);
     const [error, setError] = useState('');
 
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const savedIsIndividual = localStorage.getItem('vendor_is_individual');
+            if (savedIsIndividual === 'true') {
+                setIsIndividual(true);
+            }
+        }
+    }, []);
+
     const handleVerifyGSTIN = async () => {
         if (gstin.length !== 15) return;
         setLoading(true);

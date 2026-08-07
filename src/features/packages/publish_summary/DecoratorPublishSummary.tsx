@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowLeft, Check, ShieldAlert, BadgeCheck, MapPin, Users, Clock, MinusCircle } from 'lucide-react';
 import { AddonModal } from '../components/AddonModal';
 import { EditableTotal } from '../components/EditableTotal';
+import { CollapsibleSection } from '../components/CollapsibleSection';
 import { apiUrl } from '@/lib/api';
 
 interface Props {
@@ -13,6 +15,7 @@ interface Props {
 
 export default function DecoratorPublishSummary({ packageId, packageData: initialPackageData, allVariants, onBack }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [openSection, setOpenSection] = useState<string | null>(null);
 
     // Filter variants safely, handling the case where `allVariants` is empty
     const variants = allVariants && allVariants.length > 0 ? allVariants : [initialPackageData];
@@ -35,6 +38,16 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
 
     const pkgName = packageData.step1_eventAndCrew?.packageName || packageData.step1_basicDetails?.packageName || '';
     const cities = packageData.step1_eventAndCrew?.cities?.join(', ') || '';
+
+    // Dynamic stats from Step 1
+    const poc = packageData.step1_eventAndCrew?.poc || '';
+    const durationOfSetup = packageData.step1_eventAndCrew?.durationOfSetup || 0; // hours
+    const setupDurationLabel = durationOfSetup > 0 ? `Upto ${durationOfSetup}hr${durationOfSetup > 1 ? 's' : ''} Setup Duration` : '';
+    const crewMin = packageData.step1_eventAndCrew?.crewSize?.minPeople;
+    const crewMax = packageData.step1_eventAndCrew?.crewSize?.maxPeople;
+    const teamSizeLabel = (crewMin || crewMax)
+        ? `Team size: ${crewMin || ''}${crewMax && crewMax !== crewMin ? `–${crewMax}` : ''}`
+        : '';
     
     // Deliverables Data
     const setups = packageData.step2_productsAndPricing?.setups || packageData.step2_productsAndPricing?.items || [];
@@ -200,7 +213,7 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                 {hasVariants && (
                     <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                        <div className="inline-flex max-w-full bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
                             {variants.map((v: any) => {
                                 const variantName = v.variantType || v.step1_eventAndCrew?.packageName || v.step1_basicDetails?.packageName || 'Untitled Variant';
                                 const incomplete = isVariantIncomplete(v);
@@ -251,20 +264,28 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                             </h2>
 
                             <div className="flex flex-col gap-1.5">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-1.5 text-[#71717B]">
-                                        <Clock size={14} />
-                                        <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>2-4hrs Setup Duration</span>
+                                {(setupDurationLabel || poc) && (
+                                    <div className="flex items-center gap-4 flex-wrap">
+                                        {setupDurationLabel && (
+                                            <div className="flex items-center gap-1.5 text-[#71717B]">
+                                                <Clock size={14} />
+                                                <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{setupDurationLabel}</span>
+                                            </div>
+                                        )}
+                                        {poc && (
+                                            <div className="flex items-center gap-1.5 text-[#71717B]">
+                                                <Users size={14} />
+                                                <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>Poc - {poc}</span>
+                                            </div>
+                                        )}
                                     </div>
+                                )}
+                                {teamSizeLabel && (
                                     <div className="flex items-center gap-1.5 text-[#71717B]">
                                         <Users size={14} />
-                                        <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>Poc - Rahul Sharma</span>
+                                        <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{teamSizeLabel}</span>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-1.5 text-[#71717B]">
-                                    <Clock size={14} />
-                                    <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>Team size: 13</span>
-                                </div>
+                                )}
                             </div>
 
                             <div className="h-px bg-[#F4F4F5] my-1 w-full"></div>
@@ -292,8 +313,11 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                 </div>
 
                 {/* Deliverables Section */}
-                <div className="px-5 mt-8">
-                    <h3 className="text-[14px] font-bold text-[#04222D] mb-4" style={{ fontFamily: 'Figtree, sans-serif' }}>Deliverable Items</h3>
+                <CollapsibleSection 
+                    title="Deliverable Items" 
+                    isOpen={openSection === 'deliverables'} 
+                    onToggle={() => setOpenSection(openSection === 'deliverables' ? null : 'deliverables')}
+                >
                     
                     <div className="bg-white border border-[#F4F4F5] rounded-3xl p-5 shadow-[0_2px_12px_rgba(0,0,0,0.03)] flex flex-col gap-6">
                         
@@ -350,15 +374,15 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                             </div>
                         ))}
                     </div>
-                </div>
+                </CollapsibleSection>
 
                 {/* Add-ons Section */}
-                <div className="px-5 mt-8">
-                    <div className="flex items-center gap-1 mb-3">
-                        <p className="text-[14px] font-bold text-[#04222D] m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Add-ons</p>
-                        <span className="text-red-500 font-bold">*</span>
-                    </div>
-
+                <CollapsibleSection 
+                    title="Add-ons" 
+                    required={true} 
+                    isOpen={openSection === 'addons'} 
+                    onToggle={() => setOpenSection(openSection === 'addons' ? null : 'addons')}
+                >
                     <div className="flex flex-col gap-3">
                         {addons.map((addon: any, idx: number) => (
                             <div key={idx} className="bg-white border border-[#F4F4F5] rounded-[16px] p-3 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
@@ -399,15 +423,15 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                             </div>
                         ))}
                     </div>
-                </div>
+                </CollapsibleSection>
 
                 {/* Needs from Venue Section */}
-                <div className="px-5 mt-6">
-                    <div className="flex items-center gap-1 mb-3">
-                        <p className="text-[14px] font-bold text-[#04222D] m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Needs from Venue</p>
-                        <span className="text-red-500 font-bold">*</span>
-                    </div>
-                    
+                <CollapsibleSection 
+                    title="Needs from Venue" 
+                    required={true} 
+                    isOpen={openSection === 'needs'} 
+                    onToggle={() => setOpenSection(openSection === 'needs' ? null : 'needs')}
+                >
                     <div className="flex flex-wrap gap-2 mb-4">
                         {requirements.map((req, idx) => (
                             <span key={idx} className="bg-[#04222D] text-white px-4 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap" style={{ fontFamily: 'Figtree, sans-serif' }}>
@@ -423,15 +447,15 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                             </p>
                         </div>
                     )}
-                </div>
+                </CollapsibleSection>
 
                 {/* Improve your Package */}
-                <div className="px-5 mt-8">
-                    <div className="flex items-center gap-1 mb-3">
-                        <p className="text-[14px] font-bold text-[#04222D] m-0" style={{ fontFamily: 'Figtree, sans-serif' }}>Improve your Package</p>
-                        <span className="text-red-500 font-bold">*</span>
-                    </div>
-                    
+                <CollapsibleSection 
+                    title="Improve your Package" 
+                    required={true} 
+                    isOpen={openSection === 'improve'} 
+                    onToggle={() => setOpenSection(openSection === 'improve' ? null : 'improve')}
+                >
                     <ul className="pl-4 m-0 mb-6 space-y-2">
                         <li className="text-[12px] text-[#71717B] list-disc" style={{ fontFamily: 'Figtree, sans-serif' }}>
                             Adding at least 5 high-quality images increases booking chances by 40%.
@@ -515,7 +539,7 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
                             Reviewed by Event Manager before going live. Takes ~2–4 business hours
                         </p>
                     </div>
-                </div>
+                </CollapsibleSection>
 
             </div>
 

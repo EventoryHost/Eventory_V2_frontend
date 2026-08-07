@@ -125,9 +125,9 @@ const STOCK_STYLES = [
         price: '2500',
         decoratingWhat: 'Door',
         items: [
-            { name: 'Steel Frame (Adjustable)', itemType: 'Custom', qty: 1, unit: 'Units', price: 120 },
-            { name: 'Fresh Flowers (Roses & Orchids)', itemType: 'Flowers', flowerType: 'Rose', volume: 'Medium', qty: 50, unit: 'Pcs', price: 15 },
-            { name: 'Drapes (Satin / Silk)', itemType: 'Custom', qty: 4, unit: 'Meters', price: 200 }
+            { name: 'Steel Frame (Adjustable)', itemType: 'Custom', qty: 1, unit: 'Units', price: 500 },
+            { name: 'Fresh Flowers (Roses & Orchids)', itemType: 'Flowers', flowerType: 'Rose', volume: 'Medium', qty: 50, unit: 'Pcs', price: 1000 },
+            { name: 'Drapes (Satin / Silk)', itemType: 'Custom', qty: 4, unit: 'Meters', price: 1000 }
         ]
     },
     {
@@ -139,8 +139,8 @@ const STOCK_STYLES = [
         price: '4500',
         decoratingWhat: 'Dining Area',
         items: [
-            { name: 'Floral Centerpiece', itemType: 'Flowers', flowerType: 'Mixed', volume: 'Medium', qty: 10, unit: 'Pcs', price: 300 },
-            { name: 'Scented Candle Holders', itemType: 'Lighting', lightingType: 'Candles', qty: 20, unit: 'Pcs', price: 50 },
+            { name: 'Floral Centerpiece', itemType: 'Flowers', flowerType: 'Mixed', volume: 'Medium', qty: 10, unit: 'Pcs', price: 3000 },
+            { name: 'Scented Candle Holders', itemType: 'Lighting', lightingType: 'Candles', qty: 20, unit: 'Pcs', price: 1500 },
         ]
     }
 ];
@@ -288,12 +288,13 @@ export default function DecoratorStep2SetupsAndPricing({
     const [modalStage, setModalStage] = React.useState<'CHOOSE_STYLE' | 'EDIT_SETUP'>('CHOOSE_STYLE');
     const [selectedStyleId, setSelectedStyleId] = React.useState<string | null>(null);
     const [editingSetupId, setEditingSetupId] = React.useState<string | null>(null);
-    const totalCalculatedPrice = setups.reduce((acc, setup) => {
-        const itemsTotal = (setup.items || []).reduce((iAcc, item) => iAcc + (Number(item.price) || 0), 0);
-        return acc + (Number(setup.price) || 0) + itemsTotal;
+    
+    // Calculate totals automatically from items
+    const calculatedTotal = setups.reduce((acc, setup) => {
+        return acc + (Number(setup.price) || 0);
     }, 0) + addons.reduce((acc, addon) => acc + (Number(addon.price) || 0), 0);
     
-    const displayTotal = manualTotalPackagePrice !== null ? manualTotalPackagePrice : totalCalculatedPrice;
+    const displayTotal = manualTotalPackagePrice !== null ? manualTotalPackagePrice : calculatedTotal;
 
     const [isEditingTotal, setIsEditingTotal] = React.useState(false);
     const [tempTotal, setTempTotal] = React.useState('');
@@ -368,12 +369,9 @@ export default function DecoratorStep2SetupsAndPricing({
                 setSetupThemes([]);
                 setSetupReferenceStyle('Indoor');
                 setSetupDescription('Custom uploaded setup reference photo.');
-                setSetupPrice('5000');
+                setSetupPrice('');
                 setSetupPhoto(base64Url);
-                setSetupItems([
-                    { name: 'Structure Frame', itemType: 'Custom', qty: 1, unit: 'Units', price: 1500 },
-                    { name: 'Custom Decor Elements', itemType: 'Custom', qty: 1, unit: 'Pcs', price: 3500 }
-                ]);
+                setSetupItems([]);
                 setEditingItemIndex(null);
                 
                 setModalStage('EDIT_SETUP');
@@ -392,7 +390,9 @@ export default function DecoratorStep2SetupsAndPricing({
         setSetupThemes([]);
         setSetupReferenceStyle(style.referenceStyle);
         setSetupDescription(style.description);
-        setSetupPrice(style.price);
+        
+        const sum = (style.items || []).reduce((acc, item) => acc + (item.price || 0), 0);
+        setSetupPrice(String(sum));
         setSetupPhoto(style.setupPhoto);
         setSetupItems(style.items);
         setEditingItemIndex(null);
@@ -435,7 +435,12 @@ export default function DecoratorStep2SetupsAndPricing({
     };
 
     const deleteItemRow = (index: number) => {
-        setSetupItems(prev => prev.filter((_, i) => i !== index));
+        setSetupItems(prev => {
+            const updated = prev.filter((_, i) => i !== index);
+            const newTotal = updated.reduce((sum, item) => sum + (item.price || 0), 0);
+            setSetupPrice(String(newTotal));
+            return updated;
+        });
     };
 
     const handleSaveItemManager = (newItem: SetupItem) => {
@@ -446,6 +451,8 @@ export default function DecoratorStep2SetupsAndPricing({
             updatedItems.push(newItem);
         }
         setSetupItems(updatedItems);
+        const newTotal = updatedItems.reduce((sum, item) => sum + (item.price || 0), 0);
+        setSetupPrice(String(newTotal));
         setIsItemManagerOpen(false);
         setEditingItemIndex(null);
     };
@@ -569,8 +576,7 @@ export default function DecoratorStep2SetupsAndPricing({
                             <div className="flex flex-col gap-3 mt-1">
                                 {setups.map((setup) => {
                                     const itemCount = setup.items?.length || 0;
-                                    const itemsTotal = (setup.items || []).reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-                                    const setupTotal = (Number(setup.price) || 0) + itemsTotal;
+                                    const setupTotal = Number(setup.price) || 0;
                                     return (
                                         <div 
                                             key={setup.id} 
@@ -617,6 +623,16 @@ export default function DecoratorStep2SetupsAndPricing({
                                     );
                                 })}
                             </div>
+                            <button
+                                type="button"
+                                onClick={openCreateSetup}
+                                className="w-full mt-2 py-3 bg-[#E9ECEE] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#DDE0E2] transition-colors"
+                            >
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">
+                                    Add
+                                </span>
+                                <PlusCircle size={16} className="text-[#030303]" strokeWidth={1.5} />
+                            </button>
                         </div>
                     ) : (
                         <div className="flex flex-col gap-4 mt-2">
@@ -1071,9 +1087,6 @@ export default function DecoratorStep2SetupsAndPricing({
                                                 <label style={HEADING_STYLE}>
                                                     Items in your Setup
                                                 </label>
-                                                <p style={SUBTEXT_STYLE} className="text-[14px]">
-                                                    We found these items for you based on your photo.
-                                                </p>
                                             </div>
 
                                             {setupItems.length > 0 ? (
@@ -1176,7 +1189,12 @@ export default function DecoratorStep2SetupsAndPricing({
                                         onSave={handleSaveItemManager}
                                         onDelete={() => {
                                             if (editingItemIndex !== null && editingItemIndex >= 0) {
-                                                setSetupItems(prev => prev.filter((_, idx) => idx !== editingItemIndex));
+                                                setSetupItems(prev => {
+                                                    const updated = prev.filter((_, idx) => idx !== editingItemIndex);
+                                                    const newTotal = updated.reduce((sum, item) => sum + (item.price || 0), 0);
+                                                    setSetupPrice(String(newTotal));
+                                                    return updated;
+                                                });
                                             }
                                         }}
                                         initialItem={editingItemIndex !== null && editingItemIndex >= 0 ? setupItems[editingItemIndex] : null}

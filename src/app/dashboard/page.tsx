@@ -21,7 +21,8 @@ import {
     MoreVertical,
     Plus,
     Image as ImageIcon,
-    Send
+    Send,
+    CheckCircle2
 } from 'lucide-react';
 
 export default function DashboardHome() {
@@ -220,10 +221,15 @@ export default function DashboardHome() {
             {dashboardStep < 3 ? (
                 <div className="px-6 py-4 pb-24 flex flex-col gap-4">
                     {/* Step 1 Card */}
-                    {dashboardStep === 1 && (
+                    {(dashboardStep === 1 || dashboardStep >= 2) && (
                         <div className="bg-white rounded-[16px] border border-[#F4F4F5] overflow-hidden shadow-sm">
                             <div className="p-5 flex flex-col gap-3">
-                                <div className="inline-flex h-[24px] min-h-[24px] px-[12px] py-[2px] justify-center items-center gap-[8px] rounded-full border border-[#E6E9EA] bg-[#E6E9EA] text-[12px] font-bold text-[#030303] w-fit">Step 1</div>
+                                <div className="flex justify-between items-center">
+                                    <div className={`inline-flex h-[24px] min-h-[24px] px-[12px] py-[2px] justify-center items-center gap-[8px] rounded-full border ${dashboardStep >= 2 ? 'border-green-100 bg-green-50 text-green-700' : 'border-[#E6E9EA] bg-[#E6E9EA] text-[#030303]'} text-[12px] font-bold w-fit`}>
+                                        {dashboardStep >= 2 ? 'Completed' : 'Step 1'}
+                                    </div>
+                                    {dashboardStep >= 2 && <CheckCircle2 size={20} className="text-green-500" />}
+                                </div>
                                 <h2 className="text-[20px] font-bold text-[#030303] leading-tight font-figtree">Set up Business Profile</h2>
                                 <p className="text-[#A1A1AA] text-[14px] leading-snug font-figtree">
                                     Highlight your skills and set your availability to start attracting clients.
@@ -233,7 +239,7 @@ export default function DashboardHome() {
                                 className="bg-[#04222D] p-5 flex justify-between items-center cursor-pointer active:bg-opacity-90 transition-all"
                                 onClick={() => router.push('/dashboard/setup-profile')}
                             >
-                                <span className="text-white font-bold text-[16px]">Start Now</span>
+                                <span className="text-white font-bold text-[16px]">{dashboardStep >= 2 ? 'Edit Profile' : 'Start Now'}</span>
                                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
                                     <ArrowRight size={18} className="text-[#030303]" />
                                 </div>

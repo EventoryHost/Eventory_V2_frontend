@@ -38,11 +38,11 @@ export default function DjPublishSummary({ packageId, packageData: initialPackag
     const mainImage = media.length > 0 ? media[0].url : 'https://dkuacgndftndz.cloudfront.net/inventory-page/dj-placeholder.png'; // fallback
 
     // Stats
-    const minHours = packageData.step1_eventAndCrew?.duration?.minHours || 2;
-    const maxHours = packageData.step1_eventAndCrew?.duration?.maxHours || 4;
-    const minGuests = packageData.step1_eventAndCrew?.capacity?.minGuests || 20;
-    const maxGuests = packageData.step1_eventAndCrew?.capacity?.maxGuests || 80;
-    const teamSize = packageData.step1_eventAndCrew?.crewSize?.minPeople || 3;
+    const minHours = packageData.step1_eventAndCrew?.duration?.minHours;
+    const maxHours = packageData.step1_eventAndCrew?.duration?.maxHours;
+    const minGuests = packageData.step1_eventAndCrew?.capacity?.minGuests;
+    const maxGuests = packageData.step1_eventAndCrew?.capacity?.maxGuests;
+    const teamSize = packageData.step1_eventAndCrew?.crewSize?.minPeople;
 
     // Pricing
     const actualPrice = packageData.step3_pricing?.price || 0;
@@ -146,7 +146,7 @@ export default function DjPublishSummary({ packageId, packageData: initialPackag
                 {hasVariants && (
                     <div className="px-5 pt-4">
                         <p className="text-[13px] font-bold text-[#04222D] mb-3" style={{ fontFamily: 'Figtree, sans-serif' }}>Variants</p>
-                        <div className="flex bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
+                        <div className="inline-flex max-w-full bg-[#F9FAF9] p-1 rounded-xl border border-[#F4F4F5] overflow-x-auto gap-1">
                             {variants.map((v: any) => {
                                 const variantName = v.variantType || v.step1_eventAndCrew?.packageName || 'Untitled Variant';
                                 const incomplete = isVariantIncomplete(v);
@@ -202,18 +202,24 @@ export default function DjPublishSummary({ packageId, packageData: initialPackag
                             </h2>
 
                             <div className="grid grid-cols-2 gap-y-3 mb-5">
-                                <div className="flex items-center gap-2 text-[#71717B]">
-                                    <Clock size={14} />
-                                    <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{minHours}-{maxHours}hrs performance</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-[#71717B]">
-                                    <Users size={14} />
-                                    <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{minGuests}-{maxGuests} Guest</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-[#71717B]">
-                                    <div className="w-[14px] h-[14px] rounded-full border border-[#71717B] flex items-center justify-center text-[9px] font-bold">{teamSize}</div>
-                                    <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>Team size: {teamSize}</span>
-                                </div>
+                                {(minHours || maxHours) && (
+                                    <div className="flex items-center gap-2 text-[#71717B]">
+                                        <Clock size={14} />
+                                        <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{minHours}-{maxHours}hrs performance</span>
+                                    </div>
+                                )}
+                                {(minGuests || maxGuests) && (
+                                    <div className="flex items-center gap-2 text-[#71717B]">
+                                        <Users size={14} />
+                                        <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{minGuests}-{maxGuests} Guest</span>
+                                    </div>
+                                )}
+                                {teamSize && (
+                                    <div className="flex items-center gap-2 text-[#71717B]">
+                                        <div className="w-[14px] h-[14px] rounded-full border border-[#71717B] flex items-center justify-center text-[9px] font-bold">{teamSize}</div>
+                                        <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>Team size: {teamSize}</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="border-t border-[#F4F4F5] pt-5 mt-5 mb-4">

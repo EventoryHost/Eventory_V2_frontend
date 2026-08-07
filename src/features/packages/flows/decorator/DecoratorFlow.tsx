@@ -495,7 +495,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                 const payload = {
                     packageName: packageName || `${variants.selectedVariant} Decorator Package`,
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Decoration'],
-                    poc: poc || 'Rahul Sharma',
+                    poc: poc || '',
                     duration: {
                         minHours: parseInt(eventMinDuration) || 0,
                         maxHours: parseInt(eventMaxDuration) || 0
@@ -547,8 +547,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                     .filter(Boolean);
 
                 const calculatedTotal = setups.reduce((acc, setup) => {
-                    const itemsTotal = (setup.items || []).reduce((iAcc, item) => iAcc + (Number(item.price) || 0), 0);
-                    return acc + (Number(setup.price) || 0) + itemsTotal;
+                    return acc + (Number(setup.price) || 0);
                 }, 0) + addons.reduce((acc, addon) => acc + (Number(addon.price) || 0), 0);
                 const totalPackagePrice = manualTotalPackagePrice !== null ? manualTotalPackagePrice : calculatedTotal;
 
