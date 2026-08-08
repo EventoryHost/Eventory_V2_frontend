@@ -1,10 +1,6 @@
 import PaymentPageHeader from "./PaymentPageHeader";
 import PaymentMethodTabs from "./PaymentMethodTabs";
 import PaymentSummary from "@/features/customer-booking/components/PaymentSummary";
-import CouponSection from "@/features/customer-booking/components/CouponSection";
-import PriceBreakdown from "@/features/customer-booking/components/PriceBreakdown";
-import TokenPaymentSection from "@/features/customer-booking/components/TokenPaymentSection";
-import PaymentActions from "@/features/customer-booking/components/PaymentActions";
 
 export default function PaymentPage() {
   return (
@@ -17,23 +13,20 @@ export default function PaymentPage() {
         </div>
 
         <div className="w-full lg:w-[424px] lg:shrink-0">
-          <PaymentSummary vendorCount={2}>
-            <CouponSection />
-            <PriceBreakdown
-              rows={[
-                { label: "Subtotal ( 2 vendors )", value: "₹45,000" },
-                { label: "GST (18%)", value: "₹2,550" },
-                { label: "Convenience Fee (3%)", value: "₹250" },
-              ]}
-              grandTotalLabel="Grand Total"
-              grandTotalValue="₹47,500"
-            />
-            <TokenPaymentSection
-              percentageLabel="Token Amount (25%)"
-              amount="₹5,000"
-            />
-            <PaymentActions />
-          </PaymentSummary>
+          <PaymentSummary
+            vendorCount={2}
+            packageCount={3}
+            rows={[
+              { label: "Total booking amount", value: "₹1,01,200" },
+              { label: "Service & security fee", value: "₹2,024" },
+              { label: "GST (18%)", value: "₹18,580" },
+            ]}
+            grandTotal="₹1,21,804"
+            tokenAmount="₹12,000"
+            cancellationNote="Free cancellation until 4 Mar 2026. Held safely by Eventory until your event."
+            ctaLabel="Pay Now"
+            ctaHref="/payment"
+          />
         </div>
       </div>
     </div>

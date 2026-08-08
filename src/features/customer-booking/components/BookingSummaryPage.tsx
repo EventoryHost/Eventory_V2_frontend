@@ -1,77 +1,39 @@
 import BookingSummaryHeader from "./BookingSummaryHeader";
-import BookingEntry, { type BookingEntryProps } from "./BookingEntry";
+import VendorSummaryRow, { type VendorSummaryRowProps } from "./VendorSummaryRow";
+import ServiceBookingCard, {
+  type ServiceBookingCardProps,
+} from "./ServiceBookingCard";
 import PaymentSummary from "./PaymentSummary";
-import CouponSection from "./CouponSection";
-import PriceBreakdown from "./PriceBreakdown";
-import TokenPaymentSection from "./TokenPaymentSection";
-import PaymentActions from "./PaymentActions";
-import StartConversationCard from "./StartConversationCard";
-import InquiryForm from "./InquiryForm";
-import SendInquirySection from "./SendInquirySection";
 
-const INCLUDED_ITEMS = [
-  "Professional sound system setup",
-  "5-hour live DJ performance",
-  "Pre-event song request coordination",
-  "Nails ( 1 Set )",
-  "Hair (4 people)",
-  "LED lighting rig & stage effects",
-  "Wireless mic for hosts (x2)",
-  "Face Makeup ( 1 Bride , 3 Guests )",
-  "Spa (1 Session)",
-];
-
-const ADD_ONS = [
-  {
-    image: "/images/customer/booking-summary/booking.jpg",
-    title: "Fog Machine & Laser Add-on",
-    price: "₹3,500",
-  },
-  {
-    image: "/images/customer/booking-summary/booking.jpg",
-    title: "Fog Machine & Laser Add-on",
-    price: "₹3,500",
-  },
-];
-
-const BOOKINGS: BookingEntryProps[] = Array.from({ length: 3 }, () => ({
-  vendor: {
-    avatar: "/images/customer/user-review.png",
-    vendorName: "Vendor Name",
-    rating: 4.9,
-    reviewCount: 13,
-  },
-  package: {
-    image: "/images/customer/booking-summary/booking.jpg",
-    categoryLabel: "Makeup Artist",
-    categoryIcon: "/images/customer/makeup.png",
-    variantLabel: "Platinum Package Variant",
-    title: "Bridal Ultra-Glow Signature Package",
-    date: "12 Mar 2026",
-    time: "16:00 – 21:00",
-    location: "Guwahati, Assam",
-    guestRange: "4-8 Customers",
-    originalPrice: "₹45,000",
-    price: "₹38,250",
-  },
-  included: {
-    items: INCLUDED_ITEMS,
-    specialRequest:
-      "Bride prefers soft dewy airbrush finish. Arrive sharp at 6 AM.",
-  },
-  addOns: {
-    addOns: ADD_ONS,
-  },
-  priceSummary: {
-    rows: [
-      { label: "Package Price", value: "₹38,250" },
-      { label: "Items Added (4)", value: "₹6,750" },
-      { label: "Add-ons (2)", value: "₹7,000" },
-    ],
-    subtotalLabel: "Vendor Subtotal",
-    subtotalValue: "₹52,000",
-  },
+const SERVICES: ServiceBookingCardProps[] = Array.from({ length: 2 }, () => ({
+  image: "/images/customer/booking-summary/service.jpg",
+  categoryLabel: "Makeup Artist",
+  categoryIcon: "/images/customer/makeup.png",
+  vendorName: "Sharma Decorators",
+  serviceName: "Mehendi Corner & Seating",
+  packageTier: "Basic Package",
+  date: "12 March, 2026",
+  time: "01:00 PM - 05:00 PM",
+  location: "Guwahati, Assam",
+  eventType: "Birthday Party",
+  cancellationNote: "Free cancellation till 1st March",
+  price: "₹12,399",
 }));
+
+const VENDOR_GROUPS: { vendor: VendorSummaryRowProps }[] = Array.from(
+  { length: 2 },
+  () => ({
+    vendor: {
+      avatar: "/images/customer/booking-summary/decorators.jpg",
+      vendorName: "Sharma Decorators",
+      rating: 4.6,
+      reviewCount: 142,
+      eventsOnEventory: 38,
+      packageCount: 2,
+      subtotal: "₹77,400",
+    },
+  })
+);
 
 export default function BookingSummaryPage() {
   return (
@@ -80,38 +42,31 @@ export default function BookingSummaryPage() {
 
       <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
         <div className="flex w-full flex-col gap-8 lg:flex-1">
-          {BOOKINGS.map((booking, i) => (
-            <BookingEntry key={i} {...booking} />
+          {VENDOR_GROUPS.map((group, i) => (
+            <div key={i} className="flex w-full flex-col gap-4">
+              <VendorSummaryRow {...group.vendor} />
+              {SERVICES.map((service, j) => (
+                <ServiceBookingCard key={j} {...service} />
+              ))}
+            </div>
           ))}
         </div>
 
         <div className="w-full lg:w-[424px] lg:shrink-0">
-          {/* TEMP PREVIEW: swapped in to preview StartConversationCard — revert by restoring the PaymentSummary block below */}
-          <StartConversationCard
-            avatar="/images/customer/user-review.png"
-            managerName="Glow by Kriti Sharma"
-            managerRole="Manager"
-            responseTime="Typically responds within 24h"
-          >
-            <InquiryForm />
-            <SendInquirySection />
-          </StartConversationCard>
-          {/* ORIGINAL (commented out for preview):
-          <PaymentSummary vendorCount={BOOKINGS.length}>
-            <CouponSection />
-            <PriceBreakdown
-              rows={[
-                { label: "Subtotal ( 2 vendors )", value: "₹45,000" },
-                { label: "GST (18%)", value: "₹2,550" },
-                { label: "Convenience Fee (3%)", value: "₹250" },
-              ]}
-              grandTotalLabel="Grand Total"
-              grandTotalValue="₹47,500"
-            />
-            <TokenPaymentSection percentageLabel="Token Amount (25%)" amount="₹5,000" />
-            <PaymentActions />
-          </PaymentSummary>
-          */}
+          <PaymentSummary
+            vendorCount={2}
+            packageCount={3}
+            rows={[
+              { label: "Total booking amount", value: "₹1,01,200" },
+              { label: "Service & security fee", value: "₹2,024" },
+              { label: "GST (18%)", value: "₹18,580" },
+            ]}
+            grandTotal="₹1,21,804"
+            tokenAmount="₹12,000"
+            cancellationNote="Free cancellation until 4 Mar 2026. Held safely by Eventory until your event."
+            ctaLabel="Continue to Details"
+            ctaHref="/contact"
+          />
         </div>
       </div>
     </div>
