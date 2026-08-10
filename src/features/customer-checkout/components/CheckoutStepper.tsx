@@ -13,8 +13,8 @@ export default function CheckoutStepper() {
   const activeIndex = STEPS.findIndex((step) => step.href === pathname);
 
   return (
-    <div className="flex w-full items-center justify-center py-8">
-      <div className="flex items-center gap-4">
+    <div className="flex w-full items-center justify-center overflow-x-auto px-4 py-5 lg:py-8">
+      <div className="flex items-center gap-2 lg:gap-4">
         {STEPS.map((step, i) => {
           // Linear flow, not tabs: the current step and every step already
           // passed through get the pink circle/line treatment. The heading
@@ -24,18 +24,18 @@ export default function CheckoutStepper() {
           const isDone = i <= activeIndex;
           const isCurrent = i === activeIndex;
           return (
-            <div key={step.href} className="flex items-center gap-4">
+            <div key={step.href} className="flex shrink-0 items-center gap-2 lg:gap-4">
               {i > 0 && (
                 <div
-                  className={`h-px w-10 ${
+                  className={`h-px w-5 shrink-0 lg:w-10 ${
                     isDone ? "bg-[#F0596F]" : "bg-[#E4E4E7]"
                   }`}
                 />
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center gap-1.5 lg:gap-2">
                 <span
-                  className={`flex h-6 w-6 items-center justify-center rounded-full border font-figtree text-[12px] font-semibold leading-[18px] ${
+                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border font-figtree text-[11px] font-semibold leading-[18px] lg:h-6 lg:w-6 lg:text-[12px] ${
                     isDone
                       ? "border-[#F0596F] bg-white text-[#F0596F]"
                       : "border-[#9F9FA9] bg-transparent text-[#71717B]"
@@ -44,7 +44,7 @@ export default function CheckoutStepper() {
                   {i + 1}
                 </span>
                 <span
-                  className={`font-figtree text-[14px] font-semibold leading-[20px] ${
+                  className={`font-figtree text-[12px] font-semibold whitespace-nowrap lg:text-[14px] lg:leading-[20px] ${
                     isCurrent
                       ? "text-[#F0596F]"
                       : isDone

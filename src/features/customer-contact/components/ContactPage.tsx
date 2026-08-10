@@ -1,18 +1,17 @@
 import ContactPageHeader from "./ContactPageHeader";
 import ContactDetailsForm from "./ContactDetailsForm";
-import CoordinatorSection from "./CoordinatorSection";
+import AlternateCoordinatorSection from "./AlternateCoordinatorSection";
 import GstinToggleSection from "./GstinToggleSection";
 import PaymentSummary from "@/features/customer-booking/components/PaymentSummary";
 
 export default function ContactPage() {
   return (
     <div className="mx-auto w-full max-w-[1320px] px-4 pt-8 pb-16 sm:px-6 lg:px-16">
-      <ContactPageHeader />
-
-      <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
+      <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
         <div className="flex w-full flex-col gap-6 lg:flex-1">
+          <ContactPageHeader />
           <ContactDetailsForm />
-          <CoordinatorSection />
+          <AlternateCoordinatorSection />
           <GstinToggleSection />
         </div>
 

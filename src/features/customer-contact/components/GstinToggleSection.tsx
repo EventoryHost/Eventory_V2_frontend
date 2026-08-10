@@ -8,7 +8,7 @@ export default function GstinToggleSection() {
 
   return (
     <div
-      className="flex w-full max-w-[868px] items-center justify-between rounded-[12px] border border-[#E5E5E5] p-4"
+      className="flex w-full max-w-[801px] items-center justify-between rounded-[16px] border border-[#E5E5E5] bg-white p-4"
       style={{ boxShadow: "0px 40px 40px 0px #00000005" }}
     >
       <div className="flex items-center gap-3">

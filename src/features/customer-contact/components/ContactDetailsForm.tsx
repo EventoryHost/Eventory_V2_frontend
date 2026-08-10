@@ -1,80 +1,81 @@
 "use client";
 
 import { useState } from "react";
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="font-figtree text-[12px] font-medium text-[#3F3F47]">
-      {children}
-    </label>
-  );
-}
+import { Phone } from "lucide-react";
 
 export default function ContactDetailsForm() {
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [message, setMessage] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-
-  const handleSendOtp = () => {
-    setOtpSent(true);
-  };
 
   return (
-    <div className="flex w-full max-w-[868px] flex-col gap-6 rounded-[12px] border border-[#E5E5E5] pt-8 pr-6 pb-8 pl-6">
-      <div className="grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2">
-        <div className="flex w-full flex-col gap-1.5">
-          <FieldLabel>Full Name</FieldLabel>
-          <input
-            type="text"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Name"
-            className="h-12 w-full rounded-[8px] border border-[#D4D4D8] px-4 py-3 font-figtree text-[15px] text-[#101828] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
-          />
-        </div>
-
-        <div className="flex w-full flex-col gap-1.5">
-          <FieldLabel>Email Address</FieldLabel>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="h-12 w-full rounded-[8px] border border-[#D4D4D8] px-4 py-3 font-figtree text-[15px] text-[#101828] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
-          />
-        </div>
-
-        <div className="flex w-full flex-col gap-1.5">
-          <FieldLabel>Mobile Number</FieldLabel>
-          <div className="flex h-12 w-full items-center justify-between rounded-[8px] border border-[#D4D4D8] px-4 py-3">
-            <input
-              type="tel"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
-              placeholder="+91 XXXXX XXXXX"
-              className="w-full bg-transparent font-figtree text-[15px] text-[#101828] placeholder:text-[#9CA3AF] outline-none"
-            />
-            <button
-              type="button"
-              onClick={handleSendOtp}
-              disabled={otpSent}
-              className="shrink-0 font-figtree text-[15px] font-medium text-[#D97706] transition-colors hover:text-[#B45309] disabled:cursor-default disabled:text-[#9CA3AF]"
-            >
-              {otpSent ? "OTP Sent" : "Send OTP"}
-            </button>
-          </div>
-        </div>
+    <div className="flex w-full max-w-[801px] flex-col gap-5 rounded-[24px] border border-[#E4E4E7] bg-white p-6">
+      <div className="flex flex-col gap-1">
+        <label className="font-figtree text-[15px] font-semibold text-[#030303]">
+          Full name
+        </label>
+        <p className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]">
+          So your vendors know who they&apos;re serving.
+        </p>
+        <input
+          type="text"
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
+          placeholder="e.g. Ananya Sharma"
+          className="mt-2 h-12 w-full rounded-[16px] border border-[#E4E4E7] pt-[13.5px] pr-[14px] pb-[13.5px] pl-[14px] font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
+        />
       </div>
 
-      <div className="flex w-full flex-col gap-1.5">
-        <FieldLabel>Any Message</FieldLabel>
-        <textarea
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          placeholder="e.g., Stage near entrance, food allergy instructions, DJ playlist preferences..."
-          className="h-24 w-full resize-none rounded-[8px] border border-[#D4D4D8] px-4 py-3 font-figtree text-[15px] text-[#101828] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
+      <div className="flex flex-col gap-1">
+        <label className="font-figtree text-[15px] font-semibold text-[#030303]">
+          Phone number
+        </label>
+        <p className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]">
+          Your vendor&apos;s team will call this on event day.
+        </p>
+
+        <div className="mt-2 flex gap-2">
+          <div className="flex h-12 w-[72px] shrink-0 items-center justify-center gap-1 rounded-[16px] border border-[#E4E4E7] bg-[#F4F4F5] pt-[11px] pr-3 pb-[11px] pl-3">
+            <span>🇮🇳</span>
+            <span className="font-figtree text-[14px] font-medium text-[#030303]">
+              +91
+            </span>
+          </div>
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="98765 43210"
+            className="h-12 w-full rounded-[16px] border border-[#E4E4E7] bg-white pt-[13.5px] pr-[14px] pb-[13.5px] pl-[14px] font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
+          />
+        </div>
+
+        <button
+          type="button"
+          disabled={!phone}
+          className="mt-2 flex h-[34px] w-fit items-center gap-1 rounded-full border border-[#EA1D3B] bg-[#030303]/0 pt-[7px] pr-5 pb-[7px] pl-4 font-figtree text-[13px] font-medium text-[#EA1D3B] opacity-40 transition-opacity enabled:opacity-100"
+        >
+          <Phone size={14} />
+          Verify with OTP
+        </button>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="flex items-center gap-1.5 font-figtree text-[15px] font-semibold text-[#030303]">
+          Email
+          <span className="font-figtree text-[12px] font-normal text-[#9CA3AF]">
+            optional
+          </span>
+        </label>
+        <p className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]">
+          For your booking confirmation and receipt.
+        </p>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="name@example.com"
+          className="mt-2 h-12 w-full rounded-[16px] border border-[#E4E4E7] pt-[13.5px] pr-[14px] pb-[13.5px] pl-[14px] font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
         />
       </div>
     </div>

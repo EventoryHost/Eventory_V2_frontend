@@ -24,13 +24,13 @@ export default function SetupArticleCard({
 }: SetupArticleCardProps) {
   return (
     <div className="flex w-full max-w-[586px] flex-col gap-4 rounded-[24px] border border-[#E4E4E7] p-5">
-      <div className="flex gap-4">
-        <div className="relative h-[134px] w-[179px] shrink-0 overflow-hidden rounded-[16px]">
+      <div className="flex flex-col gap-4 sm:flex-row">
+        <div className="relative h-[180px] w-full shrink-0 overflow-hidden rounded-[16px] sm:h-[134px] sm:w-[179px]">
           <Image src={image} alt={title} fill className="object-cover" />
         </div>
 
-        <div className="flex flex-1 flex-col gap-1">
-          <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex flex-wrap items-start justify-between gap-x-2 gap-y-1">
             <span className="font-figtree text-[16px] font-semibold leading-[24px] tracking-[-0.24px] text-[#030303]">
               {title}
             </span>
