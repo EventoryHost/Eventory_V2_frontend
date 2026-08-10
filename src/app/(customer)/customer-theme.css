@@ -5,17 +5,6 @@
   --brand-950: #1e0306;
   --brand-primary: #f0596f;
   --body-secondary: #636363;
-  --error-700: #790b1a;
-  --neutral-primary: #272727;
-  --neutral-secondary: #666666;
-  --neutral-tertiary: #808080;
-  --neutral-subtle: #f1f1f1;
-  --campaign-blue: #9dd9f5;
-  --campaign-yellow: #ffde59;
-  --success-700: #00855b;
-  --success-subtle: #e6f9f0;
-  --warning-500: #ffb000;
-  --warning-subtle: #fff9e6;
 }
 
 @theme inline {
@@ -23,17 +12,6 @@
   --color-brand-950: var(--brand-950);
   --color-brand-primary: var(--brand-primary);
   --color-body-secondary: var(--body-secondary);
-  --color-error-700: var(--error-700);
-  --color-neutral-primary: var(--neutral-primary);
-  --color-neutral-secondary: var(--neutral-secondary);
-  --color-neutral-tertiary: var(--neutral-tertiary);
-  --color-neutral-subtle: var(--neutral-subtle);
-  --color-campaign-blue: var(--campaign-blue);
-  --color-campaign-yellow: var(--campaign-yellow);
-  --color-success-700: var(--success-700);
-  --color-success-subtle: var(--success-subtle);
-  --color-warning-500: var(--warning-500);
-  --color-warning-subtle: var(--warning-subtle);
   --font-lora: var(--font-lora);
   --font-figtree: var(--font-figtree);
 }

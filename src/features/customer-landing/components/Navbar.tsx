@@ -8,8 +8,8 @@ import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Events", hasDropdown: true, href: "/events" },
-  { label: "Packages", hasDropdown: true, href: "/packages" },
-  { label: "Vendor", hasDropdown: true, href: "/vendors" },
+  { label: "Packages", hasDropdown: true },
+  { label: "Vendor", hasDropdown: true },
   { label: "Corporate", hasDropdown: true },
   { label: "EPP", hasDropdown: false },
 ];
@@ -76,13 +76,13 @@ function NavLinks({ className = "" }: { className?: string }) {
 
 function CartButton() {
   return (
-    <Link
-      href="/cart"
+    <button
+      type="button"
       className="flex items-center gap-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
     >
       <ShoppingCart size={18} />
       <span className="hidden sm:inline">Cart</span>
-    </Link>
+    </button>
   );
 }
 

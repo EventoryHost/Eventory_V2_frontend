@@ -4,32 +4,15 @@ import Image from "next/image";
 const LINK_GROUPS = [
   {
     title: "Quick Links",
-    links: [
-      { label: "Browse Packages", href: "/packages" },
-      { label: "Find Vendors", href: "/vendors" },
-      { label: "How it Works", href: "#" },
-      { label: "Pricing", href: "#" },
-    ],
+    links: ["Browse Packages", "Find Vendors", "How it Works", "Pricing"],
   },
   {
     title: "Support",
-    links: [
-      { label: "Help Center", href: "#" },
-      { label: "Contact Us", href: "#" },
-      { label: "FAQs", href: "#" },
-      { label: "Cancellation", href: "#" },
-    ],
+    links: ["Help Center", "Contact Us", "FAQs", "Cancellation"],
   },
   {
     title: "Company",
-    links: [
-      { label: "About Us", href: "#" },
-      { label: "Careers", href: "#" },
-      // /signup is the existing vendor-onboarding flow — the natural
-      // destination for "Become Vendor" until a dedicated landing page exists.
-      { label: "Become Vendor", href: "/signup" },
-      { label: "Corporate", href: "#" },
-    ],
+    links: ["About Us", "Careers", "Become Vendor", "Corporate"],
   },
 ];
 
@@ -132,13 +115,13 @@ export default function Footer() {
             </span>
             <ul className="flex w-[116px] flex-col gap-4">
               {group.links.map((link) => (
-                <li key={link.label}>
-                  <Link
-                    href={link.href}
+                <li key={link}>
+                  <a
+                    href="#"
                     className="font-figtree text-[15px] font-normal text-white/80 hover:text-white"
                   >
-                    {link.label}
-                  </Link>
+                    {link}
+                  </a>
                 </li>
               ))}
             </ul>
