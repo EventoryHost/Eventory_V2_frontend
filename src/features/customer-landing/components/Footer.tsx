@@ -6,7 +6,7 @@ const LINK_GROUPS = [
     links: [
       { label: "About Us", href: "#" },
       { label: "Careers", href: "#" },
-      { label: "Become a vendor", href: "#" },
+      { label: "Become a vendor", href: "/login" },
       { label: "Corporate Events", href: "#" },
       { label: "Blog", href: "#" },
     ],
