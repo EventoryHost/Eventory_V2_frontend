@@ -6,7 +6,10 @@ import CouponInput from "./CouponInput";
 
 export default function PaymentSummary({
   vendorCount,
+  itemCount,
   subtotal,
+  discount,
+  total,
   couponCode,
   onCouponCodeChange,
   onApplyCoupon,
@@ -20,7 +23,10 @@ export default function PaymentSummary({
   continueMessage,
 }: {
   vendorCount: number;
+  itemCount: number;
   subtotal: number;
+  discount: number;
+  total: number;
   couponCode: string;
   onCouponCodeChange: (value: string) => void;
   onApplyCoupon: () => void;
@@ -35,13 +41,14 @@ export default function PaymentSummary({
 }) {
   return (
     <div className="rounded-3xl border border-neutral-subtle bg-white p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6">
         <h2 className="font-figtree text-[20px] font-semibold text-neutral-primary">
           Payment Summary
         </h2>
-        <span className="font-figtree text-[14px] text-neutral-secondary">
-          {vendorCount} {vendorCount === 1 ? "Vendor" : "Vendors"}
-        </span>
+        <p className="font-figtree text-[13px] text-neutral-secondary">
+          {itemCount} {itemCount === 1 ? "item" : "items"} • {vendorCount}{" "}
+          {vendorCount === 1 ? "vendor" : "vendors"}
+        </p>
       </div>
 
       <div className="mb-8">
@@ -56,13 +63,23 @@ export default function PaymentSummary({
         />
       </div>
 
-      <div className="mb-8 border-t border-neutral-subtle pt-6">
-        <div className="flex items-center justify-between">
+      <div className="mb-8 space-y-2 border-t border-neutral-subtle pt-6">
+        <div className="flex items-center justify-between font-figtree text-[13px] text-neutral-secondary">
+          <span>Subtotal</span>
+          <span>{formatPrice(subtotal)}</span>
+        </div>
+        {discount > 0 && (
+          <div className="flex items-center justify-between font-figtree text-[13px] text-success-700">
+            <span>Discount</span>
+            <span>-{formatPrice(discount)}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-2">
           <span className="font-figtree text-[14px] font-semibold tracking-wider text-neutral-secondary uppercase">
-            Subtotal
+            Total
           </span>
           <span className="font-figtree text-[28px] font-bold text-neutral-primary">
-            {formatPrice(subtotal)}
+            {formatPrice(total)}
           </span>
         </div>
       </div>

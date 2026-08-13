@@ -1,0 +1,202 @@
+import { apiFetch } from "./apiClient";
+import type { RawVendorPublic, RawPackageMedia } from "./customerDiscoveryApi";
+
+// Raw shapes returned by GET /api/customer/packages/:packageId and
+// GET /api/customer/packages/:packageId/reviews, verified against
+// Eventory_V2_backend/src/controllers/customerDiscoveryController.js and the
+// Package/DecoratorPackage models directly.
+
+export interface RawPolicySlot {
+  templateId?: string;
+  templateTitle?: string;
+  files?: string[];
+  writtenText?: string;
+}
+
+export interface RawDecoratorSetupItem {
+  name?: string;
+  itemType?: string;
+  qty?: number;
+  unit?: string;
+  price?: number;
+  description?: string;
+}
+
+export interface RawDecoratorSetup {
+  _id?: string;
+  name?: string;
+  setupPhoto?: string;
+  description?: string;
+  price?: number;
+  decoratingWhat?: string;
+  themes?: string[];
+  structuresIncluded?: string[];
+  items?: RawDecoratorSetupItem[];
+}
+
+export interface RawDecoratorAddOn {
+  _id?: string;
+  addOnType?: "Service" | "Product";
+  name?: string;
+  category?: string;
+  subCategory?: string;
+  quantity?: number;
+  price?: number;
+  billingUnit?: string;
+  mediaUrls?: string[];
+}
+
+export interface RawFullPackage {
+  _id: string;
+  vendorId: RawVendorPublic | string;
+  vendorType: string;
+  variantType?: string;
+  packageGroupId: string;
+  packageStatus: string;
+  bookingSettings?: {
+    bookingType?: "Ready-to-Book" | "Enquiry/Quote";
+    paymentType?: "Free" | "Token";
+    token?: { tokenType?: "Percentage" | "Fixed"; value?: number };
+  };
+  step1_eventAndCrew: {
+    packageName: string;
+    eventCategories?: string[];
+    duration?: { minHours?: number; maxHours?: number };
+    crewSize?: { minPeople?: number; maxPeople?: number; roles?: string[] };
+    capacity?: { minGuests?: number; maxGuests?: number };
+    venueNeeds?: {
+      power?: boolean;
+      ac?: boolean;
+      stage?: boolean;
+      lighting?: boolean;
+      security?: boolean;
+      customText?: string;
+    };
+  };
+  step2_productsAndPricing?: {
+    setups?: RawDecoratorSetup[];
+    addOns?: RawDecoratorAddOn[];
+  };
+  step3_policiesAndCharges: {
+    packagePricing: { price: number; billingUnit?: string; noOfPeople?: string };
+    gstInclusive?: boolean;
+    gstRatePercent?: number;
+    guestTiers?: { maxGuests: number; price: number }[];
+    cancellationPolicy?: RawPolicySlot;
+    lastMinutePolicy?: RawPolicySlot;
+    generalPolicies?: RawPolicySlot[];
+  };
+  step4_sampleMedia?: { media?: RawPackageMedia[] };
+  createdAt: string;
+}
+
+export interface RawPdpAvailability {
+  guests?: number;
+  withinCapacity?: boolean;
+  date?: string;
+  calendarStatus?: "Available" | "Blocked" | "Booked" | "Unknown";
+  overall: boolean | null;
+}
+
+export interface RawPdpPricingPreview {
+  basePrice: number | null;
+  billingUnit: string | null;
+  subtotal: number | null;
+  gstInclusive: boolean;
+  gstRatePercent: number | null;
+  gstAmount: number | null;
+  total: number | null;
+  note: string;
+}
+
+export interface RawPdpReviewItem {
+  _id: string;
+  rating: number;
+  comment?: string;
+  customerId?: { name?: string; profilePicture?: string };
+  createdAt: string;
+}
+
+export interface RawPdpReviewsSection {
+  items: RawPdpReviewItem[];
+  count: number;
+  averageRating: number | null;
+  usingVendorFallback: boolean;
+}
+
+export interface RawPackageDetailResponse {
+  status: "SUCCESS";
+  package: RawFullPackage;
+  availability: RawPdpAvailability;
+  pricingPreview: RawPdpPricingPreview;
+  reviews: RawPdpReviewsSection;
+}
+
+export interface PackageDetailParams {
+  date?: string;
+  guests?: number;
+  time?: string;
+}
+
+function toQueryString(params: object) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function getPackageDetail(packageId: string, params: PackageDetailParams = {}) {
+  return apiFetch<RawPackageDetailResponse>(`/customer/packages/${packageId}${toQueryString(params)}`, {
+    auth: false,
+  });
+}
+
+export interface RawReviewAggregate {
+  averageRating: number | null;
+  count: number;
+  distribution: Record<string, number>;
+  categoryBreakdown: { category: string; averageRating: number; count: number }[];
+}
+
+export interface RawPackageReviewsResponse {
+  status: "SUCCESS";
+  count: number;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  items: RawPdpReviewItem[];
+  aggregate: RawReviewAggregate;
+}
+
+export interface PackageReviewsParams {
+  minRating?: number;
+  sort?: "recent" | "highest" | "lowest";
+  page?: number;
+  limit?: number;
+}
+
+export async function getPackageReviews(packageId: string, params: PackageReviewsParams = {}) {
+  return apiFetch<RawPackageReviewsResponse>(`/customer/packages/${packageId}/reviews${toQueryString(params)}`, {
+    auth: false,
+  });
+}
+
+export interface RawPackageGroupResponse {
+  status: "SUCCESS";
+  count: number;
+  packageGroupId: string;
+  packages: RawFullPackage[];
+}
+
+/**
+ * No /customer counterpart exists for listing sibling variants of a package
+ * group — this is the vendor-management router's internal, unauthenticated
+ * GET /packages/group/:packageGroupId, used here strictly as a stopgap (only
+ * price/media/variantType fields are ever read from the response).
+ */
+export async function getPackageGroupVariants(packageGroupId: string) {
+  return apiFetch<RawPackageGroupResponse>(`/packages/group/${packageGroupId}`, { auth: false });
+}

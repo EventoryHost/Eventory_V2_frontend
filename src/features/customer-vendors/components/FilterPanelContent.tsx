@@ -5,7 +5,6 @@ import FilterSection from "./FilterSection";
 
 export interface SelectedFilters {
   eventType: string[];
-  service: string[];
   pricing: string[];
 }
 

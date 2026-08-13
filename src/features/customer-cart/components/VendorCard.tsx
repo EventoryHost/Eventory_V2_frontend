@@ -6,6 +6,7 @@ import PackageInfo from "./PackageInfo";
 import VendorActions from "./VendorActions";
 import EventDetails from "./EventDetails";
 import EditEventDetailsModal from "./EditEventDetailsModal";
+import AddedAddonsSection from "./AddedAddonsSection";
 
 export default function VendorCard({
   vendor,
@@ -13,12 +14,18 @@ export default function VendorCard({
   onRemove,
   onMoveToWishlist,
   onSaveEventDetails,
+  onIncrementAddon,
+  onDecrementAddon,
+  onRemoveAddon,
 }: {
   vendor: CartVendor;
   onToggleSelected: (id: string) => void;
   onRemove: (id: string) => void;
   onMoveToWishlist: (id: string) => void;
   onSaveEventDetails: (id: string, details: EventDetailsData) => void;
+  onIncrementAddon: (itemId: string, addonId: string) => void;
+  onDecrementAddon: (itemId: string, addonId: string) => void;
+  onRemoveAddon: (itemId: string, addonId: string) => void;
 }) {
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -42,6 +49,11 @@ export default function VendorCard({
           <span className="font-figtree text-[16px] font-semibold text-neutral-primary">
             {vendor.vendorName}
           </span>
+          {!vendor.packageStillAvailable && (
+            <span className="rounded-full bg-error-subtle px-2.5 py-1 font-figtree text-[11px] font-semibold text-error-700">
+              No longer available
+            </span>
+          )}
         </div>
 
         <div className="mb-6">
@@ -55,6 +67,15 @@ export default function VendorCard({
       </div>
 
       <EventDetails details={vendor.eventDetails} onEdit={() => setIsEditOpen(true)} />
+
+      {vendor.addons.length > 0 && (
+        <AddedAddonsSection
+          addons={vendor.addons}
+          onIncrement={(addonId) => onIncrementAddon(vendor.id, addonId)}
+          onDecrement={(addonId) => onDecrementAddon(vendor.id, addonId)}
+          onRemove={(addonId) => onRemoveAddon(vendor.id, addonId)}
+        />
+      )}
 
       <EditEventDetailsModal
         isOpen={isEditOpen}

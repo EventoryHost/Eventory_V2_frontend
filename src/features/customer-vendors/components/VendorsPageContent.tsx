@@ -1,11 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 import type { FilterSectionConfig, SortOption, VendorFilters, VendorsPageData, ViewMode } from "../types";
-import { getFilterSectionsForCategory, eventTypeLabel, serviceLabel } from "../data/filterConfig";
+import { getFilterSectionsForCategory, VENDORS_PAGE_SIZE } from "../data/filterConfig";
 import { filterVendors, priceRangeLabel } from "../utils/filterVendors";
+import { mapPackageToVendor } from "../mappers";
+import { browsePackages } from "@/lib/customerDiscoveryApi";
+import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
+import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
+import AuthModal from "@/features/customer-auth/components/AuthModal";
+import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import SearchBar from "./SearchBar";
 import ViewToggle from "./ViewToggle";
 import CategoryTabs from "./CategoryTabs";
@@ -22,9 +28,8 @@ import LoadMoreButton from "./LoadMoreButton";
 import type { SelectedFilters } from "./FilterPanelContent";
 
 const DEFAULT_CITY = "Ghaziabad";
-const PAGE_SIZE = 9;
 
-const EMPTY_SELECTED: SelectedFilters = { eventType: [], service: [], pricing: [] };
+const EMPTY_SELECTED: SelectedFilters = { eventType: [], pricing: [] };
 
 export default function VendorsPageContent({ data }: { data: VendorsPageData }) {
   const router = useRouter();
@@ -38,11 +43,49 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
 
   const [selected, setSelected] = useState<SelectedFilters>(EMPTY_SELECTED);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(
-    () => new Set(data.vendors.filter((vendor) => vendor.isBookmarked).map((vendor) => vendor.id))
-  );
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const { isLoggedIn } = useCustomerSession();
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+  const wishlistItemIdsRef = useRef(new Map<string, string>());
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const pendingBookmarkRef = useRef<string | null>(null);
+
+  // Wishlist is customer-only — load (and reset) it as login state changes,
+  // building a packageId -> wishlistItemId map (bookmark cards are really
+  // packages here, per the Vendor type's own comment) since removing a
+  // saved item needs its wishlist item id, not the packageId.
+  useEffect(() => {
+    if (!isLoggedIn) {
+      setBookmarkedIds(new Set());
+      wishlistItemIdsRef.current.clear();
+      return;
+    }
+    let cancelled = false;
+    getWishlist()
+      .then((response) => {
+        if (cancelled) return;
+        const ids = new Set<string>();
+        wishlistItemIdsRef.current.clear();
+        response.items.forEach((item) => {
+          if (item.itemType === "Package" && item.packageId) {
+            ids.add(item.packageId);
+            wishlistItemIdsRef.current.set(item.packageId, item._id);
+          }
+        });
+        setBookmarkedIds(ids);
+      })
+      .catch(() => {
+        // Best-effort — bookmarks just stay unfilled if this fails.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn]);
+
+  const [vendors, setVendors] = useState(data.vendors);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(data.totalPages);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   // Keep the shareable URL in sync with the state that's meaningful to deep-link
   // (category, search, sort, view). Checkbox filters stay local-only.
@@ -57,34 +100,79 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sort, view]);
 
-  // Simulate a network round-trip when the category changes, so the loading
-  // skeleton has somewhere real to show. Swap for the actual fetch-pending
-  // state once `getVendorsPageData` hits a live endpoint. `isLoading` is
-  // flipped on by the category-change handlers below; this effect only
-  // schedules turning it back off.
+  // Refetch page 1 from the real API whenever category or sort changes.
+  // Skips the very first run when category/sort match what the server
+  // already fetched into `data` ("all"/"newest") — refetching immediately
+  // would just flash a skeleton over data we already have. A deep link like
+  // /vendors?category=caterer differs from that default, so it still fetches
+  // on mount to actually apply the requested filter.
+  const isFirstRun = useRef(true);
   useEffect(() => {
-    if (!isLoading) return;
-    const timeout = setTimeout(() => setIsLoading(false), 400);
-    return () => clearTimeout(timeout);
-  }, [isLoading]);
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      if (category === "all" && sort === "newest") return;
+    }
+    let cancelled = false;
+    setIsLoading(true);
+    browsePackages({
+      vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
+      sort: SORT_UI_TO_API[sort],
+      page: 1,
+      limit: VENDORS_PAGE_SIZE,
+    })
+      .then((response) => {
+        if (cancelled) return;
+        setVendors(response.packages.map(mapPackageToVendor));
+        setPage(1);
+        setTotalPages(response.totalPages);
+      })
+      .catch(() => {
+        if (!cancelled) setVendors([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category, sort]);
 
-  const filterSections = useMemo(() => getFilterSectionsForCategory(category), [category]);
+  async function handleLoadMore() {
+    if (isLoadingMore || page >= totalPages) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = page + 1;
+      const response = await browsePackages({
+        vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
+        sort: SORT_UI_TO_API[sort],
+        page: nextPage,
+        limit: VENDORS_PAGE_SIZE,
+      });
+      setVendors((prev) => [...prev, ...response.packages.map(mapPackageToVendor)]);
+      setPage(nextPage);
+      setTotalPages(response.totalPages);
+    } catch {
+      // Leave the current results as-is on failure — the button stays available to retry.
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
+
+  const filterSections = useMemo(() => getFilterSectionsForCategory(data.eventCategoryOptions), [data.eventCategoryOptions]);
 
   const filters: VendorFilters = useMemo(
     () => ({
       search,
       category,
       eventTypes: selected.eventType,
-      services: selected.service,
       priceRanges: selected.pricing,
       sort,
     }),
     [search, category, selected, sort]
   );
 
-  const filteredVendors = useMemo(() => filterVendors(data.vendors, filters), [data.vendors, filters]);
-  const visibleVendors = filteredVendors.slice(0, visibleCount);
-  const hasMore = visibleCount < filteredVendors.length;
+  const filteredVendors = useMemo(() => filterVendors(vendors, filters), [vendors, filters]);
+  const hasMore = page < totalPages;
 
   const activeCategoryLabel = data.categories.find((item) => item.id === category)?.label ?? "All";
   const heading =
@@ -92,18 +180,14 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
 
   function handleSearchChange(value: string) {
     setSearch(value);
-    setVisibleCount(PAGE_SIZE);
   }
 
   function handleCategorySelect(id: string) {
     setCategory(id);
-    setIsLoading(true);
-    setVisibleCount(PAGE_SIZE);
   }
 
   function handleSortChange(nextSort: SortOption) {
     setSort(nextSort);
-    setVisibleCount(PAGE_SIZE);
   }
 
   function toggleOption(sectionId: FilterSectionConfig["id"], optionId: string) {
@@ -114,12 +198,10 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
         : [...current, optionId];
       return { ...prev, [sectionId]: next };
     });
-    setVisibleCount(PAGE_SIZE);
   }
 
   function clearFilters() {
     setSelected(EMPTY_SELECTED);
-    setVisibleCount(PAGE_SIZE);
   }
 
   function clearAll() {
@@ -127,25 +209,40 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     setSearch("");
   }
 
-  function toggleBookmark(vendorId: string) {
-    setBookmarkedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(vendorId)) next.delete(vendorId);
-      else next.add(vendorId);
-      return next;
-    });
+  async function toggleBookmark(vendorId: string) {
+    if (!isLoggedIn) {
+      pendingBookmarkRef.current = vendorId;
+      setIsAuthOpen(true);
+      return;
+    }
+    const isSaved = bookmarkedIds.has(vendorId);
+    try {
+      if (isSaved) {
+        const itemId = wishlistItemIdsRef.current.get(vendorId);
+        if (itemId) {
+          await removeWishlistItem(itemId);
+          wishlistItemIdsRef.current.delete(vendorId);
+        }
+        setBookmarkedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(vendorId);
+          return next;
+        });
+      } else {
+        const result = await addWishlistItem({ itemType: "Package", packageId: vendorId });
+        wishlistItemIdsRef.current.set(vendorId, result.item._id);
+        setBookmarkedIds((prev) => new Set(prev).add(vendorId));
+      }
+    } catch {
+      // Best-effort — leave the bookmark state unchanged on failure.
+    }
   }
 
   const chips: ActiveChip[] = [
     ...selected.eventType.map((id) => ({
       key: `eventType-${id}`,
-      label: eventTypeLabel(id),
+      label: id,
       onRemove: () => toggleOption("eventType", id),
-    })),
-    ...selected.service.map((id) => ({
-      key: `service-${id}`,
-      label: serviceLabel(id),
-      onRemove: () => toggleOption("service", id),
     })),
     ...selected.pricing.map((id) => ({
       key: `pricing-${id}`,
@@ -214,24 +311,33 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
             <>
               {view === "grid" ? (
                 <VendorGrid
-                  vendors={visibleVendors}
+                  vendors={filteredVendors}
                   bookmarkedIds={bookmarkedIds}
                   onToggleBookmark={toggleBookmark}
                 />
               ) : (
                 <VendorList
-                  vendors={visibleVendors}
+                  vendors={filteredVendors}
                   bookmarkedIds={bookmarkedIds}
                   onToggleBookmark={toggleBookmark}
                 />
               )}
-              {hasMore && (
-                <LoadMoreButton onClick={() => setVisibleCount((count) => count + PAGE_SIZE)} />
-              )}
+              {hasMore && <LoadMoreButton onClick={handleLoadMore} />}
             </>
           )}
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthenticated={() => {
+          setIsAuthOpen(false);
+          const id = pendingBookmarkRef.current;
+          pendingBookmarkRef.current = null;
+          if (id) void toggleBookmark(id);
+        }}
+      />
     </div>
   );
 }

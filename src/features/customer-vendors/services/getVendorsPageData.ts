@@ -1,19 +1,28 @@
 import type { VendorsPageData } from "../types";
-import { VENDOR_CATEGORIES } from "../data/filterConfig";
-import { mockVendors } from "../data/mockVendorsData";
+import { VENDOR_CATEGORIES, VENDORS_PAGE_SIZE } from "../data/filterConfig";
+import { mapPackageToVendor } from "../mappers";
+import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
 
 /**
- * Data source for the Vendor Listing page. Swap the body for a real call —
- * e.g. `fetch(apiUrl("/vendors/search"))` (see src/lib/api.ts) — once the
- * backend endpoint exists. Every component below this consumes the
- * `VendorsPageData` shape only, so that swap is the only change needed.
- * Filter-section options are derived client-side from the selected category
- * (see `getFilterSectionsForCategory`) since that selection changes without
- * a refetch.
+ * Initial data source for the Vendor Listing page (server-fetched once for
+ * the "all categories" tab). Category/sort/pagination changes after that are
+ * fetched client-side directly via `browsePackages` — see
+ * VendorsPageContent.tsx.
  */
 export async function getVendorsPageData(): Promise<VendorsPageData> {
+  const [packagesResponse, filtersResponse] = await Promise.all([
+    browsePackages({ sort: "newest", page: 1, limit: VENDORS_PAGE_SIZE }),
+    getPackagesFilters(),
+  ]);
+
   return {
     categories: VENDOR_CATEGORIES,
-    vendors: mockVendors,
+    vendors: packagesResponse.packages.map(mapPackageToVendor),
+    total: packagesResponse.total,
+    totalPages: packagesResponse.totalPages,
+    eventCategoryOptions: filtersResponse.filters.eventCategories.map((category) => ({
+      id: category,
+      label: category,
+    })),
   };
 }

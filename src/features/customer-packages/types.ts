@@ -65,10 +65,44 @@ export interface MagicalMomentsBlock {
   packages: PackageCategoryItem[];
 }
 
+export interface BudgetEstimatorSuggestion {
+  id: string;
+  vendorLabel: string;
+  /** e.g. "Entrance decoration + other variations". */
+  description: string;
+  priceFrom: number;
+  image?: string;
+  href: string;
+}
+
+export interface BudgetEstimatorVendorGroup {
+  /** Matches a VendorCategory id, e.g. "decorator". */
+  categoryId: string;
+  categoryLabel: string;
+  suggestions: BudgetEstimatorSuggestion[];
+}
+
+export interface BudgetEstimator {
+  id: string;
+  heading: string;
+  subheading: string;
+  eventTypeOptions: string[];
+  guestOptions: string[];
+  locationOptions: string[];
+  vendorOptions: string[];
+  estimatedMin: number;
+  estimatedMax: number;
+  /** Chips shown on the result card, e.g. ["Wedding", "Ghaziabad"]. */
+  tags: string[];
+  marketInsight: string;
+  vendorGroups: BudgetEstimatorVendorGroup[];
+}
+
 export type PackagesPageBlock =
   | { type: "packageCategorySection"; data: PackageCategorySection }
   | { type: "festiveOffer"; data: FestiveOffer }
-  | { type: "magicalMoments"; data: MagicalMomentsBlock };
+  | { type: "magicalMoments"; data: MagicalMomentsBlock }
+  | { type: "budgetEstimator"; data: BudgetEstimator };
 
 export interface PackagesPageData {
   heroBanners: PromoBanner[];

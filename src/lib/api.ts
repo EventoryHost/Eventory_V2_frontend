@@ -26,8 +26,14 @@ export function getApiBaseUrl() {
     return DEFAULT_PROD_API_URL;
   }
 
-  // Server-side execution
-  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1") && !/^http:\/\/(\d{1,3}\.){3}\d{1,3}/.test(envUrl)) {
+  // Server-side execution — trust whatever NEXT_PUBLIC_API_BASE_URL was set
+  // to when this process started (that's what it's for). The "avoid
+  // localhost" heuristic above only makes sense for guessing what a
+  // *browser* can reach when it isn't itself on localhost; the Next.js
+  // server process runs wherever it was started, so a "localhost" value is
+  // exactly right in local dev (same machine as the backend) and should
+  // never be silently swapped for the deployed default.
+  if (envUrl) {
     return envUrl.replace(/\/$/, "");
   }
 

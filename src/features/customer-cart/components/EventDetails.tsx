@@ -53,7 +53,7 @@ export default function EventDetails({
         onClick={onEdit}
         className="flex items-center gap-2 rounded-full border border-neutral-tertiary/40 px-4 py-2 font-figtree text-[13px] font-semibold text-neutral-primary transition-colors hover:bg-white"
       >
-        <SquarePen className="h-4 w-4" /> Edit
+        <SquarePen className="h-4 w-4" /> Edit Package Details
       </button>
     </div>
   );

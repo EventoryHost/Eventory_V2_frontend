@@ -1,21 +1,25 @@
-import type { CartAddon } from "../types";
-import AddonCarousel from "./AddonCarousel";
+import type { RecommendedAddon } from "../types";
+import AddonCard from "./AddonCard";
 
 export default function AddonSection({
   addons,
-  onToggle,
+  onAdd,
 }: {
-  addons: CartAddon[];
-  onToggle: (id: string) => void;
+  addons: RecommendedAddon[];
+  onAdd: (addon: RecommendedAddon) => void;
 }) {
   if (addons.length === 0) return null;
 
   return (
-    <section>
-      <h2 className="mb-6 font-figtree text-[20px] font-semibold text-neutral-primary">
-        Add-Ons Recommendation
+    <section className="mt-16">
+      <h2 className="mb-6 font-figtree text-[18px] font-bold tracking-wide text-neutral-primary uppercase">
+        People also buy this
       </h2>
-      <AddonCarousel addons={addons} onToggle={onToggle} />
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        {addons.map((addon) => (
+          <AddonCard key={`${addon.itemId}-${addon.id}`} addon={addon} onAdd={onAdd} />
+        ))}
+      </div>
     </section>
   );
 }

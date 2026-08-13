@@ -7,6 +7,7 @@ import VendorCategoryTabs from "./VendorCategoryTabs";
 import PackageCategorySection from "./PackageCategorySection";
 import FestiveOfferBanner from "./FestiveOfferBanner";
 import MagicalMomentsSection from "./MagicalMomentsSection";
+import BudgetEstimatorSection from "./BudgetEstimatorSection";
 
 export default function PackagesPageContent({ data }: { data: PackagesPageData }) {
   const [activeCategoryId, setActiveCategoryId] = useState(data.defaultVendorCategoryId);
@@ -30,6 +31,8 @@ export default function PackagesPageContent({ data }: { data: PackagesPageData }
             return <FestiveOfferBanner key={block.data.id} offer={block.data} />;
           case "magicalMoments":
             return <MagicalMomentsSection key={block.data.id} data={block.data} />;
+          case "budgetEstimator":
+            return <BudgetEstimatorSection key={block.data.id} data={block.data} />;
           default:
             return null;
         }

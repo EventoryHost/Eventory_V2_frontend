@@ -5,11 +5,12 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
+import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 
 const NAV_LINKS = [
   { label: "Events", hasDropdown: true, href: "/events" },
-  { label: "Packages", hasDropdown: true },
-  { label: "Vendor", hasDropdown: true },
+  { label: "Packages", hasDropdown: true, href: "/packages" },
+  { label: "Vendor", hasDropdown: true, href: "/vendors" },
   { label: "Corporate", hasDropdown: true },
   { label: "EPP", hasDropdown: false },
 ];
@@ -76,20 +77,35 @@ function NavLinks({ className = "" }: { className?: string }) {
 
 function CartButton() {
   return (
-    <button
-      type="button"
+    <Link
+      href="/cart"
       className="flex items-center gap-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
     >
       <ShoppingCart size={18} />
       <span className="hidden sm:inline">Cart</span>
-    </button>
+    </Link>
   );
 }
 
 function SignupLoginLink({ className = "" }: { className?: string }) {
+  const { isLoggedIn, session, isHydrated, logout } = useCustomerSession();
+
+  if (isHydrated && isLoggedIn && session) {
+    return (
+      <button
+        type="button"
+        onClick={logout}
+        title="Log out"
+        className={`text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.02em] ${className}`}
+      >
+        Hi, {session.name.split(" ")[0]}
+      </button>
+    );
+  }
+
   return (
     <Link
-      href="/login"
+      href="/auth"
       className={`text-brand-primary font-semibold text-[14px] leading-[20px] tracking-[-0.02em] ${className}`}
     >
       Signup/Login

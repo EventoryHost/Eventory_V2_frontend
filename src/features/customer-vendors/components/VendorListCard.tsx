@@ -1,18 +1,16 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Bookmark, MapPin } from "lucide-react";
 import type { Vendor } from "../types";
 import { formatPrice } from "../utils/currency";
-import { serviceLabel, eventTypeLabel } from "../data/filterConfig";
 import VendorRating from "./VendorRating";
 
 function formatEventTags(eventTypes: string[]) {
-  const visible = eventTypes.slice(0, 2).map(eventTypeLabel);
+  const visible = eventTypes.slice(0, 2);
   const remaining = eventTypes.length - visible.length;
   const label = visible.join(" • ");
   return remaining > 0 ? `${label} • +${remaining} more` : label;
 }
-
-const MAX_VISIBLE_SERVICES = 3;
 
 export default function VendorListCard({
   vendor,
@@ -23,11 +21,11 @@ export default function VendorListCard({
   isBookmarked: boolean;
   onToggleBookmark: (id: string) => void;
 }) {
-  const visibleServices = vendor.services.slice(0, MAX_VISIBLE_SERVICES);
-  const remainingServices = vendor.services.length - visibleServices.length;
-
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white transition-colors hover:border-brand-primary md:h-[260px] md:flex-row">
+    <Link
+      href={`/packages/${vendor.id}`}
+      className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white transition-colors hover:border-brand-primary md:h-[260px] md:flex-row"
+    >
       <div className="relative h-[200px] w-full shrink-0 md:h-full md:w-[34%]">
         <Image
           src={vendor.images[0]}
@@ -40,7 +38,11 @@ export default function VendorListCard({
           type="button"
           aria-label={isBookmarked ? `Remove ${vendor.name} from saved` : `Save ${vendor.name}`}
           aria-pressed={isBookmarked}
-          onClick={() => onToggleBookmark(vendor.id)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleBookmark(vendor.id);
+          }}
           className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
         >
           <Bookmark
@@ -78,22 +80,6 @@ export default function VendorListCard({
 
         <VendorRating rating={vendor.rating} reviewCount={vendor.reviewCount} size="md" />
 
-        <div className="flex flex-wrap items-center gap-2">
-          {visibleServices.map((serviceId) => (
-            <span
-              key={serviceId}
-              className="rounded-full bg-neutral-subtle px-3 py-1 font-figtree text-[12px] font-medium text-neutral-secondary"
-            >
-              {serviceLabel(serviceId)}
-            </span>
-          ))}
-          {remainingServices > 0 && (
-            <span className="rounded-full bg-neutral-subtle px-3 py-1 font-figtree text-[12px] font-medium text-neutral-secondary">
-              +{remainingServices}
-            </span>
-          )}
-        </div>
-
         <p className="line-clamp-2 max-w-2xl font-figtree text-[14px] text-neutral-secondary">
           {vendor.description}
         </p>
@@ -103,6 +89,6 @@ export default function VendorListCard({
           {vendor.location}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

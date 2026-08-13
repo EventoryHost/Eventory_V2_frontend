@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Bookmark, Clock, MapPin, Users } from "lucide-react";
 import type { Vendor } from "../types";
 import { formatPrice } from "../utils/currency";
@@ -21,7 +22,10 @@ export default function VendorGridCard({
   const CategoryIcon = CATEGORY_ICON[vendor.category];
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white transition-colors hover:border-brand-primary">
+    <Link
+      href={`/packages/${vendor.id}`}
+      className="group flex h-full flex-col overflow-hidden rounded-[18px] border border-black/10 bg-white transition-colors hover:border-brand-primary"
+    >
       <div className="relative h-[190px] w-full overflow-hidden">
         <Image
           src={vendor.images[0]}
@@ -34,7 +38,11 @@ export default function VendorGridCard({
           type="button"
           aria-label={isBookmarked ? `Remove ${vendor.name} from saved` : `Save ${vendor.name}`}
           aria-pressed={isBookmarked}
-          onClick={() => onToggleBookmark(vendor.id)}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleBookmark(vendor.id);
+          }}
           className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
         >
           <Bookmark
@@ -94,6 +102,6 @@ export default function VendorGridCard({
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -1,4 +1,5 @@
 import type {
+  BudgetEstimator,
   FestiveOffer,
   MagicalMomentsBlock,
   PackagesPageBlock,
@@ -57,6 +58,46 @@ const FESTIVE_OFFER_SECOND: FestiveOffer = {
 
 const MAGICAL_MOMENTS_CAMPAIGN_IMAGE = "/images/customer/packages-pics.png";
 
+const BUDGET_ESTIMATOR: BudgetEstimator = {
+  id: "budget-estimator",
+  heading: "Estimate your events budget",
+  subheading: "Budget estimator",
+  eventTypeOptions: ["Wedding", "Birthday", "Corporate", "Anniversary"],
+  guestOptions: ["10 - 25", "25 - 50", "50 - 100", "100+"],
+  locationOptions: ["Ghaziabad", "Delhi", "Noida", "Gurugram"],
+  vendorOptions: ["Wedding", "All Vendors"],
+  estimatedMin: 50000,
+  estimatedMax: 75000,
+  tags: ["Wedding", "Ghaziabad"],
+  marketInsight: "Market insight: Most grand wedding spend around (50K-60K)",
+  vendorGroups: [
+    {
+      categoryId: "decorator",
+      categoryLabel: "Decorator",
+      suggestions: [
+        { id: "budget-dec-1", vendorLabel: "Decorator", description: "Entrance decoration + other variations", priceFrom: 2500, image: pickImage("decorator", 0, 0), href: "/packages/budget-dec-1" },
+        { id: "budget-dec-2", vendorLabel: "Decorator", description: "Balloon arch + backdrop combo", priceFrom: 3000, image: pickImage("decorator", 1, 0), href: "/packages/budget-dec-2" },
+        { id: "budget-dec-3", vendorLabel: "Decorator", description: "Floral mandap + stage setup", priceFrom: 4500, image: pickImage("decorator", 2, 0), href: "/packages/budget-dec-3" },
+        { id: "budget-dec-4", vendorLabel: "Decorator", description: "Fairy-light ceiling decor", priceFrom: 2800, image: pickImage("decorator", 3, 0), href: "/packages/budget-dec-4" },
+        { id: "budget-dec-5", vendorLabel: "Decorator", description: "Theme decor + table styling", priceFrom: 3200, image: pickImage("decorator", 4, 0), href: "/packages/budget-dec-5" },
+        { id: "budget-dec-6", vendorLabel: "Decorator", description: "Welcome setup + signage", priceFrom: 2500, image: pickImage("decorator", 5, 0), href: "/packages/budget-dec-6" },
+      ],
+    },
+    {
+      categoryId: "caterer",
+      categoryLabel: "Caterer",
+      suggestions: [
+        { id: "budget-cat-1", vendorLabel: "Caterer", description: "Veg buffet + dessert counter", priceFrom: 499, image: pickImage("caterer", 0, 0), href: "/packages/budget-cat-1" },
+        { id: "budget-cat-2", vendorLabel: "Caterer", description: "Live pasta + chaat counter", priceFrom: 349, image: pickImage("caterer", 1, 0), href: "/packages/budget-cat-2" },
+        { id: "budget-cat-3", vendorLabel: "Caterer", description: "Premium non-veg spread", priceFrom: 799, image: pickImage("caterer", 2, 0), href: "/packages/budget-cat-3" },
+        { id: "budget-cat-4", vendorLabel: "Caterer", description: "South Indian special thali", priceFrom: 549, image: pickImage("caterer", 3, 0), href: "/packages/budget-cat-4" },
+        { id: "budget-cat-5", vendorLabel: "Caterer", description: "BBQ live grill station", priceFrom: 649, image: pickImage("caterer", 4, 0), href: "/packages/budget-cat-5" },
+        { id: "budget-cat-6", vendorLabel: "Caterer", description: "Tea & coffee station", priceFrom: 199, image: pickImage("caterer", 5, 0), href: "/packages/budget-cat-6" },
+      ],
+    },
+  ],
+};
+
 function buildCategoryBlocks(
   categoryId: string,
   subcategories: string[],
@@ -73,7 +114,7 @@ function buildCategoryBlocks(
       title: pkg.title,
       priceFrom: pkg.price,
       image: pickImage(categoryId, i, 6),
-      href: `/vendors?category=${categoryId}`,
+      href: `/packages/${categoryId}-magical-${i}`,
     })),
   };
 
@@ -105,11 +146,12 @@ function buildCategoryBlocks(
           title: pkg.title,
           priceFrom: pkg.price,
           image: pickImage(categoryId, i, 4),
-          href: `/vendors?category=${categoryId}`,
+          href: `/packages/${categoryId}-pkg-${i}`,
         })),
       },
     },
     { type: "festiveOffer", data: FESTIVE_OFFER },
+    { type: "budgetEstimator", data: BUDGET_ESTIMATOR },
     {
       type: "packageCategorySection",
       data: {
@@ -122,7 +164,7 @@ function buildCategoryBlocks(
           title: pkg.title,
           priceFrom: pkg.price,
           image: pickImage(categoryId, i, 2),
-          href: `/vendors?category=${categoryId}`,
+          href: `/packages/${categoryId}-more-${i}`,
         })),
       },
     },

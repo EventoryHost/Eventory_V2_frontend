@@ -9,6 +9,12 @@ function priceInRange(price: number, rangeId: string) {
   return price >= min && price <= max;
 }
 
+/**
+ * Client-side refinement applied on top of the server-filtered/paginated
+ * page from GET /customer/packages — the API only takes one `eventCategory`
+ * and a continuous `minPrice`/`maxPrice`, so multi-select event-type chips
+ * and price buckets stay a client-side pass over whatever page is loaded.
+ */
 export function filterVendors(vendors: Vendor[], filters: VendorFilters): Vendor[] {
   const query = filters.search.trim().toLowerCase();
 
@@ -23,13 +29,6 @@ export function filterVendors(vendors: Vendor[], filters: VendorFilters): Vendor
     if (
       filters.eventTypes.length > 0 &&
       !filters.eventTypes.some((id) => vendor.eventTypes.includes(id))
-    ) {
-      return false;
-    }
-
-    if (
-      filters.services.length > 0 &&
-      !filters.services.some((id) => vendor.services.includes(id))
     ) {
       return false;
     }
