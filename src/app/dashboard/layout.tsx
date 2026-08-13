@@ -14,7 +14,9 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const isDocumentPage =
-    pathname.includes("/documents") || pathname.includes("/setup-profile");
+    pathname.includes("/documents") ||
+    pathname.includes("/setup-profile") ||
+    pathname.includes("/enquiry");
 
   useEffect(() => {
     // Apply dark mode preference (moved here from root layout — vendor-only)
