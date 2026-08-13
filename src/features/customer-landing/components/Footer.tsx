@@ -4,15 +4,30 @@ import Image from "next/image";
 const LINK_GROUPS = [
   {
     title: "Quick Links",
-    links: ["Browse Packages", "Find Vendors", "How it Works", "Pricing"],
+    links: [
+      { name: "Browse Packages", href: "#" },
+      { name: "Find Vendors", href: "#" },
+      { name: "How it Works", href: "#" },
+      { name: "Pricing", href: "#" }
+    ],
   },
   {
     title: "Support",
-    links: ["Help Center", "Contact Us", "FAQs", "Cancellation"],
+    links: [
+      { name: "Help Center", href: "#" },
+      { name: "Contact Us", href: "#" },
+      { name: "FAQs", href: "#" },
+      { name: "Cancellation", href: "#" }
+    ],
   },
   {
     title: "Company",
-    links: ["About Us", "Careers", "Become Vendor", "Corporate"],
+    links: [
+      { name: "About Us", href: "#" },
+      { name: "Careers", href: "#" },
+      { name: "Become Vendor", href: "/login" },
+      { name: "Corporate", href: "#" }
+    ],
   },
 ];
 
@@ -115,13 +130,13 @@ export default function Footer() {
             </span>
             <ul className="flex w-[116px] flex-col gap-4">
               {group.links.map((link) => (
-                <li key={link}>
-                  <a
-                    href="#"
+                <li key={link.name}>
+                  <Link
+                    href={link.href}
                     className="font-figtree text-[15px] font-normal text-white/80 hover:text-white"
                   >
-                    {link}
-                  </a>
+                    {link.name}
+                  </Link>
                 </li>
               ))}
             </ul>

@@ -66,7 +66,6 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const [teamPrice, setTeamPrice] = React.useState('');
     const [overtimeRate, setOvertimeRate] = React.useState('');
     const [isGstInclusive, setIsGstInclusive] = React.useState(false);
-    const [gstInclusive, setGstInclusive] = React.useState(false);
     const [gstRatePercent, setGstRatePercent] = React.useState("");
     const [isDynamicPricingEnabled, setIsDynamicPricingEnabled] = React.useState(false);
     const [weekendPricing, setWeekendPricing] = React.useState(false);
@@ -243,7 +242,6 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                             if (s3.overtimeCharges) setOvertimeRate(String(s3.overtimeCharges.price || ''));
                             if (typeof s3.gstInclusive === 'boolean') setIsGstInclusive(s3.gstInclusive);
                             
-                            if (s3.gstInclusive !== undefined) setGstInclusive(s3.gstInclusive);
                             if (s3.gstRatePercent !== undefined) setGstRatePercent(String(s3.gstRatePercent));
                             if (s3.dynamicPricing) {
                                 const dp = s3.dynamicPricing;
@@ -688,8 +686,6 @@ export default function PAVFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     teamPrice={teamPrice} setTeamPrice={setTeamPrice}
                     overtimeRate={overtimeRate} setOvertimeRate={setOvertimeRate}
                     isGstInclusive={isGstInclusive} setIsGstInclusive={setIsGstInclusive}
-                    gstInclusive={gstInclusive}
-                        setGstInclusive={setGstInclusive}
                         gstRatePercent={gstRatePercent}
                         setGstRatePercent={setGstRatePercent}
                         isDynamicPricingEnabled={isDynamicPricingEnabled} setIsDynamicPricingEnabled={setIsDynamicPricingEnabled}
