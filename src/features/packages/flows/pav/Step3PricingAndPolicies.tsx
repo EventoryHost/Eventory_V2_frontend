@@ -26,9 +26,6 @@ interface Props {
 
     overtimeRate: string; setOvertimeRate: (v: string) => void;
     isGstInclusive: boolean; setIsGstInclusive: (v: boolean) => void;
-
-    gstInclusive: boolean;
-    setGstInclusive: (v: boolean) => void;
     gstRatePercent: string;
     setGstRatePercent: (v: string) => void;
     isDynamicPricingEnabled: boolean; setIsDynamicPricingEnabled: (v: boolean) => void;
@@ -83,8 +80,6 @@ export default function PAVStep3PricingAndPolicies({
     teamPrice, setTeamPrice,
     overtimeRate, setOvertimeRate,
     isGstInclusive, setIsGstInclusive,
-    gstInclusive,
-    setGstInclusive,
     gstRatePercent,
     setGstRatePercent,
     isDynamicPricingEnabled, setIsDynamicPricingEnabled,
@@ -187,17 +182,7 @@ export default function PAVStep3PricingAndPolicies({
                     </div>
                 </div>
 
-                {/* GST Inclusive */}
-                <div className="flex items-center justify-between">
-                    <div className="flex flex-col max-w-[65%]">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">GST Inclusive</span>
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] mt-0.5 leading-tight">Is GST already included in the prices you entered?</span>
-                    </div>
-                    <div className="flex bg-[#E4E4E7] rounded-full p-1 border border-[#D4D4D8]">
-                        <button onClick={() => setIsGstInclusive(false)} className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-colors ${!isGstInclusive ? 'bg-white text-[#030303] shadow-sm' : 'text-[#71717B]'}`}>No</button>
-                        <button onClick={() => setIsGstInclusive(true)} className={`px-4 py-1.5 text-[12px] font-bold rounded-full transition-colors ${isGstInclusive ? 'bg-white text-[#030303] shadow-sm' : 'text-[#71717B]'}`}>Yes</button>
-                    </div>
-                </div>
+
             </div>
 
                             <div className="pt-2 mb-6">
@@ -212,12 +197,12 @@ export default function PAVStep3PricingAndPolicies({
                             <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">GST Inclusive</h4>
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mt-0.5">Is GST already included in the prices<br/>you entered?</p>
                         </div>
-                        <div className="bg-[#E4E4E7] rounded-full p-1 flex items-center w-[96px] relative h-9 cursor-pointer" onClick={() => setGstInclusive(!gstInclusive)}>
-                            <div className={`absolute top-1 bottom-1 w-[44px] bg-white rounded-full transition-transform shadow-sm ${gstInclusive ? 'translate-x-[42px]' : 'translate-x-0'}`} />
+                        <div className="bg-[#E4E4E7] rounded-full p-1 flex items-center w-[96px] relative h-9 cursor-pointer" onClick={() => setIsGstInclusive(!isGstInclusive)}>
+                            <div className={`absolute top-1 bottom-1 w-[44px] bg-white rounded-full transition-transform shadow-sm ${isGstInclusive ? 'translate-x-[42px]' : 'translate-x-0'}`} />
                             <div className="flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold text-[#71717B] transition-colors">
                                 No
                             </div>
-                            <div className={`flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold transition-colors ${gstInclusive ? 'text-[#030303]' : 'text-[#71717B]'}`}>
+                            <div className={`flex-1 flex items-center justify-center relative z-10 text-[12px] font-bold transition-colors ${isGstInclusive ? 'text-[#030303]' : 'text-[#71717B]'}`}>
                                 Yes
                             </div>
                         </div>

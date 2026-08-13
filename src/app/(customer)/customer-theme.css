@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+:root {
+  --customer-bg: #faf9f6;
+  --brand-950: #1e0306;
+  --brand-primary: #f0596f;
+  --body-secondary: #636363;
+}
+
+@theme inline {
+  --color-customer-bg: var(--customer-bg);
+  --color-brand-950: var(--brand-950);
+  --color-brand-primary: var(--brand-primary);
+  --color-body-secondary: var(--body-secondary);
+  --font-lora: var(--font-lora);
+  --font-figtree: var(--font-figtree);
+}

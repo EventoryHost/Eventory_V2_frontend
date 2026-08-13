@@ -36,8 +36,10 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
     
     const pkgName = packageData.step1_eventAndCrew?.packageName || '';
     const categories = packageData.step1_eventAndCrew?.eventCategories || [];
-    const duration = packageData.step1_eventAndCrew?.durationPerPerson || '';
-    const teamSize = packageData.step1_eventAndCrew?.teamSize || '';
+    const durationObj = packageData.step1_eventAndCrew?.duration;
+    const duration = durationObj ? (durationObj.minHours === durationObj.maxHours ? durationObj.maxHours : `${durationObj.minHours}-${durationObj.maxHours}`) : '';
+    const crewSizeObj = packageData.step1_eventAndCrew?.crewSize;
+    const teamSize = crewSizeObj?.maxPeople || '';
     
     const actualPrice = packageData.step3_policiesAndCharges?.packagePricing?.price || 0;
     const basePrice = actualPrice;
@@ -110,28 +112,32 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
     const renderItemOptions = (item: any, isPhotography: boolean, isVideography: boolean, isAlbum: boolean) => {
         const props = [];
         
+        const content = item.contentDetails || item;
+        const logistics = item.logisticsAndHandover || item;
+        const album = item.albumSpecific || item;
+        
         if (isPhotography || item.itemType === 'Photography' || (!isVideography && !isAlbum)) {
-            props.push({ label: 'Photography Style', value: item.style || item.categories?.[0] || '-', extra: item.categories?.length > 1 ? `+${item.categories.length - 1}more` : '' });
-            props.push({ label: 'No. of edited Photos', value: item.quantity || '-' });
-            props.push({ label: 'Delivery Medium', value: item.deliveryMedium || '-' });
-            props.push({ label: 'Delivery Timeline', value: item.deliveryTimeline || '-' });
-            props.push({ label: 'Delivery Format', value: item.deliveryFormat || '-' });
+            props.push({ label: 'Photography Style', value: content.style || content.categories?.[0] || '-', extra: content.categories?.length > 1 ? `+${content.categories.length - 1}more` : '' });
+            props.push({ label: 'No. of edited Photos', value: content.quantity || '-' });
+            props.push({ label: 'Delivery Medium', value: logistics.deliveryMedium || '-' });
+            props.push({ label: 'Delivery Timeline', value: logistics.deliveryTimeline || '-' });
+            props.push({ label: 'Delivery Format', value: logistics.deliveryFormat || '-' });
         } else if (isVideography || item.itemType === 'Videography') {
-            props.push({ label: 'Videography Style', value: item.style || item.categories?.[0] || '-', extra: item.categories?.length > 1 ? `+${item.categories.length - 1}more` : '' });
-            props.push({ label: 'No. of Videos', value: item.quantity || '-' });
-            props.push({ label: 'Duration of Videos', value: item.duration || '-' });
-            props.push({ label: 'Delivery Timeline', value: item.deliveryTimeline || '-' });
-            props.push({ label: 'Delivery Format', value: item.deliveryFormat || '-' });
-            props.push({ label: 'Delivery Medium', value: item.deliveryMedium || '-' });
-            props.push({ label: 'Resolution', value: item.resolution || '-' });
+            props.push({ label: 'Videography Style', value: content.style || content.categories?.[0] || '-', extra: content.categories?.length > 1 ? `+${content.categories.length - 1}more` : '' });
+            props.push({ label: 'No. of Videos', value: content.quantity || '-' });
+            props.push({ label: 'Duration of Videos', value: content.duration || '-' });
+            props.push({ label: 'Delivery Timeline', value: logistics.deliveryTimeline || '-' });
+            props.push({ label: 'Delivery Format', value: logistics.deliveryFormat || '-' });
+            props.push({ label: 'Delivery Medium', value: logistics.deliveryMedium || '-' });
+            props.push({ label: 'Resolution', value: content.categories?.[0] || '-' });
         } else if (isAlbum || item.itemType === 'Albums/Hardcopy' || item.itemType === 'Album') {
-            props.push({ label: 'Album Type', value: item.style || item.categories?.[0] || '-', extra: item.categories?.length > 1 ? `+${item.categories.length - 1}more` : '' });
-            props.push({ label: 'No. of Pages', value: item.pageCount || '-' });
-            props.push({ label: 'Cover Type', value: item.coverType || '-' });
-            props.push({ label: 'Page Finish', value: item.pageFinish || '-' });
-            props.push({ label: 'Binding Type', value: item.bindingType || '-' });
-            props.push({ label: 'Revision Included', value: item.revisionIncluded || '-' });
-            props.push({ label: 'Delivery Timeline', value: item.deliveryTimeline || '-' });
+            props.push({ label: 'Album Type', value: content.style || content.categories?.[0] || '-', extra: content.categories?.length > 1 ? `+${content.categories.length - 1}more` : '' });
+            props.push({ label: 'No. of Pages', value: album.pageCount || '-' });
+            props.push({ label: 'Cover Type', value: album.coverType || '-' });
+            props.push({ label: 'Page Finish', value: album.pageFinish || '-' });
+            props.push({ label: 'Binding Type', value: album.bindingType || '-' });
+            props.push({ label: 'Revision Included', value: album.revisionIncluded || '-' });
+            props.push({ label: 'Delivery Timeline', value: logistics.deliveryTimeline || '-' });
         }
 
         return (
