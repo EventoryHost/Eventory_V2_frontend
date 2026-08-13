@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Calendar, Users } from "lucide-react";
 
 export type TrendingEventCardProps = {
@@ -48,7 +49,10 @@ export default function TrendingEventCard({
   ctaLabel,
 }: TrendingEventCardProps) {
   return (
-    <div className="relative h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-[#FFE5E9] bg-[#FFF6F7] sm:w-[420px] lg:h-[326px] lg:w-[868px]">
+    <Link
+      href="/packages"
+      className="relative block h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-[#FFE5E9] bg-[#FFF6F7] sm:w-[420px] lg:h-[326px] lg:w-[868px]"
+    >
       <div className="absolute top-0 left-6">
         <TrendingTagIcon label={badge} />
       </div>
@@ -73,12 +77,9 @@ export default function TrendingEventCard({
         </span>
       </div>
 
-      <button
-        type="button"
-        className="mx-6 mt-6 mb-8 rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white lg:absolute lg:bottom-8 lg:left-8 lg:m-0"
-      >
+      <span className="mx-6 mt-6 mb-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white lg:absolute lg:bottom-8 lg:left-8 lg:m-0">
         {ctaLabel}
-      </button>
+      </span>
 
       {/* Placeholder for the event photo/gradient artwork (desktop only) */}
       <div className="absolute inset-y-0 right-0 hidden w-[300px] items-center justify-center overflow-hidden lg:flex">
@@ -90,6 +91,6 @@ export default function TrendingEventCard({
           here
         </span>
       </div>
-    </div>
+    </Link>
   );
 }

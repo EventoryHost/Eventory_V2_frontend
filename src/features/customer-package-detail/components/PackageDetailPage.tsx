@@ -73,11 +73,9 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
         </div>
 
         <StickyBookingCard
-          packageId={data.id}
           packageTotal={packageTotal}
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
-          selectedAddons={data.addons.filter((addon) => selectedAddonIds.has(addon.id))}
         />
       </div>
     </main>

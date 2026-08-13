@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export type EventPackageCardProps = {
@@ -49,7 +50,10 @@ export default function EventPackageCard({
   description,
 }: EventPackageCardProps) {
   return (
-    <div className="flex h-[399px] w-[313px] shrink-0 flex-col overflow-hidden rounded-[24px] border border-[#F1F1F1] bg-white">
+    <Link
+      href="/packages"
+      className="flex h-[399px] w-[313px] shrink-0 flex-col overflow-hidden rounded-[24px] border border-[#F1F1F1] bg-white"
+    >
       <div className="relative h-[256px] w-[313px]">
         <Image src={image} alt="" fill className="object-cover" />
 
@@ -92,15 +96,12 @@ export default function EventPackageCard({
         </p>
       </div>
 
-      <button
-        type="button"
-        className="flex h-[45px] w-[313px] items-center justify-between gap-[10px] bg-[#F6F6F6] pt-[14px] pr-4 pb-[14px] pl-4"
-      >
+      <span className="flex h-[45px] w-[313px] items-center justify-between gap-[10px] bg-[#F6F6F6] pt-[14px] pr-4 pb-[14px] pl-4">
         <span className="font-figtree text-[14px] font-semibold text-brand-primary">
           Explore Packages
         </span>
         <ArrowRight size={16} className="text-brand-primary" />
-      </button>
-    </div>
+      </span>
+    </Link>
   );
 }

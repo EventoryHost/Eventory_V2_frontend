@@ -1,88 +1,65 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Breadcrumb from "@/components/customer/Breadcrumb";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import {
-  updateCartItem,
-  removeCartItem,
-  moveCartItemToWishlist,
-  type RawCartAddOn,
-  type RawCartPayload,
-} from "@/lib/customerCartApi";
-import { ApiError } from "@/lib/apiClient";
-import type { AppliedCoupon, CartPageData, CartVendor, RecommendedAddon, EventDetails as EventDetailsData } from "../types";
-import { getCartPageData, mapCartPayload } from "../services/getCartPageData";
-import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
-import { getRecommendedAddons } from "../services/getRecommendedAddons";
+import type { AppliedCoupon, CartPageData, EventDetails as EventDetailsData } from "../types";
+import { applyCouponCode } from "../services/applyCouponCode";
 import { startCheckout } from "../services/startCheckout";
 import VendorCard from "./VendorCard";
 import AddonSection from "./AddonSection";
 import PaymentSummary from "./PaymentSummary";
 import WarningCard from "./WarningCard";
 
-type AuthIntent = { type: "continue" } | { type: "wishlist"; itemId: string } | null;
-
-function toRawAddOns(addons: CartVendor["addons"]): RawCartAddOn[] {
-  return addons.map((addon) => ({ addOnId: addon.id, name: addon.title, price: addon.price, quantity: addon.quantity }));
-}
-
-export default function CartPageContent() {
+export default function CartPageContent({ data }: { data: CartPageData }) {
   const router = useRouter();
-  const [data, setData] = useState<CartPageData | null>(null);
-  const [recommendedAddons, setRecommendedAddons] = useState<RecommendedAddon[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState<string | null>(null);
-
+  const [vendors, setVendors] = useState(data.vendors);
+  const [addons, setAddons] = useState(data.addons);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [couponLoading, setCouponLoading] = useState(false);
   const [couponError, setCouponError] = useState<string | null>(null);
-
   const [continueLoading, setContinueLoading] = useState(false);
   const [continueMessage, setContinueMessage] = useState<string | null>(null);
-
-  const [authIntent, setAuthIntent] = useState<AuthIntent>(null);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const { isLoggedIn } = useCustomerSession();
 
-  const vendorNamesRef = useRef(new Map<string, { name: string; initial: string }>());
+  const selectedVendors = useMemo(
+    () => vendors.filter((vendor) => vendor.selected),
+    [vendors]
+  );
 
-  async function applyPayload(payload: RawCartPayload) {
-    const mapped = mapCartPayload(payload, vendorNamesRef.current);
-    setData(mapped);
-    getRecommendedAddons(mapped.vendors)
-      .then(setRecommendedAddons)
-      .catch(() => setRecommendedAddons([]));
-  }
+  const vendorSubtotal = useMemo(
+    () => selectedVendors.reduce((sum, vendor) => sum + vendor.package.price, 0),
+    [selectedVendors]
+  );
 
-  async function refreshCart() {
-    setLoadError(null);
-    try {
-      const mapped = await getCartPageData();
-      mapped.vendors.forEach((v) => {
-        if (!vendorNamesRef.current.has(v.vendorId)) {
-          vendorNamesRef.current.set(v.vendorId, { name: v.vendorName, initial: v.avatarInitial });
-        }
-      });
-      setData(mapped);
-      const addons = await getRecommendedAddons(mapped.vendors).catch(() => []);
-      setRecommendedAddons(addons);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't load your cart. Please try again.");
-    } finally {
-      setLoading(false);
+  const addedAddons = useMemo(() => addons.filter((addon) => addon.added), [addons]);
+  const recommendedAddons = useMemo(() => addons.filter((addon) => !addon.added), [addons]);
+
+  const addonSubtotal = useMemo(
+    () => addedAddons.reduce((sum, addon) => sum + addon.price * addon.quantity, 0),
+    [addedAddons]
+  );
+
+  const itemCount = useMemo(
+    () => selectedVendors.length + addedAddons.reduce((sum, addon) => sum + addon.quantity, 0),
+    [selectedVendors, addedAddons]
+  );
+
+  const rawSubtotal = vendorSubtotal + addonSubtotal;
+
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.discountPercent) {
+      return Math.round((rawSubtotal * appliedCoupon.discountPercent) / 100);
     }
-  }
+    return appliedCoupon.discountFlat ?? 0;
+  }, [appliedCoupon, rawSubtotal]);
 
-  useEffect(() => {
-    void refreshCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const vendors = data?.vendors ?? [];
-  const selectedVendors = useMemo(() => vendors.filter((v) => v.selected), [vendors]);
+  const subtotal = Math.max(0, rawSubtotal - discountAmount);
 
   const hasMissingEventDetails = selectedVendors.some(
     (vendor) =>
@@ -92,107 +69,52 @@ export default function CartPageContent() {
       !vendor.eventDetails.location
   );
 
-  async function handleToggleSelected(itemId: string) {
-    const item = vendors.find((v) => v.id === itemId);
-    if (!item) return;
-    try {
-      const payload = await updateCartItem(itemId, { selectedForCheckout: !item.selected });
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't update that item.");
-    }
-  }
-
-  async function handleRemove(itemId: string) {
-    try {
-      const payload = await removeCartItem(itemId);
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't remove that item.");
-    }
-  }
-
-  async function moveToWishlistNow(itemId: string) {
-    try {
-      const payload = await moveCartItemToWishlist(itemId);
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't move that item to your wishlist.");
-    }
-  }
-
-  function handleMoveToWishlist(itemId: string) {
-    if (!isLoggedIn) {
-      setAuthIntent({ type: "wishlist", itemId });
-      return;
-    }
-    void moveToWishlistNow(itemId);
-  }
-
-  async function handleSaveEventDetails(itemId: string, details: EventDetailsData) {
-    const payload: Parameters<typeof updateCartItem>[1] = {};
-    if (details.date) payload.date = details.date;
-    if (details.timeRange) payload.timeSlot = details.timeRange;
-    if (details.guestCount != null) payload.guests = details.guestCount;
-    if (details.location) payload.location = details.location;
-    try {
-      const result = await updateCartItem(itemId, payload);
-      await applyPayload(result);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't save event details.");
-    }
-  }
-
-  async function handleAddRecommendedAddon(addon: RecommendedAddon) {
-    const item = vendors.find((v) => v.id === addon.itemId);
-    if (!item) return;
-    const nextAddOns = [...toRawAddOns(item.addons), { addOnId: addon.id, name: addon.title, price: addon.price, quantity: 1 }];
-    try {
-      const payload = await updateCartItem(item.id, { selectedAddOns: nextAddOns });
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't add that add-on.");
-    }
-  }
-
-  async function handleIncrementAddon(itemId: string, addonId: string) {
-    const item = vendors.find((v) => v.id === itemId);
-    if (!item) return;
-    const nextAddOns = toRawAddOns(item.addons).map((a) =>
-      a.addOnId === addonId ? { ...a, quantity: a.quantity + 1 } : a
+  function handleToggleSelected(id: string) {
+    setVendors((prev) =>
+      prev.map((vendor) => (vendor.id === id ? { ...vendor, selected: !vendor.selected } : vendor))
     );
-    try {
-      const payload = await updateCartItem(itemId, { selectedAddOns: nextAddOns });
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't update that add-on.");
-    }
   }
 
-  async function handleDecrementAddon(itemId: string, addonId: string) {
-    const item = vendors.find((v) => v.id === itemId);
-    if (!item) return;
-    const nextAddOns = toRawAddOns(item.addons).map((a) =>
-      a.addOnId === addonId ? { ...a, quantity: Math.max(1, a.quantity - 1) } : a
+  function handleRemove(id: string) {
+    setVendors((prev) => prev.filter((vendor) => vendor.id !== id));
+  }
+
+  function handleMoveToWishlist(id: string) {
+    setVendors((prev) => prev.filter((vendor) => vendor.id !== id));
+  }
+
+  function handleSaveEventDetails(id: string, details: EventDetailsData) {
+    setVendors((prev) =>
+      prev.map((vendor) => (vendor.id === id ? { ...vendor, eventDetails: details } : vendor))
     );
-    try {
-      const payload = await updateCartItem(itemId, { selectedAddOns: nextAddOns });
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't update that add-on.");
-    }
   }
 
-  async function handleRemoveAddon(itemId: string, addonId: string) {
-    const item = vendors.find((v) => v.id === itemId);
-    if (!item) return;
-    const nextAddOns = toRawAddOns(item.addons).filter((a) => a.addOnId !== addonId);
-    try {
-      const payload = await updateCartItem(itemId, { selectedAddOns: nextAddOns });
-      await applyPayload(payload);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't remove that add-on.");
-    }
+  function handleToggleAddon(id: string) {
+    setAddons((prev) =>
+      prev.map((addon) =>
+        addon.id === id ? { ...addon, added: !addon.added, quantity: 1 } : addon
+      )
+    );
+  }
+
+  function handleIncrementAddon(id: string) {
+    setAddons((prev) =>
+      prev.map((addon) => (addon.id === id ? { ...addon, quantity: addon.quantity + 1 } : addon))
+    );
+  }
+
+  function handleDecrementAddon(id: string) {
+    setAddons((prev) =>
+      prev.map((addon) =>
+        addon.id === id ? { ...addon, quantity: Math.max(1, addon.quantity - 1) } : addon
+      )
+    );
+  }
+
+  function handleRemoveAddon(id: string) {
+    setAddons((prev) =>
+      prev.map((addon) => (addon.id === id ? { ...addon, added: false, quantity: 1 } : addon))
+    );
   }
 
   async function handleApplyCoupon() {
@@ -203,20 +125,10 @@ export default function CartPageContent() {
       const result = await applyCouponCode(couponCode);
       setAppliedCoupon(result);
       setCouponCode("");
-      await refreshCart();
     } catch (error) {
-      setCouponError(error instanceof ApiError ? error.message : "Something went wrong.");
+      setCouponError(error instanceof Error ? error.message : "Something went wrong.");
     } finally {
       setCouponLoading(false);
-    }
-  }
-
-  async function handleRemoveCoupon() {
-    try {
-      await removeCouponCode();
-    } finally {
-      setAppliedCoupon(null);
-      await refreshCart();
     }
   }
 
@@ -225,8 +137,8 @@ export default function CartPageContent() {
     setContinueMessage(null);
     try {
       const result = await startCheckout({
-        vendorIds: selectedVendors.map((v) => v.id),
-        addonIds: selectedVendors.flatMap((v) => v.addons.map((a) => a.id)),
+        vendorIds: selectedVendors.map((vendor) => vendor.id),
+        addonIds: addons.filter((addon) => addon.added).map((addon) => addon.id),
         couponCode: appliedCoupon?.code,
       });
       if (result.redirectHref) {
@@ -241,39 +153,25 @@ export default function CartPageContent() {
 
   function handleContinue() {
     if (!isLoggedIn) {
-      setAuthIntent({ type: "continue" });
+      setIsAuthOpen(true);
       return;
     }
     void proceedToCheckout();
   }
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6">
-        <p className="font-figtree text-[14px] text-neutral-secondary">Loading your cart…</p>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12">
       <div className="mb-8">
-        <Breadcrumb items={data?.breadcrumb ?? [{ label: "Home", href: "/" }, { label: "Cart" }]} />
+        <Breadcrumb items={data.breadcrumb} />
       </div>
 
       <h1 className="mb-10 font-figtree text-[32px] font-bold text-neutral-primary sm:text-[36px]">
         My Cart
       </h1>
 
-      {loadError && (
-        <div className="mb-6 rounded-2xl border border-error-700/20 bg-error-subtle px-5 py-4 font-figtree text-[13px] text-error-700">
-          {loadError}
-        </div>
-      )}
-
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[7fr_3fr]">
         <div className="flex flex-col gap-8">
-          {vendors.map((vendor) => (
+          {vendors.map((vendor, index) => (
             <VendorCard
               key={vendor.id}
               vendor={vendor}
@@ -281,9 +179,10 @@ export default function CartPageContent() {
               onRemove={handleRemove}
               onMoveToWishlist={handleMoveToWishlist}
               onSaveEventDetails={handleSaveEventDetails}
-              onIncrementAddon={handleIncrementAddon}
-              onDecrementAddon={handleDecrementAddon}
-              onRemoveAddon={handleRemoveAddon}
+              addedAddons={index === 0 ? addedAddons : undefined}
+              onIncrementAddon={index === 0 ? handleIncrementAddon : undefined}
+              onDecrementAddon={index === 0 ? handleDecrementAddon : undefined}
+              onRemoveAddon={index === 0 ? handleRemoveAddon : undefined}
             />
           ))}
 
@@ -298,18 +197,16 @@ export default function CartPageContent() {
 
         <div className="flex flex-col gap-6 lg:sticky lg:top-24">
           <PaymentSummary
-            vendorCount={data?.vendorCount ?? 0}
-            itemCount={data?.itemCount ?? 0}
-            subtotal={data?.subtotal ?? 0}
-            discount={data?.discount ?? 0}
-            total={data?.total ?? 0}
+            vendorCount={selectedVendors.length}
+            itemCount={itemCount}
+            subtotal={subtotal}
             couponCode={couponCode}
             onCouponCodeChange={setCouponCode}
             onApplyCoupon={handleApplyCoupon}
             couponLoading={couponLoading}
             couponError={couponError}
             appliedCoupon={appliedCoupon}
-            onRemoveCoupon={handleRemoveCoupon}
+            onRemoveCoupon={() => setAppliedCoupon(null)}
             onContinue={handleContinue}
             continueLoading={continueLoading}
             continueDisabled={selectedVendors.length === 0}
@@ -320,17 +217,14 @@ export default function CartPageContent() {
         </div>
       </div>
 
-      <AddonSection addons={recommendedAddons} onAdd={handleAddRecommendedAddon} />
+      <AddonSection addons={recommendedAddons} onToggle={handleToggleAddon} />
 
       <AuthModal
-        isOpen={authIntent !== null}
-        onClose={() => setAuthIntent(null)}
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
         onAuthenticated={() => {
-          const intent = authIntent;
-          setAuthIntent(null);
-          if (!intent) return;
-          if (intent.type === "continue") void proceedToCheckout();
-          else void moveToWishlistNow(intent.itemId);
+          setIsAuthOpen(false);
+          void proceedToCheckout();
         }}
       />
     </div>

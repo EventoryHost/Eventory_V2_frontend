@@ -8,8 +8,6 @@ export default function PaymentSummary({
   vendorCount,
   itemCount,
   subtotal,
-  discount,
-  total,
   couponCode,
   onCouponCodeChange,
   onApplyCoupon,
@@ -25,8 +23,6 @@ export default function PaymentSummary({
   vendorCount: number;
   itemCount: number;
   subtotal: number;
-  discount: number;
-  total: number;
   couponCode: string;
   onCouponCodeChange: (value: string) => void;
   onApplyCoupon: () => void;
@@ -63,23 +59,13 @@ export default function PaymentSummary({
         />
       </div>
 
-      <div className="mb-8 space-y-2 border-t border-neutral-subtle pt-6">
-        <div className="flex items-center justify-between font-figtree text-[13px] text-neutral-secondary">
-          <span>Subtotal</span>
-          <span>{formatPrice(subtotal)}</span>
-        </div>
-        {discount > 0 && (
-          <div className="flex items-center justify-between font-figtree text-[13px] text-success-700">
-            <span>Discount</span>
-            <span>-{formatPrice(discount)}</span>
-          </div>
-        )}
-        <div className="flex items-center justify-between pt-2">
+      <div className="mb-8 border-t border-neutral-subtle pt-6">
+        <div className="flex items-center justify-between">
           <span className="font-figtree text-[14px] font-semibold tracking-wider text-neutral-secondary uppercase">
-            Total
+            Subtotal
           </span>
           <span className="font-figtree text-[28px] font-bold text-neutral-primary">
-            {formatPrice(total)}
+            {formatPrice(subtotal)}
           </span>
         </div>
       </div>

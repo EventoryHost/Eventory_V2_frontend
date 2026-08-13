@@ -1,21 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CheckCircle2 } from "lucide-react";
 import type { CartPackage } from "../types";
 import { formatPrice } from "../utils/currency";
 
 export default function PackageInfo({ cartPackage }: { cartPackage: CartPackage }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-      <div className="relative h-[110px] w-[110px] shrink-0 overflow-hidden rounded-2xl bg-neutral-subtle sm:mx-0">
-        {cartPackage.image && (
-          <Image
-            src={cartPackage.image}
-            alt={cartPackage.title}
-            fill
-            sizes="110px"
-            className="object-cover"
-          />
-        )}
+      <div className="relative h-[110px] w-[110px] shrink-0 overflow-hidden rounded-2xl sm:mx-0">
+        <Image
+          src={cartPackage.image}
+          alt={cartPackage.title}
+          fill
+          sizes="110px"
+          className="object-cover"
+        />
       </div>
 
       <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -32,9 +31,19 @@ export default function PackageInfo({ cartPackage }: { cartPackage: CartPackage 
           >
             View Package details
           </Link>
+          {cartPackage.freeCancellationText && (
+            <p className="flex items-center gap-1.5 font-figtree text-[13px] font-medium text-success-700">
+              <CheckCircle2 className="h-4 w-4" /> {cartPackage.freeCancellationText}
+            </p>
+          )}
         </div>
 
         <div className="sm:text-right">
+          {cartPackage.discountPercent && (
+            <span className="mb-1 inline-block rounded-lg bg-success-subtle px-2 py-1 font-figtree text-[12px] font-bold text-success-700">
+              {cartPackage.discountPercent}% OFF
+            </span>
+          )}
           <div className="font-figtree text-[20px] font-bold text-neutral-primary">
             {formatPrice(cartPackage.price)}{" "}
             <span className="font-figtree text-[13px] font-normal text-neutral-secondary">

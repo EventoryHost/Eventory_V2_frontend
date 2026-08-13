@@ -5,86 +5,41 @@ import { useRouter } from "next/navigation";
 import { Calendar, Clock, MapPin, ShieldCheck } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { addCartItem } from "@/lib/customerCartApi";
-import { ApiError } from "@/lib/apiClient";
-import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 
 export default function StickyBookingCard({
-  packageId,
   packageTotal,
   gstPercent,
   tokenAmount,
-  selectedAddons,
 }: {
-  packageId: string;
   packageTotal: number;
   gstPercent: number;
   tokenAmount: number;
-  selectedAddons: AddonItem[];
 }) {
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
-  const [justAdded, setJustAdded] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cartError, setCartError] = useState<string | null>(null);
   const router = useRouter();
   const { isLoggedIn } = useCustomerSession();
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   const estimatedTotal = packageTotal + gstAmount;
 
-  function buildCartPayload() {
-    const timeSlot = [startTime, endTime].filter(Boolean).join(" - ") || undefined;
-    const date = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : undefined;
-    return {
-      packageId,
-      date,
-      timeSlot,
-      location: location || undefined,
-      specialRequest: eventType ? `Event type: ${eventType}` : undefined,
-      selectedAddOns: selectedAddons.map((addon) => ({
-        addOnId: addon.id,
-        name: addon.title,
-        price: addon.price,
-        quantity: 1,
-      })),
-    };
+  // No cart-add API call here — both actions just take the customer to the
+  // (real) Cart page rather than writing to the backend from the PDP.
+  function handleAddToCart() {
+    router.push("/cart");
   }
 
-  async function handleAddToCart() {
-    setCartError(null);
-    setIsSubmitting(true);
-    try {
-      await addCartItem(buildCartPayload());
-      setJustAdded(true);
-      setTimeout(() => setJustAdded(false), 2000);
-    } catch (error) {
-      setCartError(error instanceof ApiError ? error.message : "Couldn't add to cart. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleBookClick() {
+  function handleBookClick() {
     if (!isLoggedIn) {
       setIsAuthOpen(true);
       return;
     }
-    setCartError(null);
-    setIsSubmitting(true);
-    try {
-      await addCartItem(buildCartPayload());
-      router.push("/cart");
-    } catch (error) {
-      setCartError(error instanceof ApiError ? error.message : "Couldn't start booking. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    router.push("/cart");
   }
 
   return (
@@ -207,24 +162,18 @@ export default function StickyBookingCard({
           <button
             type="button"
             onClick={handleBookClick}
-            disabled={isSubmitting}
-            className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600"
           >
             Book at {formatPrice(tokenAmount)}
           </button>
           <button
             type="button"
             onClick={handleAddToCart}
-            disabled={isSubmitting}
-            className="rounded-xl border border-black/15 py-3 font-figtree text-[14px] font-semibold text-brand-950 transition hover:border-black/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-xl border border-black/15 py-3 font-figtree text-[14px] font-semibold text-brand-950 transition hover:border-black/30"
           >
-            {justAdded ? "Added ✓" : "Add to Cart"}
+            Add to Cart
           </button>
         </div>
-
-        {cartError && (
-          <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">{cartError}</p>
-        )}
 
         <p className="mt-3 text-center font-figtree text-[11px] text-neutral-tertiary">
           Date locked instantly · held safely until setup
@@ -241,7 +190,7 @@ export default function StickyBookingCard({
         onClose={() => setIsAuthOpen(false)}
         onAuthenticated={() => {
           setIsAuthOpen(false);
-          void handleBookClick();
+          router.push("/cart");
         }}
       />
     </div>

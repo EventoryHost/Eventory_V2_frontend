@@ -1,9 +1,7 @@
-// Domain types for the customer-facing Cart page — shaped around the real
-// GET /api/customer/cart response (Eventory_V2_backend), which is
-// item-centric (a vendor can have several items; add-ons live per item, not
-// in a shared catalog) rather than the old one-vendor-one-package mock.
-// `CartVendor` below is kept as the name for minimal component churn, but
-// represents one real cart ITEM now, not a vendor.
+// Domain types for the customer-facing Cart page.
+// Shaped to mirror what the backend "cart" endpoint is expected to return, so
+// `services/getCartPageData.ts` can swap its mock data for a real `fetch`
+// without any component needing to change.
 
 export interface EventDetails {
   date: string | null;
@@ -13,26 +11,37 @@ export interface EventDetails {
 }
 
 export interface CartPackage {
-  /** The package's own id — used for `href` and for looking up recommended add-ons. */
   id: string;
   categoryLabel: string;
   title: string;
-  image?: string;
+  image: string;
   price: number;
+  discountPercent?: number;
   /** Package-detail route, e.g. `/packages/${id}` — see src/features/customer-package-detail. */
   href: string;
+  /** e.g. "Free cancellation till 10 March" — omitted when the package is non-refundable. */
+  freeCancellationText?: string;
+}
+
+export interface CartVendor {
+  id: string;
+  vendorName: string;
+  avatarInitial: string;
+  package: CartPackage;
+  selected: boolean;
+  eventDetails: EventDetails;
 }
 
 export interface CartAddon {
-  /** The vendor's add-on subdocument id when known, else a synthesized id. */
   id: string;
   title: string;
   category: string;
-  image?: string;
+  image: string;
   price: number;
   unitLabel: string;
   added: boolean;
   quantity: number;
+  /** e.g. "Color: Red" — shown as a pill on added add-on rows. */
   variant?: string;
 }
 
@@ -41,47 +50,15 @@ export interface BreadcrumbItem {
   href?: string;
 }
 
-export interface CartVendor {
-  /** Real CartItem._id — every mutation (update/remove/move-to-wishlist) targets this. */
-  id: string;
-  vendorId: string;
-  vendorName: string;
-  avatarInitial: string;
-  package: CartPackage;
-  selected: boolean;
-  eventDetails: EventDetails;
-  packageStillAvailable: boolean;
-  priceChanged: boolean;
-  addons: CartAddon[];
-}
-
 export interface CartPageData {
   breadcrumb: BreadcrumbItem[];
   vendors: CartVendor[];
-  itemCount: number;
-  vendorCount: number;
-  subtotal: number;
-  discount: number;
-  total: number;
+  addons: CartAddon[];
 }
 
 export interface AppliedCoupon {
   code: string;
   discountLabel: string;
-}
-
-/**
- * "People also buy this" — sourced from each in-cart package's own add-on
- * catalog (Decorator packages only; no add-on catalog exists for any other
- * vendorType), not a fabricated shared list. `itemId` is the cart item this
- * add-on would attach to if picked.
- */
-export interface RecommendedAddon {
-  id: string;
-  itemId: string;
-  title: string;
-  category: string;
-  image?: string;
-  price: number;
-  unitLabel: string;
+  discountPercent?: number;
+  discountFlat?: number;
 }
