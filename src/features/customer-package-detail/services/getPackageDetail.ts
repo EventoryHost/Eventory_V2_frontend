@@ -186,6 +186,16 @@ async function buildReviews(packageId: string): Promise<ReviewsSummary> {
   };
 }
 
+// TEMPORARY: the backend currently 500s GET /customer/packages/:id for
+// every package (Package.vendorId is stored as the vendor's business-id
+// string instead of its ObjectId, so the vendor populate throws a CastError
+// — reported to the backend team, not yet fixed). Skip the real call
+// entirely rather than doing a network round-trip that's guaranteed to
+// fail, and serve the static placeholder instead. Flip this back to false
+// once the backend fix lands — every mapping below is already real and
+// ready, no other code change needed.
+const PDP_BACKEND_BROKEN = true;
+
 /**
  * Data source for the Package Detail (product description) page — calls the
  * real GET /api/customer/packages/:packageId (Eventory_V2_backend). Every
@@ -193,6 +203,10 @@ async function buildReviews(packageId: string): Promise<ReviewsSummary> {
  * so this mapping is the sole place backend fields get translated into it.
  */
 export async function getPackageDetail(packageId: string): Promise<PackageDetail> {
+  if (PDP_BACKEND_BROKEN) {
+    return { ...mockPackageDetail, id: packageId || mockPackageDetail.id };
+  }
+
   let response;
   try {
     response = await fetchPackageDetail(packageId);
@@ -200,13 +214,6 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     if (error instanceof ApiError && (error.status === 404 || error.status === 400)) {
       throw new PackageNotFoundError(packageId);
     }
-    // TEMPORARY: the backend currently 500s GET /customer/packages/:id for
-    // every package (Package.vendorId is stored as the vendor's business-id
-    // string instead of its ObjectId, so the vendor populate throws a
-    // CastError — reported to the backend team). Fall back to static
-    // placeholder content rather than crashing the page; this call starts
-    // returning real data automatically again once that's fixed, no code
-    // change needed here.
     return { ...mockPackageDetail, id: packageId || mockPackageDetail.id };
   }
 

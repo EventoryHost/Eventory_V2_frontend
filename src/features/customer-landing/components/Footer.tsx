@@ -1,32 +1,23 @@
 import Link from "next/link";
-import Image from "next/image";
 
 const LINK_GROUPS = [
   {
-    title: "Quick Links",
-    links: [
-      { name: "Browse Packages", href: "#" },
-      { name: "Find Vendors", href: "#" },
-      { name: "How it Works", href: "#" },
-      { name: "Pricing", href: "#" }
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      { name: "Help Center", href: "#" },
-      { name: "Contact Us", href: "#" },
-      { name: "FAQs", href: "#" },
-      { name: "Cancellation", href: "#" }
-    ],
-  },
-  {
     title: "Company",
     links: [
-      { name: "About Us", href: "#" },
-      { name: "Careers", href: "#" },
-      { name: "Become Vendor", href: "/login" },
-      { name: "Corporate", href: "#" }
+      { label: "About Us", href: "#" },
+      { label: "Careers", href: "#" },
+      { label: "Become a vendor", href: "/login" },
+      { label: "Corporate Events", href: "#" },
+      { label: "Blog", href: "#" },
+    ],
+  },
+  {
+    title: "Plan an Event",
+    links: [
+      { label: "Explore Packages", href: "/packages" },
+      { label: "Browse Categories", href: "/packages" },
+      { label: "Vendors", href: "/vendors" },
+      { label: "Events", href: "/events" },
     ],
   },
 ];
@@ -80,68 +71,153 @@ const SOCIALS = [
   { icon: LinkedinIcon, label: "LinkedIn" },
 ];
 
+const BOTTOM_LINKS = [
+  { label: "Help Center", href: "#" },
+  { label: "Contacts", href: "/contact" },
+  { label: "FAQs", href: "#" },
+  { label: "Privacy Policy", href: "#" },
+  { label: "Terms", href: "#" },
+];
+
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#1E0306]">
-      <div className="mx-auto grid w-full max-w-[1320px] grid-cols-1 gap-12 px-6 py-16 lg:grid-cols-[1fr_auto_auto_auto] lg:gap-16 lg:px-8">
-        <div className="flex flex-col gap-6 max-w-sm">
-          <Link
-            href="/"
-            className="flex h-10 w-[208px] items-center gap-4"
-          >
-            <Image
-              src="/images/customer/footer-logo.png"
-              alt="Eventory"
-              width={40}
-              height={40}
-              className="h-10 w-10 object-contain"
-            />
-            <span
-              className="text-white font-semibold text-[24px] leading-[20px] tracking-[-0.03em]"
-              style={{ fontFamily: "var(--font-lora)" }}
+    <footer className="w-full bg-[#F5EFE1] px-6 pt-16 pb-8 text-brand-950 lg:px-8">
+      <div className="mx-auto mb-16 flex max-w-7xl flex-col justify-between gap-12 md:flex-row lg:gap-24">
+        {/* Logo and Tagline */}
+        <Link
+          href="/"
+          className="flex max-w-[220px] flex-col items-center gap-4 md:items-start"
+        >
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-primary/15 p-4">
+            <svg
+              className="h-full w-full text-brand-primary"
+              fill="none"
+              viewBox="0 0 100 100"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              eventory
-            </span>
-          </Link>
-
-          <p className="w-full max-w-[427px] font-figtree text-[14px] font-normal leading-[1.6] text-white/60">
-            India&apos;s most trusted event planning platform. Plan your
-            perfect event with verified vendors and transparent pricing.
+              <path
+                d="M50 10 C 30 10, 30 30, 50 50 C 70 30, 70 10, 50 10 Z"
+                fill="currentColor"
+                opacity="0.8"
+              />
+              <path
+                d="M90 50 C 90 30, 70 30, 50 50 C 70 70, 90 70, 90 50 Z"
+                fill="currentColor"
+                opacity="0.8"
+              />
+              <path
+                d="M50 90 C 70 90, 70 70, 50 50 C 30 70, 30 90, 50 90 Z"
+                fill="currentColor"
+                opacity="0.8"
+              />
+              <path
+                d="M10 50 C 10 70, 30 70, 50 50 C 30 30, 10 30, 10 50 Z"
+                fill="currentColor"
+                opacity="0.8"
+              />
+              <circle cx="50" cy="50" r="10" fill="currentColor" />
+            </svg>
+          </div>
+          <h2
+            className="font-heading text-4xl font-bold tracking-tight text-brand-primary"
+            style={{ fontFamily: "var(--font-lora)" }}
+          >
+            Eventory
+          </h2>
+          <p className="text-center font-figtree text-xl font-medium whitespace-nowrap text-brand-950 md:text-left">
+            Make it Happen
           </p>
+        </Link>
 
-          <div className="flex items-center gap-3">
-            {SOCIALS.map(({ icon: Icon, label }) => (
-              <a
-                key={label}
-                href="#"
-                aria-label={label}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-              >
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
+        {/* Links Grid */}
+        <div className="grid flex-1 grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
+          {LINK_GROUPS.map((group) => (
+            <div key={group.title} className="flex flex-col space-y-4">
+              <h3 className="mb-2 font-figtree text-lg font-medium text-brand-primary">
+                {group.title}
+              </h3>
+              {group.links.map((link) => (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="font-figtree text-brand-950 transition-colors hover:text-brand-primary"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          ))}
+
+          {/* Contacts Column */}
+          <div className="flex flex-col space-y-4">
+            <h3 className="mb-2 font-figtree text-lg font-medium text-brand-primary">
+              Contacts
+            </h3>
+            <a
+              href="mailto:Contact@eventory.in"
+              className="font-figtree text-brand-950 transition-colors hover:text-brand-primary"
+            >
+              Contact@eventory.in
+            </a>
+            <a
+              href="tel:+918800725840"
+              className="font-figtree text-brand-950 transition-colors hover:text-brand-primary"
+            >
+              +91 8800725840
+            </a>
+          </div>
+
+          {/* Follow Us Column */}
+          <div className="flex flex-col space-y-4">
+            <h3 className="mb-2 font-figtree text-lg font-medium text-brand-primary">
+              Follow Us
+            </h3>
+            <div className="flex space-x-3">
+              {SOCIALS.map(({ icon: Icon, label }) => (
+                <a
+                  key={label}
+                  href="#"
+                  aria-label={label}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary text-white transition-colors hover:bg-brand-950"
+                >
+                  <Icon className="h-5 w-5" />
+                </a>
+              ))}
+            </div>
+
+            {/* Startup India recognition badge */}
+            <div className="mt-8 flex w-fit flex-col">
+              <div className="flex flex-wrap items-baseline text-lg font-bold whitespace-nowrap">
+                <span className="text-[#FF9933]">#startup</span>
+                <span className="text-[#138808]">in</span>
+                <span className="text-[#FF9933]">d</span>
+                <span className="text-[#138808]">ia</span>
+              </div>
+              <div className="mt-1 h-4 w-6 self-end border-r-4 border-b-4 border-[#138808]" />
+            </div>
           </div>
         </div>
+      </div>
 
-        {LINK_GROUPS.map((group) => (
-          <div key={group.title} className="flex flex-col gap-5">
-            <span className="font-figtree text-[13px] font-bold uppercase tracking-wider text-white/50">
-              {group.title}
-            </span>
-            <ul className="flex w-[116px] flex-col gap-4">
-              {group.links.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="font-figtree text-[15px] font-normal text-white/80 hover:text-white"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+      {/* Divider */}
+      <div className="mx-auto mb-6 max-w-7xl border-t border-brand-950/10" />
+
+      {/* Bottom Bar */}
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 font-figtree text-sm font-medium md:flex-row">
+        <p className="text-brand-primary/70">
+          ©Eventory 2026 - 2028 - All Rights Reserved
+        </p>
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          {BOTTOM_LINKS.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="text-brand-950 transition-colors hover:text-brand-primary"
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
       </div>
     </footer>
   );

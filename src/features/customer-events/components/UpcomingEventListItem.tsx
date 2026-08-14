@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export type UpcomingEventListItemProps = {
@@ -34,13 +35,13 @@ export default function UpcomingEventListItem({
         </div>
       </div>
 
-      <a
-        href="#"
+      <Link
+        href="/packages"
         className="flex shrink-0 items-center gap-2 font-figtree text-[14px] font-semibold text-brand-primary"
       >
         Explore Packages
         <ArrowRight size={16} />
-      </a>
+      </Link>
     </div>
   );
 }

@@ -17,8 +17,8 @@ export default function AddedAddonRow({
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex flex-1 items-center gap-4">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-subtle">
-          {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="64px" className="object-cover" />}
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg">
+          <Image src={addon.image} alt={addon.title} fill sizes="64px" className="object-cover" />
         </div>
         <div>
           <h5 className="font-figtree text-[15px] font-semibold text-neutral-primary">

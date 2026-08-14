@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Bookmark, Star, Clock, Users, MapPin } from "lucide-react";
 
 export type ProductCardProps = {
@@ -42,13 +43,20 @@ export default function ProductCard({
   categoryGradientTo = "#ffffff",
 }: ProductCardProps) {
   return (
-    <div className="w-[316px] rounded-2xl border border-black/5 bg-white overflow-hidden">
+    <Link
+      href="/packages"
+      className="block w-[316px] overflow-hidden rounded-2xl border border-black/5 bg-white"
+    >
       {/* Image */}
       <div className="relative h-[191px] w-[316px]">
         <Image src={image} alt={title} fill className="object-cover" />
         <button
           type="button"
           aria-label="Save"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
           className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/20 backdrop-blur-md"
         >
           <Bookmark className="h-4 w-4 text-white backdrop-blur-sm" />
@@ -138,6 +146,6 @@ export default function ProductCard({
           </p>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

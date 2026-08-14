@@ -1,12 +1,12 @@
-import type { RecommendedAddon } from "../types";
+import type { CartAddon } from "../types";
 import AddonCard from "./AddonCard";
 
 export default function AddonSection({
   addons,
-  onAdd,
+  onToggle,
 }: {
-  addons: RecommendedAddon[];
-  onAdd: (addon: RecommendedAddon) => void;
+  addons: CartAddon[];
+  onToggle: (id: string) => void;
 }) {
   if (addons.length === 0) return null;
 
@@ -17,7 +17,7 @@ export default function AddonSection({
       </h2>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {addons.map((addon) => (
-          <AddonCard key={`${addon.itemId}-${addon.id}`} addon={addon} onAdd={onAdd} />
+          <AddonCard key={addon.id} addon={addon} onToggle={onToggle} />
         ))}
       </div>
     </section>

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export type EventCategoryCardProps = {
   image: string;
@@ -18,7 +19,10 @@ export default function EventCategoryCard({
   accentTo,
 }: EventCategoryCardProps) {
   return (
-    <div className="relative h-[420px] w-[320px] shrink-0 overflow-hidden rounded-[28px] border border-white/30 sm:w-[520px] lg:h-[534px] lg:w-[1100px] lg:rounded-[52px]">
+    <Link
+      href="/packages"
+      className="relative block h-[420px] w-[320px] shrink-0 overflow-hidden rounded-[28px] border border-white/30 sm:w-[520px] lg:h-[534px] lg:w-[1100px] lg:rounded-[52px]"
+    >
       <Image src={image} alt={title} fill className="object-cover" />
 
       {/* Progressive blur: sharp near top-left, blurring out toward bottom-right */}
@@ -50,10 +54,7 @@ export default function EventCategoryCard({
           {subtitle}
         </p>
 
-        <button
-          type="button"
-          className="mt-2 rounded-full bg-white px-6 py-3 lg:px-8 lg:py-4"
-        >
+        <span className="mt-2 inline-block rounded-full bg-white px-6 py-3 lg:px-8 lg:py-4">
           <span
             className="font-figtree text-[16px] lg:text-[24px] font-bold uppercase leading-none tracking-[-0.02em] bg-clip-text text-transparent"
             style={{
@@ -62,8 +63,8 @@ export default function EventCategoryCard({
           >
             {ctaLabel}
           </span>
-        </button>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }
