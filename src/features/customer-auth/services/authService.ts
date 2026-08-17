@@ -9,14 +9,6 @@ interface AuthResponse {
   customer: Customer;
 }
 
-export async function signup(input: { name: string; email: string; password: string }) {
-  return apiFetch<AuthResponse>("/customer/auth/signup", { method: "POST", body: input, auth: false });
-}
-
-export async function login(input: { email: string; password: string }) {
-  return apiFetch<AuthResponse>("/customer/auth/login", { method: "POST", body: input, auth: false });
-}
-
 export async function logout() {
   return apiFetch<{ success: true; message: string }>("/customer/auth/logout", { method: "POST", auth: false });
 }
@@ -28,10 +20,27 @@ export async function sendPhoneOtp(mobile: string) {
   });
 }
 
-export async function verifyPhoneOtp(input: { mobile: string; code: string; session: string }) {
+/**
+ * Verifies the OTP for the given phone number/session — the primary entry
+ * point for phone-based login and signup. The backend creates a new account
+ * on first verification for a given mobile number, or attaches/confirms the
+ * number on an existing one, and returns both the customer and a JS-usable
+ * accessToken directly in the body.
+ */
+export async function verifyPhoneOtp(input: { mobile: string; code: string; session: string; name?: string }) {
+  return apiFetch<AuthResponse>("/customer/phone/verify-otp", { method: "POST", body: input });
+}
+
+/** Alternate login for customers who've set a password — same endpoint as email login, keyed by mobile instead. */
+export async function loginWithPassword(input: { mobile: string; password: string }) {
+  return apiFetch<AuthResponse>("/customer/auth/login", { method: "POST", body: input, auth: false });
+}
+
+/** Sets a password on the current (already phone-authenticated) account, enabling phone+password login next time. */
+export async function setCustomerPassword(password: string) {
   const response = await apiFetch<{ success: true; message: string; data: Customer }>(
-    "/customer/phone/verify-otp",
-    { method: "POST", body: input }
+    "/customer/auth/set-password",
+    { method: "POST", body: { password } }
   );
   return response.data;
 }

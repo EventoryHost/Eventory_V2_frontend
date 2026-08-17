@@ -25,7 +25,14 @@ export default function AuthModal({
     onClose();
   });
 
-  const heading = form.step === "login" ? "Log In" : form.step === "signup" ? "Create Account" : "Verify Your Number";
+  const heading =
+    form.step === "phone-password"
+      ? "Log In"
+      : form.step === "otp"
+        ? "Verify Your Number"
+        : form.step === "set-password"
+          ? "Set a Password"
+          : "Log In or Sign Up";
 
   if (typeof document === "undefined") return null;
 
@@ -65,7 +72,7 @@ export default function AuthModal({
             </div>
 
             <div className="flex flex-col gap-5">
-              {(form.step === "signup" || form.step === "login") && (
+              {(form.step === "phone" || form.step === "phone-password") && (
                 <>
                   <GoogleButton onClick={() => form.handleGoogleLogin(pathname)} loading={form.loading} variant="primary" />
 

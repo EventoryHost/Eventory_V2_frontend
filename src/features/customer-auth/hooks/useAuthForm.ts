@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { signup, login, sendPhoneOtp, verifyPhoneOtp, googleLoginUrl } from "../services/authService";
+import { sendPhoneOtp, verifyPhoneOtp, loginWithPassword, setCustomerPassword, googleLoginUrl } from "../services/authService";
 import { useCustomerSession } from "./useCustomerSession";
 import type { AuthStep } from "../types";
 import type { Customer } from "@/lib/customerSession";
@@ -11,28 +11,34 @@ import { mergeGuestCartIfAny } from "@/lib/customerCartApi";
 const RESEND_SECONDS = 30;
 const REDIRECT_STORAGE_KEY = "post_login_redirect";
 
+/** A "local" auth provider entry means the account has a password set. */
+function hasLocalPassword(customer: Customer) {
+  return customer.authProviders?.some((provider) => provider.provider === "local") ?? false;
+}
+
 /**
  * Shared state + handlers for both AuthModal and the /auth full page — see
  * components/AuthForm.tsx, which is the shared presentational component
  * this hook is meant to be paired with.
  *
- * Step flow: signup/login (email+password) -> on success, if the customer's
- * phone isn't verified yet, "phone"/"otp" (optional, skippable) -> onSuccess.
+ * Step flow: phone -> otp (verifying the code logs the customer into an
+ * existing account or creates a new one) -> set-password (optional,
+ * skippable) -> onSuccess. "phone-password" is the alternate entry point,
+ * reachable from the phone step, for customers who already set a password.
  */
-export function useAuthForm(onSuccess: (customer: Customer) => void, defaultStep: "signup" | "login" = "signup") {
-  const { login: storeSession } = useCustomerSession();
+export function useAuthForm(onSuccess: (customer: Customer) => void, intent: "login" | "register" = "login") {
+  const { login: storeSession, session: currentCustomer } = useCustomerSession();
 
-  const [step, setStep] = useState<AuthStep>(defaultStep);
+  const [step, setStep] = useState<AuthStep>("phone");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [resendTimer, setResendTimer] = useState(0);
   const [otpSession, setOtpSession] = useState("");
-  const [pendingCustomer, setPendingCustomer] = useState<Customer | null>(null);
 
   useEffect(() => {
     if (resendTimer <= 0) return;
@@ -45,64 +51,23 @@ export function useAuthForm(onSuccess: (customer: Customer) => void, defaultStep
     return err instanceof Error ? err.message : "Something went wrong. Please try again.";
   }
 
-  const canContinueSignup = name.trim().length > 1 && /\S+@\S+\.\S+/.test(email) && password.length >= 8;
-  const canContinueLogin = /\S+@\S+\.\S+/.test(email) && password.length > 0;
-  const canContinuePhone = phone.length === 10;
+  const canContinuePhone = phone.length === 10 && (intent !== "register" || name.trim().length > 0);
   const canContinueOtp = otp.length === 6;
-  const canContinue =
-    step === "signup"
-      ? canContinueSignup
-      : step === "login"
-        ? canContinueLogin
-        : step === "phone"
-          ? canContinuePhone
-          : canContinueOtp;
+  const canContinueSetPassword = password.length >= 8 && password === confirmPassword;
+  const canContinuePhonePassword = phone.length === 10 && password.length > 0;
+  const passwordMismatch = step === "set-password" && confirmPassword.length > 0 && password !== confirmPassword;
 
-  function afterAuthenticated(customer: Customer, accessToken: string) {
-    storeSession(customer, accessToken);
-    // Deliberately explicit, once, right after login succeeds — not automatic
-    // on every page load (matches the backend's own guidance for /cart/merge).
-    void mergeGuestCartIfAny();
-    if (!customer.isPhoneVerified) {
-      setPendingCustomer(customer);
-      setStep("phone");
-      return;
-    }
-    onSuccess(customer);
-  }
+  const canContinue =
+    step === "phone"
+      ? canContinuePhone
+      : step === "otp"
+        ? canContinueOtp
+        : step === "set-password"
+          ? canContinueSetPassword
+          : canContinuePhonePassword;
 
   async function handleContinue() {
     if (loading) return;
-
-    if (step === "signup") {
-      if (!canContinueSignup) return;
-      setLoading(true);
-      setError("");
-      try {
-        const result = await signup({ name, email, password });
-        afterAuthenticated(result.customer, result.accessToken);
-      } catch (err) {
-        setError(getErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
-
-    if (step === "login") {
-      if (!canContinueLogin) return;
-      setLoading(true);
-      setError("");
-      try {
-        const result = await login({ email, password });
-        afterAuthenticated(result.customer, result.accessToken);
-      } catch (err) {
-        setError(getErrorMessage(err));
-      } finally {
-        setLoading(false);
-      }
-      return;
-    }
 
     if (step === "phone") {
       if (!canContinuePhone) return;
@@ -121,12 +86,55 @@ export function useAuthForm(onSuccess: (customer: Customer) => void, defaultStep
       return;
     }
 
-    if (!canContinueOtp) return;
+    if (step === "otp") {
+      if (!canContinueOtp) return;
+      setLoading(true);
+      setError("");
+      try {
+        const { customer, accessToken } = await verifyPhoneOtp({
+          mobile: phone,
+          code: otp,
+          session: otpSession,
+          ...(intent === "register" && name.trim() ? { name: name.trim() } : {}),
+        });
+        storeSession(customer, accessToken);
+        void mergeGuestCartIfAny();
+        if (!hasLocalPassword(customer)) {
+          setStep("set-password");
+        } else {
+          onSuccess(customer);
+        }
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (step === "set-password") {
+      if (!canContinueSetPassword) return;
+      setLoading(true);
+      setError("");
+      try {
+        const updatedCustomer = await setCustomerPassword(password);
+        onSuccess(updatedCustomer);
+      } catch (err) {
+        setError(getErrorMessage(err));
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (!canContinuePhonePassword) return;
     setLoading(true);
     setError("");
     try {
-      const updatedCustomer = await verifyPhoneOtp({ mobile: phone, code: otp, session: otpSession });
-      onSuccess(updatedCustomer);
+      const result = await loginWithPassword({ mobile: phone, password });
+      storeSession(result.customer, result.accessToken);
+      void mergeGuestCartIfAny();
+      onSuccess(result.customer);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -150,8 +158,8 @@ export function useAuthForm(onSuccess: (customer: Customer) => void, defaultStep
     }
   }
 
-  function handleSkipPhoneVerification() {
-    if (pendingCustomer) onSuccess(pendingCustomer);
+  function handleSkipSetPassword() {
+    if (currentCustomer) onSuccess(currentCustomer);
   }
 
   function handleGoogleLogin(redirectTo?: string) {
@@ -160,15 +168,16 @@ export function useAuthForm(onSuccess: (customer: Customer) => void, defaultStep
     window.location.href = googleLoginUrl();
   }
 
-  function switchStep(nextStep: "signup" | "login") {
-    setStep(nextStep);
+  function switchToPasswordLogin() {
+    setStep("phone-password");
     setError("");
     setPassword("");
   }
 
-  function goBackToPhone() {
+  function switchToPhoneEntry() {
     setStep("phone");
     setOtp("");
+    setPassword("");
     setError("");
   }
 
@@ -176,24 +185,25 @@ export function useAuthForm(onSuccess: (customer: Customer) => void, defaultStep
     step,
     name,
     setName,
-    email,
-    setEmail,
-    password,
-    setPassword,
     phone,
     setPhone,
     otp,
     setOtp,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
     loading,
     error,
     resendTimer,
     canContinue,
+    passwordMismatch,
     handleContinue,
     handleResendOtp,
-    handleSkipPhoneVerification,
+    handleSkipSetPassword,
     handleGoogleLogin,
-    switchStep,
-    goBackToPhone,
+    switchToPasswordLogin,
+    switchToPhoneEntry,
   };
 }
 
