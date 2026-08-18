@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { MapPin, Share2, Star, Bookmark } from "lucide-react";
+import { MapPin, Share2, Star, Bookmark, BadgeCheck } from "lucide-react";
 import type { PackageDetail } from "../types";
+import Breadcrumb from "@/components/customer/Breadcrumb";
 
 export default function PackageHeaderInfo({
   data,
@@ -9,11 +10,14 @@ export default function PackageHeaderInfo({
     PackageDetail,
     | "categoryLabel"
     | "categoryIcon"
+    | "vendorUnitName"
     | "eventTags"
     | "moreEventTagsCount"
     | "title"
     | "instantBooking"
     | "vendorName"
+    | "idVerified"
+    | "gstinVerified"
     | "rating"
     | "reviewCount"
     | "locationSummary"
@@ -21,6 +25,15 @@ export default function PackageHeaderInfo({
 }) {
   return (
     <section>
+      <div className="mb-3">
+        <Breadcrumb
+          items={[
+            { label: data.categoryLabel, href: "/packages" },
+            { label: data.vendorUnitName || data.vendorName },
+          ]}
+        />
+      </div>
+
       <div className="mb-3 flex flex-wrap items-center gap-2 font-figtree text-[11px] font-semibold tracking-wider text-neutral-tertiary uppercase">
         <span className="flex items-center gap-1.5">
           {data.categoryIcon && (
@@ -51,8 +64,19 @@ export default function PackageHeaderInfo({
           </span>
         )}
       </h1>
-      <p className="mb-4 font-figtree text-[14px] text-neutral-secondary">
+      <p className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-figtree text-[14px] text-neutral-secondary">
         by <span className="font-semibold text-brand-950">{data.vendorName}</span>
+        {(data.idVerified || data.gstinVerified) && <span className="text-neutral-tertiary/50">·</span>}
+        {data.idVerified && (
+          <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[11px] font-medium text-success-700">
+            <BadgeCheck className="h-3.5 w-3.5" /> ID verified
+          </span>
+        )}
+        {data.gstinVerified && (
+          <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[11px] font-medium text-success-700">
+            <BadgeCheck className="h-3.5 w-3.5" /> GSTIN verified
+          </span>
+        )}
       </p>
 
       <div className="flex flex-wrap items-center justify-between gap-3 font-figtree text-[13px]">

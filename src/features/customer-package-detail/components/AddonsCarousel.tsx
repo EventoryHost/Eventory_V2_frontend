@@ -12,10 +12,13 @@ export default function AddonsCarousel({
   onToggle: (id: string) => void;
 }) {
   return (
-    <section className="border-t border-black/5 pt-8">
-      <SectionHeading>Add-ons &amp; Extras</SectionHeading>
+    <section id="addons" className="border-t border-black/5 pt-8">
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <SectionHeading eyebrow="Optional · nothing is pre-selected">Add-ons &amp; extras</SectionHeading>
+        <p className="font-figtree text-[12px] text-neutral-tertiary">Every add-on updates the price in the card on the right.</p>
+      </div>
 
-      <div className="flex snap-x gap-4 overflow-x-auto pb-4 [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {addons.map((addon, i) => (
           <AddonCard
             key={addon.id}

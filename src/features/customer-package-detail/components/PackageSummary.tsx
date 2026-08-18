@@ -1,18 +1,18 @@
-import { LayoutGrid, MapPin, Clock, Users } from "lucide-react";
+import { Package, Ruler, Clock, Users } from "lucide-react";
 import type { PackageDetail } from "../types";
 import SectionHeading from "./SectionHeading";
 
 export default function PackageSummary({ summary }: { summary: PackageDetail["summary"] }) {
   const rows = [
-    { icon: LayoutGrid, label: "Setups", value: summary.setupsLabel },
-    { icon: MapPin, label: "Service area", value: summary.serviceArea },
+    { icon: Package, label: "Setups", value: summary.setupsLabel },
+    { icon: Ruler, label: "Setup coverage", value: summary.setupCoverage },
     { icon: Clock, label: "Setup time", value: summary.setupTime },
     { icon: Users, label: "Crew size", value: summary.crewSize },
-  ];
+  ].filter((row) => row.value);
 
   return (
     <section className="border-t border-black/5 pt-8">
-      <SectionHeading>Package Summary</SectionHeading>
+      <SectionHeading>Package includes</SectionHeading>
 
       <div className="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
         {rows.map((row) => (
@@ -30,7 +30,7 @@ export default function PackageSummary({ summary }: { summary: PackageDetail["su
         type="button"
         className="mt-6 rounded-full border border-black/15 px-5 py-2 font-figtree text-[13px] font-medium text-brand-950 transition hover:bg-black/5"
       >
-        See all Features
+        See all 8 features
       </button>
     </section>
   );

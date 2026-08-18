@@ -11,7 +11,7 @@ export default function AboutPackage({ text }: { text: string }) {
   const displayText = isExpanded || !canTruncate ? text : `${text.slice(0, TRUNCATE_LENGTH).trimEnd()}...`;
 
   return (
-    <section className="border-t border-black/5 pt-8">
+    <section id="about" className="border-t border-black/5 pt-8">
       <SectionHeading>About this package</SectionHeading>
       <p className="font-figtree text-[14px] leading-relaxed text-neutral-secondary">
         {displayText}{" "}

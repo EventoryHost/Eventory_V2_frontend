@@ -46,6 +46,23 @@ export interface RawDecoratorAddOn {
   mediaUrls?: string[];
 }
 
+export interface RawPavPackageItem {
+  _id?: string;
+  itemType?: string;
+  contentDetails?: {
+    categories?: string[];
+    style?: string;
+    quantity?: string | number;
+    description?: string;
+  };
+  logisticsAndHandover?: {
+    deliveryFormat?: string;
+    deliveryMedium?: string;
+    deliveryTimeline?: string;
+    isVisitingIncluded?: boolean;
+  };
+}
+
 export interface RawFullPackage {
   _id: string;
   vendorId: RawVendorPublic | string;
@@ -75,6 +92,7 @@ export interface RawFullPackage {
   };
   step2_productsAndPricing?: {
     setups?: RawDecoratorSetup[];
+    packageItems?: RawPavPackageItem[];
     addOns?: RawDecoratorAddOn[];
   };
   step3_policiesAndCharges: {

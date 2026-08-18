@@ -6,11 +6,12 @@ export default function ReviewCard({ review, isLast = false }: { review: Review;
     <div className={isLast ? "" : "border-b border-black/5 pb-6"}>
       <div className="mb-2 flex items-start justify-between gap-2">
         <div>
-          <div className="font-figtree text-[14px] font-bold text-brand-950">
+          <div className="flex flex-wrap items-center gap-2 font-figtree text-[14px] font-bold text-brand-950">
             {review.authorName}
-            <span className="ml-2 font-figtree text-[12px] font-normal text-neutral-tertiary">
-              {review.eventTag}
+            <span className="rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[10px] font-semibold text-success-700">
+              Verified booking
             </span>
+            <span className="font-figtree text-[12px] font-normal text-neutral-tertiary">{review.eventTag}</span>
           </div>
           <div className="mt-1 flex gap-0.5 text-brand-primary">
             {Array.from({ length: 5 }).map((_, i) => (

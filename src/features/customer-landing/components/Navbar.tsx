@@ -98,14 +98,14 @@ function SignupLoginLink({ className = "" }: { className?: string }) {
         title="Log out"
         className={`text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.02em] ${className}`}
       >
-        Hi, {session.name.split(" ")[0]}
+        Hi, {session.name?.split(" ")[0] ?? "there"}
       </button>
     );
   }
 
   return (
     <Link
-      href="/auth"
+      href="/register"
       className={`text-brand-primary font-semibold text-[14px] leading-[20px] tracking-[-0.02em] ${className}`}
     >
       Signup/Login

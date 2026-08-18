@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const LINK_GROUPS = [
@@ -88,38 +89,17 @@ export default function Footer() {
           href="/"
           className="flex max-w-[220px] flex-col items-center gap-4 md:items-start"
         >
-          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-primary/15 p-4">
-            <svg
-              className="h-full w-full text-brand-primary"
-              fill="none"
-              viewBox="0 0 100 100"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M50 10 C 30 10, 30 30, 50 50 C 70 30, 70 10, 50 10 Z"
-                fill="currentColor"
-                opacity="0.8"
-              />
-              <path
-                d="M90 50 C 90 30, 70 30, 50 50 C 70 70, 90 70, 90 50 Z"
-                fill="currentColor"
-                opacity="0.8"
-              />
-              <path
-                d="M50 90 C 70 90, 70 70, 50 50 C 30 70, 30 90, 50 90 Z"
-                fill="currentColor"
-                opacity="0.8"
-              />
-              <path
-                d="M10 50 C 10 70, 30 70, 50 50 C 30 30, 10 30, 10 50 Z"
-                fill="currentColor"
-                opacity="0.8"
-              />
-              <circle cx="50" cy="50" r="10" fill="currentColor" />
-            </svg>
+          <div className="flex h-24 w-24 items-center justify-center rounded-full bg-brand-primary p-5">
+            <Image
+              src="/images/customer/footer-logo.png"
+              alt=""
+              width={64}
+              height={66}
+              className="h-full w-full object-contain"
+            />
           </div>
           <h2
-            className="font-heading text-4xl font-bold tracking-tight text-brand-primary"
+            className="text-4xl font-bold tracking-tight text-brand-primary"
             style={{ fontFamily: "var(--font-lora)" }}
           >
             Eventory
@@ -186,15 +166,13 @@ export default function Footer() {
             </div>
 
             {/* Startup India recognition badge */}
-            <div className="mt-8 flex w-fit flex-col">
-              <div className="flex flex-wrap items-baseline text-lg font-bold whitespace-nowrap">
-                <span className="text-[#FF9933]">#startup</span>
-                <span className="text-[#138808]">in</span>
-                <span className="text-[#FF9933]">d</span>
-                <span className="text-[#138808]">ia</span>
-              </div>
-              <div className="mt-1 h-4 w-6 self-end border-r-4 border-b-4 border-[#138808]" />
-            </div>
+            <Image
+              src="/images/customer/startup_india.png"
+              alt="Startup India"
+              width={188}
+              height={45}
+              className="mt-8 h-auto w-[141px]"
+            />
           </div>
         </div>
       </div>

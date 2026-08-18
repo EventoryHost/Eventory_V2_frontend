@@ -4,19 +4,19 @@
 export type { Customer } from "@/lib/customerSession";
 import type { Customer } from "@/lib/customerSession";
 
-export type AuthStep = "signup" | "login" | "phone" | "otp";
+export type AuthStep = "phone" | "otp" | "set-password" | "phone-password";
 
 export interface AuthFormState {
   step: AuthStep;
   name: string;
-  email: string;
-  password: string;
   phone: string;
   otp: string;
+  password: string;
+  confirmPassword: string;
   loading: boolean;
   error: string;
   resendTimer: number;
 }
 
-/** What a successful auth flow (signup, login, or OAuth) hands back to the caller. */
+/** What a successful auth flow (phone+OTP, phone+password, or OAuth) hands back to the caller. */
 export type AuthSuccessPayload = Customer;

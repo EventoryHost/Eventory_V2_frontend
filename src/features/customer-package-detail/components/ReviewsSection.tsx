@@ -13,8 +13,8 @@ export default function ReviewsSection({ reviews }: { reviews: ReviewsSummary })
     activeFilter === "all" ? reviews.items : reviews.items.filter((review) => review.filterIds.includes(activeFilter));
 
   return (
-    <section className="border-t border-black/5 pt-8">
-      <SectionHeading>Reviews</SectionHeading>
+    <section id="reviews" className="border-t border-black/5 pt-8">
+      <SectionHeading eyebrow={`${reviews.total} verified events`}>Reviews</SectionHeading>
 
       <div className="mb-8 flex flex-col gap-10 md:flex-row">
         <div>

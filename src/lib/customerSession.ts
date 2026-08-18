@@ -13,6 +13,8 @@ export interface Customer {
   isEmailVerified: boolean;
   profilePicture?: string;
   verificationStatus?: "Unverified" | "EmailVerified" | "PhoneVerified" | "FullyVerified";
+  /** Present when the account has a "local" entry, i.e. a password is set — used to decide whether to offer phone+password login. */
+  authProviders?: { provider: string; providerId: string | null; linkedAt: string }[];
 }
 
 interface SessionState {

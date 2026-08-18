@@ -1,28 +1,63 @@
-import { ShieldCheck, Clock, type LucideIcon } from "lucide-react";
-import type { PolicyIcon, PolicyItem } from "../types";
+"use client";
+
+import { useState } from "react";
+import { ShieldCheck, Plus, Minus } from "lucide-react";
+import type { PolicyItem } from "../types";
 import SectionHeading from "./SectionHeading";
 
-const ICON_MAP: Record<PolicyIcon, LucideIcon> = {
-  shield: ShieldCheck,
-  clock: Clock,
-};
-
 export default function PoliciesSection({ policies }: { policies: PolicyItem[] }) {
-  return (
-    <section className="border-t border-black/5 pt-8">
-      <SectionHeading>Policies</SectionHeading>
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [first, ...rest] = policies;
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {policies.map((policy) => {
-          const Icon = ICON_MAP[policy.icon];
+  return (
+    <section id="policies" className="border-t border-black/5 pt-8">
+      <SectionHeading eyebrow="What you're agreeing to">Policies</SectionHeading>
+
+      <div className="rounded-2xl border border-black/10">
+        {first && (
+          <div className="flex items-start gap-2 border-b border-black/5 p-4 font-figtree text-[13px] text-neutral-secondary">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success-700" />
+            <p>
+              <a href={first.href} className="font-semibold text-brand-950 underline">
+                {first.title}
+              </a>{" "}
+              — {first.description}
+            </p>
+          </div>
+        )}
+
+        {rest.map((policy, i) => {
+          const isExpanded = expandedId === policy.id;
           return (
-            <div key={policy.id}>
-              <Icon className="mb-2 h-6 w-6 text-neutral-secondary" />
-              <h3 className="mb-1 font-figtree text-[15px] font-bold text-brand-950">{policy.title}</h3>
-              <p className="mb-2 font-figtree text-[12px] text-neutral-tertiary">{policy.description}</p>
-              <a href={policy.href} className="font-figtree text-[12px] font-semibold text-brand-950 underline">
-                Learn more
-              </a>
+            <div key={policy.id} className={i < rest.length - 1 ? "border-b border-black/5" : ""}>
+              <button
+                type="button"
+                onClick={() => setExpandedId(isExpanded ? null : policy.id)}
+                aria-expanded={isExpanded}
+                className="flex w-full items-center justify-between gap-3 p-4 text-left"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="font-figtree text-[14px] font-semibold text-brand-950">{policy.title}</span>
+                  {policy.tag && (
+                    <span className="rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[10px] font-semibold text-success-700">
+                      {policy.tag}
+                    </span>
+                  )}
+                </span>
+                {isExpanded ? (
+                  <Minus className="h-4 w-4 shrink-0 text-neutral-tertiary" />
+                ) : (
+                  <Plus className="h-4 w-4 shrink-0 text-neutral-tertiary" />
+                )}
+              </button>
+              {isExpanded && (
+                <div className="px-4 pb-4 font-figtree text-[13px] text-neutral-secondary">
+                  {policy.description}{" "}
+                  <a href={policy.href} className="font-semibold text-brand-950 underline">
+                    Learn more
+                  </a>
+                </div>
+              )}
             </div>
           );
         })}
