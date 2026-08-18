@@ -1,8 +1,9 @@
 import Image from "next/image";
-import { Check } from "lucide-react";
+import { Check, CornerDownRight } from "lucide-react";
 import type { PackageVariant } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
+import SectionHeading from "./SectionHeading";
 
 export default function VariantSelector({
   variants,
@@ -16,11 +17,18 @@ export default function VariantSelector({
   const selected = variants.find((variant) => variant.id === selectedId);
 
   return (
-    <section>
-      <p className="mb-3 font-figtree text-[13px] text-neutral-secondary">
-        Variant Selected: <span className="font-semibold text-brand-950">{selected?.label}</span>{" "}
-        <span className="font-semibold text-brand-950">{selected && formatPrice(selected.price)}</span>
-      </p>
+    <section id="overview">
+      <SectionHeading>Choose a package</SectionHeading>
+
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+        <p className="font-figtree text-[13px] text-neutral-secondary">
+          Same team and styling — tiers differ by number of setups, item count and material quality.
+        </p>
+        <p className="shrink-0 font-figtree text-[13px] text-neutral-secondary">
+          Selected: <span className="font-semibold text-brand-950">{selected?.label}</span>{" "}
+          <span className="font-semibold text-brand-950">{selected && formatPrice(selected.price)}</span>
+        </p>
+      </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {variants.map((variant, i) => {
@@ -64,12 +72,29 @@ export default function VariantSelector({
                   </span>
                 </div>
                 <p className="mb-2 truncate font-figtree text-[12px] text-neutral-tertiary">{variant.description}</p>
-                {variant.originalPrice && (
-                  <div className="font-figtree text-[12px] text-neutral-tertiary line-through">
-                    {formatPrice(variant.originalPrice)}
-                  </div>
+
+                {variant.features && variant.features.length > 0 && (
+                  <ul className="mb-3 space-y-1">
+                    {variant.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-1.5 font-figtree text-[12px] text-neutral-secondary">
+                        <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-brand-primary/70" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
                 )}
-                <div className="font-figtree text-[16px] font-bold text-brand-950">{formatPrice(variant.price)}</div>
+
+                <div className="flex items-baseline gap-2">
+                  {variant.originalPrice && (
+                    <span className="font-figtree text-[12px] text-neutral-tertiary line-through">
+                      {formatPrice(variant.originalPrice)}
+                    </span>
+                  )}
+                  <span className="font-figtree text-[16px] font-bold text-brand-950">{formatPrice(variant.price)}</span>
+                </div>
+                {variant.compareNote && (
+                  <div className="mt-0.5 font-figtree text-[11px] text-neutral-tertiary">{variant.compareNote}</div>
+                )}
               </div>
             </button>
           );

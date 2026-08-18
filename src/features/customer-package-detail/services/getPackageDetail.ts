@@ -75,22 +75,47 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
   return entries.filter((e) => e.flag).map(({ id, label, icon }) => ({ id, label, icon }));
 }
 
-function mapIncludedItems(pkg: RawFullPackage): IncludedItemEntry[] {
+function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups.map((setup, i) => ({
     id: setup._id ?? `setup-${i}`,
     image: setup.setupPhoto,
     title: setup.name ?? "Setup",
-    decoratingAreas: setup.decoratingWhat ? [setup.decoratingWhat] : [],
-    theme: setup.themes?.join(", ") || "—",
-    setupType: "—",
+    details: [
+      { label: "Decorating", value: setup.decoratingWhat || "—" },
+      { label: "Theme", value: setup.themes?.join(", ") || "—" },
+      { label: "Setup type", value: "—" },
+    ],
     price: setup.price ?? 0,
     items: (setup.items ?? []).map((line, idx) => ({
       id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
       label: line.name ?? "Item",
       qty: line.qty ?? 1,
+      originalQty: line.qty ?? 1,
     })),
   }));
+}
+
+// PAV packages have no per-item price or sub-item list (pricing/checklist is
+// package-level) — IncludedItemCard skips those rows when price is 0 / items
+// is empty rather than showing fake ₹0 / an empty checklist.
+function mapIncludedItemsPav(pkg: RawFullPackage): IncludedItemEntry[] {
+  const items = pkg.step2_productsAndPricing?.packageItems ?? [];
+  return items.map((item, i) => ({
+    id: item._id ?? `item-${i}`,
+    title: item.itemType || "Item",
+    details: [
+      { label: "Style", value: item.contentDetails?.style || item.contentDetails?.categories?.join(", ") || "—" },
+      { label: "Quantity", value: item.contentDetails?.quantity != null ? String(item.contentDetails.quantity) : "—" },
+      { label: "Delivery", value: item.logisticsAndHandover?.deliveryTimeline || "—" },
+    ],
+    price: 0,
+    items: [],
+  }));
+}
+
+function mapIncludedItems(pkg: RawFullPackage): IncludedItemEntry[] {
+  return pkg.vendorType === "PAV" ? mapIncludedItemsPav(pkg) : mapIncludedItemsDecorator(pkg);
 }
 
 function mapAddons(pkg: RawFullPackage): AddonItem[] {
@@ -139,6 +164,7 @@ function mapVendor(pkg: RawFullPackage): VendorInfo {
     id: vendor?.id ?? "",
     initials: initialsOf(name),
     name,
+    businessName: name,
     rating: vendor?.rating ?? 0,
     verified: vendor?.isVerified ?? false,
     eventsCount: Number(vendor?.bookingsPerYear) || vendor?.reviewsCount || 0,
@@ -186,16 +212,6 @@ async function buildReviews(packageId: string): Promise<ReviewsSummary> {
   };
 }
 
-// TEMPORARY: the backend currently 500s GET /customer/packages/:id for
-// every package (Package.vendorId is stored as the vendor's business-id
-// string instead of its ObjectId, so the vendor populate throws a CastError
-// — reported to the backend team, not yet fixed). Skip the real call
-// entirely rather than doing a network round-trip that's guaranteed to
-// fail, and serve the static placeholder instead. Flip this back to false
-// once the backend fix lands — every mapping below is already real and
-// ready, no other code change needed.
-const PDP_BACKEND_BROKEN = true;
-
 /**
  * Data source for the Package Detail (product description) page — calls the
  * real GET /api/customer/packages/:packageId (Eventory_V2_backend). Every
@@ -203,10 +219,6 @@ const PDP_BACKEND_BROKEN = true;
  * so this mapping is the sole place backend fields get translated into it.
  */
 export async function getPackageDetail(packageId: string): Promise<PackageDetail> {
-  if (PDP_BACKEND_BROKEN) {
-    return { ...mockPackageDetail, id: packageId || mockPackageDetail.id };
-  }
-
   let response;
   try {
     response = await fetchPackageDetail(packageId);

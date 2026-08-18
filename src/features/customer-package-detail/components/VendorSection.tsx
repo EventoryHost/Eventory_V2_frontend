@@ -1,13 +1,10 @@
 import Link from "next/link";
-import { BadgeCheck, Star } from "lucide-react";
+import { Star } from "lucide-react";
 import type { VendorInfo } from "../types";
-import SectionHeading from "./SectionHeading";
 
 export default function VendorSection({ vendor }: { vendor: VendorInfo }) {
   return (
-    <section className="border-t border-black/5 pt-8">
-      <SectionHeading>Meet our Vendor</SectionHeading>
-
+    <section id="vendor" className="border-t border-black/5 pt-8">
       <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-black/10 p-6 md:flex-row md:items-center">
         <div className="flex items-center gap-4">
           <div className="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-black/5 font-figtree text-[18px] font-bold text-brand-950">
@@ -18,16 +15,11 @@ export default function VendorSection({ vendor }: { vendor: VendorInfo }) {
             </div>
           </div>
           <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-figtree text-[16px] font-bold text-brand-950">Hosted by {vendor.name}</h3>
-              {vendor.verified && (
-                <span className="flex items-center gap-1 rounded bg-[#EFF6FF] px-2 py-0.5 font-figtree text-[10px] font-semibold text-[#2563EB]">
-                  <BadgeCheck className="h-3 w-3" /> Eventory Verified
-                </span>
-              )}
-            </div>
+            <h3 className="font-figtree text-[16px] font-bold text-brand-950">Hosted by {vendor.name}</h3>
             <p className="mt-1 font-figtree text-[13px] text-neutral-tertiary">
-              {vendor.eventsCount} Events · {vendor.yearsExperience}+ Years of Experience
+              {vendor.eventsCount} events
+              {vendor.businessName && <> · {vendor.businessName}</>}
+              {vendor.repliesIn && <> · replies in {vendor.repliesIn}</>}
             </p>
           </div>
         </div>
