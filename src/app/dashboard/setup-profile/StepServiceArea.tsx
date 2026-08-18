@@ -34,10 +34,26 @@ export function StepServiceArea({
                 <div className="flex flex-wrap gap-3">
                     {cities.map((city) => (
                         <button key={city}
-                            onClick={() => { setActiveCity(city); if (!formData.serviceAreas.includes(city)) toggleServiceArea(city, true); }}
-                            className={`px-5 py-2.5 rounded-full border transition-all text-[14px] font-medium font-figtree ${activeCity === city ? 'bg-[#04222D] border-[#04222D] text-white'
-                                : formData.serviceAreas.includes(city) ? 'bg-gray-100 border-[#04222D] text-[#04222D]'
-                                : 'bg-white border-[#D4D4D8] text-[#3F3F47] hover:bg-gray-50'}`}>
+                            onClick={() => {
+                                if (formData.serviceAreas.includes(city)) {
+                                    if (activeCity === city) {
+                                        toggleServiceArea(city, true);
+                                        setActiveCity(null);
+                                    } else {
+                                        setActiveCity(city);
+                                    }
+                                } else {
+                                    toggleServiceArea(city, true);
+                                    setActiveCity(city);
+                                }
+                            }}
+                            className={`px-5 py-2.5 rounded-full border transition-all text-[14px] font-medium font-figtree ${
+                                formData.serviceAreas.includes(city)
+                                    ? activeCity === city 
+                                        ? 'bg-[#04222D] border-[#04222D] text-white ring-2 ring-offset-2 ring-[#04222D]' 
+                                        : 'bg-[#04222D] border-[#04222D] text-white opacity-80'
+                                    : 'bg-white border-[#D4D4D8] text-[#3F3F47] hover:bg-gray-50'
+                            }`}>
                             {city}
                         </button>
                     ))}

@@ -1,6 +1,6 @@
 'use client';
 import { motion, AnimatePresence } from 'framer-motion';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const sv = { initial: { x: 20, opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: -20, opacity: 0 } };
 
@@ -184,6 +184,10 @@ function Bullet({ children }: { children: React.ReactNode }) {
 export function StepTerms({ hasAcceptedTerms, setHasAcceptedTerms, vendorName, brandName, pocName, email, vendorId }: Props) {
     const [checkedItems, setCheckedItems] = useState<boolean[]>(new Array(consentItems.length).fill(false));
     const allChecked = checkedItems.every(Boolean);
+
+    useEffect(() => {
+        setHasAcceptedTerms(allChecked);
+    }, [allChecked, setHasAcceptedTerms]);
 
     const toggleItem = (i: number) => {
         setCheckedItems(prev => { const n = [...prev]; n[i] = !n[i]; return n; });
@@ -561,22 +565,6 @@ export function StepTerms({ hasAcceptedTerms, setHasAcceptedTerms, vendorName, b
 
             </div>{/* end policy sections */}
 
-            {/* ── Final Agreement Checkbox ── */}
-            <div
-                className="flex items-start gap-3 pt-4 cursor-pointer select-none border-t border-[#E6E9EA]"
-                onClick={() => setHasAcceptedTerms(!hasAcceptedTerms)}
-            >
-                <div className={`mt-[2px] w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${hasAcceptedTerms ? 'border-[#04222D] bg-[#04222D]' : 'border-[#D4D4D8] bg-white'}`}>
-                    {hasAcceptedTerms && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                    )}
-                </div>
-                <span className="text-[14px] text-[#3F3F47] font-semibold font-figtree leading-[22px]">
-                    I have read and agree to the Eventory Vendor Agreement and Onboarding Consent Form
-                </span>
-            </div>
         </motion.div>
     );
 }

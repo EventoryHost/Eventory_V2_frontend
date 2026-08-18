@@ -72,7 +72,7 @@ export default function BottomNav() {
                                     height: '24px',
                                     objectFit: 'contain',
                                     filter: isActive 
-                                        ? 'brightness(0) invert(53%) sepia(55%) saturate(3731%) hue-rotate(324deg) brightness(96%) contrast(93%)' 
+                                        ? 'brightness(0) saturate(100%) invert(46%) sepia(45%) saturate(1428%) hue-rotate(313deg) brightness(98%) contrast(92%)' 
                                         : 'none'
                                 }}
                             />

@@ -46,6 +46,10 @@ export default function DashboardHome() {
     const [calendarEvents, setCalendarEvents] = useState<any[]>([]);
     const [vendorData, setVendorData] = useState<any>(null);
     const [showStep2Popup, setShowStep2Popup] = useState(false);
+    
+    // Progress state
+    const [step1Progress, setStep1Progress] = useState(0);
+    const [step2Progress, setStep2Progress] = useState(0);
 
     // Dummy Data Function for Dev
     const populateDummyData = () => {
@@ -138,6 +142,23 @@ export default function DashboardHome() {
                                 localStorage.removeItem('dashboard_step');
                             }
                         }
+
+                        // Calculate Step 1 progress (from localStorage)
+                        const savedSetupStep = localStorage.getItem('vendor_setup_step');
+                        const stepInt = parseInt(savedSetupStep || '1');
+                        const calculatedProgress1 = Math.min(100, Math.round(((stepInt - 1) / 14) * 100));
+                        setStep1Progress(calculatedProgress1);
+
+                        // Calculate Step 2 progress
+                        let s2Filled = 0;
+                        if (vendor.isAadharVerified) s2Filled++;
+                        if (vendor.isPanVerified) s2Filled++;
+                        if (vendor.isFaceMatchVerified) s2Filled++;
+                        if (!vendor.isIndividual && vendor.isGstVerified) s2Filled++;
+                        if (vendor.bankDetails && (vendor.bankDetails.length > 0 || vendor.bankDetails.accountNumber)) s2Filled++;
+                        
+                        const actualS2Total = vendor.isIndividual ? 4 : 5; // Aadhaar, PAN, FaceMatch, Bank (+ GST)
+                        setStep2Progress(Math.min(100, Math.round((s2Filled / actualS2Total) * 100)));
                     }
                 } catch (err) {
                     console.error('Error checking vendor status:', err);
@@ -221,7 +242,7 @@ export default function DashboardHome() {
             {dashboardStep < 3 ? (
                 <div className="px-6 py-4 pb-24 flex flex-col gap-4">
                     {/* Step 1 Card */}
-                    {(dashboardStep === 1 || dashboardStep >= 2) && (
+                    {(dashboardStep === 1 || (dashboardStep >= 2 && process.env.NODE_ENV !== 'production')) && (
                         <div className="bg-white rounded-[16px] border border-[#F4F4F5] overflow-hidden shadow-sm">
                             <div className="p-5 flex flex-col gap-3">
                                 <div className="flex justify-between items-center">
@@ -234,12 +255,23 @@ export default function DashboardHome() {
                                 <p className="text-[#A1A1AA] text-[14px] leading-snug font-figtree">
                                     Highlight your skills and set your availability to start attracting clients.
                                 </p>
+                                
+                                {(step1Progress > 0 || dashboardStep >= 2) && (
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <div className="flex-1 h-2 bg-[#E6E9EA] rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#04222D]" style={{ width: `${dashboardStep >= 2 ? 100 : step1Progress}%` }} />
+                                        </div>
+                                        <span className="text-[14px] font-bold text-[#030303]">{dashboardStep >= 2 ? 100 : step1Progress}%</span>
+                                    </div>
+                                )}
                             </div>
                             <div 
                                 className="bg-[#04222D] p-5 flex justify-between items-center cursor-pointer active:bg-opacity-90 transition-all"
                                 onClick={() => router.push('/dashboard/setup-profile')}
                             >
-                                <span className="text-white font-bold text-[16px]">{dashboardStep >= 2 ? 'Edit Profile' : 'Start Now'}</span>
+                                <span className="text-white font-bold text-[16px]">
+                                    {dashboardStep >= 2 ? 'Edit Profile' : (step1Progress > 0 ? 'Continue' : 'Start Now')}
+                                </span>
                                 <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center">
                                     <ArrowRight size={18} className="text-[#030303]" />
                                 </div>
@@ -256,12 +288,21 @@ export default function DashboardHome() {
                                 <p className="text-[#A1A1AA] text-[14px] leading-snug font-figtree">
                                     Submit your personal documents like Aadhar, PAN, and GST for e-KYC verification.
                                 </p>
+                                
+                                {step2Progress > 0 && (
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <div className="flex-1 h-2 bg-[#E6E9EA] rounded-full overflow-hidden">
+                                            <div className="h-full bg-[#04222D]" style={{ width: `${step2Progress}%` }} />
+                                        </div>
+                                        <span className="text-[14px] font-bold text-[#030303]">{step2Progress}%</span>
+                                    </div>
+                                )}
                             </div>
                             <div 
                                 className="bg-[#04222D] p-5 flex justify-between items-center cursor-pointer active:bg-opacity-90 transition-all"
                                 onClick={() => router.push('/dashboard/documents')}
                             >
-                                <span className="font-bold text-[16px] text-white">Start Now</span>
+                                <span className="font-bold text-[16px] text-white">{step2Progress > 0 ? 'Continue' : 'Start Now'}</span>
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center bg-white">
                                     <ArrowRight size={18} className="text-[#030303]" />
                                 </div>
