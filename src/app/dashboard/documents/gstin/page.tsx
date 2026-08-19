@@ -95,10 +95,15 @@ function GSTINContent() {
                 <div className="w-full h-[6px] rounded-full bg-[#E5E5E5] mb-6 overflow-hidden">
                     <div className="h-full w-[85%] bg-[#031B24] rounded-full" />
                 </div>
-                <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1 text-[#030303] text-[16px] font-semibold mb-8">
-                    <ChevronLeft size={20} />
-                    <span>Save & Exit</span>
-                </button>
+                <div className="flex items-center justify-between mb-8">
+                    <button onClick={() => router.push('/dashboard')} className="flex items-center gap-1 text-[#030303] text-[16px] font-semibold">
+                        <ChevronLeft size={20} />
+                        <span>Save & Exit</span>
+                    </button>
+                    <button onClick={() => router.push('/dashboard/documents/banking')} className="text-[#71717B] text-[16px] font-semibold hover:text-[#030303] transition-colors">
+                        Skip
+                    </button>
+                </div>
             </div>
 
             <div className="flex-1 px-6 pb-32">

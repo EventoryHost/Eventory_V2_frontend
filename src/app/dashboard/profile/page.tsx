@@ -31,7 +31,7 @@ const ProfileField = ({
 
     return (
         <div className={`mb-6 transition-opacity duration-200 ${isDisabled ? 'opacity-50 pointer-events-none' : ''}`}>
-            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[11px] font-bold text-[#71717B] dark:text-[#A1A1AA] uppercase tracking-wider mb-2">
+            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-medium text-[#71717B] dark:text-[#A1A1AA] mb-2">
                 {label}
             </label>
             
@@ -148,6 +148,10 @@ export default function ViewProfilePage() {
     const [resumeStep, setResumeStep] = useState(1);
 
     const [editingField, setEditingField] = useState<string | null>(null);
+    const [isAddingNewPoc, setIsAddingNewPoc] = useState(false);
+    const [newPocName, setNewPocName] = useState('');
+    const [newPocPhone, setNewPocPhone] = useState('');
+    const [newPocError, setNewPocError] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
     const [fieldError, setFieldError] = useState<string | null>(null);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -211,6 +215,39 @@ export default function ViewProfilePage() {
         setFieldError(null);
     };
 
+    const handleSaveNewPoc = async () => {
+        if (!newPocName.trim()) {
+            setNewPocError("Name is required.");
+            return;
+        }
+        if (newPocPhone && (newPocPhone.length !== 10 || !/^\d+$/.test(newPocPhone))) {
+            setNewPocError("Invalid mobile number. Must be 10 digits.");
+            return;
+        }
+
+        setNewPocError(null);
+        try {
+            const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
+            const updatedAdditionalPocs = [...(vendor.additionalPocs || []), { name: newPocName, phone: newPocPhone }];
+            
+            const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ additionalPocs: updatedAdditionalPocs })
+            });
+
+            if (!res.ok) throw new Error("Update failed");
+
+            setVendor({ ...vendor, additionalPocs: updatedAdditionalPocs });
+            setIsAddingNewPoc(false);
+            setNewPocName('');
+            setNewPocPhone('');
+        } catch (error) {
+            console.error("Failed to add new POC", error);
+            setNewPocError("Failed to add Point of Contact.");
+        }
+    };
+
     const handleUpdate = async () => {
         if (!editingField || !vendor) return;
 
@@ -218,11 +255,31 @@ export default function ViewProfilePage() {
 
         try {
             const vendorId = localStorage.getItem('vendor_id') || 'placeholder_id';
-            
+            let payload: any = {};
+            let updatedVendor = { ...vendor };
+
+            if (editingField.startsWith('poc_')) {
+                // e.g. poc_0_name
+                const parts = editingField.split('_');
+                const index = parseInt(parts[1], 10);
+                const field = parts[2];
+                
+                const updatedAdditionalPocs = [...(vendor.additionalPocs || [])];
+                updatedAdditionalPocs[index] = {
+                    ...updatedAdditionalPocs[index],
+                    [field]: editValue
+                };
+                payload = { additionalPocs: updatedAdditionalPocs };
+                updatedVendor.additionalPocs = updatedAdditionalPocs;
+            } else {
+                payload = { [editingField]: editValue };
+                updatedVendor[editingField] = editValue;
+            }
+
             const res = await fetch(apiUrl(`/vendors/${vendorId}`), {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ [editingField]: editValue })
+                body: JSON.stringify(payload)
             });
 
             if (!res.ok) {
@@ -234,7 +291,6 @@ export default function ViewProfilePage() {
             }
 
             // Success
-            const updatedVendor = { ...vendor, [editingField]: editValue };
             setVendor(updatedVendor);
             setEditingField(null);
         } catch (error) {
@@ -360,70 +416,182 @@ export default function ViewProfilePage() {
 
             {/* Profile Fields */}
             <div className="px-5 mb-10">
-                <ProfileField 
-                    label="LEGAL NAME" 
-                    fieldKey="businessName" 
-                    value={vendor.businessName} 
-                    isEditing={editingField === 'businessName'}
-                    globalEditingField={editingField}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    onEditClick={handleEditClick}
-                    onCancel={handleCancelEdit}
-                    onUpdate={handleUpdate}
-                    onUploadClick={() => setIsUploadModalOpen(true)}
-                />
-                <ProfileField 
-                    label="POINT OF CONTACT" 
-                    fieldKey="pocName" 
-                    value={vendor.pocName} 
-                    isEditing={editingField === 'pocName'}
-                    globalEditingField={editingField}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    onEditClick={handleEditClick}
-                    onCancel={handleCancelEdit}
-                    onUpdate={handleUpdate}
-                />
-                <ProfileField 
-                    label="EMAIL" 
-                    fieldKey="email" 
-                    value={vendor.email} 
-                    hasVerifyLink 
-                    isEditing={editingField === 'email'}
-                    globalEditingField={editingField}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    onEditClick={handleEditClick}
-                    onCancel={handleCancelEdit}
-                    onUpdate={handleUpdate}
-                />
-                <ProfileField 
-                    label="MOBILE NUMBER" 
-                    fieldKey="phone" 
-                    value={vendor.phone} 
-                    isEditing={editingField === 'phone'}
-                    globalEditingField={editingField}
-                    editValue={editValue}
-                    setEditValue={(val: string) => { setEditValue(val); setFieldError(null); }}
-                    onEditClick={handleEditClick}
-                    onCancel={handleCancelEdit}
-                    onUpdate={handleUpdate}
-                    errorMessage={editingField === 'phone' ? fieldError : null}
-                    customDisable={editingField === 'phone' ? (editValue === vendor.phone || editValue.length !== 10 || !/^\d+$/.test(editValue)) : undefined}
-                />
-                <ProfileField 
-                    label="ADDRESS" 
-                    fieldKey="city" 
-                    value={vendor.city} 
-                    isEditing={editingField === 'city'}
-                    globalEditingField={editingField}
-                    editValue={editValue}
-                    setEditValue={setEditValue}
-                    onEditClick={handleEditClick}
-                    onCancel={handleCancelEdit}
-                    onUpdate={handleUpdate}
-                />
+                {/* Vendor Details Card */}
+                <div className="mb-6">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] dark:text-white mb-3">Vendor Details</h3>
+                    <div className="bg-white dark:bg-[#1E1E1B] border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[16px] p-5">
+                        <ProfileField 
+                            label="Legal Name" 
+                            fieldKey="businessName" 
+                            value={vendor.businessName} 
+                            isEditing={editingField === 'businessName'}
+                            globalEditingField={editingField}
+                            editValue={editValue}
+                            setEditValue={setEditValue}
+                            onEditClick={handleEditClick}
+                            onCancel={handleCancelEdit}
+                            onUpdate={handleUpdate}
+                            onUploadClick={() => setIsUploadModalOpen(true)}
+                        />
+                        <ProfileField 
+                            label="Email" 
+                            fieldKey="email" 
+                            value={vendor.email} 
+                            hasVerifyLink 
+                            isEditing={editingField === 'email'}
+                            globalEditingField={editingField}
+                            editValue={editValue}
+                            setEditValue={setEditValue}
+                            onEditClick={handleEditClick}
+                            onCancel={handleCancelEdit}
+                            onUpdate={handleUpdate}
+                        />
+                        <ProfileField 
+                            label="Mobile Number" 
+                            fieldKey="phone" 
+                            value={vendor.phone} 
+                            isEditing={editingField === 'phone'}
+                            globalEditingField={editingField}
+                            editValue={editValue}
+                            setEditValue={(val: string) => { setEditValue(val); setFieldError(null); }}
+                            onEditClick={handleEditClick}
+                            onCancel={handleCancelEdit}
+                            onUpdate={handleUpdate}
+                            errorMessage={editingField === 'phone' ? fieldError : null}
+                            customDisable={editingField === 'phone' ? (editValue === vendor.phone || editValue.length !== 10 || !/^\d+$/.test(editValue)) : undefined}
+                        />
+                        <ProfileField 
+                            label="Address" 
+                            fieldKey="city" 
+                            value={vendor.city} 
+                            isEditing={editingField === 'city'}
+                            globalEditingField={editingField}
+                            editValue={editValue}
+                            setEditValue={setEditValue}
+                            onEditClick={handleEditClick}
+                            onCancel={handleCancelEdit}
+                            onUpdate={handleUpdate}
+                        />
+                    </div>
+                </div>
+
+                {/* POC Details Card */}
+                <div className="mb-6">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] dark:text-white mb-3">POC Details</h3>
+                    <div className="bg-white dark:bg-[#1E1E1B] border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[16px] p-5">
+                        
+                        <ProfileField 
+                            label="Point of Contact" 
+                            fieldKey="pocName" 
+                            value={vendor.pocName} 
+                            isEditing={editingField === 'pocName'}
+                            globalEditingField={editingField}
+                            editValue={editValue}
+                            setEditValue={setEditValue}
+                            onEditClick={handleEditClick}
+                            onCancel={handleCancelEdit}
+                            onUpdate={handleUpdate}
+                        />
+                        <ProfileField 
+                            label="POC Mobile Number" 
+                            fieldKey="pocPhone" 
+                            value={vendor.pocPhone} 
+                            isEditing={editingField === 'pocPhone'}
+                            globalEditingField={editingField}
+                            editValue={editValue}
+                            setEditValue={setEditValue}
+                            onEditClick={handleEditClick}
+                            onCancel={handleCancelEdit}
+                            onUpdate={handleUpdate}
+                            customDisable={editingField === 'pocPhone' ? (editValue === vendor.pocPhone || editValue.length !== 10 || !/^\d+$/.test(editValue)) : undefined}
+                        />
+
+                        {vendor.additionalPocs?.map((poc: any, index: number) => (
+                            <React.Fragment key={index}>
+                                <div className="h-[1px] bg-[#E4E4E7] dark:bg-[#3F3F47] my-4 w-full"></div>
+                                <ProfileField 
+                                    label="Point of Contact" 
+                                    fieldKey={`poc_${index}_name`}
+                                    value={poc.name} 
+                                    isEditing={editingField === `poc_${index}_name`}
+                                    globalEditingField={editingField}
+                                    editValue={editValue}
+                                    setEditValue={setEditValue}
+                                    onEditClick={handleEditClick}
+                                    onCancel={handleCancelEdit}
+                                    onUpdate={handleUpdate}
+                                />
+                                <ProfileField 
+                                    label="POC Mobile Number" 
+                                    fieldKey={`poc_${index}_phone`}
+                                    value={poc.phone} 
+                                    isEditing={editingField === `poc_${index}_phone`}
+                                    globalEditingField={editingField}
+                                    editValue={editValue}
+                                    setEditValue={setEditValue}
+                                    onEditClick={handleEditClick}
+                                    onCancel={handleCancelEdit}
+                                    onUpdate={handleUpdate}
+                                    customDisable={editingField === `poc_${index}_phone` ? (editValue === poc.phone || editValue.length !== 10 || !/^\d+$/.test(editValue)) : undefined}
+                                />
+                            </React.Fragment>
+                        ))}
+
+                        {isAddingNewPoc ? (
+                            <div className="mt-4 p-4 border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[12px] bg-[#FAFAFA] dark:bg-[#1E1E1B] animate-in fade-in zoom-in-95 duration-200">
+                                <div className="mb-4">
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-medium text-[#71717B] dark:text-[#A1A1AA] mb-2">Point of Contact</label>
+                                    <input
+                                        type="text"
+                                        value={newPocName}
+                                        onChange={(e) => { setNewPocName(e.target.value); setNewPocError(null); }}
+                                        className="w-full p-4 bg-white dark:bg-[#27272A] border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[12px] text-[15px] font-medium text-[#030303] dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="mb-4">
+                                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-medium text-[#71717B] dark:text-[#A1A1AA] mb-2">Mobile Number</label>
+                                    <input
+                                        type="text"
+                                        value={newPocPhone}
+                                        onChange={(e) => { setNewPocPhone(e.target.value); setNewPocError(null); }}
+                                        className="w-full p-4 bg-white dark:bg-[#27272A] border border-[#E4E4E7] dark:border-[#3F3F47] rounded-[12px] text-[15px] font-medium text-[#030303] dark:text-white focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-gray-600"
+                                    />
+                                </div>
+                                {newPocError && (
+                                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[#E11D48] text-[11px] mb-3 font-medium px-1">
+                                        {newPocError}
+                                    </p>
+                                )}
+                                <div className="flex items-center gap-4">
+                                    <button 
+                                        onClick={handleSaveNewPoc}
+                                        disabled={!newPocName.trim()}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className={`px-6 py-2.5 text-white text-[13px] font-bold rounded-[8px] transition-all ${!newPocName.trim() ? 'bg-[#84949A] cursor-not-allowed' : 'bg-[#04222D] dark:bg-[#E95A6E] active:scale-95'}`}
+                                    >
+                                        Save POC
+                                    </button>
+                                    <button 
+                                        onClick={() => { setIsAddingNewPoc(false); setNewPocName(''); setNewPocPhone(''); setNewPocError(null); }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="px-4 py-2.5 bg-transparent text-[#030303] dark:text-white text-[13px] font-medium rounded-[8px] active:scale-95 transition-transform"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setIsAddingNewPoc(true)}
+                                disabled={!!editingField}
+                                className={`w-full py-4 mt-2 bg-[#F4F4F5] dark:bg-[#27272A] text-[#030303] dark:text-white font-bold text-[14px] rounded-[12px] transition-colors flex items-center justify-center gap-2 ${editingField ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[#E4E4E7] dark:hover:bg-[#3F3F47]'}`}
+                            >
+                                <span className="text-[18px] font-normal leading-none mb-[2px]">+</span> Add another POC
+                            </button>
+                        )}
+                    </div>
+                </div>
             </div>
 
             {/* Action Required Section — only shown while onboarding is in progress */}

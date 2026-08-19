@@ -37,6 +37,7 @@ const MAJOR_BANKS = [
 function BankingContent() {
     const router = useRouter();
     const [accountNumber, setAccountNumber] = useState('');
+    const [beneficiaryName, setBeneficiaryName] = useState('');
     const [confirmAccount, setConfirmAccount] = useState('');
     const [ifsc, setIfsc] = useState('');
     const [loading, setLoading] = useState(false);
@@ -92,6 +93,10 @@ function BankingContent() {
     }, [searchTerm, bankBranches, searchStep]);
 
     const handleVerifyBank = async () => {
+        if (!beneficiaryName.trim()) {
+            setError('Beneficiary name is required');
+            return;
+        }
         if (accountNumber !== confirmAccount) {
             setError('Account numbers do not match');
             return;
@@ -107,7 +112,7 @@ function BankingContent() {
                 body: JSON.stringify({
                     bank_account: accountNumber,
                     ifsc: ifsc,
-                    name: vendorName,
+                    name: beneficiaryName.trim(),
                     vendor_id: vendorId
                 })
             });
@@ -151,6 +156,18 @@ function BankingContent() {
                 </div>
 
                 <div className="space-y-6">
+                    {/* Beneficiary Name */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[14px] font-bold text-[#030303]">Beneficiary Name</label>
+                        <input
+                            type="text"
+                            placeholder="Name as per bank account"
+                            value={beneficiaryName}
+                            onChange={(e) => setBeneficiaryName(e.target.value)}
+                            className="w-full px-5 py-4 border border-[#D1D5DB] rounded-2xl outline-none text-[16px] font-medium text-[#030303] focus:border-[#030303] transition-all bg-white placeholder:text-[#9CA3AF]"
+                        />
+                    </div>
+
                     {/* Account Number */}
                     <div className="flex flex-col gap-2">
                         <label className="text-[14px] font-bold text-[#030303]">Account Number</label>
@@ -211,9 +228,9 @@ function BankingContent() {
                     <ArrowLeft size={24} className="text-[#030303]" />
                 </button>
                 <button
-                    disabled={!accountNumber || !confirmAccount || !ifsc || loading}
+                    disabled={!beneficiaryName || !accountNumber || !confirmAccount || !ifsc || loading}
                     onClick={handleVerifyBank}
-                    className={`flex-1 h-16 rounded-[20px] font-bold text-[18px] flex items-center justify-center transition-all ${accountNumber && confirmAccount && ifsc && !loading ? 'bg-[#04222D] text-white shadow-lg active:scale-[0.98]' : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'}`}
+                    className={`flex-1 h-16 rounded-[20px] font-bold text-[18px] flex items-center justify-center transition-all ${beneficiaryName && accountNumber && confirmAccount && ifsc && !loading ? 'bg-[#04222D] text-white shadow-lg active:scale-[0.98]' : 'bg-[#E5E7EB] text-[#9CA3AF] cursor-not-allowed'}`}
                 >
                     {loading ? 'Verifying...' : 'Continue'}
                 </button>

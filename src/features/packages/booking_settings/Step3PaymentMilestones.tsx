@@ -108,18 +108,15 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
         }
     }, [initialData, packageData]);
 
-    const allocated = milestones.filter(m => !m.isFinal).reduce((acc, m) => acc + m.percentage, 0);
+    const allocated = milestones.reduce((acc, m) => acc + m.percentage, 0);
     const remaining = 100 - allocated;
 
-    // Ensure final payment always reflects the remaining amount
-    const displayMilestones = milestones.map(m => {
-        if (m.isFinal) {
-            return { ...m, percentage: remaining };
-        }
-        return m;
-    });
-
     const handleSaveAndContinue = async () => {
+        if (remaining !== 0) {
+            alert(`Total distribution must be exactly 100%. You have ${remaining}% remaining to allocate.`);
+            return;
+        }
+
         if (!packageId) {
             onNext();
             return;
@@ -128,7 +125,7 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
         setIsSaving(true);
         try {
             const payload = {
-                milestones: displayMilestones.map(m => ({
+                milestones: milestones.map(m => ({
                     title: m.title,
                     percentage: m.percentage,
                     dueDays: m.dueDays
@@ -154,13 +151,13 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
     const openModal = (index: number | null) => {
         setEditingIndex(index);
         if (index !== null) {
-            const m = displayMilestones[index];
+            const m = milestones[index];
             setModalTitle(m.title);
             setModalPercentage(m.percentage.toString());
             setModalDueDays(m.dueDays);
         } else {
             // New milestone
-            const currentAdvances = displayMilestones.filter(m => m.title.startsWith('Advance')).length;
+            const currentAdvances = milestones.filter(m => m.title.startsWith('Advance')).length;
             setModalTitle(`Advance ${currentAdvances + 1}`);
             setModalPercentage('');
             setModalDueDays('');
@@ -215,7 +212,7 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
     };
 
     const maxAvailable = editingIndex !== null 
-        ? remaining + (displayMilestones[editingIndex]?.percentage || 0)
+        ? remaining + (milestones[editingIndex]?.percentage || 0)
         : remaining;
         
     const baseOptions = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
@@ -273,7 +270,7 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
                     <div className="absolute left-[27px] top-8 bottom-8 w-[1.5px] bg-[#E4E4E7] z-0" />
                     
                     <div className="flex flex-col gap-6 relative z-10">
-                        {displayMilestones.map((milestone, idx) => (
+                        {milestones.map((milestone, idx) => (
                             <div key={milestone.id} className="flex gap-4 items-start">
                                 {/* Number circle */}
                                 <div className="w-7 h-7 rounded-full bg-[#F4F4F5] border-2 border-white flex items-center justify-center text-[13px] font-bold text-[#04222D] shrink-0 mt-4 shadow-sm z-10 relative">
@@ -306,7 +303,7 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
                 </div>
                 
                 <p className="text-[12.5px] text-[#A1A1AA] font-medium mt-6 leading-relaxed pl-12 pr-4">
-                    Final Payment is Fixed and will be updated as you add various milestones
+                    Ensure all milestones add up to exactly 100%.
                 </p>
             </div>
 
@@ -360,7 +357,7 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
                                 <select 
                                     value={modalTitle} 
                                     onChange={e => setModalTitle(e.target.value)}
-                                    disabled={editingIndex !== null && (displayMilestones[editingIndex]?.isFinal || displayMilestones[editingIndex]?.title === 'Token Amount')}
+                                    disabled={editingIndex !== null && (milestones[editingIndex]?.isFinal || milestones[editingIndex]?.title === 'Token Amount')}
                                     className="w-full bg-white border border-[#E4E4E7] rounded-xl px-4 py-3 text-[14.5px] font-medium text-[#04222D] focus:outline-none focus:border-[#04222D] appearance-none"
                                 >
                                     <option value="" disabled>Enter milestone type</option>
@@ -377,7 +374,6 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
                                 <select 
                                     value={modalPercentage} 
                                     onChange={e => setModalPercentage(e.target.value)}
-                                    disabled={editingIndex !== null && displayMilestones[editingIndex]?.isFinal}
                                     className="w-full bg-white border border-[#E4E4E7] rounded-xl px-4 py-3 text-[14.5px] font-medium text-[#04222D] focus:outline-none focus:border-[#04222D] appearance-none"
                                 >
                                     <option value="" disabled>Choose</option>
@@ -417,7 +413,7 @@ export default function Step3PaymentMilestones({ packageId, initialData, package
                             >
                                 Save Milestone
                             </button>
-                            {editingIndex !== null && !displayMilestones[editingIndex].isFinal && (
+                            {editingIndex !== null && !milestones[editingIndex].isFinal && (
                                 <button 
                                     onClick={removeMilestone}
                                     className="w-full py-3.5 bg-white text-[#04222D] font-bold rounded-xl text-[15px] hover:bg-gray-50 transition-colors"
