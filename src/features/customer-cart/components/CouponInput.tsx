@@ -22,7 +22,7 @@ export default function CouponInput({
 }) {
   if (appliedCoupon) {
     return (
-      <div className="flex items-center justify-between rounded-xl border border-success-700/30 bg-success-subtle px-4 py-3">
+      <div className="flex items-center justify-between rounded-lg border border-success-700/30 bg-success-subtle px-4 py-3">
         <div>
           <p className="font-figtree text-[13px] font-bold text-success-700">
             {appliedCoupon.code} applied
@@ -51,15 +51,15 @@ export default function CouponInput({
             type="text"
             value={code}
             onChange={(event) => onCodeChange(event.target.value)}
-            placeholder="Enter coupon code"
-            className="w-full rounded-xl border border-neutral-subtle bg-[#F9F9F9] px-4 py-3 font-figtree text-[14px] text-neutral-primary outline-none focus:border-brand-primary"
+            placeholder="Apply Coupon"
+            className="w-full rounded-lg border border-neutral-subtle px-3.5 py-2.5 font-figtree text-[13px] text-neutral-primary outline-none focus:border-brand-primary"
           />
         </label>
         <button
           type="button"
           onClick={onApply}
           disabled={isLoading || code.trim().length === 0}
-          className="flex shrink-0 items-center gap-1.5 rounded-xl border border-brand-primary px-5 py-3 font-figtree text-[13px] font-bold text-brand-primary transition-colors hover:bg-brand-primary/5 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg border border-brand-primary px-4 py-2.5 font-figtree text-[13px] font-bold text-brand-primary transition-colors hover:bg-brand-subtle disabled:cursor-not-allowed disabled:opacity-40"
         >
           {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           Apply

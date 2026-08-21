@@ -47,6 +47,7 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, { name: string; ini
       guestCount: item.eventDetails.guestCount,
       location: item.eventDetails.location,
     },
+    specialRequest: item.specialRequest,
     packageStillAvailable: item.packageStillAvailable,
     priceChanged: item.priceChanged,
     addons: item.selectedAddOns.map((addon, i) => mapAddon(addon, item._id, i)),

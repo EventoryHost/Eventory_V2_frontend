@@ -1,4 +1,4 @@
-import type { CartPageData } from "../types";
+import type { CartPageData, RecommendedAddon } from "../types";
 
 // Fallback display data for when GET /api/customer/cart can't be reached
 // (network/5xx) — see services/getCartPageData.ts. Shaped to match the real
@@ -18,7 +18,7 @@ export const mockCartPageData: CartPageData = {
       avatarInitial: "G",
       package: {
         id: "mock-package-1",
-        categoryLabel: "Makeup Artist",
+        categoryLabel: "MakeupArtist",
         title: "Glamour & Grace - Silver Package",
         image: "/images/customer/makeup.png",
         price: 14399,
@@ -31,6 +31,7 @@ export const mockCartPageData: CartPageData = {
         guestCount: 150,
         location: "Guwahati, Assam",
       },
+      specialRequest: "Event type: Birthday Party",
       packageStillAvailable: true,
       priceChanged: false,
       addons: [
@@ -78,6 +79,7 @@ export const mockCartPageData: CartPageData = {
         guestCount: null,
         location: null,
       },
+      specialRequest: "",
       packageStillAvailable: true,
       priceChanged: false,
       addons: [],
@@ -89,3 +91,97 @@ export const mockCartPageData: CartPageData = {
   discount: 0,
   total: 61696,
 };
+
+// Fallback "People also buy this" data — the real fetch (getRecommendedAddons)
+// depends on the live backend too, so it's skipped entirely in fallback mode
+// (see CartPageContent.tsx). This keeps that section visible even then.
+export const mockRecommendedAddons: RecommendedAddon[] = [
+  {
+    id: "mock-rec-1",
+    itemId: "mock-item-1",
+    title: "Facial Treatment",
+    category: "Skin Care",
+    subCategory: "Glow Facial",
+    qtyLabel: "1 unit",
+    image: "/images/customer/expo.jpg",
+    price: 6399,
+    unitLabel: "/Person",
+  },
+  {
+    id: "mock-rec-2",
+    itemId: "mock-item-1",
+    title: "Makeup Touch-up Kit",
+    category: "Makeup",
+    subCategory: "Touch-up",
+    qtyLabel: "1 unit",
+    image: "/images/customer/tech.jpg",
+    price: 3499,
+    unitLabel: "/Person",
+  },
+  {
+    id: "mock-rec-3",
+    itemId: "mock-item-1",
+    title: "Bridal Veil",
+    category: "Accessories",
+    subCategory: "Veil",
+    qtyLabel: "1 unit",
+    image: "/images/customer/haldi.jpg",
+    price: 2999,
+    unitLabel: "/Person",
+  },
+  {
+    id: "mock-rec-4",
+    itemId: "mock-item-1",
+    title: "Eyelash Extensions",
+    category: "Eye Makeup",
+    subCategory: "Extensions",
+    qtyLabel: "1 unit",
+    image: "/images/customer/holi.jpg",
+    price: 1899,
+    unitLabel: "/Person",
+  },
+  {
+    id: "mock-rec-5",
+    itemId: "mock-item-2",
+    title: "Fairy Light String",
+    category: "Lighting",
+    subCategory: "Fairy Lights",
+    qtyLabel: "3 units",
+    image: "/images/customer/decorator.png",
+    price: 800,
+    unitLabel: "/Piece",
+  },
+  {
+    id: "mock-rec-6",
+    itemId: "mock-item-2",
+    title: "Entrance Balloon Arch",
+    category: "Decor",
+    subCategory: "Entrance",
+    qtyLabel: "1 unit",
+    image: "/images/customer/packages-pics.png",
+    price: 12000,
+    unitLabel: "/Piece",
+  },
+  {
+    id: "mock-rec-7",
+    itemId: "mock-item-2",
+    title: "Table Centerpiece",
+    category: "Decor",
+    subCategory: "Table",
+    qtyLabel: "10 units",
+    image: "/images/customer/ready-1.png",
+    price: 950,
+    unitLabel: "/Piece",
+  },
+  {
+    id: "mock-rec-8",
+    itemId: "mock-item-2",
+    title: "Photo Booth Corner",
+    category: "Photography",
+    subCategory: "Photo booth",
+    qtyLabel: "1 unit",
+    image: "/images/customer/venue.png",
+    price: 6500,
+    unitLabel: "/Piece",
+  },
+];

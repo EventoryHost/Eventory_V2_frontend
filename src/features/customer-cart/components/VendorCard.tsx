@@ -34,18 +34,18 @@ export default function VendorCard({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 border-b border-neutral-subtle pb-4">
         <input
           type="checkbox"
           checked={vendor.selected}
           onChange={() => onToggleSelected(vendor.id)}
           aria-label={`Select ${vendor.vendorName} for checkout`}
-          className="h-5 w-5 rounded border-neutral-tertiary text-brand-primary focus:ring-brand-primary"
+          className="h-4 w-4 rounded border-neutral-tertiary text-brand-primary focus:ring-brand-primary"
         />
         <div className="flex items-center gap-3">
           <div
             aria-hidden="true"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#FFE3E8] font-figtree text-[15px] font-bold text-brand-primary"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle font-figtree text-[13px] font-bold text-brand-primary"
           >
             {vendor.avatarInitial}
           </div>
@@ -64,6 +64,7 @@ export default function VendorCard({
         <PackageInfo
           cartPackage={vendor.package}
           eventDetails={vendor.eventDetails}
+          specialRequest={vendor.specialRequest}
           onEditDetails={() => setIsEditOpen(true)}
           onRemove={() => onRemove(vendor.id)}
           onMoveToWishlist={() => onMoveToWishlist(vendor.id)}

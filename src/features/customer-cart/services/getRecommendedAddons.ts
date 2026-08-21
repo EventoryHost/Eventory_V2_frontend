@@ -24,6 +24,8 @@ export async function getRecommendedAddons(items: CartVendor[]): Promise<Recomme
             itemId: "",
             title: addon.name ?? "Add-on",
             category: addon.category || addon.addOnType || "Add-on",
+            subCategory: addon.subCategory ?? "",
+            qtyLabel: addon.quantity ? `${addon.quantity} unit${addon.quantity > 1 ? "s" : ""}` : "1 unit",
             image: addon.mediaUrls?.[0],
             price: addon.price ?? 0,
             unitLabel: addon.billingUnit ? `/${addon.billingUnit}` : "",

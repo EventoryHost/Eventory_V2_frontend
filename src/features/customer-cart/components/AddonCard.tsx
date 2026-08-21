@@ -10,11 +10,13 @@ export default function AddonCard({
   addon: RecommendedAddon;
   onAdd: (addon: RecommendedAddon) => void;
 }) {
+  const subLine = [addon.subCategory, addon.qtyLabel].filter(Boolean).join(" · ");
+
   return (
-    <div className="group w-[200px] shrink-0 overflow-hidden rounded-xl border border-neutral-subtle bg-white transition-shadow hover:shadow-md">
-      <div className="relative h-[120px] w-full bg-neutral-subtle">
+    <div className="group w-full overflow-hidden rounded-xl border border-neutral-subtle bg-white transition-shadow hover:shadow-md">
+      <div className="relative aspect-square w-full bg-neutral-subtle">
         {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="200px" className="object-cover" />}
-        <span className="absolute top-2 left-2 rounded bg-white/90 px-2 py-0.5 font-figtree text-[10px] font-bold text-brand-primary uppercase shadow-sm backdrop-blur">
+        <span className="absolute top-2 left-2 rounded bg-brand-subtle px-2 py-0.5 font-figtree text-[10px] font-bold text-brand-primary uppercase shadow-sm">
           {addon.category}
         </span>
         <button
@@ -30,8 +32,10 @@ export default function AddonCard({
         <h4 className="truncate font-figtree text-[14px] font-semibold text-neutral-primary">
           {addon.title}
         </h4>
-        <p className="mb-2 font-figtree text-[12px] text-neutral-tertiary">{addon.category}</p>
-        <div className="border-t border-dashed border-neutral-subtle pt-2">
+        {subLine && (
+          <p className="mb-2 truncate font-figtree text-[12px] text-neutral-tertiary">{subLine}</p>
+        )}
+        <div className="border-t border-neutral-subtle pt-2">
           <p className="font-figtree text-[14px] font-bold text-neutral-primary">
             {formatPrice(addon.price)}{" "}
             <span className="font-figtree text-[10px] font-normal text-neutral-tertiary">

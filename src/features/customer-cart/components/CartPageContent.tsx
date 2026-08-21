@@ -15,7 +15,7 @@ import {
 import { ApiError } from "@/lib/apiClient";
 import type { AppliedCoupon, CartPageData, CartVendor, RecommendedAddon, EventDetails as EventDetailsData } from "../types";
 import { getCartPageData, mapCartPayload } from "../services/getCartPageData";
-import { mockCartPageData } from "../data/mockCartData";
+import { mockCartPageData, mockRecommendedAddons } from "../data/mockCartData";
 import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
 import { getRecommendedAddons } from "../services/getRecommendedAddons";
 import { startCheckout } from "../services/startCheckout";
@@ -71,7 +71,9 @@ export default function CartPageContent() {
         }
       });
       setData(mapped);
-      if (!isFallback) {
+      if (isFallback) {
+        setRecommendedAddons(mockRecommendedAddons);
+      } else {
         const addons = await getRecommendedAddons(mapped.vendors).catch(() => []);
         setRecommendedAddons(addons);
       }

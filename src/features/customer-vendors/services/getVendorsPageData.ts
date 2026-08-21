@@ -1,6 +1,6 @@
 import type { VendorsPageData } from "../types";
 import { VENDOR_CATEGORIES, VENDORS_PAGE_SIZE } from "../data/filterConfig";
-import { mapPackageToVendor } from "../mappers";
+import { mapPackageToVendor, pickDemoVendor } from "../mappers";
 import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
 
 /**
@@ -15,14 +15,17 @@ export async function getVendorsPageData(): Promise<VendorsPageData> {
     getPackagesFilters(),
   ]);
 
+  const vendors = packagesResponse.packages.map(mapPackageToVendor);
+
   return {
     categories: VENDOR_CATEGORIES,
-    vendors: packagesResponse.packages.map(mapPackageToVendor),
+    vendors,
     total: packagesResponse.total,
     totalPages: packagesResponse.totalPages,
     eventCategoryOptions: filtersResponse.filters.eventCategories.map((category) => ({
       id: category,
       label: category,
     })),
+    demoVendor: pickDemoVendor(vendors),
   };
 }

@@ -14,10 +14,12 @@ export default function VendorGridCard({
   vendor,
   isBookmarked,
   onToggleBookmark,
+  badge,
 }: {
   vendor: Vendor;
   isBookmarked: boolean;
   onToggleBookmark: (id: string) => void;
+  badge?: string;
 }) {
   const CategoryIcon = CATEGORY_ICON[vendor.category];
 
@@ -34,6 +36,11 @@ export default function VendorGridCard({
           sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        {badge && (
+          <span className="absolute top-3 left-3 z-10 rounded-full bg-brand-primary px-2.5 py-1 font-figtree text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
+            {badge}
+          </span>
+        )}
         <button
           type="button"
           aria-label={isBookmarked ? `Remove ${vendor.name} from saved` : `Save ${vendor.name}`}

@@ -27,9 +27,11 @@ export default function AddedAddonRow({
               ×{addon.quantity}
             </span>
           </h5>
-          <p className="mb-2 font-figtree text-[12px] text-neutral-tertiary">{addon.category}</p>
+          {addon.category && (
+            <p className="mb-2 font-figtree text-[12px] text-neutral-tertiary">{addon.category}</p>
+          )}
           {addon.variant && (
-            <span className="inline-block rounded-full border border-neutral-subtle bg-[#F9F9F9] px-3 py-1 font-figtree text-[11px] text-neutral-secondary">
+            <span className="inline-block rounded-full border border-neutral-subtle bg-white px-3 py-1 font-figtree text-[11px] text-neutral-secondary">
               {addon.variant}
             </span>
           )}

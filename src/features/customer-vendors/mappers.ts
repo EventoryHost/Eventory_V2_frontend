@@ -33,3 +33,14 @@ export function mapPackageToVendor(pkg: RawPackage): Vendor {
     images: image ? [image] : [FALLBACK_IMAGE],
   };
 }
+
+/**
+ * Picks one card (the last of a fetched package list) to pin above the real
+ * listing, pointed at the static `/packages/demo` PDP instead of its own
+ * (possibly incomplete) live detail page — so /vendors always has one card
+ * someone can click to see how the PDP looks, alongside the real results.
+ */
+export function pickDemoVendor(vendors: Vendor[]): Vendor | null {
+  const last = vendors[vendors.length - 1];
+  return last ? { ...last, id: "demo" } : null;
+}

@@ -67,4 +67,6 @@ export interface VendorsPageData {
   totalPages: number;
   /** Real event-category facet values from GET /customer/packages/filters — id and label are the same raw string. */
   eventCategoryOptions: FilterOption[];
+  /** Pinned card linking to the static /packages/demo PDP — always shown, exempt from filters/search. */
+  demoVendor: Vendor | null;
 }

@@ -19,17 +19,17 @@ export default function EventDetails({ details }: { details: EventDetailsData })
   if (filled.length === 0) return null;
 
   return (
-    <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-3 font-figtree text-[13px] text-neutral-secondary sm:grid-cols-2">
+    <div className="mb-3 grid grid-cols-2 gap-x-6 gap-y-2.5 font-figtree text-[13px] text-neutral-secondary">
       {filled.map(({ key, icon: Icon }) => {
         const rawValue = details[key] as string | number;
         const displayValue =
           key === "guestCount" ? `${rawValue} Guests` : key === "date" ? formatDate(rawValue as string) : rawValue;
 
         return (
-          <div key={key} className="flex items-center gap-2">
+          <span key={key} className="flex items-center gap-1.5">
             <Icon className="h-4 w-4 shrink-0 text-brand-primary" />
-            <span>{displayValue}</span>
-          </div>
+            {displayValue}
+          </span>
         );
       })}
     </div>

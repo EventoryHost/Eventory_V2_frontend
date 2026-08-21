@@ -50,6 +50,8 @@ export interface CartVendor {
   package: CartPackage;
   selected: boolean;
   eventDetails: EventDetails;
+  /** Free-text occasion/note the customer left when adding this item, e.g. "Event type: birthday". */
+  specialRequest: string;
   packageStillAvailable: boolean;
   priceChanged: boolean;
   addons: CartAddon[];
@@ -81,6 +83,8 @@ export interface RecommendedAddon {
   itemId: string;
   title: string;
   category: string;
+  subCategory: string;
+  qtyLabel: string;
   image?: string;
   price: number;
   unitLabel: string;
