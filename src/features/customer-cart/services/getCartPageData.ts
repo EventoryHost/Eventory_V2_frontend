@@ -60,8 +60,8 @@ async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, { na
   await Promise.all(
     unique.map(async (id) => {
       try {
-        const { data } = await getVendorPublic(id);
-        const name = data.businessName ?? "Vendor";
+        const { vendor } = await getVendorPublic(id);
+        const name = vendor.businessName ?? "Vendor";
         map.set(id, { name, initial: name[0]?.toUpperCase() ?? "V" });
       } catch {
         // Best-effort — a card just falls back to its package's vendorType label.
