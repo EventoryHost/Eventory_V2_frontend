@@ -52,11 +52,16 @@ export default function CatererStep4SampleAndMedia({
                             <Upload size={24} className="text-[#3F3F47] stroke-[2]" />
                         </div>
                         <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303] mb-1">Tap to Upload media</p>
-                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-6">Images and videos · Max 50 MB each</p>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-6">Images and videos · Min 3 required · Max 50 MB each</p>
                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide underline">BROWSE FILES</span>
                         <input type="file" ref={sampleMediaInputRef} className="hidden" accept="image/*,video/*" onChange={handleSampleMediaUpload} multiple />
                     </label>
                     
+                    {sampleMediaFiles.length > 0 && sampleMediaFiles.length < 3 && (
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-red-500 mb-3 ml-2">
+                            Please upload at least {3 - sampleMediaFiles.length} more media file{3 - sampleMediaFiles.length > 1 ? 's' : ''} to continue.
+                        </p>
+                    )}
                     {sampleMediaFiles.length > 0 && (
                         <div className="flex flex-col gap-3">
                             {sampleMediaFiles.map((file, idx) => {

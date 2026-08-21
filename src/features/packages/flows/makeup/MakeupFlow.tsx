@@ -23,6 +23,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
+    const [isGlobalLoading, setIsGlobalLoading] = React.useState(true);
 
     // --- Step 1 State ---
     const [packageName, setPackageName] = React.useState('');
@@ -238,6 +239,7 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
             const vendorId = localStorage.getItem('vendor_id');
             if (!vendorId) {
                 console.error("No vendor_id found in localStorage");
+                setIsGlobalLoading(false);
                 return;
             }
             try {
@@ -430,6 +432,8 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                 }
             } catch (err) {
                 console.error("Error restoring/initializing package draft:", err);
+            } finally {
+                setIsGlobalLoading(false);
             }
         };
         initOrRestorePackage();

@@ -1,11 +1,15 @@
 'use client';
 
 import React from 'react';
-import { ChevronDown, Check, Upload, FileText, X, Plus } from 'lucide-react';
-import { GuestTier, PolicyFile, formatFileSize } from '../../shared/types';
+import { ChevronDown, Check, Upload, FileText, X, Plus, Info, RefreshCw } from 'lucide-react';
+import PolicyBottomSheet from '../pav/PolicyBottomSheet';
+import { GuestTier, PolicyFile, formatFileSize, MenuData } from '../../shared/types';
+import { Addon } from '../../components/AddonModal';
 import CustomDateRangePicker from '../../components/CustomDateRangePicker';
 
 interface Props {
+    menus: MenuData[];
+    addons: Addon[];
     teamEquipmentPrice: string; setTeamEquipmentPrice: (v: string) => void;
     teamEquipmentUnit: string; setTeamEquipmentUnit: (v: string) => void;
     overtimePrice: string; setOvertimePrice: (v: string) => void;
@@ -43,7 +47,9 @@ interface Props {
     onPolicyUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     removePolicyFile: (i: number) => void;
 
-    lastMinuteFiles: PolicyFile[];
+    lastMinuteFiles: PolicyFile[]; setLastMinuteFiles: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
+    cancellationFiles: PolicyFile[]; setCancellationFiles: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
+    setPolicyFiles: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
     onLastMinuteUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
     removeLastMinuteFile: (i: number) => void;
     customDatesPricing: boolean;
@@ -68,6 +74,9 @@ const CARD_STYLE = {
 };
 
 export default function CatererStep3PoliciesAndCharges(p: Props) {
+    const [activePolicySheet, setActivePolicySheet] = React.useState<'cancellation' | 'lastMinute' | 'general' | null>(null);
+    const [showAddonsInSummary, setShowAddonsInSummary] = React.useState(false);
+
     React.useEffect(() => {
         console.log("Step3 - lastMinuteFiles:", p.lastMinuteFiles);
         console.log("Step3 - policyFiles:", p.policyFiles);
@@ -120,10 +129,9 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                         />
                     </div>
                 </div>
-            </div>
 
             {/* Overtime Rate */}
-            <div className={CARD} style={CARD_STYLE}>
+            <div className="flex flex-col gap-6 pt-4">
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[22px]">Overtime Rate</h3>
                 <div>
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-bold text-[#71717B] uppercase tracking-wider mb-2">Price Per Hour</label>
@@ -141,7 +149,8 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                 </div>
             </div>
 
-                            <div className="pt-2 mb-6">
+            {/* GST Charges */}
+            <div className="flex flex-col gap-6 pt-4">
                     <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-3">
                         GST Charges <span className="text-red-500">*</span>
                     </h4>
@@ -179,6 +188,7 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                         </div>
                     </div>
                 </div>
+            </div>
 
             {/* Dynamic Pricing */}
             <div className="p-6 flex flex-col" style={CARD_STYLE}>
@@ -805,102 +815,221 @@ export default function CatererStep3PoliciesAndCharges(p: Props) {
                 })()}
             </div>
 
-            {/* Last-Minute Change Charges */}
-            <div className={CARD} style={CARD_STYLE}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[22px]">Last-Minute Change Charges</h3>
-                
-                <label className="w-full py-8 px-4 rounded-[16px] border border-dashed border-[#D4D4D8] bg-[#FAFAFA] flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer text-center block">
-                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto">
-                        <Upload size={24} className="text-[#3F3F47] stroke-[2]" />
-                    </div>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload your last-minute change policy</p>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide underline">BROWSE FILES</span>
-                    <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx"
-                        multiple
-                        onChange={p.onLastMinuteUpload}
-                    />
-                </label>
-                
-                {p.lastMinuteFiles && p.lastMinuteFiles.length > 0 && (
+                        {/* ── Policies and other documents ── */}
+            <div className="flex flex-col gap-3">
+                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">
+                    Policies and other documents <span className="text-red-500">*</span>
+                </span>
+
+                {/* Cancellation Policy row */}
+                {p.cancellationFiles.length === 0 ? (
+                    <button type="button" onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-[#030303]">Cancellation Policy</span>
+                            <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                        </div>
+                        <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                    </button>
+                ) : (
                     <div className="flex flex-col gap-3">
-                        {p.lastMinuteFiles.map((file, idx) => (
-                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7] gap-3">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#D4D4D8] rounded-[6px] bg-white">
-                                        <FileText size={16} className="text-[#3F3F47]" />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] truncate">{file.name}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
-                                    </div>
+                        {p.cancellationFiles.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                                 </div>
-                                <button type="button" onClick={() => p.removeLastMinuteFile(idx)} className="text-gray-400 hover:text-[#030303] flex-shrink-0"><X size={20} /></button>
+                                <div className="flex-1 min-w-0"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303] truncate block">{doc.name}</span></div>
+                                <button type="button" onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button type="button" onClick={() => {
+                                    const newDocs = [...p.cancellationFiles];
+                                    newDocs.splice(idx, 1);
+                                    p.setCancellationFiles(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
                             </div>
                         ))}
                     </div>
                 )}
 
-                <div className="flex items-center my-2 select-none">
-                    <div className="flex-1 h-[1px] bg-gray-200" />
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="px-4 text-[12px] font-bold text-gray-400 uppercase">or</span>
-                    <div className="flex-1 h-[1px] bg-gray-200" />
-                </div>
+                {/* Last Minute Charges row */}
+                {p.lastMinuteFiles.length === 0 ? (
+                    <button type="button" onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-[#030303]">Last Minute Charges</span>
+                            <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                        </div>
+                        <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                    </button>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {p.lastMinuteFiles.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">Last Minute Charges</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button type="button" onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button type="button" onClick={() => {
+                                    const newDocs = [...p.lastMinuteFiles];
+                                    newDocs.splice(idx, 1);
+                                    p.setLastMinuteFiles(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
+                    </div>
+                )}
 
-                <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#71717B] uppercase tracking-wider">Describe Them Instead</label>
-                    <textarea
-                        rows={4}
-                        placeholder="Placeholder"
-                        value={p.lastMinuteChargesDescription}
-                        onChange={(e) => p.setLastMinuteChargesDescription(e.target.value)}
-                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className="w-full p-4 bg-[#FAFAFA] border border-[#D4D4D8] rounded-[16px] text-[15px] font-medium text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9] resize-none"
-                    />
-                </div>
+                {/* General Policy row */}
+                {p.policyFiles.length === 0 ? (
+                    <button type="button" onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
+                        <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-[14px] font-bold text-[#030303]">General Policy</span>
+                            <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
+                        </div>
+                        <Plus size={18} className="text-[#9F9FA9] shrink-0" />
+                    </button>
+                ) : (
+                    <div className="flex flex-col gap-3">
+                        {p.policyFiles.map((doc, idx) => (
+                            <div key={idx} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                                    <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><path d="M1.5 6L6 10.5L14.5 1.5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mb-0.5 block">General Policy</span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#666666] truncate block">{doc.name}</span>
+                                </div>
+                                <button type="button" onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-1.5 text-[13px] font-bold text-[#3F3F47] hover:text-[#030303] transition-colors shrink-0">Update <RefreshCw size={14} /></button>
+                                <button type="button" onClick={() => {
+                                    const newDocs = [...p.policyFiles];
+                                    newDocs.splice(idx, 1);
+                                    p.setPolicyFiles(newDocs);
+                                }} className="text-[#9F9FA9] hover:text-red-500 ml-1 shrink-0 transition-colors"><X size={18} /></button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {/* Add button */}
+                <button type="button" onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center justify-center gap-2 w-full py-4 bg-[#F4F4F5] rounded-[12px] text-[15px] font-bold text-[#030303] hover:bg-[#E4E4E7] transition-colors">
+                    Add
+                    <div className="w-6 h-6 rounded-full border-2 border-[#030303] flex items-center justify-center">
+                        <Plus size={14} strokeWidth={3} />
+                    </div>
+                </button>
             </div>
 
-            {/* Policies & Documents */}
-            <div className={CARD} style={CARD_STYLE}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] leading-[22px]">Policies & Documents</h3>
-                
-                <label className="w-full py-8 px-4 rounded-[16px] border border-dashed border-[#D4D4D8] bg-[#FAFAFA] flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer text-center block">
-                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4 mx-auto">
-                        <Upload size={24} className="text-[#3F3F47] stroke-[2]" />
-                    </div>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload Policy Documents</p>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B] mb-6">PDF, DOC up to 10MB</p>
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide underline">BROWSE FILES</span>
-                    <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx"
-                        multiple
-                        onChange={p.onPolicyUpload}
-                    />
-                </label>
+            <PolicyBottomSheet
+                isOpen={activePolicySheet !== null}
+                onClose={() => setActivePolicySheet(null)}
+                title={
+                    activePolicySheet === 'cancellation' ? 'Cancellation Policy' :
+                    activePolicySheet === 'lastMinute' ? 'Last Minute Charges' :
+                    'General Policy'
+                }
+                subtitle={
+                    activePolicySheet === 'cancellation' ? 'Choose a template that aligns with your business operations.' :
+                    activePolicySheet === 'lastMinute' ? 'How extra plates added during the event are charged.' :
+                    'Upload or write other general policies'
+                }
+                initialDocs={
+                    activePolicySheet === 'cancellation' ? p.cancellationFiles :
+                    activePolicySheet === 'lastMinute' ? p.lastMinuteFiles :
+                    p.policyFiles
+                }
+                onSaveDocs={(docs) => {
+                    if (activePolicySheet === 'cancellation') p.setCancellationFiles(docs);
+                    else if (activePolicySheet === 'lastMinute') p.setLastMinuteFiles(docs);
+                    else if (activePolicySheet === 'general') p.setPolicyFiles(docs);
+                }}
+            />
 
-                {p.policyFiles && p.policyFiles.length > 0 && (
+            {/* 4. Pricing Summary Card */}
+            <div className="rounded-[20px] overflow-hidden border border-[#E4E4E7]">
+                <div className="bg-[#04222D] px-5 py-4 flex items-center justify-between">
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-white">Pricing summary</span>
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#04222D] bg-[#A8C5B5] px-3 py-1 rounded-full">
+                        {p.menus.length} item{p.menus.length !== 1 ? 's' : ''} {p.addons.length > 0 ? `+ ${p.addons.length} add-on${p.addons.length !== 1 ? 's' : ''}` : ''}
+                    </span>
+                </div>
+
+                <div className="bg-white px-5 py-5 flex flex-col gap-5">
+                    {/* Menus Breakdown */}
                     <div className="flex flex-col gap-3">
-                        {p.policyFiles.map((file, idx) => (
-                            <div key={`${file.name}-${file.size}-${idx}`} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[12px] border border-[#E4E4E7] gap-3">
-                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center border border-[#D4D4D8] rounded-[6px] bg-white">
-                                        <FileText size={16} className="text-[#3F3F47]" />
+                        <div className="flex items-center justify-between">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Menu</span>
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">{p.menus.length} item{p.menus.length !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                            {p.menus.length > 0 ? (
+                                p.menus.map((m, idx) => (
+                                    <div key={m.id || idx} className="flex items-center justify-between">
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47]">• {m.name || `Menu ${idx + 1}`}<span className="text-red-500">*</span></span>
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303]">
+                                            ₹{Number(m.priceModel || 0).toLocaleString('en-IN')} <span className="text-[#9F9FA9] font-normal text-[11px]">{m.billingUnit?.toLowerCase() || 'per plate'}</span>
+                                        </span>
                                     </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] truncate">{file.name}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-[#71717B]">{formatFileSize(file.size)} _ Uploaded</p>
-                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-[13px] text-[#9F9FA9] italic">No menus added yet</div>
+                            )}
+                            
+                            {/* GST Item if present */}
+                            {p.gstRatePercent && (
+                                <div className="flex items-center justify-between pt-1">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47]">• GST Charged<span className="text-red-500">*</span></span>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303]">
+                                        {p.gstRatePercent} % <span className="text-[#9F9FA9] font-normal text-[11px]">per booking</span>
+                                    </span>
                                 </div>
-                                <button type="button" onClick={() => p.removePolicyFile(idx)} className="text-gray-400 hover:text-[#030303] flex-shrink-0"><X size={20} /></button>
-                            </div>
-                        ))}
+                            )}
+                        </div>
                     </div>
-                )}
+
+                    {/* Add-ons Breakdown */}
+                    {p.addons.length > 0 && (
+                        <>
+                            <div className="border-t border-[#F4F4F5]" />
+                            <div className="flex flex-col gap-3">
+                                <button type="button" onClick={() => setShowAddonsInSummary(v => !v)} className="flex items-center justify-between w-full">
+                                    <div className="flex flex-col items-start">
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Add-ons</span>
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] text-left">Optional - customer would have to add, priced separately</span>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">{p.addons.length} item{p.addons.length !== 1 ? 's' : ''}</span>
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[#9F9FA9] transition-transform ${showAddonsInSummary ? 'rotate-180' : ''}`}><path d="M18 15l-6-6-6 6" /></svg>
+                                    </div>
+                                </button>
+                                {showAddonsInSummary && (
+                                    <div className="flex flex-col gap-3">
+                                        {p.addons.map(addon => (
+                                            <div key={addon.id} className="flex items-center justify-between">
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47]">• {addon.name}</span>
+                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-semibold text-[#030303]">₹{Number(addon.price || 0).toLocaleString('en-IN')} <span className="text-[#9F9FA9] font-normal text-[11px]">{addon.billingUnit?.toLowerCase() || 'flat'}</span></span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Footnotes */}
+                    <div className="border-t border-[#F4F4F5] pt-4 flex flex-col gap-3">
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9] flex gap-2">
+                            <Info size={13} className="shrink-0 mt-0.5" />
+                            Per-plate price × final guest count is set at booking. {p.gstInclusive ? 'GST included.' : 'GST extra.'}
+                        </p>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9]">
+                            <span className="text-red-500">*</span> Red Star marked items are compulsory in a package
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

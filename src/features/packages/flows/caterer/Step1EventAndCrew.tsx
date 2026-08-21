@@ -19,6 +19,7 @@ interface Props {
 
     // Requirement-Focused
     tastingSession: string; setTastingSession: (v: string) => void;
+    tastingSessionCost: string; setTastingSessionCost: (v: string) => void;
     venueNeeds: string[]; toggleVenueNeed: (v: string) => void;
     venueRequest: string; setVenueRequest: (v: string) => void;
     venueNeedsOptions: string[];
@@ -55,6 +56,7 @@ export default function CatererStep1EventAndCrew({
     minCapacity, setMinCapacity,
     maxCapacity, setMaxCapacity,
     tastingSession, setTastingSession,
+    tastingSessionCost, setTastingSessionCost,
     venueNeeds, toggleVenueNeed,
     venueRequest, setVenueRequest,
     venueNeedsOptions,
@@ -273,7 +275,7 @@ export default function CatererStep1EventAndCrew({
 
             {/* ── Capacity & Crew ── */}
             <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Capacity & Crew <span className="text-[#E11D48]">*</span></h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Team & Capacity <span className="text-[#E11D48]">*</span></h3>
 
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Setup Duration</label>
@@ -298,7 +300,7 @@ export default function CatererStep1EventAndCrew({
                 {/* Crew Size */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Min. Crew Size</label>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Min. Team Size</label>
                         <input
                             type="text"
                             placeholder="Number"
@@ -309,7 +311,7 @@ export default function CatererStep1EventAndCrew({
                         />
                     </div>
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Max. Crew Size</label>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Max. Team Size</label>
                         <input
                             type="text"
                             placeholder="Number"
@@ -324,7 +326,7 @@ export default function CatererStep1EventAndCrew({
                 {/* Guests Capacity */}
                 <div className="grid grid-cols-2 gap-4">
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Min Capacity(Guests)</label>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Min Plate count</label>
                         <input
                             type="text"
                             placeholder="Number"
@@ -335,7 +337,7 @@ export default function CatererStep1EventAndCrew({
                         />
                     </div>
                     <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Max Capacity(Guests)</label>
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Max Plate count</label>
                         <input
                             type="text"
                             placeholder="Number"
@@ -350,12 +352,12 @@ export default function CatererStep1EventAndCrew({
 
             {/* ── On-site Requirements ── */}
             <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>On-site Requirements <span className="text-[#E11D48]">*</span></h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Venue Needs <span className="text-[#E11D48]">*</span></h3>
 
                 {/* Needs from the Venue */}
                 <div className="flex flex-col gap-3">
                     <div className="flex flex-wrap gap-2.5">
-                        {['Power', 'Camera', 'Stage', 'Lighting', 'Security'].map((opt) => {
+                        {venueNeedsOptions.map((opt) => {
                             const isSelected = venueNeeds.includes(opt);
                             return (
                                 <button
@@ -363,14 +365,13 @@ export default function CatererStep1EventAndCrew({
                                     type="button"
                                     onClick={() => toggleVenueNeed(opt)}
                                     style={{ fontFamily: 'Figtree, sans-serif' }}
-                                    className={`px-4 py-2 rounded-[20px] text-[14px] font-medium flex items-center gap-2 transition-all leading-[20px] ${
+                                    className={`px-4 py-2 rounded-full text-[14px] font-medium transition-all leading-[20px] ${
                                         isSelected 
                                             ? 'bg-[#04222D] text-white' 
-                                            : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-[#E4E4E7]'
+                                            : 'bg-[#E6E9EA] text-[#3F3F47] hover:bg-[#D1D5DB]'
                                     }`}
                                 >
-                                    <Plus size={14} className={isSelected ? "text-white" : "text-[#3F3F47]"} />
-                                    <span>{opt}</span>
+                                    {opt}
                                 </button>
                             );
                         })}
@@ -391,21 +392,42 @@ export default function CatererStep1EventAndCrew({
                 </div>
 
                 {/* iOS Toggle Switch for Tasting Session */}
-                <div className="flex items-center justify-between mt-2 pt-2">
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-medium text-[#27272A]">I offer a tasting session</span>
-                    <button
-                        type="button"
-                        onClick={() => setTastingSession(tastingSession === 'Yes' ? 'No' : 'Yes')}
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            tastingSession === 'Yes' ? 'bg-[#04222D]' : 'bg-[#E4E4E7]'
-                        }`}
-                    >
-                        <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                                tastingSession === 'Yes' ? 'translate-x-5' : 'translate-x-0'
+                <div className="flex flex-col gap-4 mt-2 pt-6 border-t border-[#E4E4E7]">
+                    <div className="flex items-center justify-between">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">I offer a tasting session</span>
+                        <button
+                            type="button"
+                            onClick={() => setTastingSession(tastingSession === 'Yes' ? 'No' : 'Yes')}
+                            className={`relative inline-flex h-8 w-14 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                tastingSession === 'Yes' ? 'bg-[#04222D]' : 'bg-[#E4E4E7]'
                             }`}
-                        />
-                    </button>
+                        >
+                            <span
+                                className={`pointer-events-none inline-block h-7 w-7 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                    tastingSession === 'Yes' ? 'translate-x-6' : 'translate-x-0'
+                                }`}
+                            />
+                        </button>
+                    </div>
+
+                    {tastingSession === 'Yes' && (
+                        <div className="flex flex-col gap-2">
+                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-medium text-[#3F3F47]">Enter Cost for tasting session</label>
+                            <div className="flex rounded-xl border border-[#E4E4E7] overflow-hidden bg-white focus-within:ring-1 focus-within:ring-gray-300">
+                                <div className="flex items-center justify-center px-5 bg-[#F4F4F5] border-r border-[#E4E4E7]">
+                                    <span className="text-[#3F3F47] text-[16px] font-semibold">₹</span>
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder="Placeholder"
+                                    value={tastingSessionCost}
+                                    onChange={(e) => setTastingSessionCost(e.target.value.replace(/\D/g, ''))}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className="flex-1 w-full px-4 py-3.5 outline-none text-[16px] font-medium text-[#030303] placeholder:text-[#9F9FA9]"
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

@@ -21,6 +21,7 @@ interface FlowShellProps {
     children: React.ReactNode;
     onBack: () => void;
     onNext: () => void;
+    isNextDisabled?: boolean;
     // Variant Manager Props
     packageId?: string | null;
     packageGroupId?: string | null;
@@ -58,6 +59,7 @@ export default function FlowShell({
     children,
     onBack,
     onNext,
+    isNextDisabled,
     variants,
     selectedVariant,
     onSelectVariant,
@@ -159,9 +161,9 @@ export default function FlowShell({
                     )}
                     <button
                         onClick={onNext}
-                        disabled={isSaving}
+                        disabled={isSaving || isNextDisabled}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className={`flex-1 h-14 flex justify-center items-center gap-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] whitespace-nowrap px-4 sm:px-8 active:scale-[0.98] transition-transform ${isSaving ? 'opacity-70 cursor-not-allowed' : 'hover:bg-opacity-95'}`}
+                        className={`flex-1 h-14 flex justify-center items-center gap-4 bg-[#04222D] text-white rounded-[12px] font-semibold text-[16px] whitespace-nowrap px-4 sm:px-8 active:scale-[0.98] transition-transform ${isSaving || isNextDisabled ? 'opacity-70 cursor-not-allowed' : 'hover:bg-opacity-95'}`}
                     >
                         {isSaving ? (
                             <div className="flex items-center justify-center gap-2">

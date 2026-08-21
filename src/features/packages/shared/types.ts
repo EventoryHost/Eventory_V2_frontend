@@ -19,7 +19,10 @@ export interface MenuData {
     name: string;
     type: string;
     serviceStyles: string[];
+    cuisineTypes?: string[];
+    additionalChips?: string[];
     inventory: Record<string, FoodItem[]>;
+    chooseLimits?: Record<string, number>;
     priceModel: string;
     billingUnit: string;
     isExpanded: boolean;
