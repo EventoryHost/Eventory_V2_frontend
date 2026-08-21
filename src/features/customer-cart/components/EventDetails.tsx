@@ -1,60 +1,37 @@
-import { Calendar, Clock, Users, MapPin, SquarePen } from "lucide-react";
+import { Calendar, Clock, Users, MapPin } from "lucide-react";
 import type { EventDetails as EventDetailsData } from "../types";
 
 const FIELDS = [
-  { key: "date", icon: Calendar, label: "Date" },
-  { key: "timeRange", icon: Clock, label: "Time" },
-  { key: "guestCount", icon: Users, label: "Guests" },
-  { key: "location", icon: MapPin, label: "Location" },
+  { key: "date", icon: Calendar },
+  { key: "timeRange", icon: Clock },
+  { key: "location", icon: MapPin },
+  { key: "guestCount", icon: Users },
 ] as const;
 
-export default function EventDetails({
-  details,
-  onEdit,
-}: {
-  details: EventDetailsData;
-  onEdit: () => void;
-}) {
+function formatDate(value: string): string {
+  const parsed = new Date(value);
+  if (isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+}
+
+export default function EventDetails({ details }: { details: EventDetailsData }) {
+  const filled = FIELDS.filter(({ key }) => details[key]);
+  if (filled.length === 0) return null;
+
   return (
-    <div className="flex flex-wrap items-center gap-6 border-t border-black/5 bg-[#F9F9F9] p-6">
-      <div className="grid w-full grid-cols-2 gap-6 sm:w-auto sm:flex-1 sm:grid-cols-4">
-        {FIELDS.map(({ key, icon: Icon, label }) => {
-          const rawValue = details[key];
-          const isEmpty = !rawValue;
-          const displayValue =
-            key === "guestCount" && rawValue ? `${rawValue} Guests` : rawValue ?? "—";
+    <div className="mb-4 grid grid-cols-1 gap-x-6 gap-y-3 font-figtree text-[13px] text-neutral-secondary sm:grid-cols-2">
+      {filled.map(({ key, icon: Icon }) => {
+        const rawValue = details[key] as string | number;
+        const displayValue =
+          key === "guestCount" ? `${rawValue} Guests` : key === "date" ? formatDate(rawValue as string) : rawValue;
 
-          return (
-            <div key={key} className="space-y-1">
-              <div
-                className={`flex items-center gap-2 ${
-                  isEmpty ? "text-neutral-tertiary" : "text-brand-primary"
-                }`}
-              >
-                <Icon className="h-4 w-4" />
-                <span className="font-figtree text-[11px] font-bold tracking-tight uppercase">
-                  {label}
-                </span>
-              </div>
-              <div
-                className={`font-figtree text-[14px] font-semibold ${
-                  isEmpty ? "text-neutral-tertiary" : "text-neutral-primary"
-                }`}
-              >
-                {displayValue}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <button
-        type="button"
-        onClick={onEdit}
-        className="flex items-center gap-2 rounded-full border border-neutral-tertiary/40 px-4 py-2 font-figtree text-[13px] font-semibold text-neutral-primary transition-colors hover:bg-white"
-      >
-        <SquarePen className="h-4 w-4" /> Edit Package Details
-      </button>
+        return (
+          <div key={key} className="flex items-center gap-2">
+            <Icon className="h-4 w-4 shrink-0 text-brand-primary" />
+            <span>{displayValue}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

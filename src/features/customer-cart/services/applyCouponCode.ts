@@ -1,26 +1,21 @@
 import type { AppliedCoupon } from "../types";
-import { mockCoupons } from "../data/mockCartData";
+import { applyCoupon as applyCouponReal, removeCoupon as removeCouponReal } from "@/lib/customerCartApi";
 
 /**
- * Validates a coupon code. Swap the body for a real call — e.g.
- * `fetch(apiUrl("/cart/coupons/validate"), { method: "POST", ... })` — once
- * the backend endpoint exists.
+ * Applies a coupon code via the real POST /api/customer/cart/coupon.
+ * HONEST LIMITATION (per the backend's own docs): there is no Coupon/Offer
+ * model yet, so this always stores the code with a 0 discount — the
+ * backend's own explanatory message is surfaced as the label instead of a
+ * fabricated percent/flat discount.
  */
 export async function applyCouponCode(code: string): Promise<AppliedCoupon> {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-
-  const match = mockCoupons.find(
-    (coupon) => coupon.code.toLowerCase() === code.trim().toLowerCase()
-  );
-
-  if (!match) {
-    throw new Error("This coupon code is invalid or has expired.");
-  }
-
+  const payload = await applyCouponReal(code.trim());
   return {
-    code: match.code,
-    discountLabel: match.discountLabel,
-    discountPercent: match.discountPercent,
-    discountFlat: match.discountFlat,
+    code: payload.coupon?.code ?? code.trim().toUpperCase(),
+    discountLabel: payload.message ?? "Applied",
   };
+}
+
+export async function removeCouponCode(): Promise<void> {
+  await removeCouponReal();
 }

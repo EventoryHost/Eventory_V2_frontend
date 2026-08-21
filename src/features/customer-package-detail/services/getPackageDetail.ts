@@ -1,6 +1,7 @@
 import type {
   PackageDetail,
   PackageVariant,
+  GalleryImage,
   IncludedItemEntry,
   AddonItem,
   VendorRequirement,
@@ -16,11 +17,14 @@ import {
   getPackageGroupVariants,
   type RawFullPackage,
   type RawPolicySlot,
+  type RawDjItem,
+  type RawMakeupItem,
 } from "@/lib/customerPackageDetailApi";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
+import { formatPrice } from "../utils/formatPrice";
 
 export class PackageNotFoundError extends Error {}
 
@@ -51,6 +55,15 @@ function monthYear(iso: string): string {
   return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
 }
 
+// VenueProvider packages price via overallPriceOfPackage instead of
+// packagePricing (see step3_policiesAndCharges discriminator override).
+function priceOf(pkg: RawFullPackage): number {
+  if (pkg.vendorType === "VenueProvider") {
+    return pkg.step3_policiesAndCharges?.overallPriceOfPackage?.price ?? 0;
+  }
+  return pkg.step3_policiesAndCharges?.packagePricing?.price ?? 0;
+}
+
 function mapVariant(pkg: RawFullPackage): PackageVariant {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return {
@@ -60,8 +73,19 @@ function mapVariant(pkg: RawFullPackage): PackageVariant {
     setupsCount: setups.length,
     itemsCount: setups.reduce((sum, s) => sum + (s.items?.length ?? 0), 0),
     description: setups[0]?.description ?? "",
-    price: pkg.step3_policiesAndCharges?.packagePricing?.price ?? 0,
+    price: priceOf(pkg),
   };
+}
+
+// VenueProvider packages replace the top-level media[] gallery with a
+// per-space spaceMedia[] gallery (see step4_sampleMedia discriminator override).
+function mapGallery(pkg: RawFullPackage): GalleryImage[] {
+  const packageName = pkg.step1_eventAndCrew?.packageName ?? "Package photo";
+  const media =
+    pkg.vendorType === "VenueProvider"
+      ? (pkg.step4_sampleMedia?.spaceMedia ?? []).flatMap((space) => space.media ?? [])
+      : (pkg.step4_sampleMedia?.media ?? []);
+  return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
 }
 
 function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
@@ -114,8 +138,135 @@ function mapIncludedItemsPav(pkg: RawFullPackage): IncludedItemEntry[] {
   }));
 }
 
+function mapIncludedItemsCaterer(pkg: RawFullPackage): IncludedItemEntry[] {
+  const menus = pkg.step2_productsAndPricing?.menus ?? [];
+  return menus.map((menu, i) => {
+    const id = menu._id ?? `menu-${i}`;
+    const foodItems = Object.values(menu.items ?? {})
+      .flat()
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+    return {
+      id,
+      title: menu.name || menu.type || "Menu",
+      details: [
+        { label: "Meal", value: menu.type || "—" },
+        { label: "Service style", value: menu.serviceStyle?.join(", ") || "—" },
+        { label: "Per plate", value: menu.perPlatePrice ? formatPrice(menu.perPlatePrice) : "—" },
+      ],
+      price: menu.perPlatePrice ?? 0,
+      items: foodItems.map((food, idx) => ({
+        id: `${id}-item-${idx}`,
+        label: food.name ?? "Item",
+        qty: 1,
+        originalQty: 1,
+      })),
+    };
+  });
+}
+
+// DJ performance items carry no per-item price or checklist of their own —
+// the vendor's equipment list is the closest thing to a checklist, so it's
+// attached to the first performance card (or its own card if there are no
+// performance items to attach it to).
+function mapIncludedItemsDj(pkg: RawFullPackage): IncludedItemEntry[] {
+  const items = (pkg.step2_productsAndPricing?.items as RawDjItem[] | undefined) ?? [];
+  const equipment = pkg.step2_productsAndPricing?.equipments ?? [];
+  const equipmentLines = equipment.map((eq, idx) => ({
+    id: eq._id ?? `equipment-${idx}`,
+    label: eq.name ?? "Equipment",
+    qty: eq.quantity ?? 1,
+    originalQty: eq.quantity ?? 1,
+  }));
+
+  if (items.length === 0) {
+    return equipmentLines.length
+      ? [{ id: "dj-equipment", title: "Equipment", details: [], price: 0, items: equipmentLines }]
+      : [];
+  }
+
+  return items.map((item, i) => ({
+    id: item._id ?? `dj-item-${i}`,
+    title: item.name || item.performanceType || "Performance",
+    details: [
+      { label: "Type", value: item.performanceType || "—" },
+      { label: "Genre", value: item.contentDetails?.genreOfMusic?.join(", ") || "—" },
+      { label: "Language", value: item.contentDetails?.language?.join(", ") || "—" },
+    ],
+    price: 0,
+    items: i === 0 ? equipmentLines : [],
+  }));
+}
+
+function mapIncludedItemsMakeup(pkg: RawFullPackage): IncludedItemEntry[] {
+  const items = (pkg.step2_productsAndPricing?.items as RawMakeupItem[] | undefined) ?? [];
+  return items.map((item, i) => {
+    const id = item._id ?? `makeup-item-${i}`;
+    const options = item.options ?? [];
+    return {
+      id,
+      title: item.name || item.itemType || "Service",
+      details: [
+        { label: "Type", value: item.itemType || "—" },
+        { label: "Style", value: item.styles?.join(", ") || item.makeupType || item.hairServiceType || "—" },
+        { label: "Longevity", value: item.longevity || "—" },
+      ],
+      price: options.reduce((sum, opt) => sum + (opt.price ?? 0), 0),
+      items: options.map((opt, idx) => ({
+        id: `${id}-opt-${idx}`,
+        label: opt.name ?? "Option",
+        qty: 1,
+        originalQty: 1,
+      })),
+    };
+  });
+}
+
+function mapIncludedItemsVenue(pkg: RawFullPackage): IncludedItemEntry[] {
+  const spaces = pkg.step2_productsAndPricing?.spaces ?? [];
+  return spaces.map((space, i) => {
+    const capacity = space.capacity;
+    const capacityLabel = capacity
+      ? [
+          capacity.standing ? `${capacity.standing} standing` : null,
+          capacity.sitting ? `${capacity.sitting} sitting` : null,
+          capacity.dining ? `${capacity.dining} dining` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")
+      : "";
+    return {
+      id: space._id ?? `space-${i}`,
+      title: space.name || space.spaceType || "Space",
+      details: [
+        { label: "Type", value: space.spaceType || "—" },
+        { label: "Environment", value: space.environment || "—" },
+        { label: "Capacity", value: capacityLabel || "—" },
+      ],
+      price: space.price ?? 0,
+      items: [],
+    };
+  });
+}
+
 function mapIncludedItems(pkg: RawFullPackage): IncludedItemEntry[] {
-  return pkg.vendorType === "PAV" ? mapIncludedItemsPav(pkg) : mapIncludedItemsDecorator(pkg);
+  switch (pkg.vendorType) {
+    case "PAV":
+      return mapIncludedItemsPav(pkg);
+    case "Caterer":
+      return mapIncludedItemsCaterer(pkg);
+    case "DJArtist":
+      return mapIncludedItemsDj(pkg);
+    case "MakeupArtist":
+      return mapIncludedItemsMakeup(pkg);
+    case "VenueProvider":
+      return mapIncludedItemsVenue(pkg);
+    default:
+      return mapIncludedItemsDecorator(pkg);
+  }
+}
+
+function mapNotIncluded(pkg: RawFullPackage): string[] {
+  return pkg.step2_productsAndPricing?.notIncluded ?? [];
 }
 
 function mapAddons(pkg: RawFullPackage): AddonItem[] {
@@ -254,7 +405,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
   const duration = pkg.step1_eventAndCrew?.duration;
-  const price = pkg.step3_policiesAndCharges?.packagePricing?.price ?? 0;
+  const price = priceOf(pkg);
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
 
@@ -271,11 +422,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     reviewCount: reviews.total,
     locationSummary:
       [vendor?.city, ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
-    gallery: (pkg.step4_sampleMedia?.media ?? []).map((media, i) => ({
-      id: `gallery-${i}`,
-      image: media.url,
-      alt: pkg.step1_eventAndCrew?.packageName ?? "Package photo",
-    })),
+    gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,
     summary: {
@@ -294,6 +441,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     },
     aboutText: vendor?.description || "No description provided yet.",
     includedItems: mapIncludedItems(pkg),
+    notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
     addons: mapAddons(pkg),
     paymentProtection: {

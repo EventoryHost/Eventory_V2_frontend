@@ -8,6 +8,8 @@ export default function PaymentSummary({
   vendorCount,
   itemCount,
   subtotal,
+  discount,
+  total,
   couponCode,
   onCouponCodeChange,
   onApplyCoupon,
@@ -23,6 +25,8 @@ export default function PaymentSummary({
   vendorCount: number;
   itemCount: number;
   subtotal: number;
+  discount: number;
+  total: number;
   couponCode: string;
   onCouponCodeChange: (value: string) => void;
   onApplyCoupon: () => void;
@@ -36,9 +40,9 @@ export default function PaymentSummary({
   continueMessage?: string | null;
 }) {
   return (
-    <div className="rounded-3xl border border-neutral-subtle bg-white p-8 shadow-[0_4px_20px_rgba(0,0,0,0.04)]">
+    <div className="rounded-2xl border border-neutral-subtle bg-white p-6 shadow-sm">
       <div className="mb-6">
-        <h2 className="font-figtree text-[20px] font-semibold text-neutral-primary">
+        <h2 className="font-figtree text-[24px] font-bold text-neutral-primary">
           Payment Summary
         </h2>
         <p className="font-figtree text-[13px] text-neutral-secondary">
@@ -59,13 +63,23 @@ export default function PaymentSummary({
         />
       </div>
 
-      <div className="mb-8 border-t border-neutral-subtle pt-6">
-        <div className="flex items-center justify-between">
+      <div className="mb-6 space-y-2 border-t border-neutral-subtle pt-6">
+        <div className="flex items-center justify-between font-figtree text-[13px] text-neutral-secondary">
+          <span>Subtotal</span>
+          <span>{formatPrice(subtotal)}</span>
+        </div>
+        {discount > 0 && (
+          <div className="flex items-center justify-between font-figtree text-[13px] text-success-700">
+            <span>Discount</span>
+            <span>-{formatPrice(discount)}</span>
+          </div>
+        )}
+        <div className="flex items-center justify-between pt-2">
           <span className="font-figtree text-[14px] font-semibold tracking-wider text-neutral-secondary uppercase">
-            Subtotal
+            Total
           </span>
           <span className="font-figtree text-[28px] font-bold text-neutral-primary">
-            {formatPrice(subtotal)}
+            {formatPrice(total)}
           </span>
         </div>
       </div>
@@ -74,7 +88,7 @@ export default function PaymentSummary({
         type="button"
         onClick={onContinue}
         disabled={continueDisabled || continueLoading}
-        className="mb-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary py-4 font-figtree text-[16px] font-bold text-white shadow-lg transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary py-4 font-figtree text-[18px] font-semibold text-white shadow-md transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {continueLoading && <Loader2 className="h-4 w-4 animate-spin" />}
         Continue

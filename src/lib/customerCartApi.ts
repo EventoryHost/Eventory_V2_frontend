@@ -280,13 +280,18 @@ export async function mergeGuestCart(guestId: string) {
 /**
  * Call once right after a login/signup succeeds. No-op if there's no stored
  * guest cart id; safe to call against an already-merged/unknown id (the
- * backend responds 200 "nothing to merge" rather than erroring).
+ * backend responds 200 "nothing to merge" rather than erroring). Never
+ * throws — callers fire this without awaiting, so a real failure (network
+ * blip, unexpected 4xx/5xx) is swallowed rather than surfacing as an
+ * unhandled promise rejection.
  */
 export async function mergeGuestCartIfAny(): Promise<void> {
   const guestId = getGuestCartId();
   if (!guestId) return;
   try {
     await mergeGuestCart(guestId);
+  } catch {
+    // Best-effort — the customer's own cart still loads fine without the merge.
   } finally {
     clearGuestCartId();
   }
