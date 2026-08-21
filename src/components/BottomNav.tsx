@@ -73,7 +73,9 @@ export default function BottomNav() {
                                     objectFit: 'contain',
                                     filter: isActive 
                                         ? 'brightness(0) saturate(100%) invert(46%) sepia(45%) saturate(1428%) hue-rotate(313deg) brightness(98%) contrast(92%)' 
-                                        : 'none'
+                                        : item.name === 'Inventory'
+                                            ? 'brightness(0) saturate(100%) invert(24%) sepia(8%) saturate(647%) hue-rotate(202deg) brightness(85%) contrast(86%)'
+                                            : 'none'
                                 }}
                             />
                             <span className={`text-[11px] font-medium leading-none font-figtree transition-colors ${isActive ? 'text-[#F0596F] dark:text-[#E95A6E]' : 'text-[#3F3F47] dark:text-[#A1A1AA]'}`}>

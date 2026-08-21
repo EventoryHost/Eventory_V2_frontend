@@ -757,7 +757,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                 {/* Last Minute Charges row */}
                 {lastMinuteDocs.length === 0 ? (
                     <button onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
-                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
                         <div className="flex flex-col flex-1 min-w-0">
                             <span className="text-[14px] font-bold text-[#030303]">Last Minute Charges</span>
                             <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
@@ -789,7 +789,7 @@ export default function DecoratorStep3PoliciesAndCharges({
                 {/* General Policy row */}
                 {policyDocs.length === 0 ? (
                     <button onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-left hover:bg-gray-50 transition-colors">
-                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                        <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
                         <div className="flex flex-col flex-1 min-w-0">
                             <span className="text-[14px] font-bold text-[#030303]">General Policy</span>
                             <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>

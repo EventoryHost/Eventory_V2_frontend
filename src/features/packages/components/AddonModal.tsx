@@ -19,6 +19,7 @@ export interface Addon {
     policies: PolicyFile[];
     media: SampleMediaFile[];
     productType?: string;
+    isNonVeg?: boolean;
     
     // PAV Addon Specific
     contentType?: string;
@@ -100,12 +101,10 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                 setAddonCategory(addon.category);
                 setAddonSubCategory(addon.subCategory);
                 setAddonQuantity(addon.quantity);
+                if (addon.productType) setAddonProductType(addon.productType);
                 
-                // Parse isNonVeg out of description
-                const isNonVegDesc = addon.description.startsWith('[Non-Veg: Yes]');
-                setIsNonVeg(isNonVegDesc);
-                const cleanDesc = addon.description.replace(/^\[Non-Veg: (Yes|No)\]\s*/, '');
-                setAddonDescription(cleanDesc);
+                setIsNonVeg(addon.isNonVeg || false);
+                setAddonDescription(addon.description || '');
 
                 setAddonPrice(addon.price);
                 setAddonBillingUnit(addon.billingUnit || 'Per hour');
@@ -158,10 +157,6 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
     if (!isOpen || typeof document === 'undefined') return null;
 
     const handleSaveAddon = () => {
-        const descriptionWithNonVeg = (isCaterer && addonType === 'Product')
-            ? `[Non-Veg: ${isNonVeg ? 'Yes' : 'No'}] ${addonDescription}`
-            : addonDescription;
-
         const billingUnitVal = (isCaterer && addonType === 'Product')
             ? 'Per Person'
             : addonBillingUnit;
@@ -173,7 +168,8 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
             category: addonCategory,
             subCategory: addonSubCategory,
             quantity: addonQuantity,
-            description: descriptionWithNonVeg,
+            description: addonDescription,
+            isNonVeg: isCaterer && addonType === 'Product' ? isNonVeg : undefined,
             price: addonPrice,
             billingUnit: billingUnitVal,
             policies: [
@@ -375,41 +371,22 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         {(addonType === 'Service' || addonType === 'Product') && (
                             isCaterer ? (
                                 addonType === 'Service' ? (
-                                    <div className="relative">
+                                    <div>
                                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
-                                            }}
-                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-left flex items-center justify-between focus:outline-none focus:ring-1 focus:ring-gray-300"
-                                            style={{ color: addonCategory ? '#030303' : '#9F9FA9' }}
-                                        >
-                                            {addonCategory || 'Choose'}
-                                            <ChevronDown size={20} className="text-[#9F9FA9] transition-transform duration-200" style={{ transform: isCategoryDropdownOpen ? 'rotate(180deg)' : 'rotate(0)' }} />
-                                        </button>
-                                        {isCategoryDropdownOpen && (
-                                            <div className="absolute top-[100%] left-0 w-full mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg z-20 py-2">
-                                                {['Food', 'Drinks', 'Others'].map(opt => (
-                                                    <div
-                                                        key={opt}
-                                                        onClick={() => {
-                                                            setAddonCategory(opt);
-                                                            setIsCategoryDropdownOpen(false);
-                                                        }}
-                                                        className="px-4 py-3 cursor-pointer text-[14px] hover:bg-gray-50 font-semibold text-[#030303]"
-                                                    >
-                                                        {opt}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
+                                        <input
+                                            type="text"
+                                            placeholder="Name Category"
+                                            value={addonCategory}
+                                            onChange={(e) => setAddonCategory(e.target.value)}
+                                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                                            className="w-full p-4 bg-white border border-[#E4E4E7] rounded-[8px] text-[15px] font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
+                                        />
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 gap-4">
                                         {/* Category Dropdown */}
                                         <div className="relative">
-                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
+                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Menu Type</label>
                                             <button
                                                 type="button"
                                                 onClick={() => {
@@ -444,7 +421,7 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
 
                                         {/* Sub-Category Dropdown */}
                                         <div className="relative">
-                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Sub- Category</label>
+                                            <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#3F3F47] mb-2">Category</label>
                                             <button
                                                 type="button"
                                                 disabled={!addonCategory || addonCategory === 'Other'}
@@ -675,9 +652,41 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
 
 
 
+                    {/* POLICIES AND DOCUMENTS */}
+                    <div>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-4">Policies and other documents <span className="text-[#C21A1A]">*</span></p>
+                        
+                        {policyDocs.length > 0 ? (
+                            <div className="flex flex-col gap-3 mb-4">
+                                {policyDocs.map((doc, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-4 bg-white border border-[#E4E4E7] rounded-[12px]">
+                                        <div className="flex items-center gap-3 text-[#7C3AED]">
+                                            <div className="w-5 h-5 rounded-full border border-[#7C3AED] flex items-center justify-center">i</div>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{doc.name}</span>
+                                        </div>
+                                        <button 
+                                            onClick={() => setActivePolicySheet('general')}
+                                            className="text-[13px] font-bold text-[#030303] flex items-center gap-2"
+                                        >
+                                            Update <span className="text-[16px]">↺</span>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <button 
+                                onClick={() => setActivePolicySheet('general')}
+                                className="w-full py-3 px-4 bg-[#F4F4F5] hover:bg-gray-200 transition-colors rounded-[12px] flex items-center justify-center gap-2 mb-4"
+                            >
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">Add</span>
+                                <span className="text-[#030303] text-[18px]">⊕</span>
+                            </button>
+                        )}
+                    </div>
+
                     {/* SAMPLE MEDIA */}
                     <div>
-                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase tracking-wider mb-4">SAMPLE MEDIA</p>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-4">Sample Media <span className="text-[#C21A1A]">*</span></p>
                         <div className="bg-[#F4F4F5] p-4 rounded-[12px]">
                             <button onClick={() => addonMediaInputRef.current?.click()} className="w-full py-10 px-4 rounded-[12px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors mb-4">
                                 <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4">
@@ -738,7 +747,7 @@ export function AddonModal({ isOpen, onClose, onSave, vendorType, addon }: Addon
                         <button
                             onClick={handleSaveAddon}
                             style={{ fontFamily: 'Figtree, sans-serif', padding: '16px 0' }}
-                            className="flex-[2_2_0%] flex justify-center items-center gap-4 bg-[#031b24] text-white rounded-[16px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
+                            className="flex-1 flex justify-center items-center gap-4 bg-[#031b24] text-white rounded-[16px] font-semibold text-[16px] active:scale-[0.98] transition-transform"
                         >
                             Save Add-on
                         </button>

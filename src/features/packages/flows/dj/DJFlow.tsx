@@ -36,6 +36,7 @@ export default function DJFlow({ onExitFlow }: Props) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
+    const [isGlobalLoading, setIsGlobalLoading] = React.useState(true);
 
     // --- Step 1 State ---
     const [packageName, setPackageName] = React.useState('');
@@ -491,6 +492,8 @@ export default function DJFlow({ onExitFlow }: Props) {
                 }
             } catch (err) {
                 console.error("Error restoring/initializing DJ package draft:", err);
+            } finally {
+                setIsGlobalLoading(false);
             }
         };
         initOrRestorePackage();

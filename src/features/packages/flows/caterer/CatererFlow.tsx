@@ -11,13 +11,14 @@ import CatererStep3PoliciesAndCharges from './Step3PoliciesAndCharges';
 import CatererStep4SampleAndMedia from './Step4SampleAndMedia';
 import { AddonModal, Addon } from '../../components/AddonModal';
 
-const FLOW_CONFIG = { vendorName: 'Caterer', steps: ['Event and Crew', 'Products and Pricing', 'Policies and Charges', 'Sample and Media'] };
-const VENUE_NEEDS_OPTIONS = ['Power', 'Camera', 'Stage', 'Lighting', 'Security'];
+const FLOW_CONFIG = { vendorName: 'Caterer', steps: ['Package basics', 'Package Items', 'Policies and Charges', 'Sample and Media'] };
+const VENUE_NEEDS_OPTIONS = ['Prep & pantry area', 'Dining floor space', 'Rest area', 'Hand-wash station space', 'Water supply', 'Buffet layout space', 'Live-counter setup point', 'Refrigeration access', 'Power for chafing & warmers', 'Dish-wash & garbage disposal area'];
 
 export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void }) {
     const router = useRouter();
     const variants = useFlowVariants();
     const [step, setStep] = React.useState(1);
+    const [isGlobalLoading, setIsGlobalLoading] = React.useState(true);
 
     // Step 1
     const [packageName, setPackageName] = React.useState('');
@@ -30,6 +31,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const [minCapacity, setMinCapacity] = React.useState('');
     const [maxCapacity, setMaxCapacity] = React.useState('');
     const [tastingSession, setTastingSession] = React.useState('Yes');
+    const [tastingSessionCost, setTastingSessionCost] = React.useState('');
     const [venueNeeds, setVenueNeeds] = React.useState<string[]>(['Power']);
     const [venueRequest, setVenueRequest] = React.useState('');
     const toggleVenueNeed = (need: string) => setVenueNeeds(prev => prev.includes(need) ? prev.filter(n => n !== need) : [...prev, need]);
@@ -135,6 +137,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const [lastMinuteIncreaseType, setLastMinuteIncreaseType] = React.useState('Fixed Price');
     const [lastMinuteValue, setLastMinuteValue] = React.useState('');
     
+    const [cancellationFiles, setCancellationFiles] = React.useState<PolicyFile[]>([]);
     const [lastMinuteFiles, setLastMinuteFiles] = React.useState<PolicyFile[]>([]);
     const onLastMinuteUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         console.log("onLastMinuteUpload triggered, files selected:", e.target.files ? Array.from(e.target.files).map(f => f.name) : []);
@@ -235,6 +238,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
             const vendorId = localStorage.getItem('vendor_id');
             if (!vendorId) {
                 console.error("No vendor_id found in localStorage");
+                setIsGlobalLoading(false);
                 return;
             }
             try {
@@ -268,6 +272,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                             setMaxCapacity(String(s1.capacity.maxGuests || ''));
                         }
                         setTastingSession(s1.tastingSession ? 'Yes' : 'No');
+                        setTastingSessionCost(s1.tastingSessionCost ? s1.tastingSessionCost.toString() : '');
                         
                         const needs: string[] = [];
                         if (s1.venueNeeds?.power) needs.push('Power');
@@ -333,6 +338,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                                 category: a.category || '',
                                 subCategory: a.subCategory || '',
                                 quantity: a.quantity || '',
+                                isNonVeg: a.isNonVeg || false,
                                 description: a.description || '',
                                 price: String(a.price || ''),
                                 billingUnit: a.billingUnit || 'Per hour',
@@ -500,6 +506,8 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 }
             } catch (err) {
                 console.error("Error restoring/initializing package draft:", err);
+            } finally {
+                setIsGlobalLoading(false);
             }
         };
         initOrRestorePackage();
@@ -550,6 +558,22 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
         setIsSaving(true);
         try {
             if (step === 1) {
+                if (!packageName || !eventCategories || !minDuration || !maxDuration || !setupDuration || !minCrewSize || !maxCrewSize || !minCapacity || !maxCapacity) {
+                    alert("Please fill in all mandatory fields before continuing.");
+                    setIsSaving(false);
+                    return;
+                }
+                if (tastingSession === 'Yes' && !tastingSessionCost) {
+                    alert("Please enter the cost for the tasting session.");
+                    setIsSaving(false);
+                    return;
+                }
+                if (venueNeeds.length === 0 && !venueRequest.trim()) {
+                    alert("Please select at least one Venue Need or provide specific requests.");
+                    setIsSaving(false);
+                    return;
+                }
+
                 const pocName = localStorage.getItem('vendor_poc') || 'Point of Contact';
                 const payload = {
                     packageName: packageName || `${variants.selectedVariant} Catering Package`,
@@ -570,17 +594,11 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                         maxGuests: parseInt(maxCapacity) || 0
                     },
                     tastingSession: tastingSession === 'Yes',
+                    tastingSessionCost: tastingSession === 'Yes' ? Number(tastingSessionCost) || 0 : 0,
                     venueNeeds: {
-                        power: venueNeeds.includes('Power'),
-                        ac: venueNeeds.includes('AC'),
-                        stage: venueNeeds.includes('Stage'),
-                        lighting: venueNeeds.includes('Lighting'),
-                        security: venueNeeds.includes('Security'),
-                        customText: [
-                            ...venueNeeds.filter(n => !['Power', 'Camera', 'Stage', 'Lighting', 'Security', 'AC'].includes(n)),
-                            ...(venueRequest.trim() ? [venueRequest.trim()] : [])
-                        ].join(', ')
-                    }
+                        customText: venueRequest.trim()
+                    },
+                    venueNeedsList: venueNeeds
                 };
 
                 const res = await fetch(apiUrl(`/packages/${currentPackageId}/step/1`), {
@@ -593,6 +611,11 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
             } else if (step === 2) {
                 if (menus.length === 0) {
                     alert("Please add at least one menu before proceeding.");
+                    setIsSaving(false);
+                    return;
+                }
+                if (addons.length === 0) {
+                    alert("Please add at least one add-on before proceeding.");
                     setIsSaving(false);
                     return;
                 }
@@ -650,6 +673,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                         category: a.category,
                         subCategory: a.subCategory,
                         quantity: a.quantity,
+                        isNonVeg: a.isNonVeg,
                         description: a.description,
                         price: parseFloat(a.price) || 0,
                         billingUnit: a.billingUnit,
@@ -863,6 +887,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
         setMinCapacity('50');
         setMaxCapacity('500');
         setTastingSession('Yes');
+        setTastingSessionCost('500');
         setVenueNeeds(['Power', 'Stage', 'Security', 'AC']);
         setVenueRequest('Requires clean water connection and minimum 4x4m kitchen space.');
 
@@ -980,6 +1005,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
 
         <FlowShell
             config={FLOW_CONFIG} step={step} onBack={handleBack} onNext={handleNext} isSaving={isSaving}
+            isNextDisabled={step === 4 && sampleMediaFiles.length < 3}
             packageId={packageId}
             packageGroupId={packageGroupId}
             vendorType="Caterer"
@@ -999,6 +1025,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 minCapacity={minCapacity} setMinCapacity={setMinCapacity}
                 maxCapacity={maxCapacity} setMaxCapacity={setMaxCapacity}
                 tastingSession={tastingSession} setTastingSession={setTastingSession}
+                tastingSessionCost={tastingSessionCost} setTastingSessionCost={setTastingSessionCost}
                 venueNeeds={venueNeeds} toggleVenueNeed={toggleVenueNeed}
                 venueRequest={venueRequest} setVenueRequest={setVenueRequest}
                 venueNeedsOptions={VENUE_NEEDS_OPTIONS}
@@ -1019,6 +1046,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 notIncludedText={notIncludedText} setNotIncludedText={setNotIncludedText}
             />}
             {step === 3 && <CatererStep3PoliciesAndCharges
+                menus={menus} addons={addons}
                 teamEquipmentPrice={teamEquipmentPrice} setTeamEquipmentPrice={setTeamEquipmentPrice}
                 teamEquipmentUnit={teamEquipmentUnit} setTeamEquipmentUnit={setTeamEquipmentUnit}
                 overtimePrice={overtimePrice} setOvertimePrice={setOvertimePrice}
@@ -1050,8 +1078,10 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                 lastMinuteValue={lastMinuteValue} setLastMinuteValue={setLastMinuteValue}
                 policyFiles={policyFiles} policyInputRef={policyInputRef} onPolicyUpload={onPolicyUpload}
                 removePolicyFile={(i) => setPolicyFiles(prev => prev.filter((_, idx) => idx !== i))}
+                cancellationFiles={cancellationFiles} setCancellationFiles={setCancellationFiles}
                 lastMinuteInputRef={lastMinuteInputRef}
-                lastMinuteFiles={lastMinuteFiles}
+                lastMinuteFiles={lastMinuteFiles} setLastMinuteFiles={setLastMinuteFiles}
+                setPolicyFiles={setPolicyFiles}
                 onLastMinuteUpload={onLastMinuteUpload}
                 removeLastMinuteFile={removeLastMinuteFile}
                 customDatesPricing={customDatesPricing}

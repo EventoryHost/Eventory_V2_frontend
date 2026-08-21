@@ -476,7 +476,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                             {/* Cancellation Policy */}
                             {cancellationDocs.length === 0 ? (
                                 <button type="button" onClick={() => setActivePolicySheet('cancellation')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] text-left hover:bg-gray-50 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
                                     <div className="flex flex-col flex-1 min-w-0">
                                         <span className="text-[14px] font-bold text-[#030303]">Cancellation Policy</span>
                                         <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
@@ -505,7 +505,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                             {/* Last Minute Charges */}
                             {lastMinuteDocs.length === 0 ? (
                                 <button type="button" onClick={() => setActivePolicySheet('lastMinute')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] text-left hover:bg-gray-50 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
                                     <div className="flex flex-col flex-1 min-w-0">
                                         <span className="text-[14px] font-bold text-[#030303]">Last Minute Charges</span>
                                         <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>
@@ -534,7 +534,7 @@ export function DecoratorAddonModal({ isOpen, onClose, onSave, addon }: Props) {
                             {/* General Policy */}
                             {policyDocs.length === 0 ? (
                                 <button type="button" onClick={() => setActivePolicySheet('general')} style={{ fontFamily: 'Figtree, sans-serif' }} className="flex items-center gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[16px] text-left hover:bg-gray-50 transition-colors shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-orange-500 shrink-0"><Info size={18} /></div>
+                                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47] shrink-0"><Info size={18} /></div>
                                     <div className="flex flex-col flex-1 min-w-0">
                                         <span className="text-[14px] font-bold text-[#030303]">General Policy</span>
                                         <span className="text-[12px] text-[#9F9FA9]">Tap to add policy</span>

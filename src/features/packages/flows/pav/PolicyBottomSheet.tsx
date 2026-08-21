@@ -26,11 +26,13 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
             setTextPolicy('');
             
             // Check if initialDocs contains a preset doc vs actual uploaded files
-            const presetDoc = initialDocs.find(d => !d.file && (d.size === 0 || !d.size) && (d.name.includes('Flexible') || d.name.includes('Standard') || d.name.includes('Strict')));
+            const presetDoc = initialDocs.find(d => !d.file && (d.size === 0 || !d.size) && (d.name.includes('Flexible') || d.name.includes('Standard') || d.name.includes('Strict') || d.name.includes('Moderate') || d.name.includes('Custom')));
             if (presetDoc) {
                 if (presetDoc.name.includes('Flexible')) setSelectedPreset('Flexible');
                 else if (presetDoc.name.includes('Standard')) setSelectedPreset('Standard');
                 else if (presetDoc.name.includes('Strict')) setSelectedPreset('Strict');
+                else if (presetDoc.name.includes('Moderate')) setSelectedPreset('Moderate');
+                else if (presetDoc.name.includes('Custom')) setSelectedPreset('Custom');
                 else setSelectedPreset(null);
 
                 setDocs(initialDocs.filter(d => d !== presetDoc));
@@ -68,7 +70,10 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
     const handleSave = () => {
         let finalDocs = [...docs];
         if (finalDocs.length === 0 && selectedPreset) {
-            finalDocs = [{ name: `${selectedPreset} Cancellation Policy`, size: 0 }];
+            const docName = title.toLowerCase().includes('cancellation') 
+                ? `${selectedPreset} Cancellation Policy` 
+                : `${selectedPreset} Last Minute Policy`;
+            finalDocs = [{ name: docName, size: 0 }];
         }
         onSaveDocs(finalDocs);
         onClose();
@@ -102,6 +107,45 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
                                 </div>
 
                                 <div className="px-6 flex flex-col gap-4 overflow-y-auto pb-4 max-h-[60vh]">
+                                    {/* Last Minute Charges Presets */}
+                                    {title.toLowerCase().includes('last minute') && (
+                                        <div className="flex flex-col gap-3">
+                                            {[
+                                                { id: 'flexible', name: 'Flexible', desc: 'Extra plates under 24h or on the day billed at your standard per-plate rate.' },
+                                                { id: 'moderate', name: 'Moderate', desc: 'Extras on the day or within 24h at a moderate multiplier, with a minimum count. 1.25x / plate' },
+                                                { id: 'strict', name: 'Strict', desc: 'Extras on the day or within 24h at a higher multiplier, with a minimum count. 1.50x / plate' },
+                                                { id: 'custom', name: 'Custom', desc: 'Set your own rate for on-the-day extras.' }
+                                            ].map((preset) => {
+                                                const isSelected = selectedPreset === preset.name;
+                                                return (
+                                                    <div 
+                                                        key={preset.id}
+                                                        onClick={() => {
+                                                            setSelectedPreset(prev => prev === preset.name ? null : preset.name);
+                                                        }}
+                                                        className={`p-4 border rounded-[16px] cursor-pointer transition-all flex items-start justify-between ${
+                                                            isSelected ? 'border-[#04222D] bg-[#F4F4F5]/50 ring-1 ring-[#04222D]' : 'border-[#E4E4E7] hover:border-gray-400 bg-white'
+                                                        }`}
+                                                    >
+                                                        <div className="flex flex-col gap-1 pr-4">
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{preset.name}</span>
+                                                            <span style={{ fontFamily: 'Figtree, sans-serif', whiteSpace: 'pre-line' }} className="text-[12px] text-[#71717B] leading-relaxed">{preset.desc}</span>
+                                                        </div>
+                                                        <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
+                                                            isSelected ? 'bg-[#04222D] text-white' : 'border-2 border-[#D4D4D8]'
+                                                        }`}>
+                                                            {isSelected && <span className="text-[10px]">✓</span>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] mt-2 block">
+                                                Already have your own terms?
+                                            </span>
+                                        </div>
+                                    )}
+
                                     {/* Cancellation Policy Presets */}
                                     {title.toLowerCase().includes('cancellation') && (
                                         <div className="flex flex-col gap-3">
@@ -160,23 +204,27 @@ export default function PolicyBottomSheet({ isOpen, onClose, title, subtitle, on
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-center relative">
-                                        <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#E4E4E7]"></div></div>
-                                        <div className="relative bg-white px-3"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9]">or</span></div>
-                                    </div>
+                                                                        {!title.toLowerCase().includes('last minute') && (
+                                        <>
+                                            <div className="flex items-center justify-center relative">
+                                                <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-[#E4E4E7]"></div></div>
+                                                <div className="relative bg-white px-3"><span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] text-[#9F9FA9]">or</span></div>
+                                            </div>
 
-                                    <div 
-                                        onClick={() => setView('write')}
-                                        className="flex items-center gap-4 p-4 border border-[#E4E4E7] rounded-[16px] cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47]">
-                                            <Edit3 size={20} />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">Write your own</span>
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B]">Opens a full editor to write. This will be reviewed by our team</span>
-                                        </div>
-                                    </div>
+                                            <div 
+                                                onClick={() => setView('write')}
+                                                className="flex items-center gap-4 p-4 border border-[#E4E4E7] rounded-[16px] cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-all shadow-[0_2px_8px_rgba(0,0,0,0.02)]"
+                                            >
+                                                <div className="w-10 h-10 rounded-full bg-[#F4F4F5] flex items-center justify-center text-[#3F3F47]">
+                                                    <Edit3 size={20} />
+                                                </div>
+                                                <div className="flex flex-col">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">Write your own</span>
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#71717B]">Opens a full editor to write. This will be reviewed by our team</span>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
 
                                     {docs.length > 0 && (
                                         <div className="mt-4 flex flex-col gap-2">
