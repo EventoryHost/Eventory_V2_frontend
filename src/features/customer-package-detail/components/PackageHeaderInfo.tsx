@@ -8,9 +8,11 @@ import Breadcrumb from "@/components/customer/Breadcrumb";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
+import ShareModal from "./ShareModal";
 
 export default function PackageHeaderInfo({
   data,
+  onCreateQuotation,
 }: {
   data: Pick<
     PackageDetail,
@@ -28,10 +30,13 @@ export default function PackageHeaderInfo({
     | "rating"
     | "reviewCount"
     | "locationSummary"
+    | "vendor"
   >;
+  onCreateQuotation: () => void;
 }) {
   const { isLoggedIn } = useCustomerSession();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
   const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isSaved = isLoggedIn && savedItemId !== null;
@@ -145,7 +150,11 @@ export default function PackageHeaderInfo({
         </div>
 
         <div className="flex items-center gap-4 font-medium text-neutral-secondary">
-          <button type="button" className="flex items-center gap-1.5 hover:text-brand-950">
+          <button
+            type="button"
+            onClick={() => setIsShareOpen(true)}
+            className="flex items-center gap-1.5 hover:text-brand-950"
+          >
             <Share2 className="h-4 w-4" /> Share
           </button>
           <button
@@ -169,6 +178,19 @@ export default function PackageHeaderInfo({
           setIsAuthOpen(false);
           void handleSaveClick();
         }}
+      />
+
+      <ShareModal
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        target={{
+          title: data.title,
+          vendorName: data.vendorName,
+          rating: data.rating,
+          locationSummary: data.locationSummary,
+          eventsCount: data.vendor.eventsCount,
+        }}
+        onCreateQuotation={onCreateQuotation}
       />
     </section>
   );
