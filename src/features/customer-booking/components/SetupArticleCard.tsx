@@ -1,10 +1,20 @@
 import Image from "next/image";
 
+export type RequestAttribute = {
+  label: string;
+  oldValue?: string;
+  newValue: string;
+};
+
+export type SetupRequest =
+  | { status: "change" | "adding"; attributes: RequestAttribute[] }
+  | { status: "removal"; label: string };
+
 export type SetupItem = {
   name: string;
   quantity: number;
   subtitle: string;
-  requests: string[];
+  requests: SetupRequest[];
 };
 
 export type SetupArticleCardProps = {
@@ -69,20 +79,45 @@ export default function SetupArticleCard({
 
             {item.requests.length > 0 && (
               <div className="mt-1 flex flex-col gap-2 rounded-[12px] bg-[#F4F4F5] p-4">
-                <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#1447E6]">
+                <span className="font-figtree text-[14px] font-normal leading-[20px] text-[#1447E6]">
                   Requests
                 </span>
-                <ul className="flex flex-col gap-1">
-                  {item.requests.map((request, j) => (
-                    <li
-                      key={j}
-                      className="flex items-start gap-2 font-figtree text-[14px] font-normal leading-[18px] text-[#030303]"
-                    >
-                      <span className="text-[#3F3F47]">&bull;</span>
-                      {request}
-                    </li>
-                  ))}
-                </ul>
+
+                {item.requests.map((request, j) => (
+                  <div
+                    key={j}
+                    className="flex items-start justify-between gap-3 rounded-[16px] border border-[#E4E4E7] bg-white p-4"
+                  >
+                    {request.status === "removal" ? (
+                      <span className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B] line-through">
+                        {request.label}
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {request.attributes.map((attribute) => (
+                          <p
+                            key={attribute.label}
+                            className="font-figtree text-[13px] font-normal leading-[18px] text-[#030303]"
+                          >
+                            {attribute.label}:{" "}
+                            {attribute.oldValue && (
+                              <span className="text-[#71717B] line-through">
+                                {attribute.oldValue}
+                              </span>
+                            )}{" "}
+                            <span className="font-semibold text-[#030303]">
+                              {attribute.newValue}
+                            </span>
+                          </p>
+                        ))}
+                      </div>
+                    )}
+
+                    <span className="flex h-[22px] w-[55px] shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] pt-0.5 pr-2 pb-0.5 pl-2 font-figtree text-[9px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
+                      {request.status}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </div>
