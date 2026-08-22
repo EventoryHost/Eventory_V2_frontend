@@ -104,8 +104,15 @@ export default function CartPageContent() {
     const item = vendors.find((v) => v.id === itemId);
     if (!item) return;
     try {
-      const payload = await updateCartItem(itemId, { selectedForCheckout: !item.selected });
-      await applyPayload(payload);
+      if (item.selected) {
+        // Unchecking removes the item from the cart entirely, rather than just
+        // excluding it from the checkout total.
+        const payload = await removeCartItem(itemId);
+        await applyPayload(payload);
+      } else {
+        const payload = await updateCartItem(itemId, { selectedForCheckout: true });
+        await applyPayload(payload);
+      }
     } catch (error) {
       setLoadError(error instanceof ApiError ? error.message : "Couldn't update that item.");
     }

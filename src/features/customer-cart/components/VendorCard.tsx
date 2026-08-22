@@ -39,7 +39,7 @@ export default function VendorCard({
           type="checkbox"
           checked={vendor.selected}
           onChange={() => onToggleSelected(vendor.id)}
-          aria-label={`Select ${vendor.vendorName} for checkout`}
+          aria-label={vendor.selected ? `Remove ${vendor.vendorName} from cart` : `Select ${vendor.vendorName} for checkout`}
           className="h-4 w-4 rounded border-neutral-tertiary text-brand-primary focus:ring-brand-primary"
         />
         <div className="flex items-center gap-3">
