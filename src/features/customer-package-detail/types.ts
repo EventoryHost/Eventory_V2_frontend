@@ -92,8 +92,10 @@ export interface IncludedItemEntry {
   id: string;
   image?: string;
   title: string;
-  /** Vendor-type-specific facts (Decorator: Decorating/Theme/Setup type; PAV: Style/Quantity/Delivery; etc). */
+  /** Vendor-type-specific facts (Decorator: Decorating/Setup type; PAV: Style/Quantity/Delivery; etc). */
   details: IncludedItemDetail[];
+  /** Decorator-only — the setup's applied theme tag(s), shown as a pill picker in the setup detail view. Undefined for vendor types with no theme concept. */
+  themeOptions?: string[];
   price: number;
   items: IncludedItemLine[];
 }

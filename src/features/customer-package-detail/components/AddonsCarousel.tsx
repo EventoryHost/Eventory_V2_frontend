@@ -18,7 +18,7 @@ export default function AddonsCarousel({
         <p className="font-figtree text-[12px] text-neutral-tertiary">Every add-on updates the price in the card on the right.</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {addons.map((addon, i) => (
           <AddonCard
             key={addon.id}

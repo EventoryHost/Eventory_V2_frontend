@@ -5,8 +5,10 @@ import { Check, Loader2, Plus, Trash2, X } from "lucide-react";
 import type { ColourOption, IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from "../types";
 import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_ICONS } from "../data/workshopCategories";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
+import SetupDetailPanel from "./SetupDetailPanel";
 
 type FooterPhase = "idle" | "processing" | "committed";
+type ModalView = "detail" | "customize";
 
 const NEW_ITEM_SLOT = "__new__";
 
@@ -28,6 +30,7 @@ export default function CustomizeWorkshopModal({
   initialItemId?: string;
   onClose: () => void;
 }) {
+  const [view, setView] = useState<ModalView>(initialItemId ? "customize" : "detail");
   const [selectedItemId, setSelectedItemId] = useState(initialItemId ?? items[0]?.id ?? NEW_ITEM_SLOT);
   const [phase, setPhase] = useState<FooterPhase>("idle");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -96,6 +99,22 @@ export default function CustomizeWorkshopModal({
         : requestCount > 0
           ? `${requestCount} request${requestCount === 1 ? "" : "s"}`
           : "No changes yet";
+
+  if (view === "detail") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal>
+        <div className="h-[min(720px,90vh)] w-full max-w-[640px] overflow-hidden rounded-2xl bg-white shadow-2xl">
+          <SetupDetailPanel
+            setup={setup}
+            items={items}
+            pendingCount={requestCount}
+            onCustomize={() => setView("customize")}
+            onClose={onClose}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal>
@@ -183,7 +202,7 @@ export default function CustomizeWorkshopModal({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => setView("detail")}
               className="rounded-lg border border-black/15 px-4 py-2 font-figtree text-[13px] font-semibold text-brand-950 transition hover:border-black/30"
             >
               Return

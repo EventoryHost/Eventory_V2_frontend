@@ -15,7 +15,6 @@ import NotesForVendor from "./NotesForVendor";
 import VendorRequirements from "./VendorRequirements";
 import AddonsCarousel from "./AddonsCarousel";
 import PaymentProtection from "./PaymentProtection";
-import EventDaySection from "./EventDaySection";
 import PoliciesSection from "./PoliciesSection";
 import VendorSection from "./VendorSection";
 import ReviewsSection from "./ReviewsSection";
@@ -84,10 +83,9 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
             <AddonsCarousel addons={data.addons} selectedIds={selectedAddonIds} onToggle={toggleAddon} />
           )}
           <PaymentProtection protection={data.paymentProtection} />
-          <EventDaySection />
-          {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
-          <VendorSection vendor={data.vendor} />
           {data.policies.length > 0 && <PoliciesSection policies={data.policies} />}
+          <VendorSection vendor={data.vendor} />
+          {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
         </div>
 
         <StickyBookingCard

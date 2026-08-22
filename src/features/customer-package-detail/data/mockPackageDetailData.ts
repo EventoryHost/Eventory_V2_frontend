@@ -82,9 +82,9 @@ export const mockPackageDetail: PackageDetail = {
       title: "Floral arch with drapes",
       details: [
         { label: "Decorating", value: "Entrance Gate, +2 more" },
-        { label: "Theme", value: "Fairy-Tail" },
         { label: "Setup type", value: "Outdoor" },
       ],
+      themeOptions: ["Fairy-Tail", "Botanical", "Vintage Romance", "Minimalist"],
       price: 24000,
       items: [
         {
@@ -137,9 +137,9 @@ export const mockPackageDetail: PackageDetail = {
       title: "Boho macrame backdrops",
       details: [
         { label: "Decorating", value: "Ceremony Area, +1 more" },
-        { label: "Theme", value: "Bohemian" },
         { label: "Setup type", value: "Indoor" },
       ],
+      themeOptions: ["Bohemian", "Rustic", "Coastal", "Minimalist"],
       price: 18500,
       items: [
         {
@@ -192,9 +192,9 @@ export const mockPackageDetail: PackageDetail = {
       title: "Elegant crystal chandeliers",
       details: [
         { label: "Decorating", value: "Reception Hall, +3 more" },
-        { label: "Theme", value: "Glamorous" },
         { label: "Setup type", value: "Indoor" },
       ],
+      themeOptions: ["Glamorous", "Classic Gold", "Modern Chic", "Minimalist"],
       price: 45000,
       items: [
         {
