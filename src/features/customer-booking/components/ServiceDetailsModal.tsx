@@ -75,13 +75,38 @@ const SETUP_ARTICLES: SetupArticleCardProps[] = [
         name: "Stage backdrop",
         quantity: 1,
         subtitle: "Structure · Frame backdrop · Marigold + white · 16 ft × 8 ft",
-        requests: ["Add Flower type Jasmine", "Remove Flower type Marigold"],
+        requests: [
+          {
+            status: "change",
+            attributes: [
+              { label: "Flower type", oldValue: "Rose", newValue: "Jasmine" },
+              { label: "Colour", oldValue: "White", newValue: "Maroon" },
+              { label: "Volume", oldValue: "High", newValue: "Low" },
+            ],
+          },
+          {
+            status: "adding",
+            attributes: [
+              { label: "Flower type", newValue: "Jasmine" },
+              { label: "Colour", newValue: "Maroon" },
+              { label: "Volume", newValue: "Low" },
+            ],
+          },
+          { status: "removal", label: "Special Table" },
+        ],
       },
       {
         name: "Fairy-light curtain",
         quantity: 2,
         subtitle: "Lighting · Fairy lights · Warm white · 12 ft",
-        requests: ["Add Flower type Jasmine", "Remove Flower type Marigold"],
+        requests: [
+          {
+            status: "change",
+            attributes: [
+              { label: "Colour", oldValue: "Warm white", newValue: "Cool white" },
+            ],
+          },
+        ],
       },
     ],
   },
@@ -100,13 +125,25 @@ const SETUP_ARTICLES: SetupArticleCardProps[] = [
         name: "Floral arch",
         quantity: 1,
         subtitle: "Structure · Frame arch · Marigold + white · 10 ft × 8 ft",
-        requests: ["Add Flower type Jasmine", "Remove Flower type Marigold"],
+        requests: [
+          {
+            status: "change",
+            attributes: [
+              { label: "Flower type", oldValue: "Rose", newValue: "Jasmine" },
+            ],
+          },
+        ],
       },
       {
         name: "Hanging lanterns",
         quantity: 4,
         subtitle: "Lighting · Lanterns · Warm white",
-        requests: ["Add Flower type Jasmine", "Remove Flower type Marigold"],
+        requests: [
+          {
+            status: "adding",
+            attributes: [{ label: "Colour", newValue: "Gold" }],
+          },
+        ],
       },
     ],
   },

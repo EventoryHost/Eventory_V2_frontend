@@ -11,6 +11,7 @@ import PackageSummary from "./PackageSummary";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
 import NotIncludedSection from "./NotIncludedSection";
+import NotesForVendor from "./NotesForVendor";
 import VendorRequirements from "./VendorRequirements";
 import AddonsCarousel from "./AddonsCarousel";
 import PaymentProtection from "./PaymentProtection";
@@ -18,12 +19,17 @@ import EventDaySection from "./EventDaySection";
 import PoliciesSection from "./PoliciesSection";
 import VendorSection from "./VendorSection";
 import ReviewsSection from "./ReviewsSection";
-import ShareQuoteCard from "./ShareQuoteCard";
 import StickyBookingCard from "./StickyBookingCard";
+
+function scrollToBookingCard() {
+  document.getElementById("booking-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  window.setTimeout(() => document.getElementById("event-type-select")?.focus(), 300);
+}
 
 export default function PackageDetailPage({ data }: { data: PackageDetail }) {
   const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
   const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
+  const [vendorNote, setVendorNote] = useState("");
 
   const selectedVariant =
     data.variants.find((variant) => variant.id === selectedVariantId) ?? data.variants[0];
@@ -53,7 +59,7 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
   return (
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
       <HeroGallery images={data.gallery} />
-      <PackageHeaderInfo data={data} />
+      <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
 
       <div className="mt-6">
         <AnchorNav />
@@ -72,16 +78,16 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && <IncludedItems items={data.includedItems} />}
           {data.notIncluded && data.notIncluded.length > 0 && <NotIncludedSection items={data.notIncluded} />}
+          <NotesForVendor value={vendorNote} onChange={setVendorNote} />
+          {data.vendorRequirements.length > 0 && <VendorRequirements requirements={data.vendorRequirements} />}
           {data.addons.length > 0 && (
             <AddonsCarousel addons={data.addons} selectedIds={selectedAddonIds} onToggle={toggleAddon} />
           )}
-          {data.vendorRequirements.length > 0 && <VendorRequirements requirements={data.vendorRequirements} />}
           <PaymentProtection protection={data.paymentProtection} />
           <EventDaySection />
           {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
           <VendorSection vendor={data.vendor} />
           {data.policies.length > 0 && <PoliciesSection policies={data.policies} />}
-          <ShareQuoteCard />
         </div>
 
         <StickyBookingCard
@@ -90,6 +96,9 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
           selectedAddons={data.addons.filter((addon) => selectedAddonIds.has(addon.id))}
+          includedItems={data.includedItems}
+          vendorNote={vendorNote}
+          cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
         />
       </div>
     </main>

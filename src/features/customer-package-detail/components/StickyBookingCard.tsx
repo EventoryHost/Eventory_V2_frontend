@@ -2,13 +2,16 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin } from "lucide-react";
+import { Calendar, MapPin, ShieldCheck } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem } from "@/lib/customerCartApi";
 import { ApiError } from "@/lib/apiClient";
-import type { AddonItem } from "../types";
+import type { AddonItem, IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
+import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
+import PriceBreakdownDialog from "./PriceBreakdownDialog";
+import CancellationPolicyDialog from "./CancellationPolicyDialog";
 
 export default function StickyBookingCard({
   packageId,
@@ -16,12 +19,18 @@ export default function StickyBookingCard({
   gstPercent,
   tokenAmount,
   selectedAddons,
+  includedItems,
+  vendorNote,
+  cancellationPolicyText,
 }: {
   packageId: string;
   packageTotal: number;
   gstPercent: number;
   tokenAmount: number;
   selectedAddons: AddonItem[];
+  includedItems: IncludedItemEntry[];
+  vendorNote: string;
+  cancellationPolicyText?: string;
 }) {
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -29,6 +38,7 @@ export default function StickyBookingCard({
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
+  const [isCancellationOpen, setIsCancellationOpen] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,16 +49,18 @@ export default function StickyBookingCard({
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   const estimatedTotal = packageTotal + gstAmount;
   const todayIso = new Date().toISOString().slice(0, 10);
+  const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
+  const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
 
   function buildCartPayload() {
     const timeSlot = [startTime, endTime].filter(Boolean).join(" - ") || undefined;
-    const date = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : undefined;
     return {
       packageId,
-      date,
+      date: validEventDate ?? undefined,
       timeSlot,
       location: location || undefined,
-      specialRequest: eventType ? `Event type: ${eventType}` : undefined,
+      eventType: eventType || undefined,
+      specialRequest: vendorNote || undefined,
       selectedAddOns: selectedAddons.map((addon) => ({
         addOnId: addon.id,
         name: addon.title,
@@ -90,11 +102,11 @@ export default function StickyBookingCard({
   }
 
   return (
-    <div className="relative">
+    <div id="booking-card" className="relative">
       <div className="sticky top-24 rounded-2xl border border-black/10 bg-white p-6 shadow-lg shadow-black/[0.04]">
         <button
           type="button"
-          onClick={() => setIsBreakdownOpen((open) => !open)}
+          onClick={() => setIsBreakdownOpen(true)}
           className="mb-6 block w-full text-left"
         >
           <div className="mb-1 flex items-end gap-2">
@@ -114,6 +126,7 @@ export default function StickyBookingCard({
               Event Type
             </span>
             <select
+              id="event-type-select"
               value={eventType}
               onChange={(event) => setEventType(event.target.value)}
               className="w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
@@ -181,27 +194,21 @@ export default function StickyBookingCard({
           </label>
         </form>
 
-        {isBreakdownOpen && (
-          <div className="mt-6 space-y-2 border-t border-black/5 pt-4 font-figtree text-[13px]">
-            <div className="flex justify-between text-neutral-secondary">
-              <span>Package total</span>
-              <span>{formatPrice(packageTotal)}</span>
-            </div>
-            <div className="flex justify-between text-neutral-secondary">
-              <span>GST {gstPercent}%</span>
-              <span>{formatPrice(gstAmount)}</span>
-            </div>
-            <div className="flex justify-between pt-2 font-bold text-brand-950">
-              <span>Estimated total</span>
-              <span>{formatPrice(estimatedTotal)}</span>
-            </div>
+        {validEventDate && cancellationTiers ? (
+          <button
+            type="button"
+            onClick={() => setIsCancellationOpen(true)}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-success-700/20 bg-success-subtle px-3 py-3 font-figtree text-[12px] font-medium text-success-700 transition hover:border-success-700/40"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
+          </button>
+        ) : (
+          <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-black/10 px-3 py-3 font-figtree text-[12px] font-medium text-neutral-secondary">
+            <Calendar className="h-4 w-4" />
+            Pick a date to see your free-cancellation cut-off
           </div>
         )}
-
-        <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-black/10 px-3 py-3 font-figtree text-[12px] font-medium text-neutral-secondary">
-          <Calendar className="h-4 w-4" />
-          Pick a date to see your free-cancellation cut-off
-        </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
           <button
@@ -238,6 +245,29 @@ export default function StickyBookingCard({
           setIsAuthOpen(false);
           void handleBookClick();
         }}
+      />
+
+      <PriceBreakdownDialog
+        isOpen={isBreakdownOpen}
+        onClose={() => setIsBreakdownOpen(false)}
+        includedItems={includedItems}
+        selectedAddons={selectedAddons}
+        subtotal={packageTotal}
+        gstPercent={gstPercent}
+        gstAmount={gstAmount}
+        estimatedTotal={estimatedTotal}
+        eventDateIso={validEventDate}
+        onViewCancellationPolicy={() => {
+          setIsBreakdownOpen(false);
+          setIsCancellationOpen(true);
+        }}
+      />
+
+      <CancellationPolicyDialog
+        isOpen={isCancellationOpen}
+        onClose={() => setIsCancellationOpen(false)}
+        eventDateIso={validEventDate}
+        vendorPolicyText={cancellationPolicyText}
       />
     </div>
   );

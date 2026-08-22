@@ -159,6 +159,7 @@ export interface RawCartQuote {
 
 export interface AddCartItemParams {
   packageId: string;
+  eventType?: string;
   guests?: number;
   date?: string;
   timeSlot?: string;
@@ -170,6 +171,7 @@ export interface AddCartItemParams {
 }
 
 export interface UpdateCartItemParams {
+  eventType?: string;
   guests?: number;
   date?: string;
   timeSlot?: string;
