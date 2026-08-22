@@ -17,8 +17,8 @@ export default function AddedAddonRow({
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="flex flex-1 items-center gap-4">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg">
-          <Image src={addon.image} alt={addon.title} fill sizes="64px" className="object-cover" />
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-neutral-subtle">
+          {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="64px" className="object-cover" />}
         </div>
         <div>
           <h5 className="font-figtree text-[15px] font-semibold text-neutral-primary">
@@ -27,9 +27,11 @@ export default function AddedAddonRow({
               ×{addon.quantity}
             </span>
           </h5>
-          <p className="mb-2 font-figtree text-[12px] text-neutral-tertiary">{addon.category}</p>
+          {addon.category && (
+            <p className="mb-2 font-figtree text-[12px] text-neutral-tertiary">{addon.category}</p>
+          )}
           {addon.variant && (
-            <span className="inline-block rounded-full border border-neutral-subtle bg-[#F9F9F9] px-3 py-1 font-figtree text-[11px] text-neutral-secondary">
+            <span className="inline-block rounded-full border border-neutral-subtle bg-white px-3 py-1 font-figtree text-[11px] text-neutral-secondary">
               {addon.variant}
             </span>
           )}

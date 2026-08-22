@@ -21,12 +21,12 @@ export default function AddedAddonsSection({
   if (addons.length === 0) return null;
 
   return (
-    <div className="border-t border-black/5">
+    <div className="border-t border-black/5 bg-[#FAFAFA]">
       <button
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
         aria-expanded={isExpanded}
-        className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[#F9F9F9]"
+        className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[#F2F2F2]"
       >
         <h4 className="font-figtree text-[15px] font-semibold text-neutral-primary">
           Added Add-ons ({addons.length})

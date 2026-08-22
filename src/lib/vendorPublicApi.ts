@@ -2,26 +2,36 @@ import { apiFetch } from "./apiClient";
 
 // The real cart payload groups items by a bare vendorId ObjectId — no
 // business name, no avatar (Eventory_V2_backend customerCartController.js
-// never populates it). There's no /customer/vendors/:id endpoint to resolve
-// it safely, so this falls back to the vendor-management router's
-// unauthenticated GET /vendors/:id, explicitly projected to the same
-// public-safe field whitelist the discovery endpoints use via ?select= —
-// never KYC/banking/contact fields.
-
-const PUBLIC_SELECT = "id,businessName,isIndividual,profilePicture,isVerified,city";
+// never populates it). This calls the customer-facing GET
+// /customer/vendors/:vendorId, a server-enforced PUBLIC_VENDOR_FIELDS
+// whitelist — never phone/email/bank/KYC fields. Do NOT call the
+// vendor-management router's internal GET /vendors/:id instead: without an
+// explicit ?select= it returns the vendor's entire document.
 
 export interface RawVendorPublicMinimal {
   id: string;
   businessName?: string;
   isIndividual?: boolean;
-  profilePicture?: string;
-  isVerified?: boolean;
+  vendorType?: string;
+  eventCategories?: string[];
   city?: string;
+  state?: string;
+  serviceAreas?: string[];
+  teamSize?: string;
+  bookingsPerYear?: string;
+  experience?: string;
+  profilePicture?: string;
+  description?: string;
+  businessPhotos?: string[];
+  coverImage?: string;
+  isVerified?: boolean;
+  rating?: number;
+  reviewsCount?: number;
+  createdAt?: string;
 }
 
 export async function getVendorPublic(vendorId: string) {
-  return apiFetch<{ success: boolean; data: RawVendorPublicMinimal }>(
-    `/vendors/${vendorId}?select=${PUBLIC_SELECT}`,
-    { auth: false }
-  );
+  return apiFetch<{ status: "SUCCESS"; vendor: RawVendorPublicMinimal }>(`/customer/vendors/${vendorId}`, {
+    auth: false,
+  });
 }

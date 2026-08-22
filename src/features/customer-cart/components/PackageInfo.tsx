@@ -1,56 +1,80 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2 } from "lucide-react";
-import type { CartPackage } from "../types";
+import { PartyPopper } from "lucide-react";
+import type { CartPackage, EventDetails as EventDetailsData } from "../types";
 import { formatPrice } from "../utils/currency";
+import { getCategoryIcon, getCategoryLabel } from "../utils/categoryMeta";
+import EventDetails from "./EventDetails";
+import RefundPolicyLink from "./RefundPolicyLink";
+import VendorActions from "./VendorActions";
 
-export default function PackageInfo({ cartPackage }: { cartPackage: CartPackage }) {
+const EVENT_TYPE_PREFIX = /^Event type:\s*/i;
+
+export default function PackageInfo({
+  cartPackage,
+  eventDetails,
+  specialRequest,
+  onEditDetails,
+  onRemove,
+  onMoveToWishlist,
+}: {
+  cartPackage: CartPackage;
+  eventDetails: EventDetailsData;
+  specialRequest: string;
+  onEditDetails: () => void;
+  onRemove: () => void;
+  onMoveToWishlist: () => void;
+}) {
+  const CategoryIcon = getCategoryIcon(cartPackage.categoryLabel);
+
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:gap-6">
-      <div className="relative h-[110px] w-[110px] shrink-0 overflow-hidden rounded-2xl sm:mx-0">
-        <Image
-          src={cartPackage.image}
-          alt={cartPackage.title}
-          fill
-          sizes="110px"
-          className="object-cover"
-        />
+    <div className="flex flex-col md:flex-row">
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-subtle md:aspect-auto md:w-[280px]">
+        {cartPackage.image && (
+          <Image
+            src={cartPackage.image}
+            alt={cartPackage.title}
+            fill
+            sizes="(min-width: 768px) 280px, 100vw"
+            className="object-cover"
+          />
+        )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex w-full flex-col justify-between p-6">
         <div>
-          <span className="mb-2 inline-block rounded-full bg-[#FFE3E8] px-3 py-1 font-figtree text-[10px] font-bold tracking-wider text-brand-950 uppercase">
-            {cartPackage.categoryLabel}
-          </span>
-          <h3 className="mb-1 font-figtree text-[18px] leading-snug font-semibold text-neutral-primary">
-            {cartPackage.title}
-          </h3>
-          <Link
-            href={cartPackage.href}
-            className="mb-2 inline-block font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
-          >
-            View Package details
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-brand-subtle px-2.5 py-1 font-figtree text-[11px] font-bold tracking-wide text-brand-primary uppercase">
+              <CategoryIcon className="h-3.5 w-3.5" />
+              {getCategoryLabel(cartPackage.categoryLabel)}
+            </span>
+            <div className="shrink-0 text-right">
+              <span className="font-figtree text-[20px] font-bold text-neutral-primary">
+                {formatPrice(cartPackage.price)}
+              </span>
+              <span className="font-figtree text-[13px] text-neutral-secondary"> /event</span>
+            </div>
+          </div>
+
+          <Link href={cartPackage.href} className="hover:underline">
+            <h3 className="mb-3 font-figtree text-[18px] leading-snug font-semibold text-neutral-primary">
+              {cartPackage.title}
+            </h3>
           </Link>
-          {cartPackage.freeCancellationText && (
-            <p className="flex items-center gap-1.5 font-figtree text-[13px] font-medium text-success-700">
-              <CheckCircle2 className="h-4 w-4" /> {cartPackage.freeCancellationText}
-            </p>
+
+          <EventDetails details={eventDetails} />
+
+          {specialRequest && (
+            <div className="mb-3 flex items-center gap-1.5 font-figtree text-[13px] text-neutral-secondary">
+              <PartyPopper className="h-4 w-4 shrink-0 text-brand-primary" />
+              {specialRequest.replace(EVENT_TYPE_PREFIX, "")}
+            </div>
           )}
+
+          <RefundPolicyLink />
         </div>
 
-        <div className="sm:text-right">
-          {cartPackage.discountPercent && (
-            <span className="mb-1 inline-block rounded-lg bg-success-subtle px-2 py-1 font-figtree text-[12px] font-bold text-success-700">
-              {cartPackage.discountPercent}% OFF
-            </span>
-          )}
-          <div className="font-figtree text-[20px] font-bold text-neutral-primary">
-            {formatPrice(cartPackage.price)}{" "}
-            <span className="font-figtree text-[13px] font-normal text-neutral-secondary">
-              / event
-            </span>
-          </div>
-        </div>
+        <VendorActions onRemove={onRemove} onMoveToWishlist={onMoveToWishlist} onEdit={onEditDetails} />
       </div>
     </div>
   );

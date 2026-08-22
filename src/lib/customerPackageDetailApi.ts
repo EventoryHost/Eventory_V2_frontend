@@ -63,6 +63,62 @@ export interface RawPavPackageItem {
   };
 }
 
+export interface RawCatererMenuItem {
+  name?: string;
+  price?: number;
+  foodType?: "Veg" | "Non-veg" | "Egg";
+}
+
+export interface RawCatererMenu {
+  _id?: string;
+  name?: string;
+  type?: "Breakfast" | "Lunch" | "Dinner" | "Snacks";
+  serviceStyle?: string[];
+  perPlatePrice?: number;
+  items?: Record<string, RawCatererMenuItem[] | undefined>;
+}
+
+export interface RawDjItem {
+  _id?: string;
+  name?: string;
+  performanceType?: string;
+  contentDetails?: { genreOfMusic?: string[]; language?: string[]; description?: string };
+}
+
+export interface RawDjEquipment {
+  _id?: string;
+  name?: string;
+  quantity?: number;
+  category?: string;
+  subCategory?: string;
+}
+
+export interface RawMakeupOption {
+  name?: string;
+  price?: number;
+}
+
+export interface RawMakeupItem {
+  _id?: string;
+  name?: string;
+  itemType?: "Makeup" | "Hair" | "Skin & Spa" | "Mehendi" | "Nail" | "Other";
+  makeupType?: string;
+  hairServiceType?: string;
+  longevity?: string;
+  styles?: string[];
+  options?: RawMakeupOption[];
+}
+
+export interface RawVenueSpace {
+  _id?: string;
+  name?: string;
+  spaceType?: string;
+  environment?: "Indoor" | "Outdoor";
+  capacity?: { standing?: number; sitting?: number; dining?: number };
+  price?: number;
+  billingUnit?: string;
+}
+
 export interface RawFullPackage {
   _id: string;
   vendorId: RawVendorPublic | string;
@@ -93,10 +149,20 @@ export interface RawFullPackage {
   step2_productsAndPricing?: {
     setups?: RawDecoratorSetup[];
     packageItems?: RawPavPackageItem[];
+    menus?: RawCatererMenu[];
+    // DJArtist and MakeupArtist packages both name this field "items" with
+    // different item shapes — narrow by pkg.vendorType before reading it.
+    items?: RawDjItem[] | RawMakeupItem[];
+    equipments?: RawDjEquipment[];
+    spaces?: RawVenueSpace[];
     addOns?: RawDecoratorAddOn[];
+    included?: string[];
+    notIncluded?: string[];
   };
   step3_policiesAndCharges: {
     packagePricing: { price: number; billingUnit?: string; noOfPeople?: string };
+    // VenueProvider replaces packagePricing with this field instead.
+    overallPriceOfPackage?: { price: number; billingUnit?: string };
     gstInclusive?: boolean;
     gstRatePercent?: number;
     guestTiers?: { maxGuests: number; price: number }[];
@@ -104,7 +170,11 @@ export interface RawFullPackage {
     lastMinutePolicy?: RawPolicySlot;
     generalPolicies?: RawPolicySlot[];
   };
-  step4_sampleMedia?: { media?: RawPackageMedia[] };
+  step4_sampleMedia?: {
+    media?: RawPackageMedia[];
+    // VenueProvider replaces media[] with per-space galleries instead.
+    spaceMedia?: { spaceName?: string; spaceIndex?: number; media?: RawPackageMedia[] }[];
+  };
   createdAt: string;
 }
 
@@ -210,11 +280,12 @@ export interface RawPackageGroupResponse {
 }
 
 /**
- * No /customer counterpart exists for listing sibling variants of a package
- * group — this is the vendor-management router's internal, unauthenticated
- * GET /packages/group/:packageGroupId, used here strictly as a stopgap (only
- * price/media/variantType fields are ever read from the response).
+ * Live-only, customer-safe sibling-variants lookup (added 2026-08-17) —
+ * replaces the vendor-management router's internal, unauthenticated
+ * GET /packages/group/:packageGroupId, which had no packageStatus filter
+ * (could leak Draft/Under Review/Deleted variants to a customer) and no
+ * vendor field whitelist.
  */
 export async function getPackageGroupVariants(packageGroupId: string) {
-  return apiFetch<RawPackageGroupResponse>(`/packages/group/${packageGroupId}`, { auth: false });
+  return apiFetch<RawPackageGroupResponse>(`/customer/packages/group/${packageGroupId}`, { auth: false });
 }

@@ -1,13 +1,20 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { MapPin, Share2, Star, Bookmark, BadgeCheck } from "lucide-react";
 import type { PackageDetail } from "../types";
 import Breadcrumb from "@/components/customer/Breadcrumb";
+import AuthModal from "@/features/customer-auth/components/AuthModal";
+import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
+import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 
 export default function PackageHeaderInfo({
   data,
 }: {
   data: Pick<
     PackageDetail,
+    | "id"
     | "categoryLabel"
     | "categoryIcon"
     | "vendorUnitName"
@@ -23,6 +30,48 @@ export default function PackageHeaderInfo({
     | "locationSummary"
   >;
 }) {
+  const { isLoggedIn } = useCustomerSession();
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [savedItemId, setSavedItemId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const isSaved = isLoggedIn && savedItemId !== null;
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    let cancelled = false;
+    getWishlist()
+      .then((res) => {
+        if (!cancelled) setSavedItemId(res.items.find((item) => item.packageId === data.id)?._id ?? null);
+      })
+      .catch(() => {
+        // Best-effort — the Save button just falls back to its "not saved" state.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, data.id]);
+
+  async function handleSaveClick() {
+    if (!isLoggedIn) {
+      setIsAuthOpen(true);
+      return;
+    }
+    setIsSaving(true);
+    try {
+      if (savedItemId) {
+        await removeWishlistItem(savedItemId);
+        setSavedItemId(null);
+      } else {
+        const res = await addWishlistItem({ itemType: "Package", packageId: data.id });
+        setSavedItemId(res.item._id);
+      }
+    } catch {
+      // Best-effort — leave the saved state unchanged on failure.
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   return (
     <section>
       <div className="mb-3">
@@ -99,11 +148,28 @@ export default function PackageHeaderInfo({
           <button type="button" className="flex items-center gap-1.5 hover:text-brand-950">
             <Share2 className="h-4 w-4" /> Share
           </button>
-          <button type="button" className="flex items-center gap-1.5 hover:text-brand-950">
-            <Bookmark className="h-4 w-4" /> Save
+          <button
+            type="button"
+            onClick={handleSaveClick}
+            disabled={isSaving}
+            className={`flex items-center gap-1.5 hover:text-brand-950 disabled:cursor-not-allowed disabled:opacity-60 ${
+              isSaved ? "text-brand-950" : ""
+            }`}
+          >
+            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-brand-950" : ""}`} />
+            {isSaved ? "Saved" : "Save"}
           </button>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={isAuthOpen}
+        onClose={() => setIsAuthOpen(false)}
+        onAuthenticated={() => {
+          setIsAuthOpen(false);
+          void handleSaveClick();
+        }}
+      />
     </section>
   );
 }

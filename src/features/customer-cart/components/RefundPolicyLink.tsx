@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, X } from "lucide-react";
+import { ShieldCheck, X } from "lucide-react";
 
 export default function RefundPolicyLink() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,10 +13,10 @@ export default function RefundPolicyLink() {
       <button
         type="button"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-1 font-figtree text-[13px] font-semibold text-success-700 hover:underline"
+        className="flex items-center gap-1.5 font-figtree text-[13px] font-semibold text-success-700 hover:underline"
       >
-        View Refund policy
-        <ArrowUpRight className="h-4 w-4" />
+        <ShieldCheck className="h-4 w-4" />
+        View refund policy
       </button>
 
       {typeof document !== "undefined" &&

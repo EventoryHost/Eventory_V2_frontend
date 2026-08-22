@@ -4,14 +4,41 @@
   --customer-bg: #faf9f6;
   --brand-950: #1e0306;
   --brand-primary: #f0596f;
+  --brand-subtle: #fff5f6;
   --body-secondary: #636363;
+
+  /* Semantic text/border/surface scale — referenced as text-neutral-primary,
+     border-neutral-subtle, bg-error-subtle, etc. across the customer feature
+     folders. Values chosen to match the existing brand-950 body text color
+     and body-secondary gray already in use. */
+  --neutral-primary: #171717;
+  --neutral-secondary: #636363;
+  --neutral-tertiary: #9ca3af;
+  --neutral-subtle: #e5e7eb;
+
+  --error-700: #b42318;
+  --error-subtle: #fee4e2;
+  --success-700: #067647;
+  --success-subtle: #ecfdf3;
 }
 
 @theme inline {
   --color-customer-bg: var(--customer-bg);
   --color-brand-950: var(--brand-950);
   --color-brand-primary: var(--brand-primary);
+  --color-brand-subtle: var(--brand-subtle);
   --color-body-secondary: var(--body-secondary);
+
+  --color-neutral-primary: var(--neutral-primary);
+  --color-neutral-secondary: var(--neutral-secondary);
+  --color-neutral-tertiary: var(--neutral-tertiary);
+  --color-neutral-subtle: var(--neutral-subtle);
+
+  --color-error-700: var(--error-700);
+  --color-error-subtle: var(--error-subtle);
+  --color-success-700: var(--success-700);
+  --color-success-subtle: var(--success-subtle);
+
   --font-lora: var(--font-lora);
   --font-figtree: var(--font-figtree);
 }
