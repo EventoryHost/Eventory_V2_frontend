@@ -6,10 +6,9 @@ export const PDP_SECTIONS: { id: string; label: string }[] = [
   { id: "about", label: "About" },
   { id: "included", label: "What's included" },
   { id: "not-included", label: "Not included" },
-  { id: "addons", label: "Add-ons" },
   { id: "venue-needs", label: "Venue needs" },
-  { id: "event-day", label: "Event day" },
-  { id: "reviews", label: "Reviews" },
-  { id: "vendor", label: "Vendor" },
+  { id: "addons", label: "Add-ons" },
   { id: "policies", label: "Policies" },
+  { id: "vendor", label: "Vendor" },
+  { id: "reviews", label: "Reviews" },
 ];

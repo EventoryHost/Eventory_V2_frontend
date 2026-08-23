@@ -26,6 +26,11 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
   { id: "Rangoli", label: "Rangoli", typeLabel: "Rangoli style", typeOptions: ["Floral", "Geometric", "Traditional", "Colour Powder"] },
 ];
 
+// How full/dense a decor item should look — backend stores this as a free
+// string per item (decoratorStep2Schema.js), so any vendor-entered original
+// value is preserved even if it doesn't match one of these three.
+export const VOLUME_OPTIONS = ["Low", "Medium", "High"];
+
 export const WORKSHOP_CATEGORY_ICONS: Record<string, LucideIcon> = {
   Flowers: Flower2,
   Lighting: Lightbulb,
@@ -38,13 +43,17 @@ export const WORKSHOP_CATEGORY_ICONS: Record<string, LucideIcon> = {
 };
 
 export const COLOUR_PALETTE: ColourOption[] = [
-  { id: "maroon", label: "Maroon", swatch: "#800000" },
+  { id: "marigold", label: "Marigold", swatch: "#F0A500" },
+  { id: "ivory", label: "Cream/Ivory", swatch: "#F5EEDC" },
+  { id: "rose-gold", label: "Rose Gold", swatch: "#DB9A93" },
+  { id: "maroon", label: "Maroon", swatch: "#5C0A24" },
+  { id: "champagne", label: "Champagne", swatch: "#E8D9B5" },
   { id: "gold", label: "Gold", swatch: "#D4AF37" },
-  { id: "ivory", label: "Ivory", swatch: "#F5F0E6" },
+  { id: "terracotta", label: "Terracotta", swatch: "#B5602D" },
+  { id: "warm-white", label: "Warm White", swatch: "#FBF6EC" },
   { id: "blush-pink", label: "Blush Pink", swatch: "#F4C2C2" },
   { id: "forest-green", label: "Forest Green", swatch: "#2E4A3D" },
   { id: "navy", label: "Navy", swatch: "#1B2A4A" },
   { id: "charcoal", label: "Charcoal", swatch: "#333333" },
-  { id: "white", label: "White", swatch: "#FFFFFF" },
   { id: "natural-wood", label: "Natural Wood", swatch: "#A0784A" },
 ];

@@ -57,6 +57,10 @@ export interface IncludedItemLine {
   /** Selected colour ids. */
   colours?: string[];
   originalColours?: string[];
+  /** Decorator-only — how full/dense the item should look (Low/Medium/High). Undefined when the vendor never set one. */
+  volumeOptions?: string[];
+  volume?: string;
+  originalVolume?: string;
   /** Introduced via "Add an item" in the workshop — never shows a strikethrough. */
   isNew?: boolean;
   /** Flagged for removal via the workshop — locks the other attribute controls. */
@@ -92,8 +96,10 @@ export interface IncludedItemEntry {
   id: string;
   image?: string;
   title: string;
-  /** Vendor-type-specific facts (Decorator: Decorating/Theme/Setup type; PAV: Style/Quantity/Delivery; etc). */
+  /** Vendor-type-specific facts (Decorator: Decorating/Setup type; PAV: Style/Quantity/Delivery; etc). */
   details: IncludedItemDetail[];
+  /** Decorator-only — the setup's applied theme tag(s), shown as a pill picker in the setup detail view. Undefined for vendor types with no theme concept. */
+  themeOptions?: string[];
   price: number;
   items: IncludedItemLine[];
 }
@@ -120,6 +126,11 @@ export interface AddonItem {
   unitLabel: string;
   description?: string;
   warning?: string;
+}
+
+/** An add-on the customer has picked, carrying how many they picked. */
+export interface SelectedAddon extends AddonItem {
+  quantity: number;
 }
 
 export type PolicyIcon = "shield" | "clock";

@@ -7,7 +7,7 @@ import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem } from "@/lib/customerCartApi";
 import { ApiError } from "@/lib/apiClient";
-import type { AddonItem, IncludedItemEntry } from "../types";
+import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
@@ -27,7 +27,7 @@ export default function StickyBookingCard({
   packageTotal: number;
   gstPercent: number;
   tokenAmount: number;
-  selectedAddons: AddonItem[];
+  selectedAddons: SelectedAddon[];
   includedItems: IncludedItemEntry[];
   vendorNote: string;
   cancellationPolicyText?: string;
@@ -65,7 +65,7 @@ export default function StickyBookingCard({
         addOnId: addon.id,
         name: addon.title,
         price: addon.price,
-        quantity: 1,
+        quantity: addon.quantity,
       })),
     };
   }

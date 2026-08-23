@@ -20,6 +20,7 @@ import {
   type RawDjItem,
   type RawMakeupItem,
 } from "@/lib/customerPackageDetailApi";
+import { VOLUME_OPTIONS } from "../data/workshopCategories";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { ApiError } from "@/lib/apiClient";
@@ -107,15 +108,18 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
     title: setup.name ?? "Setup",
     details: [
       { label: "Decorating", value: setup.decoratingWhat || "—" },
-      { label: "Theme", value: setup.themes?.join(", ") || "—" },
       { label: "Setup type", value: "—" },
     ],
+    themeOptions: setup.themes && setup.themes.length > 0 ? setup.themes : undefined,
     price: setup.price ?? 0,
     items: (setup.items ?? []).map((line, idx) => ({
       id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
       label: line.name ?? "Item",
       qty: line.qty ?? 1,
       originalQty: line.qty ?? 1,
+      volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
+      volume: line.volume || undefined,
+      originalVolume: line.volume || undefined,
     })),
   }));
 }

@@ -21,6 +21,9 @@ function changedFields(item: CustomizeRequest["item"]): ChangedField[] {
   if (item.qty !== item.originalQty) {
     fields.push({ label: "Qty", from: String(item.originalQty), to: String(item.qty) });
   }
+  if (item.volume !== undefined && item.volume !== item.originalVolume) {
+    fields.push({ label: "Volume", from: item.originalVolume ?? "—", to: item.volume });
+  }
   if (item.colours && item.originalColours) {
     const before = item.colours.slice().sort().join(",");
     const after = item.originalColours.slice().sort().join(",");
