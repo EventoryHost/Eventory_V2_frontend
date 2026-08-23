@@ -4,12 +4,12 @@ import AddonCard from "./AddonCard";
 
 export default function AddonsCarousel({
   addons,
-  selectedIds,
-  onToggle,
+  quantities,
+  onChangeQuantity,
 }: {
   addons: AddonItem[];
-  selectedIds: Set<string>;
-  onToggle: (id: string) => void;
+  quantities: Record<string, number>;
+  onChangeQuantity: (id: string, delta: number) => void;
 }) {
   return (
     <section id="addons" className="border-t border-black/5 pt-8">
@@ -24,8 +24,9 @@ export default function AddonsCarousel({
             key={addon.id}
             addon={addon}
             seed={i}
-            isSelected={selectedIds.has(addon.id)}
-            onToggle={onToggle}
+            quantity={quantities[addon.id] ?? 0}
+            onIncrement={() => onChangeQuantity(addon.id, 1)}
+            onDecrement={() => onChangeQuantity(addon.id, -1)}
           />
         ))}
       </div>

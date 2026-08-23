@@ -27,31 +27,31 @@ function scrollToBookingCard() {
 
 export default function PackageDetailPage({ data }: { data: PackageDetail }) {
   const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
-  const [selectedAddonIds, setSelectedAddonIds] = useState<Set<string>>(new Set());
+  const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
   const [vendorNote, setVendorNote] = useState("");
 
   const selectedVariant =
     data.variants.find((variant) => variant.id === selectedVariantId) ?? data.variants[0];
 
-  const addonsTotal = useMemo(
+  const selectedAddons = useMemo(
     () =>
       data.addons
-        .filter((addon) => selectedAddonIds.has(addon.id))
-        .reduce((sum, addon) => sum + addon.price, 0),
-    [data.addons, selectedAddonIds]
+        .filter((addon) => (addonQuantities[addon.id] ?? 0) > 0)
+        .map((addon) => ({ ...addon, quantity: addonQuantities[addon.id] })),
+    [data.addons, addonQuantities]
+  );
+
+  const addonsTotal = useMemo(
+    () => selectedAddons.reduce((sum, addon) => sum + addon.price * addon.quantity, 0),
+    [selectedAddons]
   );
 
   const packageTotal = (selectedVariant?.price ?? 0) + addonsTotal;
 
-  function toggleAddon(addonId: string) {
-    setSelectedAddonIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(addonId)) {
-        next.delete(addonId);
-      } else {
-        next.add(addonId);
-      }
-      return next;
+  function changeAddonQuantity(addonId: string, delta: number) {
+    setAddonQuantities((prev) => {
+      const nextQty = Math.max(0, (prev[addonId] ?? 0) + delta);
+      return { ...prev, [addonId]: nextQty };
     });
   }
 
@@ -80,7 +80,7 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
           {data.vendorRequirements.length > 0 && <VendorRequirements requirements={data.vendorRequirements} />}
           {data.addons.length > 0 && (
-            <AddonsCarousel addons={data.addons} selectedIds={selectedAddonIds} onToggle={toggleAddon} />
+            <AddonsCarousel addons={data.addons} quantities={addonQuantities} onChangeQuantity={changeAddonQuantity} />
           )}
           <PaymentProtection protection={data.paymentProtection} />
           {data.policies.length > 0 && <PoliciesSection policies={data.policies} />}
@@ -93,7 +93,7 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           packageTotal={packageTotal}
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
-          selectedAddons={data.addons.filter((addon) => selectedAddonIds.has(addon.id))}
+          selectedAddons={selectedAddons}
           includedItems={data.includedItems}
           vendorNote={vendorNote}
           cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}

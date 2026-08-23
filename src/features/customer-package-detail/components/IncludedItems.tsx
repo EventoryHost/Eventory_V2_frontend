@@ -7,7 +7,6 @@ import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
 import SectionHeading from "./SectionHeading";
 import IncludedItemCard from "./IncludedItemCard";
 import CustomizeWorkshopModal from "./CustomizeWorkshopModal";
-import YourRequestsPanel from "./YourRequestsPanel";
 
 export default function IncludedItems({ items }: { items: IncludedItemEntry[] }) {
   const workshop = useCustomizeWorkshop(items);
@@ -31,8 +30,6 @@ export default function IncludedItems({ items }: { items: IncludedItemEntry[] })
           />
         ))}
       </div>
-
-      <YourRequestsPanel requests={workshop.requests} onDismiss={workshop.dismissRequest} />
 
       <a
         href="#not-included"

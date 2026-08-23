@@ -20,6 +20,7 @@ export interface RawDecoratorSetupItem {
   unit?: string;
   price?: number;
   description?: string;
+  volume?: string;
 }
 
 export interface RawDecoratorSetup {

@@ -57,6 +57,10 @@ export interface IncludedItemLine {
   /** Selected colour ids. */
   colours?: string[];
   originalColours?: string[];
+  /** Decorator-only — how full/dense the item should look (Low/Medium/High). Undefined when the vendor never set one. */
+  volumeOptions?: string[];
+  volume?: string;
+  originalVolume?: string;
   /** Introduced via "Add an item" in the workshop — never shows a strikethrough. */
   isNew?: boolean;
   /** Flagged for removal via the workshop — locks the other attribute controls. */
@@ -122,6 +126,11 @@ export interface AddonItem {
   unitLabel: string;
   description?: string;
   warning?: string;
+}
+
+/** An add-on the customer has picked, carrying how many they picked. */
+export interface SelectedAddon extends AddonItem {
+  quantity: number;
 }
 
 export type PolicyIcon = "shield" | "clock";

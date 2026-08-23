@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { PlusCircle, XCircle } from "lucide-react";
-import type { IncludedItemEntry, IncludedItemLine } from "../types";
+import type { CustomizeRequest, IncludedItemEntry, IncludedItemLine } from "../types";
+import YourRequestsPanel from "./YourRequestsPanel";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
@@ -33,7 +34,7 @@ function ItemDetailCard({ item }: { item: IncludedItemLine }) {
       <div className="mt-3 grid grid-cols-3 gap-4">
         {item.category && <Stat label="Item Type" value={item.category} />}
         {item.typeLabel && item.type && <Stat label={item.typeLabel} value={item.type} />}
-        <Stat label="Quantity" value={String(item.qty)} />
+        {item.volume ? <Stat label="Volume" value={item.volume} /> : <Stat label="Quantity" value={String(item.qty)} />}
       </div>
       {selectedColour && (
         <div className="mt-3">
@@ -54,15 +55,21 @@ function ItemDetailCard({ item }: { item: IncludedItemLine }) {
 export default function SetupDetailPanel({
   setup,
   items,
-  pendingCount,
+  requests,
+  onDismissRequest,
   onCustomize,
-  onClose,
+  onCloseAttempt,
+  onSave,
 }: {
   setup: IncludedItemEntry;
   items: IncludedItemLine[];
-  pendingCount: number;
+  requests: CustomizeRequest[];
+  onDismissRequest: (request: CustomizeRequest) => void;
   onCustomize: () => void;
-  onClose: () => void;
+  /** The cross — routes through the leave-guard when there are pending requests. */
+  onCloseAttempt: () => void;
+  /** "Save setup" — the changes are already live-committed, so this just closes. */
+  onSave: () => void;
 }) {
   const [selectedTheme, setSelectedTheme] = useState(setup.themeOptions?.[0]);
 
@@ -86,7 +93,7 @@ export default function SetupDetailPanel({
           <div className="font-figtree text-[12px] text-neutral-tertiary">Setup Name</div>
           <h2 className="mt-0.5 font-figtree text-[22px] font-bold text-brand-950">{setup.title}</h2>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="shrink-0 text-neutral-tertiary hover:text-brand-950">
+        <button type="button" onClick={onCloseAttempt} aria-label="Close" className="shrink-0 text-neutral-tertiary hover:text-brand-950">
           <XCircle className="h-7 w-7" strokeWidth={1.5} />
         </button>
       </div>
@@ -134,9 +141,9 @@ export default function SetupDetailPanel({
             className="flex shrink-0 items-center gap-1.5 rounded-full border border-black/15 px-4 py-2 font-figtree text-[13px] font-semibold text-brand-950 transition hover:border-black/30"
           >
             <PlusCircle className="h-4 w-4" /> Customize items
-            {pendingCount > 0 && (
+            {requests.length > 0 && (
               <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
-                {pendingCount}
+                {requests.length}
               </span>
             )}
           </button>
@@ -147,6 +154,8 @@ export default function SetupDetailPanel({
             <ItemDetailCard key={item.id} item={item} />
           ))}
         </div>
+
+        <YourRequestsPanel requests={requests} onDismiss={onDismissRequest} />
       </div>
 
       <div className="flex items-center justify-between gap-4 border-t border-black/10 px-6 py-4">
@@ -155,7 +164,7 @@ export default function SetupDetailPanel({
         </p>
         <button
           type="button"
-          onClick={onClose}
+          onClick={onSave}
           className="shrink-0 rounded-full bg-brand-primary px-6 py-2.5 font-figtree text-[13px] font-semibold text-white transition hover:bg-rose-600"
         >
           Save setup

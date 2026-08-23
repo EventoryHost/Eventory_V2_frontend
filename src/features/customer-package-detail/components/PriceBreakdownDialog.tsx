@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ChevronRight } from "lucide-react";
-import type { AddonItem, IncludedItemEntry } from "../types";
+import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import { getCancellationTiers, formatShortDate } from "../utils/cancellationPolicy";
 
@@ -23,7 +23,7 @@ export default function PriceBreakdownDialog({
   isOpen: boolean;
   onClose: () => void;
   includedItems: IncludedItemEntry[];
-  selectedAddons: AddonItem[];
+  selectedAddons: SelectedAddon[];
   subtotal: number;
   gstPercent: number;
   gstAmount: number;
@@ -34,7 +34,7 @@ export default function PriceBreakdownDialog({
   const [addonsExpanded, setAddonsExpanded] = useState(true);
   if (typeof document === "undefined") return null;
 
-  const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price, 0);
+  const addonsTotal = selectedAddons.reduce((sum, addon) => sum + addon.price * addon.quantity, 0);
   const tiers = eventDateIso ? getCancellationTiers(eventDateIso) : null;
 
   return createPortal(
@@ -109,9 +109,12 @@ export default function PriceBreakdownDialog({
                     <div className="mt-2 space-y-2 pl-[22px]">
                       {selectedAddons.map((addon) => (
                         <div key={addon.id} className="flex items-start justify-between gap-3">
-                          <div className="font-figtree text-[13px] text-neutral-secondary">{addon.title}</div>
+                          <div className="font-figtree text-[13px] text-neutral-secondary">
+                            {addon.title}
+                            {addon.quantity > 1 && ` × ${addon.quantity}`}
+                          </div>
                           <div className="shrink-0 font-figtree text-[13px] text-neutral-secondary">
-                            {formatPrice(addon.price)}
+                            {formatPrice(addon.price * addon.quantity)}
                           </div>
                         </div>
                       ))}

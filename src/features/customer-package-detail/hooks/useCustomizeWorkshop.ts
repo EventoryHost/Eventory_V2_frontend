@@ -6,11 +6,12 @@ import type {
   IncludedItemLine,
   WorkshopCategoryDef,
 } from "../types";
-import { COLOUR_PALETTE } from "../data/workshopCategories";
+import { COLOUR_PALETTE, VOLUME_OPTIONS } from "../data/workshopCategories";
 
 function hasChanged(item: IncludedItemLine): boolean {
   if (item.qty !== item.originalQty) return true;
   if (item.type !== undefined && item.type !== item.originalType) return true;
+  if (item.volume !== undefined && item.volume !== item.originalVolume) return true;
   if (item.colours && item.originalColours) {
     const selected = [...item.colours].sort().join(",");
     const original = [...item.originalColours].sort().join(",");
@@ -40,6 +41,10 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
 
   function setType(setupId: string, itemId: string, type: string) {
     updateItem(setupId, itemId, { type });
+  }
+
+  function setVolume(setupId: string, itemId: string, volume: string) {
+    updateItem(setupId, itemId, { volume });
   }
 
   function toggleColour(setupId: string, itemId: string, colourId: string) {
@@ -81,6 +86,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
           ? {
               ...item,
               type: item.originalType,
+              volume: item.originalVolume,
               qty: item.originalQty,
               colours: item.originalColours ? [...item.originalColours] : item.colours,
             }
@@ -105,6 +111,9 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
       colourOptions: COLOUR_PALETTE,
       colours: [],
       originalColours: [],
+      volumeOptions: VOLUME_OPTIONS,
+      volume: VOLUME_OPTIONS[1],
+      originalVolume: VOLUME_OPTIONS[1],
       isNew: true,
     };
     setItemsBySetup((prev) => ({ ...prev, [setupId]: [...(prev[setupId] ?? []), newItem] }));
@@ -144,6 +153,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     itemsBySetup,
     requests,
     setType,
+    setVolume,
     toggleColour,
     setQuantity,
     requestRemoval,
