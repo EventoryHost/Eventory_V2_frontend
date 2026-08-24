@@ -10,10 +10,14 @@ export type PaymentSummaryProps = {
   rows: { label: string; value: string }[];
   grandTotal: string;
   tokenAmount: string;
+  payInFull?: boolean;
   cancellationNote: string;
   ctaLabel: string;
   ctaHref: string;
+  ctaDisabled?: boolean;
   onApplyCoupon?: (code: string) => void;
+  couponLoading?: boolean;
+  couponFeedback?: string | null;
   onViewSchedule?: () => void;
 };
 
@@ -23,10 +27,14 @@ export default function PaymentSummary({
   rows,
   grandTotal,
   tokenAmount,
+  payInFull = false,
   cancellationNote,
   ctaLabel,
   ctaHref,
+  ctaDisabled = false,
   onApplyCoupon,
+  couponLoading = false,
+  couponFeedback,
   onViewSchedule,
 }: PaymentSummaryProps) {
   const [code, setCode] = useState("");
@@ -39,7 +47,8 @@ export default function PaymentSummary({
             Payment summary
           </h2>
           <p className="font-figtree text-[12px] font-normal leading-[18px] text-[#71717B]">
-            {vendorCount} vendors &middot; {packageCount} packages
+            {vendorCount} vendor{vendorCount === 1 ? "" : "s"} &middot; {packageCount} package
+            {packageCount === 1 ? "" : "s"}
           </p>
         </div>
 
@@ -58,13 +67,19 @@ export default function PaymentSummary({
 
             <button
               type="button"
-              disabled={!code}
+              disabled={!code || couponLoading}
               onClick={() => onApplyCoupon?.(code)}
               className="flex h-11 w-[72px] shrink-0 items-center justify-center rounded-xl border border-[#FCDEE2] pt-3 pr-2 pb-3 pl-2 font-figtree text-[12px] font-medium text-[#FCDEE2] transition-colors enabled:border-[#F0596F] enabled:text-[#F0596F]"
             >
-              Apply
+              {couponLoading ? "…" : "Apply"}
             </button>
           </div>
+
+          {couponFeedback && (
+            <p className="font-figtree text-[12px] font-normal leading-[18px] text-[#71717B]">
+              {couponFeedback}
+            </p>
+          )}
 
           <button
             type="button"
@@ -105,7 +120,7 @@ export default function PaymentSummary({
           <div className="flex flex-col gap-3 p-4">
             <span className="flex items-center gap-1.5 font-figtree text-[11px] font-semibold tracking-[0.03em] text-[#71717B] uppercase">
               <ShieldCheck size={14} />
-              Pay now to confirm
+              {payInFull ? "Pay in full to confirm" : "Pay now to confirm"}
             </span>
 
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -126,18 +141,25 @@ export default function PaymentSummary({
 
           <div className="px-4 pt-3 pb-2">
             <p className="font-figtree text-[12px] font-medium leading-[19.5px] text-[#3F3F47]">
-              Pay just {tokenAmount} today to lock in your event. The rest is
-              due closer to the date.
+              {payInFull
+                ? `Pay ${tokenAmount} in full to confirm your booking.`
+                : `Pay just ${tokenAmount} today to lock in your event. The rest is due closer to the date.`}
             </p>
           </div>
         </div>
 
-        <Link
-          href={ctaHref}
-          className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white"
-        >
-          {ctaLabel}
-        </Link>
+        {ctaDisabled ? (
+          <span className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white opacity-50">
+            {ctaLabel}
+          </span>
+        ) : (
+          <Link
+            href={ctaHref}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white"
+          >
+            {ctaLabel}
+          </Link>
+        )}
 
         <span className="flex items-start gap-2">
           <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#16A34A]" />

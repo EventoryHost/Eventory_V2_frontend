@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Zap, Tag, Home, Box } from "lucide-react";
+import NetBankingPanel from "./NetBankingPanel";
+import CreditDebitCardPanel from "./CreditDebitCardPanel";
 
 const METHODS = [
   {
@@ -111,41 +113,14 @@ export default function PaymentMethodSelector() {
               )}
 
               {isSelected && method.key === "card" && (
-                <div className="flex flex-col gap-3 px-6 pb-5">
-                  {/* Placeholder — card details flow to be designed later */}
-                  <input
-                    type="text"
-                    placeholder="Card number"
-                    className="h-12 w-full rounded-full border border-[#E4E4E7] px-4 font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="MM / YY"
-                      className="h-12 w-full rounded-full border border-[#E4E4E7] px-4 font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none"
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      className="h-12 w-full rounded-full border border-[#E4E4E7] px-4 font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Name on card"
-                    className="h-12 w-full rounded-full border border-[#E4E4E7] px-4 font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none"
-                  />
+                <div className="px-6 pb-5">
+                  <CreditDebitCardPanel />
                 </div>
               )}
 
               {isSelected && method.key === "netbanking" && (
                 <div className="px-6 pb-5">
-                  {/* Placeholder — bank select flow to be designed later */}
-                  <input
-                    type="text"
-                    placeholder="HDFC Bank"
-                    className="h-12 w-full rounded-full border border-[#E4E4E7] px-4 font-figtree text-[15px] text-[#030303] placeholder:text-[#9CA3AF] outline-none"
-                  />
+                  <NetBankingPanel />
                 </div>
               )}
 

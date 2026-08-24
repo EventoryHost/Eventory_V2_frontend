@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export type CollapsibleSectionProps = {
   label: string;
-  count: string;
+  count?: string;
   children?: ReactNode;
 };
 
@@ -28,9 +28,11 @@ export default function CollapsibleSection({
           <span className="font-figtree text-[15px] font-semibold leading-[22.5px] text-[#030303]">
             {label}
           </span>
-          <span className="font-figtree text-[15px] font-normal leading-[22.5px] text-[#71717B]">
-            ({count})
-          </span>
+          {count && (
+            <span className="font-figtree text-[15px] font-normal leading-[22.5px] text-[#71717B]">
+              ({count})
+            </span>
+          )}
         </span>
         <ChevronDown
           size={18}

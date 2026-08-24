@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 const BANKS = [
   { name: "HDFC Bank", image: "/images/customer/payment/hdfc.jpg" },
@@ -11,58 +11,79 @@ const BANKS = [
   { name: "Axis Bank", image: "/images/customer/payment/axis.jpg" },
   { name: "Kotak Bank", image: "/images/customer/payment/kotak.jpg" },
   { name: "Yes Bank", image: "/images/customer/payment/yes.jpg" },
+  { name: "Bank of Baroda", image: "/images/banks/bob.png" },
+  { name: "IDFC FIRST Bank", image: "/images/banks/idfc.png" },
+  { name: "IndusInd Bank", image: "/images/banks/indusind.png" },
 ];
 
 export default function NetBankingPanel() {
   const [selectedBank, setSelectedBank] = useState<string | null>(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const selected = BANKS.find((bank) => bank.name === selectedBank);
+
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropdownOpen]);
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      <div className="flex flex-col gap-4">
-        <h3 className="font-figtree text-[15px] font-medium text-[#101828]">
-          Popular Banks
-        </h3>
+    <div ref={dropdownRef} className="relative flex w-full flex-col gap-2">
+      <h3 className="font-figtree text-[15px] font-medium text-[#101828]">Choose Bank</h3>
+      <button
+        type="button"
+        onClick={() => setIsDropdownOpen((open) => !open)}
+        aria-haspopup="listbox"
+        aria-expanded={isDropdownOpen}
+        className={`flex h-12 w-full items-center justify-between rounded-[8px] border px-4 font-figtree text-[14px] transition-colors ${
+          selected ? "border-[#0F172A] text-[#101828]" : "border-[#E5E5E5] text-[#9CA3AF] hover:border-[#9CA3AF]"
+        }`}
+      >
+        <span className="flex items-center gap-2">
+          {selected && (
+            <span className="relative h-5 w-5 shrink-0">
+              <Image src={selected.image} alt="" fill className="rounded-[4px] object-cover" />
+            </span>
+          )}
+          {selected ? selected.name : "Select Bank"}
+        </span>
+        <ChevronDown size={16} className={`transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+      </button>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      {isDropdownOpen && (
+        <div
+          role="listbox"
+          className="absolute top-full z-10 mt-1 max-h-[280px] w-full overflow-y-auto rounded-[8px] border border-[#E5E5E5] bg-white shadow-lg"
+        >
           {BANKS.map((bank) => (
             <button
               key={bank.name}
               type="button"
-              onClick={() => setSelectedBank(bank.name)}
-              className={`flex h-[94px] flex-col items-center justify-center gap-2 rounded-[8px] border p-4 transition-colors ${
-                selectedBank === bank.name
-                  ? "border-[#0F172A]"
-                  : "border-[#D4D4D8] hover:border-[#9CA3AF]"
-              }`}
+              role="option"
+              aria-selected={selectedBank === bank.name}
+              onClick={() => {
+                setSelectedBank(bank.name);
+                setIsDropdownOpen(false);
+              }}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-[#F4F4F5]"
             >
-              <div className="relative h-8 w-8 shrink-0">
-                <Image
-                  src={bank.image}
-                  alt={bank.name}
-                  fill
-                  className="rounded-[4px] object-cover"
-                />
-              </div>
-              <span className="font-figtree text-[14px] font-medium text-[#101828]">
-                {bank.name}
+              <span className="flex items-center gap-2">
+                <span className="relative h-6 w-6 shrink-0">
+                  <Image src={bank.image} alt={bank.name} fill className="rounded-[4px] object-cover" />
+                </span>
+                <span className="font-figtree text-[14px] text-[#101828]">{bank.name}</span>
               </span>
+              {selectedBank === bank.name && <Check size={16} className="shrink-0 text-[#0F172A]" />}
             </button>
           ))}
         </div>
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <h3 className="font-figtree text-[15px] font-medium text-[#101828]">
-          Search for other Banks
-        </h3>
-        <button
-          type="button"
-          className="flex h-12 w-full items-center justify-between rounded-[8px] border border-[#E5E5E5] px-4 font-figtree text-[14px] text-[#9CA3AF] transition-colors hover:border-[#9CA3AF]"
-        >
-          Select Bank
-          <ChevronDown size={16} />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

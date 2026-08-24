@@ -5,8 +5,8 @@ export type AddOnRowProps = {
   name: string;
   quantity: number;
   price: string;
-  category: string;
-  attributes: { label: string; value: string }[];
+  category?: string;
+  attributes?: { label: string; value: string }[];
 };
 
 export default function AddOnRow({
@@ -14,8 +14,8 @@ export default function AddOnRow({
   name,
   quantity,
   price,
-  category,
-  attributes,
+  category = "",
+  attributes = [],
 }: AddOnRowProps) {
   return (
     <div className="flex w-full max-w-[569px] gap-3">
@@ -33,9 +33,11 @@ export default function AddOnRow({
           </span>
         </div>
 
-        <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#71717B]">
-          {category}
-        </span>
+        {category && (
+          <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#71717B]">
+            {category}
+          </span>
+        )}
 
         {attributes.length > 0 && (
           <div className="flex flex-wrap gap-2">
