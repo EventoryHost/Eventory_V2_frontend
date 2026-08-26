@@ -989,7 +989,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
 
             {/* Variants Bar */}
             {packageId && packageGroupId && (
-                <div className="px-6 pt-6 pb-4 bg-white">
+                <div className="px-6 pt-6 pb-0 bg-white">
                     <div className="max-w-md mx-auto">
                         <VariantManager 
                             packageId={packageId}
@@ -1005,7 +1005,7 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
             )}
 
             {/* Step Progress Bar */}
-            <div className="px-6 py-4 bg-white border-b border-[#F4F4F5]">
+            <div className="px-6 pt-4 pb-4 bg-white border-b border-[#F4F4F5]">
                 <div className="max-w-md mx-auto flex flex-col gap-1">
                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase leading-[16px]">
                         STEP {step} OF {STEPS.length}

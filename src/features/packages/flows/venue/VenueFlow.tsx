@@ -385,6 +385,11 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
         setIsSaving(true);
         try {
             if (step === 1) {
+                if (!packageName.trim() || !eventCategories.trim() || !minDuration.trim() || !maxDuration.trim() || !poc.trim() || !crewSize.trim() || !address.trim()) {
+                    setIsSaving(false);
+                    alert("Please fill in all mandatory fields (marked with *) before proceeding.");
+                    return;
+                }
                 const payload = {
                     packageName: packageName || `${variants.selectedVariant} Venue Package`,
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Wedding'],
@@ -619,6 +624,11 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                 if (!res.ok) throw new Error("Failed to save Step 3.");
                 setStep(4);
             } else if (step === 4) {
+                const totalMediaCount = Object.values(spaceMedia).reduce((acc, files) => acc + files.length, 0);
+                if (totalMediaCount < 3) {
+                    throw new Error("Please upload at least 3 images/media files in total before proceeding.");
+                }
+
                 const spaceMediaPayload: any[] = [];
                 for (const spaceId of Object.keys(spaceMedia)) {
                     const files = spaceMedia[spaceId];
@@ -758,9 +768,11 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     customDatesEndDate={customDatesEndDate} setCustomDatesEndDate={setCustomDatesEndDate}
                     guestTiers={guestTiers} addGuestTierOption={addGuestTierOption} updateGuestTier={updateGuestTier} removeGuestTier={removeGuestTier}
                     festivalPrices={festivalPrices} setFestivalPrices={setFestivalPrices}
-                    
                     lastMinuteDocs={lastMinuteDocs} setLastMinuteDocs={setLastMinuteDocs}
                     policyDocs={policyDocs} setPolicyDocs={setPolicyDocs}
+                    spaces={spaces}
+                    inHouseServices={inHouseServices}
+                    addons={addons}
                 />
             )}
             {step === 4 && (

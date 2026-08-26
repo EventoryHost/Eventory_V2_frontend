@@ -1,12 +1,14 @@
 'use client';
 
 import React from 'react';
-import { Upload, X, Plus, Calendar, Trash2, FileText, Check, ChevronDown } from 'lucide-react';
+import { Upload, X, Plus, Calendar, Trash2, FileText, Check, ChevronDown, Info } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { PolicyFile, formatFileSize, GuestTier } from '../../shared/types';
 import { FilePreviewModal } from '../../components/FilePreviewModal';
 
 import CustomDateRangePicker from '../../components/CustomDateRangePicker';
+import { VenueSpace } from './Step2SpacesAndItems';
+import { Addon } from '../../components/AddonModal';
 
 interface Props {
     packageChargeType: string; setPackageChargeType: (v: string) => void;
@@ -52,6 +54,9 @@ interface Props {
     
     policyDocs: PolicyFile[];
     setPolicyDocs: React.Dispatch<React.SetStateAction<PolicyFile[]>>;
+    spaces?: VenueSpace[];
+    inHouseServices?: Addon[];
+    addons?: Addon[];
 }
 
 const CARD = 'bg-white border border-[#E4E4E7] rounded-[16px] p-5 flex flex-col gap-6';
@@ -92,8 +97,13 @@ export default function VenueStep3PricingAndPolicies({
     guestTiers, addGuestTierOption, updateGuestTier, removeGuestTier,
     festivalPrices, setFestivalPrices,
     lastMinuteDocs, setLastMinuteDocs,
-    policyDocs, setPolicyDocs
+    policyDocs, setPolicyDocs,
+    spaces = [],
+    inHouseServices = [],
+    addons = []
 }: Props) {
+    const priceInputRefs = React.useRef<(HTMLInputElement | null)[]>([]);
+    const [guestRangeError, setGuestRangeError] = React.useState('');
     const [previewFile, setPreviewFile] = React.useState<{ url: string | null; name: string } | null>(null);
 
     const lastMinuteInputRef = React.useRef<HTMLInputElement>(null);
@@ -125,34 +135,12 @@ export default function VenueStep3PricingAndPolicies({
     return (
         <div className="flex flex-col gap-8 pb-32">
             
-            {/* ── Package Pricing ── */}
+            {/* ── Pricing Configuration ── */}
             <div className={CARD}>
+                
+                {/* Team & Equipment Charges */}
                 <div className="flex flex-col gap-4">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider mb-2">Package Pricing</h3>
-                    
-                    <div className="flex flex-col gap-2">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>How do you charge?</label>
-                        <div className="flex p-1 bg-[#F4F4F5] rounded-[12px] relative">
-                            <button onClick={() => setPackageChargeType('Per Package')} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] relative z-10 transition-colors ${packageChargeType === 'Per Package' ? 'text-[#030303]' : 'text-[#71717B]'}`}>Per Package</button>
-                            <button onClick={() => setPackageChargeType('Per Hour')} className={`flex-1 py-3 text-[14px] font-semibold rounded-[10px] relative z-10 transition-colors ${packageChargeType === 'Per Hour' ? 'text-[#030303]' : 'text-[#71717B]'}`}>Per Hour</button>
-                            <div className="absolute top-1 bottom-1 w-[calc(50%-4px)] bg-white shadow-sm border border-[#E4E4E7] rounded-[10px] transition-transform duration-300 ease-in-out" style={{ transform: packageChargeType === 'Per Package' ? 'translateX(0)' : 'translateX(100%)' }} />
-                        </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-1">
-                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Price</label>
-                        <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#030303] text-[15px] font-normal" style={{ fontFamily: 'Figtree, sans-serif' }}>Rs.</span>
-                            <input type="text" placeholder="5,000" value={packagePrice} onChange={e => setPackagePrice(e.target.value.replace(/[^0-9.]/g, ''))} className={`${INPUT} pl-11`} />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* ── Team & Equipment Charges ── */}
-            <div className={CARD}>
-                <div className="flex flex-col gap-4">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider mb-2">Team & Equipment Charges</h3>
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-2">Team & Equipment Charges</h3>
                     
                     <div className="flex flex-col gap-2">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>How do you charge?</label>
@@ -166,42 +154,44 @@ export default function VenueStep3PricingAndPolicies({
                     <div className="flex flex-col gap-1">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Price</label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#030303] text-[15px] font-normal" style={{ fontFamily: 'Figtree, sans-serif' }}>Rs.</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#030303] text-[15px] font-normal" style={{ fontFamily: 'Figtree, sans-serif' }}>₹</span>
                             <input type="text" placeholder="3,000" value={teamPrice} onChange={e => setTeamPrice(e.target.value.replace(/[^0-9.]/g, ''))} className={`${INPUT} pl-11`} />
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* ── Overtime Rate ── */}
-            <div className={CARD}>
+                <div className="h-[1px] bg-[#E4E4E7] w-full" />
+
+                {/* Overtime Rate */}
                 <div className="flex flex-col gap-4">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider mb-2">Overtime Rate</h3>
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-2">Overtime Rate</h3>
                     <div className="flex flex-col gap-1">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Price Per Hour</label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#030303] text-[15px] font-normal" style={{ fontFamily: 'Figtree, sans-serif' }}>Rs.</span>
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#030303] text-[15px] font-normal" style={{ fontFamily: 'Figtree, sans-serif' }}>₹</span>
                             <input type="text" placeholder="3,000" value={overtimeRate} onChange={e => setOvertimeRate(e.target.value.replace(/[^0-9.]/g, ''))} className={`${INPUT} pl-11`} />
                         </div>
                     </div>
                 </div>
-            </div>
 
-                            <div className="pt-2 mb-6">
-                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-3">
+                <div className="h-[1px] bg-[#E4E4E7] w-full" />
+
+                {/* GST Charges */}
+                <div className="flex flex-col gap-4">
+                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">
                         GST Charges <span className="text-red-500">*</span>
                     </h4>
                     
-                    <div className="flex flex-col gap-2 mb-5">
+                    <div className="flex flex-col gap-2">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className="block text-[12px] font-semibold text-[#71717B]">Choose GST percentage</label>
                         <div className="relative">
                             <select
                                 value={gstRatePercent}
                                 onChange={(e) => setGstRatePercent(e.target.value)}
                                 style={{ fontFamily: 'Figtree, sans-serif', appearance: 'none' }}
-                                className="w-full p-4 pr-10 bg-white border border-[#E4E4E7] rounded-[16px] text-[15px] font-semibold text-[#030303] focus:outline-none focus:border-[#04222D]"
+                                className="w-full p-4 pr-10 bg-white border border-[#E4E4E7] rounded-[12px] text-[15px] font-semibold text-[#030303] focus:outline-none focus:border-[#04222D]"
                             >
-                                <option value="" disabled className="text-gray-400">Select percentage</option>
+                                <option value="" disabled className="text-gray-400">E.g 5 %</option>
                                 <option value="5">5 %</option>
                                 <option value="18">18 %</option>
                             </select>
@@ -209,7 +199,7 @@ export default function VenueStep3PricingAndPolicies({
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-2">
                         <div>
                             <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">GST Inclusive</h4>
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#9F9FA9] mt-0.5">Is GST already included in the prices<br/>you entered?</p>
@@ -225,6 +215,7 @@ export default function VenueStep3PricingAndPolicies({
                         </div>
                     </div>
                 </div>
+            </div>
 
             {/* ── Dynamic Pricing ── */}
             <div className="p-6 flex flex-col bg-white border border-[#E4E4E7] rounded-[16px]">
@@ -788,49 +779,66 @@ export default function VenueStep3PricingAndPolicies({
                                         </div>
                                         <span className="px-1 opacity-0">-</span>
                                         <div className="flex-1">
-                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">COST PER PERSON</span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[10px] font-bold text-[#9F9FA9] uppercase tracking-wider">COST PER PACKAGE</span>
                                         </div>
                                         <div className="w-8 flex-shrink-0"></div>
                                     </div>
 
                                     {guestTiers.map((tier, i) => (
-                                        <div key={i} className="flex items-center gap-2">
-                                            <div className="relative flex-1">
-                                                <select 
-                                                    value={tier.range} 
-                                                    onChange={(e) => updateGuestTier(i, 'range', e.target.value)} 
-                                                    style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                                    className="w-full p-3 pr-10 bg-white border border-[#E4E4E7] rounded-[12px] text-[14px] font-medium text-[#030303] appearance-none focus:outline-none focus:border-[#04222D]"
-                                                >
-                                                    {['Upto 50','Upto 100','Upto 200','Upto 500','Upto 1000','Upto X'].map(o => (
-                                                        <option key={o} value={o}>{o}</option>
-                                                    ))}
-                                                </select>
-                                                <ChevronDown size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                                            </div>
+                                        <div key={i} className="flex items-center gap-3">
                                             
-                                            <span className="text-gray-400 font-medium px-1">-</span>
-                                            
-                                            <div className="relative flex-1">
-                                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[14px] font-medium text-[#71717B]">₹</span>
-                                                <input 
-                                                    type="text" 
-                                                    placeholder="0" 
-                                                    value={tier.price} 
-                                                    onChange={(e) => updateGuestTier(i, 'price', e.target.value.replace(/[^0-9]/g, ''))} 
-                                                    style={{ fontFamily: 'Figtree, sans-serif' }} 
-                                                    className="w-full p-3 pl-8 bg-white border border-[#E4E4E7] rounded-[12px] text-[14px] font-medium text-[#030303] focus:outline-none focus:border-[#04222D]" 
-                                                />
+                                            {/* Unified Pill Input */}
+                                            <div className="flex-1 flex items-center bg-[#FAFAFA] border border-[#E4E4E7] rounded-[12px] h-[48px] focus-within:ring-1 focus-within:ring-[#030303] focus-within:border-[#030303] transition-all">
+                                                
+                                                {/* Left part: Dropdown */}
+                                                <div className="relative flex-1 h-full">
+                                                    <select 
+                                                        value={tier.range} 
+                                                        onChange={(e) => {
+                                                            updateGuestTier(i, 'range', e.target.value);
+                                                            setTimeout(() => {
+                                                                priceInputRefs.current[i]?.focus();
+                                                            }, 50);
+                                                        }} 
+                                                        style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                        className="w-full h-full pl-4 pr-10 bg-transparent text-[14px] font-medium text-[#71717B] appearance-none focus:outline-none cursor-pointer"
+                                                    >
+                                                        {['Upto 50','Upto 100','Upto 200','Upto 500','Upto 1000','Upto X'].map(o => (
+                                                            <option key={o} value={o}>{o}</option>
+                                                        ))}
+                                                    </select>
+                                                    <ChevronDown size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                                </div>
+                                                
+                                                {/* Divider dash */}
+                                                <div className="flex items-center justify-center w-6 text-gray-300 font-medium">
+                                                    -
+                                                </div>
+                                                
+                                                {/* Right part: Price Input */}
+                                                <div className="relative flex-[1.2] h-full">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[14px] font-medium text-[#71717B]">₹</span>
+                                                    <input 
+                                                        type="text"
+                                                        ref={(el) => { priceInputRefs.current[i] = el; }}
+                                                        placeholder="0" 
+                                                        value={tier.price} 
+                                                        onChange={(e) => updateGuestTier(i, 'price', e.target.value.replace(/[^0-9]/g, ''))} 
+                                                        style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                                        className="w-full h-full pl-7 pr-3 bg-transparent text-[14px] font-medium text-[#030303] focus:outline-none" 
+                                                    />
+                                                </div>
                                             </div>
 
+                                            {/* Minus Button outside */}
                                             <button
                                                 type="button"
                                                 onClick={() => removeGuestTier(i)}
-                                                className="w-8 h-8 flex items-center justify-center flex-shrink-0"
+                                                className="w-10 h-10 flex items-center justify-center flex-shrink-0"
                                             >
-                                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                                                    <circle cx="12" cy="12" r="9" stroke="#030303" strokeWidth="1.5" />
-                                                    <line x1="8" y1="12" x2="16" y2="12" stroke="#030303" strokeWidth="1.5" />
+                                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                                    <circle cx="12" cy="12" r="10" stroke="#71717B" strokeWidth="1.2" />
+                                                    <line x1="7" y1="12" x2="17" y2="12" stroke="#71717B" strokeWidth="1.2" />
                                                 </svg>
                                             </button>
                                         </div>
@@ -838,12 +846,21 @@ export default function VenueStep3PricingAndPolicies({
 
                                     <button
                                         type="button"
-                                        onClick={addGuestTierOption}
+                                        onClick={() => {
+                                            const hasEmpty = guestTiers.some(tier => !tier.range || !tier.price);
+                                            if (hasEmpty) {
+                                                setGuestRangeError('Please fill all inputs of the current rows before adding a new range.');
+                                                return;
+                                            }
+                                            setGuestRangeError('');
+                                            addGuestTierOption();
+                                        }}
                                         style={{ fontFamily: 'Figtree, sans-serif' }}
                                         className="flex items-center justify-center gap-2 text-[14px] font-bold text-[#030303] mt-2 py-2 hover:opacity-80 transition-opacity bg-transparent"
                                     >
-                                        <Plus size={18} /> Add Guest Range
+                                        <Plus size={18} /> Add Range
                                     </button>
+                                    {guestRangeError && <p className="text-red-500 text-[12px] font-medium mt-1 text-center" style={{ fontFamily: 'Figtree, sans-serif' }}>{guestRangeError}</p>}
                                 </div>
                             </div>
                         </div>
@@ -851,70 +868,178 @@ export default function VenueStep3PricingAndPolicies({
                 })()}
             </div>
 
-            {/* ── Last-Minute Change Charges ── */}
-            <div className="flex flex-col gap-3 mt-4">
-                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider pl-2">Last-Minute Change Charges</span>
-                <button onClick={() => lastMinuteInputRef.current?.click()} className="w-full py-8 px-4 rounded-[16px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4">
-                        <Upload size={20} className="text-[#3F3F47] stroke-[2]" />
-                    </div>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload your last-minute change policy</p>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-5">PDF, DOC up to 10MB</p>
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide">BROWSE FILES</span>
-                </button>
-                <input type="file" ref={lastMinuteInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, setLastMinuteDocs, lastMinuteInputRef)} multiple />
+            {/* ── Policies & Documents ── */}
+            <div className="flex flex-col gap-4 mt-8">
+                <div className="flex items-center gap-2">
+                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Policies and other documents</span>
+                    <span className="text-red-500 font-bold">*</span>
+                </div>
                 
-                {lastMinuteDocs.length > 0 && (
-                    <div className="flex flex-col gap-3 mt-2">
-                        {lastMinuteDocs.map((file, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
-                                        <FileText size={16} className="text-[#3F3F47] stroke-2" />
-                                    </div>
-                                    <div className="flex-1 min-w-0 cursor-pointer hover:underline" onClick={() => { const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null); if (url) setPreviewFile({ url, name: file.name }); }}>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] break-all">{file.name}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSizeLocal(file.size)}</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => removeFile(idx, setLastMinuteDocs)} className="text-[#3F3F47] hover:text-[#030303]"><X size={20} /></button>
+                <div className="flex flex-col gap-3">
+                    {/* Cancellation Policy */}
+                    <div className="flex items-center justify-between p-4 bg-white border border-[#E4E4E7] rounded-[12px] shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="w-5 h-5 rounded-full bg-[#10B981] flex items-center justify-center">
+                                <Check size={12} className="text-white stroke-[3]" />
                             </div>
-                        ))}
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Cancellation Policy</span>
+                        </div>
+                        <button className="flex items-center gap-1.5 text-[13px] font-semibold text-[#030303]">
+                            Update
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        </button>
                     </div>
-                )}
+
+                    {/* Last Minute Charges */}
+                    <div className="flex items-center justify-between p-4 bg-white border border-[#E4E4E7] rounded-[12px] shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <Info size={20} className="text-[#F59E0B]" />
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Last Minute Charges</span>
+                        </div>
+                        <button onClick={() => lastMinuteInputRef.current?.click()} className="flex items-center gap-1.5 text-[13px] font-semibold text-[#030303]">
+                            Update
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        </button>
+                        <input type="file" ref={lastMinuteInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, setLastMinuteDocs, lastMinuteInputRef)} multiple />
+                    </div>
+
+                    {/* Alcohol Policy */}
+                    <div className="flex items-center justify-between p-4 bg-white border border-[#E4E4E7] rounded-[12px] shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <Info size={20} className="text-[#F59E0B]" />
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Alcohol Policy</span>
+                        </div>
+                        <button className="flex items-center gap-1.5 text-[13px] font-semibold text-[#030303]">
+                            Update
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        </button>
+                    </div>
+
+                    {/* Venue Rules & Restrictions */}
+                    <div className="flex items-center justify-between p-4 bg-white border border-[#E4E4E7] rounded-[12px] shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <Info size={20} className="text-[#F59E0B]" />
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Venue Rules & Restrictions</span>
+                        </div>
+                        <button onClick={() => policyInputRef.current?.click()} className="flex items-center gap-1.5 text-[13px] font-semibold text-[#030303]">
+                            Update
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                        </button>
+                        <input type="file" ref={policyInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, setPolicyDocs, policyInputRef)} multiple />
+                    </div>
+
+                    <button className="w-full py-4 mt-2 bg-[#F4F4F5] rounded-[12px] flex items-center justify-center gap-2 hover:bg-[#E4E4E7] transition-colors">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Add</span>
+                        <Plus size={16} className="text-[#030303] bg-white rounded-full border border-[#030303]" />
+                    </button>
+                </div>
             </div>
 
-            {/* ── Policies & Documents ── */}
-            <div className="flex flex-col gap-3 mt-4">
-                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider pl-2">Policies & Documents</span>
-                <button onClick={() => policyInputRef.current?.click()} className="w-full py-8 px-4 rounded-[16px] border border-dashed border-[#E4E4E7] bg-white flex flex-col items-center justify-center hover:bg-gray-50 transition-colors">
-                    <div className="w-12 h-12 rounded-full bg-[#F4F4F5] flex items-center justify-center mb-4">
-                        <Upload size={20} className="text-[#3F3F47] stroke-[2]" />
+            {/* ── Pricing Summary ── */}
+            <div className="mt-8 flex flex-col rounded-[16px] overflow-hidden border border-[#E4E4E7] bg-white">
+                <div className="bg-[#04222D] p-5 flex items-center justify-between">
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-white">Pricing summary</h3>
+                    <div className="bg-[#3F3F47] px-3 py-1 rounded-full">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-semibold text-white">
+                            {spaces.length + inHouseServices.length} items + {addons.length} add-ons
+                        </span>
                     </div>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] mb-1">Upload Policy Documents</p>
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-semibold text-[#71717B] mb-5">PDF, DOC up to 10MB</p>
-                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#3F3F47] uppercase tracking-wide">BROWSE FILES</span>
-                </button>
-                <input type="file" ref={policyInputRef} className="hidden" accept=".pdf,.doc,.docx" onChange={(e) => handleFileUpload(e, setPolicyDocs, policyInputRef)} multiple />
+                </div>
                 
-                {policyDocs.length > 0 && (
-                    <div className="flex flex-col gap-3 mt-2">
-                        {policyDocs.map((file, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-[#F4F4F5] rounded-[8px]">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 flex items-center justify-center border border-[#3F3F47] rounded-[4px] bg-white">
-                                        <FileText size={16} className="text-[#3F3F47] stroke-2" />
-                                    </div>
-                                    <div className="flex-1 min-w-0 cursor-pointer hover:underline" onClick={() => { const url = file.preview || (file.file ? URL.createObjectURL(file.file) : null); if (url) setPreviewFile({ url, name: file.name }); }}>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303] break-all">{file.name}</p>
-                                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B]">{formatFileSizeLocal(file.size)}</p>
-                                    </div>
-                                </div>
-                                <button onClick={() => removeFile(idx, setPolicyDocs)} className="text-[#3F3F47] hover:text-[#030303]"><X size={20} /></button>
+                <div className="p-5 flex flex-col gap-6">
+                    {/* Spaces / Setups */}
+                    {spaces.length > 0 && (
+                        <div className="flex flex-col gap-4">
+                            <div className="flex items-center justify-between">
+                                <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Setups</h4>
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#71717B]">{spaces.length} items</span>
                             </div>
-                        ))}
+                            <div className="flex flex-col gap-4">
+                                {spaces.map(space => (
+                                    <div key={space.id} className="flex items-start justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-[3px] h-[3px] bg-[#3F3F47] rounded-full" />
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#3F3F47]">{space.name} {space.isMandatory && <span className="text-red-500">*</span>}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-right">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303]">₹{new Intl.NumberFormat('en-IN').format(parseFloat(space.price) || 0)}</span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-[#9F9FA9]">per {space.billingUnit.toLowerCase()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* In-House Services */}
+                    {inHouseServices.length > 0 && (
+                        <div className="flex flex-col gap-4 mt-2">
+                            <div className="flex items-center justify-between">
+                                <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">In-House services</h4>
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#71717B]">{inHouseServices.length} services</span>
+                            </div>
+                            <div className="flex flex-col gap-4">
+                                {inHouseServices.map(service => (
+                                    <div key={service.id} className="flex items-start justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-[3px] h-[3px] bg-[#3F3F47] rounded-full" />
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#3F3F47]">{service.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-right">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303]">₹{new Intl.NumberFormat('en-IN').format(parseFloat(service.price) || 0)}</span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-[#9F9FA9]">per {service.billingUnit.toLowerCase()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    
+                    {/* Add-ons */}
+                    {addons.length > 0 && (
+                        <div className="flex flex-col gap-4 mt-2">
+                            <div className="flex items-start justify-between">
+                                <div className="flex flex-col">
+                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Add-ons</h4>
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-[#9F9FA9] mt-0.5">Optional - customer would have to add, priced separately</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-medium text-[#71717B]">{addons.length} items</span>
+                                    <ChevronDown size={16} className="text-[#3F3F47]" />
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-4">
+                                {addons.map(addon => (
+                                    <div key={addon.id} className="flex items-start justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-[3px] h-[3px] bg-[#3F3F47] rounded-full" />
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#3F3F47]">{addon.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-1 text-right">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#030303]">₹{new Intl.NumberFormat('en-IN').format(parseFloat(addon.price) || 0)}</span>
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-[#9F9FA9]">per {addon.billingUnit.toLowerCase()}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mt-4 pt-6 border-t border-[#E4E4E7] flex flex-col gap-3">
+                        <div className="flex items-start gap-2">
+                            <Info size={14} className="text-[#9F9FA9] mt-0.5 flex-shrink-0" />
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-[#9F9FA9] leading-[16px]">
+                                Flat items sum to a package price. LED wall billed by area at booking. GST extra.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-red-500 text-[12px] font-bold">*</span>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-medium text-[#9F9FA9]">
+                                Red Star marked items are compulsory in a package
+                            </p>
+                        </div>
                     </div>
-                )}
+                </div>
             </div>
 
 

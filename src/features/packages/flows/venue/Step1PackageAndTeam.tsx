@@ -132,7 +132,7 @@ export default function VenueStep1PackageAndTeam({
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Package Details <span className="text-red-500">*</span></h3>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Package name</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Package name<span className="text-red-500"> *</span></label>
                     <input
                         type="text"
                         placeholder="Package Name"
@@ -144,7 +144,7 @@ export default function VenueStep1PackageAndTeam({
                 </div>
 
                 <div className="flex flex-col gap-2 relative">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Events you host</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Events you cover<span className="text-red-500"> *</span></label>
                     <div className={`flex flex-col gap-2 p-3 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
                         <div className="flex flex-wrap gap-2">
                             {Array.from(new Set([...SUGGESTIONS, ...categories])).map(cat => {
@@ -178,7 +178,7 @@ export default function VenueStep1PackageAndTeam({
                         <div className="flex items-center gap-2 w-full">
                             <input
                                 type="text"
-                                placeholder={categories.length === 0 ? "Enter your Event type" : "Type more events..."}
+                                placeholder={categories.length === 0 ? "Type Events Categories" : "Enter Performance type"}
                                 value={categoryInput}
                                 onChange={(e) => {
                                     setCategoryInput(e.target.value);
@@ -190,6 +190,9 @@ export default function VenueStep1PackageAndTeam({
                                     setTimeout(() => handleAddCategoryFromInput(), 150);
                                 }}
                                 onKeyDown={handleCategoryKeyDown}
+                                required
+                                autoComplete="off"
+                                inputMode="numeric"
                                 style={{ fontFamily: 'Figtree, sans-serif' }}
                                 className="w-full min-w-0 text-[16px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9] bg-transparent"
                             />
@@ -242,6 +245,40 @@ export default function VenueStep1PackageAndTeam({
                         </div>
                     )}
                 </div>
+
+                <div className="flex flex-col gap-2">
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Event duration<span className="text-red-500"> *</span></label>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#3F3F47] leading-[18px]">Min Duration</span>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="hrs"
+                                    value={minDuration}
+                                    onChange={(e) => setMinDuration(e.target.value.replace(/\D/g, ''))}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`${INPUT} pr-10`}
+                                />
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
+                            </div>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-normal text-[#3F3F47] leading-[18px]">Max Duration</span>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    placeholder="hrs"
+                                    value={maxDuration}
+                                    onChange={(e) => setMaxDuration(e.target.value.replace(/\D/g, ''))}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className={`${INPUT} pr-10`}
+                                />
+                                <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* ── Venue Details ── */}
@@ -249,64 +286,55 @@ export default function VenueStep1PackageAndTeam({
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Venue Details <span className="text-red-500">*</span></h3>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Point of contact(POC)</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Point of contact(POC)<span className="text-red-500"> *</span></label>
                     <div className="relative">
                         <input
                             type="text"
                             value={poc}
                             onChange={(e) => setPoc(e.target.value)}
-                            placeholder="Enter POC name"
+                            placeholder="Text + Dropdown"
                             style={{ fontFamily: 'Figtree, sans-serif' }}
-                            className={INPUT}
+                            className={`${INPUT} pr-10`}
                         />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="flex flex-col gap-1">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Min Duration</span>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="hrs"
-                                value={minDuration}
-                                onChange={(e) => setMinDuration(e.target.value.replace(/\D/g, ''))}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`${INPUT} pr-10`}
-                            />
-                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Max Duration</span>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="hrs"
-                                value={maxDuration}
-                                onChange={(e) => setMaxDuration(e.target.value.replace(/\D/g, ''))}
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                                className={`${INPUT} pr-10`}
-                            />
-                            <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
-                        </div>
+                        <ChevronDown size={20} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9] pointer-events-none" />
                     </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Number of People in the Crew</label>
-                    <input
-                        type="text"
-                        placeholder="Number"
-                        value={crewSize}
-                        onChange={(e) => setCrewSize(e.target.value.replace(/\D/g, ''))}
-                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                        className={INPUT}
-                    />
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Number of People in the Team<span className="text-red-500"> *</span></label>
+                    <div className="relative flex items-center">
+                        <input
+                            type="text"
+                            placeholder="Number"
+                            value={crewSize}
+                            onChange={(e) => setCrewSize(e.target.value.replace(/\D/g, ''))}
+                            required
+                            autoComplete="off"
+                            inputMode="numeric"
+                            style={{ fontFamily: 'Figtree, sans-serif' }}
+                            className={`${INPUT} pr-20`}
+                        />
+                        <div className="absolute right-3 flex items-center gap-1.5">
+                            <button 
+                                type="button" 
+                                onClick={() => setCrewSize(Math.max(0, (parseInt(crewSize) || 0) - 1).toString())}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
+                            </button>
+                            <button 
+                                type="button"
+                                onClick={() => setCrewSize(((parseInt(crewSize) || 0) + 1).toString())}
+                                className="w-7 h-7 flex items-center justify-center rounded bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex flex-col gap-2 relative">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Address of the Venue</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={SMALL_LABEL}>Address of the Venue<span className="text-red-500"> *</span></label>
                     <div className="relative">
                         <input
                             type="text"
@@ -318,6 +346,9 @@ export default function VenueStep1PackageAndTeam({
                             }}
                             onFocus={() => { if (addressSuggestions.length > 0) setShowAddressDropdown(true); }}
                             onBlur={() => setTimeout(() => setShowAddressDropdown(false), 200)}
+                            required
+                            autoComplete="off"
+                            inputMode="text"
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             className={`${INPUT} pr-10`}
                         />

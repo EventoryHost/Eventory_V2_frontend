@@ -45,7 +45,7 @@ const DROPDOWN_SUGGESTIONS = [
     'Festival & Cultural Event', 'Religious Ceremony'
 ];
 const ALL_SUGGESTIONS = Array.from(new Set([...SUGGESTIONS, ...DROPDOWN_SUGGESTIONS]));
-const setupDurationOptions = ['Upto 1 hour', 'Upto 2 hours', 'Upto 5 hours', 'Upto 8 hours', 'Upto 10 hours', 'Upto 12 hours'];
+const setupDurationOptions = ['Upto 1 hour', 'Upto 2 hours', 'Upto 5 hours', 'Upto 8 hours', 'Upto 10 hours', 'Upto 12 hours', '14 Hours', '24 Hours'];
 
 export default function DecoratorStep1EventAndCrew({
     packageName,
@@ -137,7 +137,7 @@ export default function DecoratorStep1EventAndCrew({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Event Types</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Events you cover</label>
                     
                     <div className="flex flex-col gap-2 relative">
                         <div className={`flex flex-col gap-3 p-4 bg-white border border-[#E4E4E7] rounded-[8px] focus-within:ring-1 focus-within:ring-gray-300 min-h-[56px] justify-center`}>
@@ -173,7 +173,7 @@ export default function DecoratorStep1EventAndCrew({
                             <div className="flex items-center gap-2 w-full">
                                 <input
                                     type="text"
-                                    placeholder="Type Events Categories"
+                                    placeholder="Enter Performance type"
                                     value={categoryInput}
                                     onChange={(e) => {
                                         setCategoryInput(e.target.value);
@@ -283,7 +283,7 @@ export default function DecoratorStep1EventAndCrew({
 
             {/* Capacity & Crew */}
             <section className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Crew and Setup *</h3>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Team and Setup *</h3>
 
                 <div className="flex flex-col gap-2">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Point of Contact(POC)</label>
@@ -294,8 +294,9 @@ export default function DecoratorStep1EventAndCrew({
                             onChange={(event) => setPoc(event.target.value)}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                             placeholder="Enter POC name"
-                            className={INPUT}
+                            className={`${INPUT} appearance-none pr-12`}
                         />
+                        <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[#9F9FA9]" />
                     </div>
                 </div>
 
@@ -319,7 +320,7 @@ export default function DecoratorStep1EventAndCrew({
                 </div>
 
                 <div className="flex flex-col gap-2">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of people in crew</label>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of people in Team</label>
                     <div className="grid grid-cols-2 gap-4">
                         <input
                             type="text"
@@ -346,7 +347,6 @@ export default function DecoratorStep1EventAndCrew({
                 <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className={HEAD}>Venue Needs *</h3>
 
                 <div className="flex flex-col gap-3">
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Needs from the Venue</p>
                     <div className="flex flex-wrap gap-2.5">
                         {Array.from(new Set([...venueNeedsOptions, ...venueNeeds])).map((need) => {
                             const isSelected = venueNeeds.includes(need);
@@ -371,14 +371,14 @@ export default function DecoratorStep1EventAndCrew({
 
                 <div className="flex flex-col gap-2">
                     <textarea
-                        placeholder="Anything else you need from the venue?"
+                        placeholder=""
                         value={venueRequest}
                         onChange={(event) => setVenueRequest(event.target.value)}
                         rows={4}
                         style={{ fontFamily: 'Figtree, sans-serif' }}
                         className={`${INPUT} resize-none`}
                     />
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Enter your Venue needs in the text box</p>
+                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to Input field.</p>
                 </div>
             </section>
         </div>
