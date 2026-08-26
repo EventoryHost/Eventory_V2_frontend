@@ -10,6 +10,7 @@ import { clearCheckoutSessionId, getCheckoutSessionId, setCheckoutSessionId } fr
 import { getVendorPublic, type RawVendorPublicMinimal } from "@/lib/vendorPublicApi";
 import type { RawCartQuoteLine } from "@/lib/customerCartApi";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
+import { formatShortDate, getCancellationTiers } from "@/features/customer-package-detail/utils/cancellationPolicy";
 import type {
   BookingLineRow,
   BookingServiceItem,
@@ -102,6 +103,21 @@ function mapLine(
     })),
     note: line.specialRequest,
   };
+}
+
+// The free-cancellation cutoff shown in the payment summary uses the same
+// platform-wide 14-days-before-event window as Package Detail's
+// StickyBookingCard (see cancellationPolicy.ts) — picks the earliest event
+// date across all lines since that's the one the promise has to hold for.
+function earliestFullRefundCutoff(lines: RawCheckoutSessionLine[]): Date | null {
+  const eventDateIsos = lines
+    .map((line) => line.eventDetails.date)
+    .filter((date): date is string => date != null && !isNaN(new Date(date).getTime()));
+  if (!eventDateIsos.length) return null;
+  const earliestIso = eventDateIsos.reduce((earliest, current) =>
+    new Date(current).getTime() < new Date(earliest).getTime() ? current : earliest
+  );
+  return getCancellationTiers(earliestIso)?.fullRefundCutoff ?? null;
 }
 
 async function resolveVendors(vendorIds: string[]): Promise<Map<string, RawVendorPublicMinimal>> {
@@ -233,6 +249,7 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
 
   const itemCount = session.lines.length;
   const payInFull = !quote || !quote.allTokensConfigured || quote.tokenAmountTotal == null;
+  const fullRefundCutoff = earliestFullRefundCutoff(session.lines);
 
   const rows: BookingLineRow[] = [];
   if (quote) {
@@ -276,7 +293,9 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       // generic trust line instead. Otherwise quote.note (or the generic
       // fallback) is shown as before.
       cancellationNote: payInFull
-        ? "Free cancellation until 4 Mar 2026. Held safely by Eventory until your event."
+        ? fullRefundCutoff
+          ? `Free cancellation until ${formatShortDate(fullRefundCutoff)}. Held safely by Eventory until your event.`
+          : "Free cancellation may apply — check each package's policy for exact dates."
         : quote?.note || "Free cancellation may apply — check each package's policy for exact dates.",
     },
   };
