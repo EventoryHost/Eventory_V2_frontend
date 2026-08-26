@@ -20,7 +20,8 @@ const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
 export type ServiceBookingCardProps = {
   packageId?: string;
-  cartItemId?: string;
+  sessionId?: string;
+  lineId?: string;
   image: string;
   categoryLabel: string;
   categoryIcon: string;
@@ -32,6 +33,7 @@ export type ServiceBookingCardProps = {
   location: string;
   eventType?: string;
   cancellationNote: string;
+  isBookable?: boolean;
   price: string;
   addons?: BookingAddon[];
   note?: string;
@@ -40,7 +42,8 @@ export type ServiceBookingCardProps = {
 
 export default function ServiceBookingCard({
   packageId,
-  cartItemId,
+  sessionId,
+  lineId,
   image,
   categoryLabel,
   categoryIcon,
@@ -52,6 +55,7 @@ export default function ServiceBookingCard({
   location,
   eventType,
   cancellationNote,
+  isBookable = true,
   price,
   addons = [],
   note = "",
@@ -127,7 +131,11 @@ export default function ServiceBookingCard({
             </span>
           )}
 
-          <p className="font-figtree text-[14px] font-medium leading-[22px] text-[#008236]">
+          <p
+            className={`font-figtree text-[14px] font-medium leading-[22px] ${
+              isBookable ? "text-[#008236]" : "text-[#B91C1C]"
+            }`}
+          >
             {cancellationNote}
           </p>
 
@@ -179,7 +187,8 @@ export default function ServiceBookingCard({
 
       <ServiceDetailsModal
         packageId={packageId}
-        cartItemId={cartItemId}
+        sessionId={sessionId}
+        lineId={lineId}
         vendorName={vendorName}
         serviceName={serviceName}
         packageTier={packageTier}

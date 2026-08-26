@@ -1,5 +1,14 @@
-import { getCart, getCartQuote, type RawCartItem } from "@/lib/customerCartApi";
+import { ApiError } from "@/lib/apiClient";
+import {
+  createCheckoutSession,
+  getCheckoutSession,
+  type RawCheckoutSessionAvailabilityEntry,
+  type RawCheckoutSessionLine,
+  type RawCheckoutSessionResponse,
+} from "@/lib/customerCheckoutApi";
+import { clearCheckoutSessionId, getCheckoutSessionId, setCheckoutSessionId } from "@/lib/checkoutSession";
 import { getVendorPublic, type RawVendorPublicMinimal } from "@/lib/vendorPublicApi";
+import type { RawCartQuoteLine } from "@/lib/customerCartApi";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
 import type {
   BookingLineRow,
@@ -48,36 +57,50 @@ function deriveEventType(specialRequest: string): string | undefined {
   return match?.[1]?.trim() || undefined;
 }
 
-function mapService(item: RawCartItem, vendorName: string | undefined): BookingServiceItem {
-  const vendorType = item.packageSnapshot.vendorType ?? "";
+function mapLine(
+  line: RawCheckoutSessionLine,
+  vendorName: string | undefined,
+  availabilityEntry: RawCheckoutSessionAvailabilityEntry | undefined,
+  quoteLine: RawCartQuoteLine | undefined
+): BookingServiceItem {
+  const vendorType = line.packageSnapshot.vendorType ?? "";
+  const stillAvailable = availabilityEntry?.packageStillAvailable ?? true;
+  // availability.overall is the fine-grained date/time/capacity check —
+  // distinct from packageStillAvailable (does the package still exist at
+  // all). A line can be perfectly "still available" and yet fail this,
+  // e.g. no event date was set when the package was added to cart.
+  const isBookable = stillAvailable && availabilityEntry?.availability?.overall !== false;
   return {
-    cartItemId: item._id,
-    packageId: item.packageId,
-    vendorId: item.vendorId,
-    image: item.packageSnapshot.image || FALLBACK_IMAGE,
+    lineId: line._id,
+    packageId: line.packageId,
+    vendorId: line.vendorId,
+    image: line.packageSnapshot.image || FALLBACK_IMAGE,
     categoryLabel: CATEGORY_LABEL_BY_TYPE[vendorType] ?? vendorType ?? "Package",
     categoryIcon: CATEGORY_ICON_BY_TYPE[vendorType] ?? FALLBACK_IMAGE,
     vendorName: vendorName ?? vendorType ?? "Vendor",
-    serviceName: item.packageSnapshot.name ?? "Package",
-    packageTier: item.packageSnapshot.variantType ?? "",
-    date: formatEventDate(item.eventDetails.date),
-    time: item.eventDetails.timeSlot ?? "Time to be confirmed",
-    location: item.eventDetails.location ?? "Location to be confirmed",
-    eventType: deriveEventType(item.specialRequest),
-    cancellationNote: item.packageStillAvailable
-      ? "Cancellation terms apply — see full policy for exact dates."
-      : "This package is no longer available — contact support before paying.",
-    price: formatPrice(item.currentPrice ?? item.packageSnapshot.price ?? 0),
-    packageStillAvailable: item.packageStillAvailable,
-    priceChanged: item.priceChanged,
-    addons: item.selectedAddOns.map((addon, i) => ({
-      id: addon.addOnId ?? `${item._id}-addon-${i}`,
+    serviceName: line.packageSnapshot.name ?? "Package",
+    packageTier: line.packageSnapshot.variantType ?? "",
+    date: formatEventDate(line.eventDetails.date),
+    time: line.eventDetails.timeSlot ?? "Time to be confirmed",
+    location: line.eventDetails.location ?? "Location to be confirmed",
+    eventType: deriveEventType(line.specialRequest),
+    cancellationNote: !stillAvailable
+      ? "This package is no longer available — contact support before paying."
+      : !isBookable
+        ? "This booking can't be confirmed with the current date, time or guest count — edit your event details to continue."
+        : "Cancellation terms apply — see full policy for exact dates.",
+    price: formatPrice(line.packageSnapshot.price ?? quoteLine?.currentPrice ?? 0),
+    packageStillAvailable: stillAvailable,
+    isBookable,
+    priceChanged: quoteLine?.priceChanged ?? false,
+    addons: line.selectedAddOns.map((addon, i) => ({
+      id: addon.addOnId ?? `${line._id}-addon-${i}`,
       name: addon.name,
       quantity: addon.quantity,
       price: formatPrice(addon.price),
       amount: addon.price,
     })),
-    note: item.specialRequest,
+    note: line.specialRequest,
   };
 }
 
@@ -97,47 +120,118 @@ async function resolveVendors(vendorIds: string[]): Promise<Map<string, RawVendo
   return map;
 }
 
+function emptyBookingSummaryData(): BookingSummaryData {
+  return {
+    sessionId: "",
+    canContinue: false,
+    readyForPayment: false,
+    contact: { name: "", phone: "", email: "", phoneVerified: false, errors: [] },
+    vendorGroups: [],
+    lineErrors: [],
+    paymentSummary: {
+      vendorCount: 0,
+      packageCount: 0,
+      rows: [],
+      grandTotal: formatPrice(0),
+      tokenAmount: formatPrice(0),
+      payInFull: true,
+      isFreeCheckout: false,
+      cancellationNote: "Free cancellation may apply — check each package's policy for exact dates.",
+    },
+  };
+}
+
+/**
+ * Loads the checkout session backing the Review/Details/Payment steps —
+ * re-fetches a stored sessionId (see lib/checkoutSession.ts), or creates a
+ * fresh price-locked one from the cart's selected items if none is stored,
+ * the stored one no longer belongs to this customer, or it's no longer
+ * Active (Expired/Cancelled/Completed). Returns null when the cart has
+ * nothing selected to check out (matches the empty-state UI).
+ */
+async function loadSession(): Promise<RawCheckoutSessionResponse | null> {
+  const storedId = getCheckoutSessionId();
+  if (storedId) {
+    try {
+      const existing = await getCheckoutSession(storedId);
+      if (existing.session.status === "Active") return existing;
+    } catch {
+      // Stale/invalid/foreign sessionId — fall through and create a new one.
+    }
+    clearCheckoutSessionId();
+  }
+
+  try {
+    const created = await createCheckoutSession({ source: "cart" });
+    setCheckoutSessionId(created.session._id);
+    return created;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 400) return null;
+    throw err;
+  }
+}
+
 /**
  * Data source shared by the Review, Details and Payment steps of checkout —
- * calls the real GET /api/customer/cart and GET /api/customer/cart/quote
- * (Eventory_V2_backend), soft-authed the same way the Cart page is. Only
- * items marked `selectedForCheckout` are included, matching what the
- * customer actually chose to check out on the Cart page. Client-side only:
- * cart identity only exists in the browser.
+ * calls the real checkout-session endpoints (Eventory_V2_backend, see
+ * book-api.pdf). Client-side only: checkout session identity only exists in
+ * the browser (see lib/checkoutSession.ts).
  */
 export async function getBookingSummaryData(): Promise<BookingSummaryData> {
-  const [cart, quoteResponse] = await Promise.all([getCart(), getCartQuote()]);
-  const quote = quoteResponse.quote;
+  const sessionResponse = await loadSession();
+  if (!sessionResponse) return emptyBookingSummaryData();
 
-  const vendorMap = await resolveVendors(cart.vendors.map((group) => group.vendorId));
+  const { session, availability, validation, readyForPayment } = sessionResponse;
+  const quote = session.lockedQuote;
 
-  const vendorGroups: BookingVendorGroup[] = cart.vendors
-    .map((group): BookingVendorGroup | null => {
-      const selectedItems = group.items.filter((item) => item.selectedForCheckout);
-      if (selectedItems.length === 0) return null;
+  const vendorIds = [...new Set(session.lines.map((line) => line.vendorId))];
+  const vendorMap = await resolveVendors(vendorIds);
+  const availabilityByLineId = new Map(availability.map((entry) => [entry.lineId, entry]));
+  const quoteLineByLineId = new Map((quote?.lines ?? []).map((line) => [line.cartItemId, line]));
 
-      const vendorInfo = vendorMap.get(group.vendorId);
-      const vendorName = vendorInfo?.businessName ?? selectedItems[0].packageSnapshot.vendorType ?? "Vendor";
-      const subtotal = selectedItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  const linesByVendor = new Map<string, RawCheckoutSessionLine[]>();
+  for (const line of session.lines) {
+    const list = linesByVendor.get(line.vendorId) ?? [];
+    list.push(line);
+    linesByVendor.set(line.vendorId, list);
+  }
 
-      return {
-        vendorId: group.vendorId,
-        avatar: vendorInfo?.profilePicture,
-        avatarInitial: vendorName[0]?.toUpperCase() ?? "V",
-        vendorName,
-        rating: vendorInfo?.rating ?? 0,
-        reviewCount: vendorInfo?.reviewsCount ?? 0,
-        // bookingsPerYear is a coarse self-reported figure vendors fill in at
-        // onboarding — same fallback chain as getPackageDetail.ts's mapVendor.
-        eventsOnEventory: Number(vendorInfo?.bookingsPerYear) || vendorInfo?.reviewsCount || 0,
-        packageCount: selectedItems.length,
-        subtotal: formatPrice(subtotal),
-        services: selectedItems.map((item) => mapService(item, vendorInfo?.businessName)),
-      };
-    })
-    .filter((group): group is BookingVendorGroup => group !== null);
+  const lineById = new Map(session.lines.map((line) => [line._id, line]));
+  const lineErrors = validation.lines.perLine
+    .filter((entry) => !entry.valid)
+    .map((entry) => {
+      const serviceName = lineById.get(entry.lineId)?.packageSnapshot.name ?? "A package";
+      return `${serviceName}: ${entry.errors.join(", ")} — fix it from Cart's "Edit" on that item.`;
+    });
 
-  const itemCount = vendorGroups.reduce((sum, group) => sum + group.services.length, 0);
+  const vendorGroups: BookingVendorGroup[] = vendorIds.map((vendorId) => {
+    const lines = linesByVendor.get(vendorId) ?? [];
+    const vendorInfo = vendorMap.get(vendorId);
+    const vendorName = vendorInfo?.businessName ?? lines[0]?.packageSnapshot.vendorType ?? "Vendor";
+    const subtotal = lines.reduce((sum, line) => {
+      const quoteLine = quoteLineByLineId.get(line._id);
+      return sum + (quoteLine?.lineTotalInclGst ?? quoteLine?.lineSubtotal ?? 0);
+    }, 0);
+
+    return {
+      vendorId,
+      avatar: vendorInfo?.profilePicture,
+      avatarInitial: vendorName[0]?.toUpperCase() ?? "V",
+      vendorName,
+      rating: vendorInfo?.rating ?? 0,
+      reviewCount: vendorInfo?.reviewsCount ?? 0,
+      // bookingsPerYear is a coarse self-reported figure vendors fill in at
+      // onboarding — same fallback chain as getPackageDetail.ts's mapVendor.
+      eventsOnEventory: Number(vendorInfo?.bookingsPerYear) || vendorInfo?.reviewsCount || 0,
+      packageCount: lines.length,
+      subtotal: formatPrice(subtotal),
+      services: lines.map((line) =>
+        mapLine(line, vendorInfo?.businessName, availabilityByLineId.get(line._id), quoteLineByLineId.get(line._id))
+      ),
+    };
+  });
+
+  const itemCount = session.lines.length;
   const payInFull = !quote || !quote.allTokensConfigured || quote.tokenAmountTotal == null;
 
   const rows: BookingLineRow[] = [];
@@ -156,7 +250,18 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
   }
 
   return {
+    sessionId: session._id,
+    canContinue: validation.canContinue,
+    readyForPayment,
+    contact: {
+      name: session.contactDetails.name ?? "",
+      phone: session.contactDetails.phone ?? "",
+      email: session.contactDetails.email ?? "",
+      phoneVerified: validation.contact.phoneVerified,
+      errors: validation.contact.errors ?? [],
+    },
     vendorGroups,
+    lineErrors,
     paymentSummary: {
       vendorCount: vendorGroups.length,
       packageCount: itemCount,
@@ -164,6 +269,7 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       grandTotal: formatPrice(quote?.grandTotal ?? 0),
       tokenAmount: formatPrice(payInFull ? (quote?.grandTotal ?? 0) : (quote?.tokenAmountTotal ?? 0)),
       payInFull,
+      isFreeCheckout: quote?.tokenAmountTotal === 0,
       // When one or more vendors have no token configured, quote.note is
       // backend-internal explanatory text (why tokenAmountTotal/remainingTotal
       // were withheld) — not customer-facing copy, so it's swapped for the

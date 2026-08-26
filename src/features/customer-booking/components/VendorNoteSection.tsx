@@ -1,16 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { updateCartItem } from "@/lib/customerCartApi";
+import { patchCheckoutSessionLine } from "@/lib/customerCheckoutApi";
 import { ApiError } from "@/lib/apiClient";
 
 export type VendorNoteSectionProps = {
-  cartItemId: string;
+  sessionId: string;
+  lineId: string;
   initialNote: string;
   onSaved?: () => void;
 };
 
-export default function VendorNoteSection({ cartItemId, initialNote, onSaved }: VendorNoteSectionProps) {
+export default function VendorNoteSection({ sessionId, lineId, initialNote, onSaved }: VendorNoteSectionProps) {
   const [note, setNote] = useState(initialNote);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,7 +22,7 @@ export default function VendorNoteSection({ cartItemId, initialNote, onSaved }: 
     setError(null);
     setSaved(false);
     try {
-      await updateCartItem(cartItemId, { specialRequest: note });
+      await patchCheckoutSessionLine(sessionId, lineId, { specialRequest: note });
       setSaved(true);
       onSaved?.();
     } catch (err) {

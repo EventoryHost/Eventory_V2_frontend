@@ -1,7 +1,8 @@
-import { Calendar, Clock, Users, MapPin } from "lucide-react";
+import { Calendar, Clock, Users, MapPin, Tag } from "lucide-react";
 import type { EventDetails as EventDetailsData } from "../types";
 
 const FIELDS = [
+  { key: "eventType", icon: Tag },
   { key: "date", icon: Calendar },
   { key: "timeRange", icon: Clock },
   { key: "location", icon: MapPin },
@@ -23,7 +24,13 @@ export default function EventDetails({ details }: { details: EventDetailsData })
       {filled.map(({ key, icon: Icon }) => {
         const rawValue = details[key] as string | number;
         const displayValue =
-          key === "guestCount" ? `${rawValue} Guests` : key === "date" ? formatDate(rawValue as string) : rawValue;
+          key === "guestCount"
+            ? `${rawValue} Guests`
+            : key === "date"
+              ? formatDate(rawValue as string)
+              : key === "eventType"
+                ? (rawValue as string).charAt(0).toUpperCase() + (rawValue as string).slice(1)
+                : rawValue;
 
         return (
           <span key={key} className="flex items-center gap-1.5">

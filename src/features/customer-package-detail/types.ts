@@ -126,6 +126,10 @@ export interface AddonItem {
   unitLabel: string;
   description?: string;
   warning?: string;
+  /** Extra facts shown in the add-on details modal, e.g. Type of Setup, Dimensions. */
+  details?: IncludedItemDetail[];
+  /** Colour choices shown in the add-on details modal. */
+  colourOptions?: ColourOption[];
 }
 
 /** An add-on the customer has picked, carrying how many they picked. */

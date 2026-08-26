@@ -19,7 +19,7 @@ import { mockCartPageData, mockRecommendedAddons } from "../data/mockCartData";
 import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
 import { getRecommendedAddons } from "../services/getRecommendedAddons";
 import { startCheckout } from "../services/startCheckout";
-import VendorCard from "./VendorCard";
+import VendorGroupCard from "./VendorGroupCard";
 import PaymentSummary from "./PaymentSummary";
 import WarningCard from "./WarningCard";
 
@@ -92,8 +92,26 @@ export default function CartPageContent() {
   const vendors = data?.vendors ?? [];
   const selectedVendors = useMemo(() => vendors.filter((v) => v.selected), [vendors]);
 
+  // The real cart is vendor-grouped (a vendor can have several packages in
+  // it) — `vendors` here is a flat item list (see types.ts's doc comment on
+  // CartVendor), so group it back by vendorId for rendering, preserving each
+  // vendor's first-appearance order.
+  const vendorGroups = useMemo(() => {
+    const order: string[] = [];
+    const byVendorId = new Map<string, CartVendor[]>();
+    for (const item of vendors) {
+      if (!byVendorId.has(item.vendorId)) {
+        byVendorId.set(item.vendorId, []);
+        order.push(item.vendorId);
+      }
+      byVendorId.get(item.vendorId)!.push(item);
+    }
+    return order.map((vendorId) => ({ vendorId, items: byVendorId.get(vendorId)! }));
+  }, [vendors]);
+
   const hasMissingEventDetails = selectedVendors.some(
     (vendor) =>
+      !vendor.eventDetails.eventType ||
       !vendor.eventDetails.date ||
       !vendor.eventDetails.timeRange ||
       !vendor.eventDetails.guestCount ||
@@ -146,6 +164,7 @@ export default function CartPageContent() {
 
   async function handleSaveEventDetails(itemId: string, details: EventDetailsData) {
     const payload: Parameters<typeof updateCartItem>[1] = {};
+    if (details.eventType) payload.eventType = details.eventType;
     if (details.date) payload.date = details.date;
     if (details.timeRange) payload.timeSlot = details.timeRange;
     if (details.guestCount != null) payload.guests = details.guestCount;
@@ -294,12 +313,14 @@ export default function CartPageContent() {
 
       <div className="flex flex-col items-start gap-8 lg:flex-row">
         <div className="flex w-full flex-grow flex-col gap-10 lg:w-2/3">
-          {vendors.map((vendor, index) => (
-            <div key={vendor.id} className="flex flex-col gap-10">
+          {vendorGroups.map((group, index) => (
+            <div key={group.vendorId} className="flex flex-col gap-10">
               {index > 0 && <hr className="border-neutral-subtle/70" />}
-              <VendorCard
-                vendor={vendor}
-                recommendedAddons={recommendedAddons.filter((a) => a.itemId === vendor.id)}
+              <VendorGroupCard
+                vendorName={group.items[0].vendorName}
+                avatarInitial={group.items[0].avatarInitial}
+                items={group.items}
+                recommendedAddons={recommendedAddons.filter((a) => group.items.some((item) => item.id === a.itemId))}
                 onToggleSelected={handleToggleSelected}
                 onRemove={handleRemove}
                 onMoveToWishlist={handleMoveToWishlist}
@@ -312,7 +333,7 @@ export default function CartPageContent() {
             </div>
           ))}
 
-          {vendors.length === 0 && (
+          {vendorGroups.length === 0 && (
             <div className="rounded-3xl border border-neutral-subtle bg-white p-10 text-center">
               <p className="font-figtree text-[15px] text-neutral-secondary">
                 Your cart is empty. Explore packages to add vendors.

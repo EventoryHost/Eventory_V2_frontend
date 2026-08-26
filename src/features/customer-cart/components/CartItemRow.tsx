@@ -7,8 +7,8 @@ import EditEventDetailsModal from "./EditEventDetailsModal";
 import AddedAddonsSection from "./AddedAddonsSection";
 import AddonSection from "./AddonSection";
 
-export default function VendorCard({
-  vendor,
+export default function CartItemRow({
+  item,
   recommendedAddons,
   onToggleSelected,
   onRemove,
@@ -19,7 +19,7 @@ export default function VendorCard({
   onRemoveAddon,
   onAddRecommendedAddon,
 }: {
-  vendor: CartVendor;
+  item: CartVendor;
   recommendedAddons: RecommendedAddon[];
   onToggleSelected: (id: string) => void;
   onRemove: (id: string) => void;
@@ -33,49 +33,40 @@ export default function VendorCard({
   const [isEditOpen, setIsEditOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-4 border-b border-neutral-subtle pb-4">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-3">
         <input
           type="checkbox"
-          checked={vendor.selected}
-          onChange={() => onToggleSelected(vendor.id)}
-          aria-label={vendor.selected ? `Remove ${vendor.vendorName} from cart` : `Select ${vendor.vendorName} for checkout`}
+          checked={item.selected}
+          onChange={() => onToggleSelected(item.id)}
+          aria-label={
+            item.selected ? `Remove ${item.package.title} from cart` : `Select ${item.package.title} for checkout`
+          }
           className="h-4 w-4 rounded border-neutral-tertiary text-brand-primary focus:ring-brand-primary"
         />
-        <div className="flex items-center gap-3">
-          <div
-            aria-hidden="true"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle font-figtree text-[13px] font-bold text-brand-primary"
-          >
-            {vendor.avatarInitial}
-          </div>
-          <span className="font-figtree text-[16px] font-semibold text-neutral-primary">
-            {vendor.vendorName}
+        {!item.packageStillAvailable && (
+          <span className="rounded-full bg-error-subtle px-2.5 py-1 font-figtree text-[11px] font-semibold text-error-700">
+            No longer available
           </span>
-          {!vendor.packageStillAvailable && (
-            <span className="rounded-full bg-error-subtle px-2.5 py-1 font-figtree text-[11px] font-semibold text-error-700">
-              No longer available
-            </span>
-          )}
-        </div>
+        )}
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-neutral-subtle bg-white shadow-sm">
         <PackageInfo
-          cartPackage={vendor.package}
-          eventDetails={vendor.eventDetails}
-          specialRequest={vendor.specialRequest}
+          cartPackage={item.package}
+          eventDetails={item.eventDetails}
+          specialRequest={item.specialRequest}
           onEditDetails={() => setIsEditOpen(true)}
-          onRemove={() => onRemove(vendor.id)}
-          onMoveToWishlist={() => onMoveToWishlist(vendor.id)}
+          onRemove={() => onRemove(item.id)}
+          onMoveToWishlist={() => onMoveToWishlist(item.id)}
         />
 
-        {vendor.addons.length > 0 && (
+        {item.addons.length > 0 && (
           <AddedAddonsSection
-            addons={vendor.addons}
-            onIncrement={(addonId) => onIncrementAddon(vendor.id, addonId)}
-            onDecrement={(addonId) => onDecrementAddon(vendor.id, addonId)}
-            onRemove={(addonId) => onRemoveAddon(vendor.id, addonId)}
+            addons={item.addons}
+            onIncrement={(addonId) => onIncrementAddon(item.id, addonId)}
+            onDecrement={(addonId) => onDecrementAddon(item.id, addonId)}
+            onRemove={(addonId) => onRemoveAddon(item.id, addonId)}
           />
         )}
       </div>
@@ -87,8 +78,8 @@ export default function VendorCard({
       <EditEventDetailsModal
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        initialDetails={vendor.eventDetails}
-        onSave={(details) => onSaveEventDetails(vendor.id, details)}
+        initialDetails={item.eventDetails}
+        onSave={(details) => onSaveEventDetails(item.id, details)}
       />
     </div>
   );

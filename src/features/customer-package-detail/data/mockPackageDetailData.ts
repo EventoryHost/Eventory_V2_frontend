@@ -349,10 +349,18 @@ export const mockPackageDetail: PackageDetail = {
       category: "Lighting",
       image: "/images/customer/makeup.png",
       title: "Fairy lights + ribbons + drape combo",
-      subCategory: "",
-      qtyLabel: "",
-      price: 6200,
-      unitLabel: "flat",
+      subCategory: "String lights",
+      qtyLabel: "3 sets",
+      price: 14399,
+      unitLabel: "per person",
+      description:
+        "Warm white string lights arranged into a backdrop, ideal for photo areas and stage entries. Comes with matching ribbon drapes to frame the setup and can be adapted to indoor or outdoor spaces.",
+      details: [
+        { label: "Type of Setup", value: "Indoor" },
+        { label: "Quantity", value: "3" },
+        { label: "Dimensions", value: "60 x 40 x 30 cm" },
+      ],
+      colourOptions: COLOUR_PALETTE.slice(0, 3),
     },
     {
       id: "addon-4",

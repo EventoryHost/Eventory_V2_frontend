@@ -1,17 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin, ShieldCheck } from "lucide-react";
+import { Calendar, MapPin, ShieldCheck, Check } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { addCartItem } from "@/lib/customerCartApi";
+import { addCartItem, getCart } from "@/lib/customerCartApi";
 import { ApiError } from "@/lib/apiClient";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
 import CancellationPolicyDialog from "./CancellationPolicyDialog";
+import VendorNotePromptModal from "./VendorNotePromptModal";
 
 export default function StickyBookingCard({
   packageId,
@@ -21,6 +22,7 @@ export default function StickyBookingCard({
   selectedAddons,
   includedItems,
   vendorNote,
+  onVendorNoteChange,
   cancellationPolicyText,
 }: {
   packageId: string;
@@ -30,6 +32,7 @@ export default function StickyBookingCard({
   selectedAddons: SelectedAddon[];
   includedItems: IncludedItemEntry[];
   vendorNote: string;
+  onVendorNoteChange: (note: string) => void;
   cancellationPolicyText?: string;
 }) {
   const [eventType, setEventType] = useState("");
@@ -43,24 +46,48 @@ export default function StickyBookingCard({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [cartError, setCartError] = useState<string | null>(null);
+  const [inCartItemId, setInCartItemId] = useState<string | null>(null);
+  const [isNotePromptOpen, setIsNotePromptOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"cart" | "book" | null>(null);
   const router = useRouter();
   const { isLoggedIn } = useCustomerSession();
+
+  // Reflects whether this exact package is already sitting in the cart, so
+  // navigating back to its PDP doesn't invite adding a duplicate row —
+  // "Add to cart" becomes "In cart · view cart" instead.
+  useEffect(() => {
+    let cancelled = false;
+    getCart()
+      .then((cart) => {
+        if (cancelled) return;
+        const existing = cart.vendors.flatMap((group) => group.items).find((item) => item.packageId === packageId);
+        setInCartItemId(existing?._id ?? null);
+      })
+      .catch(() => {
+        // Best-effort — worst case the button just doesn't know it's already in the cart.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [packageId]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   const estimatedTotal = packageTotal + gstAmount;
   const todayIso = new Date().toISOString().slice(0, 10);
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
   const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
+  const detailsComplete = Boolean(eventType && validEventDate && startTime && endTime && location.trim());
 
-  function buildCartPayload() {
+  function buildCartPayload(noteOverride?: string) {
     const timeSlot = [startTime, endTime].filter(Boolean).join(" - ") || undefined;
+    const note = noteOverride ?? vendorNote;
     return {
       packageId,
       date: validEventDate ?? undefined,
       timeSlot,
       location: location || undefined,
       eventType: eventType || undefined,
-      specialRequest: vendorNote || undefined,
+      specialRequest: note || undefined,
       selectedAddOns: selectedAddons.map((addon) => ({
         addOnId: addon.id,
         name: addon.title,
@@ -70,11 +97,12 @@ export default function StickyBookingCard({
     };
   }
 
-  async function handleAddToCart() {
+  async function performAddToCart(noteOverride?: string) {
     setCartError(null);
     setIsSubmitting(true);
     try {
-      await addCartItem(buildCartPayload());
+      const result = await addCartItem(buildCartPayload(noteOverride));
+      setInCartItemId(result.itemId);
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 2000);
     } catch (error) {
@@ -84,21 +112,61 @@ export default function StickyBookingCard({
     }
   }
 
-  async function handleBookClick() {
-    if (!isLoggedIn) {
-      setIsAuthOpen(true);
-      return;
-    }
+  async function performBookClick(noteOverride?: string) {
     setCartError(null);
     setIsSubmitting(true);
     try {
-      await addCartItem(buildCartPayload());
+      await addCartItem(buildCartPayload(noteOverride));
       router.push("/cart");
     } catch (error) {
       setCartError(error instanceof ApiError ? error.message : "Couldn't start booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function requestAddToCart() {
+    if (!detailsComplete) return;
+    if (inCartItemId) {
+      router.push("/cart");
+      return;
+    }
+    if (!vendorNote.trim()) {
+      setPendingAction("cart");
+      setIsNotePromptOpen(true);
+      return;
+    }
+    void performAddToCart();
+  }
+
+  function requestBookClick() {
+    if (!detailsComplete) return;
+    if (!isLoggedIn) {
+      setIsAuthOpen(true);
+      return;
+    }
+    if (!vendorNote.trim()) {
+      setPendingAction("book");
+      setIsNotePromptOpen(true);
+      return;
+    }
+    void performBookClick();
+  }
+
+  function resolvePendingAction(noteOverride?: string) {
+    setIsNotePromptOpen(false);
+    if (pendingAction === "cart") void performAddToCart(noteOverride);
+    if (pendingAction === "book") void performBookClick(noteOverride);
+    setPendingAction(null);
+  }
+
+  function handleNotePromptSkip() {
+    resolvePendingAction();
+  }
+
+  function handleNotePromptSave(note: string) {
+    onVendorNoteChange(note);
+    resolvePendingAction(note);
   }
 
   return (
@@ -213,21 +281,36 @@ export default function StickyBookingCard({
         <div className="mt-4 grid grid-cols-2 gap-3">
           <button
             type="button"
-            onClick={handleBookClick}
-            disabled={isSubmitting}
+            onClick={requestBookClick}
+            disabled={isSubmitting || !detailsComplete}
             className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Book &amp; pay {formatPrice(tokenAmount)}
           </button>
           <button
             type="button"
-            onClick={handleAddToCart}
-            disabled={isSubmitting}
-            className="rounded-xl border border-black/15 py-3 font-figtree text-[14px] font-semibold text-brand-950 transition hover:border-black/30 disabled:cursor-not-allowed disabled:opacity-60"
+            onClick={requestAddToCart}
+            disabled={isSubmitting || !detailsComplete}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-black/15 py-3 font-figtree text-[14px] font-semibold text-brand-950 transition hover:border-black/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {justAdded ? "Added ✓" : "Add to cart"}
+            {inCartItemId ? (
+              <>
+                <Check className="h-4 w-4" />
+                In cart &middot; view cart
+              </>
+            ) : justAdded ? (
+              "Added ✓"
+            ) : (
+              "Add to cart"
+            )}
           </button>
         </div>
+
+        {!detailsComplete && (
+          <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">
+            Fill in event type, date, time and location to continue
+          </p>
+        )}
 
         {cartError && (
           <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">{cartError}</p>
@@ -238,12 +321,22 @@ export default function StickyBookingCard({
         </p>
       </div>
 
+      <VendorNotePromptModal
+        isOpen={isNotePromptOpen}
+        onClose={() => {
+          setIsNotePromptOpen(false);
+          setPendingAction(null);
+        }}
+        onSkip={handleNotePromptSkip}
+        onSave={handleNotePromptSave}
+      />
+
       <AuthModal
         isOpen={isAuthOpen}
         onClose={() => setIsAuthOpen(false)}
         onAuthenticated={() => {
           setIsAuthOpen(false);
-          void handleBookClick();
+          requestBookClick();
         }}
       />
 

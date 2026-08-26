@@ -36,7 +36,8 @@ export type ServiceDetailsModalProps = {
   isOpen: boolean;
   onClose: () => void;
   packageId?: string;
-  cartItemId?: string;
+  sessionId?: string;
+  lineId?: string;
   vendorName: string;
   serviceName: string;
   packageTier: string;
@@ -54,7 +55,8 @@ export default function ServiceDetailsModal({
   isOpen,
   onClose,
   packageId,
-  cartItemId,
+  sessionId,
+  lineId,
   vendorName,
   serviceName,
   packageTier,
@@ -230,9 +232,9 @@ export default function ServiceDetailsModal({
                 </div>
               </CollapsibleSection>
 
-              {cartItemId && (
+              {sessionId && lineId && (
                 <CollapsibleSection label="Vendor Notes">
-                  <VendorNoteSection cartItemId={cartItemId} initialNote={note} onSaved={onNoteSaved} />
+                  <VendorNoteSection sessionId={sessionId} lineId={lineId} initialNote={note} onSaved={onNoteSaved} />
                 </CollapsibleSection>
               )}
 

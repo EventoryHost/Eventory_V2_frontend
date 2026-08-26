@@ -13,8 +13,12 @@ export type PaymentSummaryProps = {
   payInFull?: boolean;
   cancellationNote: string;
   ctaLabel: string;
-  ctaHref: string;
+  /** Plain navigation — ignored when onCtaClick is given (Pay Now needs to run a real API call before it can know where to go). */
+  ctaHref?: string;
   ctaDisabled?: boolean;
+  /** When given, the CTA renders as a button that runs this instead of navigating via ctaHref — see PaymentPage.tsx's Pay Now. */
+  onCtaClick?: () => void;
+  ctaLoading?: boolean;
   onApplyCoupon?: (code: string) => void;
   couponLoading?: boolean;
   couponFeedback?: string | null;
@@ -32,6 +36,8 @@ export default function PaymentSummary({
   ctaLabel,
   ctaHref,
   ctaDisabled = false,
+  onCtaClick,
+  ctaLoading = false,
   onApplyCoupon,
   couponLoading = false,
   couponFeedback,
@@ -152,9 +158,18 @@ export default function PaymentSummary({
           <span className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white opacity-50">
             {ctaLabel}
           </span>
+        ) : onCtaClick ? (
+          <button
+            type="button"
+            onClick={onCtaClick}
+            disabled={ctaLoading}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {ctaLabel}
+          </button>
         ) : (
           <Link
-            href={ctaHref}
+            href={ctaHref ?? "#"}
             className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white"
           >
             {ctaLabel}
