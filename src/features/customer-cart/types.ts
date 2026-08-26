@@ -10,6 +10,8 @@ export interface EventDetails {
   timeRange: string | null;
   guestCount: number | null;
   location: string | null;
+  /** Required at checkout (see checkoutValidationService.js's computeLinesValidation) but easy to leave unset — surfaced here so Cart can flag and fix it before Review/Contact silently block on it. */
+  eventType: string | null;
 }
 
 export interface CartPackage {

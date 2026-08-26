@@ -42,6 +42,7 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, { name: string; ini
     },
     selected: item.selectedForCheckout,
     eventDetails: {
+      eventType: item.eventDetails.eventType,
       date: item.eventDetails.date,
       timeRange: item.eventDetails.timeSlot,
       guestCount: item.eventDetails.guestCount,

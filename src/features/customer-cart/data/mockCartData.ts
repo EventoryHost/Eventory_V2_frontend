@@ -26,6 +26,7 @@ export const mockCartPageData: CartPageData = {
       },
       selected: true,
       eventDetails: {
+        eventType: "birthday",
         date: "2026-03-12",
         timeRange: "01:00 PM - 05:00 PM",
         guestCount: 150,
@@ -74,6 +75,7 @@ export const mockCartPageData: CartPageData = {
       },
       selected: false,
       eventDetails: {
+        eventType: null,
         date: null,
         timeRange: null,
         guestCount: null,

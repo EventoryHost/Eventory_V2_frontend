@@ -96,6 +96,7 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           selectedAddons={selectedAddons}
           includedItems={data.includedItems}
           vendorNote={vendorNote}
+          onVendorNoteChange={setVendorNote}
           cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
         />
       </div>

@@ -31,6 +31,21 @@ export async function verifyPhoneOtp(input: { mobile: string; code: string; sess
   return apiFetch<AuthResponse>("/customer/phone/verify-otp", { method: "POST", body: input });
 }
 
+/**
+ * Same /phone/verify-otp endpoint as verifyPhoneOtp, but for an
+ * already-logged-in customer re-verifying/attaching a phone number (e.g. the
+ * checkout Contact page's "Verify with OTP") — the backend runs its
+ * "attach/re-verify on my own account" branch here instead of the anonymous
+ * login branch, and returns the updated Customer directly rather than a new
+ * accessToken/session.
+ */
+export async function verifyPhoneOtpForAccount(input: { mobile: string; code: string; session: string }) {
+  return apiFetch<{ success: true; message: string; data: Customer }>("/customer/phone/verify-otp", {
+    method: "POST",
+    body: input,
+  });
+}
+
 /** Alternate login for customers who've set a password — same endpoint as email login, keyed by mobile instead. */
 export async function loginWithPassword(input: { mobile: string; password: string }) {
   return apiFetch<AuthResponse>("/customer/auth/login", { method: "POST", body: input, auth: false });

@@ -1,6 +1,6 @@
 export type NotIncludedRowProps = {
   name: string;
-  category: string;
+  category?: string;
 };
 
 export default function NotIncludedRow({
@@ -12,9 +12,11 @@ export default function NotIncludedRow({
       <span className="font-figtree text-[14px] font-semibold leading-[20px] text-[#030303]">
         {name}
       </span>
-      <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#71717B]">
-        {category}
-      </span>
+      {category && (
+        <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#71717B]">
+          {category}
+        </span>
+      )}
     </div>
   );
 }

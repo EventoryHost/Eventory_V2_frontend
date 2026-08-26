@@ -1,5 +1,6 @@
 import { apiFetch } from "./apiClient";
 import { getGuestCartId, setGuestCartId, clearGuestCartId } from "./guestCart";
+import { invalidateCheckoutSession } from "./customerCheckoutApi";
 
 // Raw shapes returned by the /api/customer/cart/* routes, verified directly
 // against Eventory_V2_backend/src/controllers/customerCartController.js and
@@ -24,6 +25,7 @@ export interface RawCartSelectedItem {
 }
 
 export interface RawCartEventDetails {
+  eventType: string | null;
   date: string | null;
   timeSlot: string | null;
   guestCount: number | null;
@@ -208,75 +210,92 @@ export async function addCartItem(params: AddCartItemParams) {
     body: params,
   });
   if (data.guestCartId) setGuestCartId(data.guestCartId);
+  void invalidateCheckoutSession();
   return data;
 }
 
 export async function updateCartItem(itemId: string, params: UpdateCartItemParams) {
-  return apiFetch<RawCartPayload>(`/customer/cart/items/${itemId}`, {
+  const data = await apiFetch<RawCartPayload>(`/customer/cart/items/${itemId}`, {
     method: "PATCH",
     auth: true,
     headers: guestHeaders(),
     body: params,
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 export async function removeCartItem(itemId: string) {
-  return apiFetch<RawCartPayload>(`/customer/cart/items/${itemId}`, {
+  const data = await apiFetch<RawCartPayload>(`/customer/cart/items/${itemId}`, {
     method: "DELETE",
     auth: true,
     headers: guestHeaders(),
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 export async function clearCart() {
-  return apiFetch<{ status: "SUCCESS"; message: string; count?: number }>("/customer/cart", {
+  const data = await apiFetch<{ status: "SUCCESS"; message: string; count?: number }>("/customer/cart", {
     method: "DELETE",
     auth: true,
     headers: guestHeaders(),
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 /** Customer-only — a guest has nowhere to save a wishlist item. */
 export async function moveCartItemToWishlist(itemId: string) {
-  return apiFetch<RawCartPayload>(`/customer/cart/items/${itemId}/move-to-wishlist`, {
+  const data = await apiFetch<RawCartPayload>(`/customer/cart/items/${itemId}/move-to-wishlist`, {
     method: "POST",
     auth: true,
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 export async function applyCoupon(code: string) {
-  return apiFetch<RawCartPayload>("/customer/cart/coupon", {
+  const data = await apiFetch<RawCartPayload>("/customer/cart/coupon", {
     method: "POST",
     auth: true,
     headers: guestHeaders(),
     body: { code },
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 export async function removeCoupon() {
-  return apiFetch<RawCartPayload>("/customer/cart/coupon", {
+  const data = await apiFetch<RawCartPayload>("/customer/cart/coupon", {
     method: "DELETE",
     auth: true,
     headers: guestHeaders(),
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 export async function setBookingNote(note: string) {
-  return apiFetch<RawCartPayload>("/customer/cart/note", {
+  const data = await apiFetch<RawCartPayload>("/customer/cart/note", {
     method: "PUT",
     auth: true,
     headers: guestHeaders(),
     body: { note },
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 /** Customer-only. Deliberately explicit — call once right after login, never speculatively on every page load. */
 export async function mergeGuestCart(guestId: string) {
-  return apiFetch<RawCartPayload>("/customer/cart/merge", {
+  const data = await apiFetch<RawCartPayload>("/customer/cart/merge", {
     method: "POST",
     auth: true,
     body: { guestId },
   });
+  void invalidateCheckoutSession();
+  return data;
 }
 
 /**

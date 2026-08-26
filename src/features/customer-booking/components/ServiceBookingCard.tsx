@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Calendar,
   Clock,
@@ -12,8 +13,15 @@ import {
   ChevronDown,
 } from "lucide-react";
 import ServiceDetailsModal from "./ServiceDetailsModal";
+import AddOnRow from "./AddOnRow";
+import type { BookingAddon } from "../types";
+
+const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
 export type ServiceBookingCardProps = {
+  packageId?: string;
+  sessionId?: string;
+  lineId?: string;
   image: string;
   categoryLabel: string;
   categoryIcon: string;
@@ -23,12 +31,19 @@ export type ServiceBookingCardProps = {
   date: string;
   time: string;
   location: string;
-  eventType: string;
+  eventType?: string;
   cancellationNote: string;
+  isBookable?: boolean;
   price: string;
+  addons?: BookingAddon[];
+  note?: string;
+  onUpdated?: () => void;
 };
 
 export default function ServiceBookingCard({
+  packageId,
+  sessionId,
+  lineId,
   image,
   categoryLabel,
   categoryIcon,
@@ -40,9 +55,13 @@ export default function ServiceBookingCard({
   location,
   eventType,
   cancellationNote,
+  isBookable = true,
   price,
+  addons = [],
+  note = "",
+  onUpdated,
 }: ServiceBookingCardProps) {
-  const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
+  const [isAddonsOpen, setIsAddonsOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   return (
@@ -72,13 +91,13 @@ export default function ServiceBookingCard({
               </span>
             </div>
 
-            <button
-              type="button"
+            <Link
+              href="/cart"
               className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#3F3F47]"
             >
               <Pencil size={14} />
               Edit Package
-            </button>
+            </Link>
           </div>
 
           <div className="flex flex-wrap items-baseline gap-1">
@@ -105,12 +124,18 @@ export default function ServiceBookingCard({
             </span>
           </div>
 
-          <span className="flex items-center gap-2 font-figtree text-[14px] font-normal leading-[22px] text-[#3F3F47]">
-            <Tag size={16} className="text-[#9F9FA9]" />
-            {eventType}
-          </span>
+          {eventType && (
+            <span className="flex items-center gap-2 font-figtree text-[14px] font-normal leading-[22px] text-[#3F3F47]">
+              <Tag size={16} className="text-[#9F9FA9]" />
+              {eventType}
+            </span>
+          )}
 
-          <p className="font-figtree text-[14px] font-medium leading-[22px] text-[#008236]">
+          <p
+            className={`font-figtree text-[14px] font-medium leading-[22px] ${
+              isBookable ? "text-[#008236]" : "text-[#B91C1C]"
+            }`}
+          >
             {cancellationNote}
           </p>
 
@@ -131,21 +156,39 @@ export default function ServiceBookingCard({
 
       <button
         type="button"
-        onClick={() => setIsBreakdownOpen((v) => !v)}
-        className="flex h-[45px] w-full items-center justify-between border-t border-[#E4E4E7] bg-[#FAFAFA] px-6"
+        onClick={() => setIsAddonsOpen((v) => !v)}
+        disabled={addons.length === 0}
+        className="flex h-[45px] w-full items-center justify-between border-t border-[#E4E4E7] bg-[#FAFAFA] px-6 disabled:opacity-50"
       >
         <span className="font-figtree text-[14px] font-medium text-[#030303]">
-          Pricing breakdown
+          Add-ons {addons.length > 0 ? `(${addons.length})` : ""}
         </span>
         <ChevronDown
           size={16}
           className={`text-[#3F3F47] transition-transform ${
-            isBreakdownOpen ? "rotate-180" : ""
+            isAddonsOpen ? "rotate-180" : ""
           }`}
         />
       </button>
 
+      {isAddonsOpen && addons.length > 0 && (
+        <div className="flex flex-col gap-4 border-t border-[#E4E4E7] px-6 py-4">
+          {addons.map((addon) => (
+            <AddOnRow
+              key={addon.id}
+              image={FALLBACK_IMAGE}
+              name={addon.name}
+              quantity={addon.quantity}
+              price={addon.price}
+            />
+          ))}
+        </div>
+      )}
+
       <ServiceDetailsModal
+        packageId={packageId}
+        sessionId={sessionId}
+        lineId={lineId}
         vendorName={vendorName}
         serviceName={serviceName}
         packageTier={packageTier}
@@ -154,6 +197,9 @@ export default function ServiceBookingCard({
         location={location}
         eventType={eventType}
         price={price}
+        addons={addons}
+        note={note}
+        onNoteSaved={onUpdated}
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
       />

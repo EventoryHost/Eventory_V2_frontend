@@ -2,7 +2,7 @@ import { TriangleAlert } from "lucide-react";
 
 export default function WarningCard({
   title = "Event Details Missing",
-  message = "Some selected items do not have an event date or location set. Click 'Edit' on the card to fill details.",
+  message = "Some selected items are missing an occasion, event date, time, guest count, or location. Click 'Edit' on the card to fill details.",
 }: {
   title?: string;
   message?: string;
