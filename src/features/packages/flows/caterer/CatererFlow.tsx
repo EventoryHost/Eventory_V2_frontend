@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import FlowShell from '../../shared/FlowShell';
 import { useFlowVariants } from '../../shared/useFlowVariants';
-import { MenuData, GuestTier, PolicyFile, SampleMediaFile } from '../../shared/types';
+import { MenuData, GuestTier, PolicyFile, SampleMediaFile, FoodItem } from '../../shared/types';
 import CatererStep1EventAndCrew from './Step1EventAndCrew';
 import CatererStep2ProductsAndPricing from './Step2ProductsAndPricing';
 import CatererStep3PoliciesAndCharges from './Step3PoliciesAndCharges';
@@ -42,30 +42,31 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const [activeMenuDropdown, setActiveMenuDropdown] = React.useState<string | null>(null);
     const toggleMenuExpand = (id: string) => setMenus(prev => prev.map(m => m.id === id ? { ...m, isExpanded: !m.isExpanded } : m));
     const deleteMenu = (id: string) => { setMenus(prev => prev.filter(m => m.id !== id)); setActiveMenuDropdown(null); };
-    const handleAddMenu = () => {
+    const handleAddMenu = (selectedCategories: string[] = [], mealType: string = 'Breakfast') => {
         const newId = Math.random().toString(36).substring(7);
+        const initialInventory: Record<string, FoodItem[]> = {};
+        
+        // Use default categories if none provided (for safety/backward compatibility)
+        const categoriesToUse = selectedCategories.length > 0 ? selectedCategories : [
+            'Salads', 'Breads', 'Rice', 'Starters', 'Main Course', 
+            'Dessert', 'Beverages', 'Desserts', 'Chats', 'Miscellaneous', 'Drinks'
+        ];
+        
+        categoriesToUse.forEach(cat => {
+            initialInventory[cat] = [];
+        });
+
         setMenus(prev => [...prev, {
             id: newId,
             name: `Menu ${prev.length + 1}`,
-            type: 'Breakfast',
+            type: mealType,
             serviceStyles: ['Buffet'],
-            inventory: {
-                'Salads': [],
-                'Breads': [],
-                'Rice': [],
-                'Starters': [],
-                'Main Course': [],
-                'Dessert': [],
-                'Beverages': [],
-                'Desserts': [],
-                'Chats': [],
-                'Miscellaneous': [],
-                'Drinks': []
-            },
+            inventory: initialInventory,
             priceModel: '',
             billingUnit: 'Per Plate',
             isExpanded: true
         }]);
+        setActiveMenuDropdown(newId);
     };
 
     // Step 2 crockery & addOns states
@@ -73,6 +74,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
     const [crockeryDisposable, setCrockeryDisposable] = React.useState(false);
     const [crockeryBoneChina, setCrockeryBoneChina] = React.useState(false);
     const [crockeryType, setCrockeryType] = React.useState('');
+    const [minMealsPreference, setMinMealsPreference] = React.useState<number | null>(null);
     const [addons, setAddons] = React.useState<Addon[]>([]);
     const [includedText, setIncludedText] = React.useState('');
     const [notIncludedText, setNotIncludedText] = React.useState('');
@@ -306,6 +308,7 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                             const textParts = cTypeArray.filter((s: string) => s !== 'Disposable' && s !== 'Bone china' && s !== '');
                             setCrockeryType(textParts.join(', '));
                         }
+                        if (s2.minMealsPreference !== undefined) setMinMealsPreference(s2.minMealsPreference);
                         if (s2.menus) {
                             setMenus(s2.menus.map((m: any, idx: number) => ({
                                 id: m._id || Math.random().toString(36).substring(7),
@@ -710,7 +713,8 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                     })),
                     addOns: processedAddons,
                     included: includedText.split('\n').filter(s => s.trim()),
-                    notIncluded: notIncludedText.split('\n').filter(s => s.trim())
+                    notIncluded: notIncludedText.split('\n').filter(s => s.trim()),
+                    minMealsPreference
                 };
 
                 const res = await fetch(apiUrl(`/packages/${packageId}/step/2`), {
@@ -1033,6 +1037,8 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
             {step === 2 && packageId && packageGroupId && <CatererStep2ProductsAndPricing
                 packageId={packageId}
                 packageGroupId={packageGroupId}
+                minMealsPreference={minMealsPreference}
+                setMinMealsPreference={setMinMealsPreference}
                 menus={menus} setMenus={setMenus} toggleMenuExpand={toggleMenuExpand} deleteMenu={deleteMenu} handleAddMenu={handleAddMenu}
                 activeMenuDropdown={activeMenuDropdown} setActiveMenuDropdown={setActiveMenuDropdown}
                 crockeryIncluded={crockeryIncluded} setCrockeryIncluded={setCrockeryIncluded}

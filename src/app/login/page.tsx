@@ -251,7 +251,14 @@ export default function LoginPage() {
               <img
                 src="https://dkuacgndftndz.cloudfront.net/inventory-page/clearLogoeventoryV2.svg"
                 alt="Eventory Logo"
-                className="w-12 h-12 object-contain drop-shadow-sm"
+                className="w-12 h-12 object-contain drop-shadow-sm cursor-pointer"
+                onClick={() => {
+                  localStorage.setItem("vendor_token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IlZFTjIwMjYwNzAyMTUzNDU3MjAzIiwicGhvbmUiOiIrOTE4NTg3MDAzMDA5IiwiaWF0IjoxNzg3NjQ2Mzg1LCJleHAiOjE3ODgyNTExODV9.z0gPyYfKSrqiWMRgcptHIlnFCm2X4yJZreHMW9KX6J4");
+                  localStorage.setItem("vendor_id", "VEN20260702153457203");
+                  localStorage.setItem("vendor_name", "Cant move on");
+                  router.push("/dashboard");
+                }}
+                title="Dev Bypass Login"
               />
             </div>
             <AnimatePresence mode="wait">

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plus, ChevronDown, ChevronUp, Trash2, Info, X, MoreHorizontal } from 'lucide-react';
+import { Plus, ChevronDown, ChevronUp, Trash2, Info, X, MoreHorizontal, ShieldAlert } from 'lucide-react';
 import { AddonModal, Addon } from '../../components/AddonModal';
 import { VariantManager } from '../../components/VariantManager';
 
@@ -23,6 +23,12 @@ export interface VenueSpace {
     amenities: string[];
     price: string;
     billingUnit: string;
+    numberOfRooms: string;
+    isMandatory: boolean;
+    roomIncluded: boolean;
+    parkingFourWheeler: string;
+    parkingTwoWheeler: string;
+    valetService: boolean;
 }
 
 interface Props {
@@ -48,9 +54,24 @@ const HELPER = 'text-[11px] text-[#9F9FA9] mt-1 pl-1';
 
 const LAYOUT_OPTIONS = ['Theater', 'Classroom', 'Banquet', 'Reception', 'U-Shape', 'Boardroom', 'Hollow Square'];
 const ACTIVITY_SUGGESTIONS = ['Weddings', 'Corporate Events', 'Workshops', 'Product Launches', 'Art Gallery'];
-const AMENITY_SUGGESTIONS = ['Power', 'AC', 'Stage', 'Lighting', 'Security'];
+const AMENITY_SUGGESTIONS = [
+    'Power', 'Generator Backup', 'Smoking Zone', 'Pantry/Kitchen',
+    "Kids' Play Area", 'Wi-Fi', 'Lawn', 'Elevator', 'Poolside Access',
+    'Projector & Screen', 'Parking', 'Wheelchair Access', 'Swimming Pool',
+    'In-house Sound', 'Helipad', 'CCTV', 'Changing Rooms', 'Security',
+    'Centralised AC', 'AC', 'Fire Safety'
+];
 const EXTENDED_ACTIVITY_SUGGESTIONS = [ ...ACTIVITY_SUGGESTIONS, 'Cocktail Parties', 'Birthday Celebrations', 'Fashion Shows', 'Exhibitions & Fairs', 'Concerts & Musical Events', 'Private Dinners', 'Photo / Video Shoots', 'Yoga & Wellness Retreats', 'Charity Fundraisers', 'Engagement Parties', 'Sangeet & Mehendi'];
-const EXTENDED_AMENITY_SUGGESTIONS = [ ...AMENITY_SUGGESTIONS, 'Valet Parking', 'Wheelchair Accessibility', 'In-house Kitchen', 'Bridal Suite / Restrooms', 'Bar License', 'Pool Area', 'Outdoor Mist Fans', 'Wi-Fi / Audio-Visual', 'Power Generator Backup', 'Sound Setup'];
+const EXTENDED_AMENITY_SUGGESTIONS = [ ...AMENITY_SUGGESTIONS, 'Valet Parking', 'Bridal Suite / Restrooms', 'Bar License', 'Outdoor Mist Fans' ];
+
+const SPACE_TYPES = [
+    'Banquet Hall', '5-Star Hotel', 'Fort', 'Boutique Hotel', 'Hotel BallRoom',
+    'Conference Hall', 'Resort', 'Farmhouse', 'Lawn', 'Garden',
+    'Rooftop Venue', 'Poolside Venue', 'Beach Venue', 'Heritage Property',
+    'Convention Center', 'Club', 'Lounge', 'Restaurant', 'Marriage Garden',
+    'Temple Venue', 'Religious Hall', 'Community Hall', 'Destination Venue',
+    'Houseboat', 'Vineyard', 'Haveli'
+];
 
 export default function VenueStep2SpacesAndItems({
     packageId,
@@ -70,6 +91,10 @@ export default function VenueStep2SpacesAndItems({
     const [isAddingAddon, setIsAddingAddon] = React.useState(false);
     const [editingAddon, setEditingAddon] = React.useState<Addon | null>(null);
 
+    const [isChoosingSpaceType, setIsChoosingSpaceType] = React.useState(false);
+    const [selectedSpaceType, setSelectedSpaceType] = React.useState('');
+    const [editingSpaceId, setEditingSpaceId] = React.useState<string | null>(null);
+
     React.useEffect(() => {
         const handleClickOutside = () => {
             if (activeMenuDropdown) setActiveMenuDropdown(null);
@@ -80,11 +105,16 @@ export default function VenueStep2SpacesAndItems({
     }, [activeMenuDropdown, activeDropdown, setActiveMenuDropdown]);
 
     const handleAddSpace = () => {
+        setIsChoosingSpaceType(true);
+    };
+
+    const confirmAddSpace = () => {
+        if (!selectedSpaceType) return;
         const newSpace: VenueSpace = {
             id: Math.random().toString(36).substr(2, 9),
             isExpanded: true,
-            name: `Space ${spaces.length + 1}`,
-            type: '',
+            name: selectedSpaceType,
+            type: selectedSpaceType,
             area: '',
             areaUnit: 'Sq. Ft.',
             height: '',
@@ -97,9 +127,18 @@ export default function VenueStep2SpacesAndItems({
             activities: [],
             amenities: [],
             price: '',
-            billingUnit: 'Per hour'
+            billingUnit: 'Per hour',
+            numberOfRooms: '',
+            isMandatory: false,
+            roomIncluded: false,
+            parkingFourWheeler: '',
+            parkingTwoWheeler: '',
+            valetService: false
         };
         setSpaces(prev => [...prev, newSpace]);
+        setIsChoosingSpaceType(false);
+        setSelectedSpaceType('');
+        setEditingSpaceId(newSpace.id);
     };
 
     const updateSpace = (id: string, field: keyof VenueSpace, value: any) => {
@@ -178,106 +217,107 @@ export default function VenueStep2SpacesAndItems({
         };
 
         const extendedList = title === "Amenities" ? EXTENDED_AMENITY_SUGGESTIONS : EXTENDED_ACTIVITY_SUGGESTIONS;
+        const availableSuggestions = (title === "Amenities" ? EXTENDED_AMENITY_SUGGESTIONS : EXTENDED_ACTIVITY_SUGGESTIONS).filter(s => !selected.includes(s) && s.toLowerCase().includes(customVal.toLowerCase()));
         const allTags = Array.from(new Set([...options, ...selected]));
-        const availableSuggestions = extendedList.filter(s => !selected.includes(s) && s.toLowerCase().includes(customVal.toLowerCase()));
         const hasUnselectedCustom = customVal.trim().length > 0 && !selected.includes(customVal.trim());
 
         return (
-            <div className="flex flex-col gap-2">
-                <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>{title}</label>
-                <div className="flex flex-wrap gap-2">
+            <fieldset className="flex flex-col gap-2">
+                <legend style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>{title}</legend>
+                <div className="flex flex-wrap gap-2 mt-1">
                     {allTags.map(opt => (
                         <button
                             key={opt}
                             type="button"
                             onClick={() => toggleTag(opt)}
-                            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors border flex items-center gap-1.5 ${selected.includes(opt) ? 'bg-[#04222D] text-white border-[#04222D]' : 'bg-[#F4F4F5] text-[#3F3F47] border-[#E4E4E7] hover:bg-gray-200'}`}
+                            className={`px-4 py-2 rounded-full text-[13px] font-medium transition-colors flex items-center justify-center ${selected.includes(opt) ? 'bg-[#04222D] text-white' : 'bg-[#F4F4F5] text-[#3F3F47] hover:bg-[#E4E4E7]'}`}
                             style={{ fontFamily: 'Figtree, sans-serif' }}
                         >
                             <span>{opt}</span>
-                            {selected.includes(opt) && <X size={14} />}
                         </button>
                     ))}
                 </div>
-                <div className="flex items-center gap-2 mt-1 relative">
-                    <div className="flex-1 relative flex items-center gap-2">
-                        <input
-                            type="text"
-                            placeholder={title === "Amenities" ? "Enter amenity" : "Enter activity"}
-                            value={customVal}
-                            onChange={(e) => { setCustomVal(e.target.value); setShowSuggestions(true); }}
-                            onFocus={() => setShowSuggestions(true)}
-                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
-                            className="flex-1 bg-[#F4F4F5] border border-[#E4E4E7] rounded-full px-4 py-2.5 text-[13px] text-[#030303] focus:outline-none focus:ring-1 focus:ring-gray-300 placeholder:text-[#9F9FA9]"
-                            style={{ fontFamily: 'Figtree, sans-serif' }}
-                        />
-                        {hasUnselectedCustom && (
-                            <button
-                                type="button"
-                                onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    addCustom();
-                                }}
-                                onClick={() => addCustom()}
-                                className="px-4 py-2 rounded-full text-[13px] font-medium bg-[#04222D] text-white hover:bg-gray-800 transition-colors shrink-0 flex items-center gap-1"
-                                style={{ fontFamily: 'Figtree, sans-serif' }}
-                            >
-                                + Add
-                            </button>
-                        )}
-                        {showSuggestions && customVal.trim().length > 0 && (availableSuggestions.length > 0 || hasUnselectedCustom) && (
-                            <div className="absolute top-[100%] left-0 right-0 mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left">
-                                {hasUnselectedCustom && !availableSuggestions.includes(customVal.trim()) && (
-                                    <div
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            addCustom(customVal);
-                                        }}
-                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#04222D] font-medium bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
-                                    >
-                                        <span>+ Add "{customVal.trim()}"</span>
-                                    </div>
-                                )}
-                                {availableSuggestions.map((suggestion) => (
-                                    <div
-                                        key={suggestion}
-                                        onMouseDown={(e) => {
-                                            e.preventDefault();
-                                            addCustom(suggestion);
-                                        }}
-                                        style={{ fontFamily: 'Figtree, sans-serif' }}
-                                        className="px-4 py-2.5 cursor-pointer text-[13px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"
-                                    >
-                                        {suggestion}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                <div className="flex items-center gap-4 mt-2 relative">
+                    <input
+                        type="text"
+                        placeholder="Custom......"
+                        value={customVal}
+                        onChange={(e) => { setCustomVal(e.target.value); setShowSuggestions(true); }}
+                        onFocus={() => setShowSuggestions(true)}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); } }}
+                        className="flex-1 bg-[#F4F4F5] border-none rounded-full px-4 py-2.5 text-[13px] text-[#030303] focus:outline-none placeholder:text-[#9F9FA9]"
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                    />
+                    <button
+                        type="button"
+                        onMouseDown={(e) => { e.preventDefault(); addCustom(); }}
+                        onClick={() => addCustom()}
+                        disabled={!customVal.trim()}
+                        className="text-[14px] font-medium text-[#030303] disabled:text-[#9F9FA9] px-2 transition-colors cursor-pointer"
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                    >
+                        Add
+                    </button>
+
+                    {showSuggestions && customVal.trim().length > 0 && (availableSuggestions.length > 0 || hasUnselectedCustom) && (
+                        <div className="absolute top-[100%] left-0 right-0 mt-1 bg-white border border-[#E4E4E7] rounded-[12px] shadow-lg max-h-48 overflow-y-auto z-50 py-1 text-left w-[calc(100%-60px)]">
+                            {hasUnselectedCustom && !availableSuggestions.includes(customVal.trim()) && (
+                                <div
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        addCustom(customVal);
+                                    }}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className="px-4 py-2.5 cursor-pointer text-[13px] text-[#04222D] font-medium bg-[#F4F4F5]/70 hover:bg-[#F4F4F5] transition-colors border-b border-[#E4E4E7]/40 last:border-b-0"
+                                >
+                                    <span>+ Add "{customVal.trim()}"</span>
+                                </div>
+                            )}
+                            {availableSuggestions.map(opt => (
+                                <div
+                                    key={opt}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        addCustom(opt);
+                                    }}
+                                    style={{ fontFamily: 'Figtree, sans-serif' }}
+                                    className="px-4 py-2.5 cursor-pointer text-[13px] text-[#3F3F47] hover:bg-[#F4F4F5] transition-colors"
+                                >
+                                    {opt}
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
-            </div>
+            </fieldset>
         );
     };
 
     const renderSpaceForm = (space: VenueSpace) => (
         <div className="flex flex-col gap-6 mt-2 pb-2">
             {/* About Space */}
-            <div className="flex flex-col gap-4">
+            <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col gap-4 shadow-sm">
                 <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">About Space</h5>
-                <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Space Name</label>
-                    <input type="text" placeholder="Package Name" value={space.name === `Space ${spaces.findIndex(s => s.id === space.id) + 1}` ? '' : space.name} onChange={(e) => updateSpace(space.id, 'name', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Space Name</label>
+                        <input type="text" placeholder="Package Name" value={space.name === `Space ${spaces.findIndex(s => s.id === space.id) + 1}` ? '' : space.name} onChange={(e) => updateSpace(space.id, 'name', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Space Types</label>
+                        <DropdownField value={space.type} options={['Room', 'Banquet Hall', 'Lawn', 'Conference Room', 'Poolside', 'Other']} placeholder="e.g., Bridal HD Makeup" onChange={(v) => updateSpace(space.id, 'type', v)} dropdownId={`${space.id}-type`} />
+                    </div>
                 </div>
+
                 <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Space Type</label>
-                    <input type="text" placeholder="Types of spaces" value={space.type} onChange={(e) => updateSpace(space.id, 'type', e.target.value)} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
-                    <p style={{ fontFamily: 'Figtree, sans-serif' }} className={HELPER}>Helper Text according to input field.</p>
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Number of Rooms</label>
+                    <input type="text" placeholder="Enter Number of Rooms" value={space.numberOfRooms} onChange={(e) => updateSpace(space.id, 'numberOfRooms', e.target.value.replace(/\D/g, ''))} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
                 </div>
                 
-                <div className="flex gap-4">
-                    <div className="flex-1 flex flex-col gap-1">
+                <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-1">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Area of the Venue</label>
                         <div className="flex gap-2">
                             <input type="text" placeholder="Area" value={space.area} onChange={(e) => updateSpace(space.id, 'area', e.target.value.replace(/\D/g, ''))} className={`${INPUT} flex-[2]`} style={{ fontFamily: 'Figtree, sans-serif' }} />
@@ -286,10 +326,7 @@ export default function VenueStep2SpacesAndItems({
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div className="flex gap-4">
-                    <div className="flex-1 flex flex-col gap-1">
+                    <div className="flex flex-col gap-1">
                         <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Height of the Venue</label>
                         <div className="flex gap-2">
                             <input type="text" placeholder="Height" value={space.height} onChange={(e) => updateSpace(space.id, 'height', e.target.value.replace(/[^0-9.]/g, ''))} className={`${INPUT} flex-[2]`} style={{ fontFamily: 'Figtree, sans-serif' }} />
@@ -299,12 +336,31 @@ export default function VenueStep2SpacesAndItems({
                         </div>
                     </div>
                 </div>
+
+                <div className="flex flex-col gap-1">
+                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Per Hour Price</label>
+                    <div className="flex items-stretch w-full border border-[#E4E4E7] rounded-[8px] overflow-hidden">
+                        <div className="bg-[#F4F4F5] px-5 py-4 flex items-center justify-center border-r border-[#E4E4E7]">
+                            <span className="text-[15px] font-medium text-[#3F3F47]">₹</span>
+                        </div>
+                        <input type="text" placeholder="0.0" value={space.price} onChange={(e) => updateSpace(space.id, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className="flex-1 px-4 py-4 bg-white text-[15px] font-normal text-[#030303] focus:outline-none placeholder:text-[#9F9FA9]" style={{ fontFamily: 'Figtree, sans-serif' }} />
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-col">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Mandatory with the package</span>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] mt-0.5">Customers can't opt out of it when they book this package.</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={space.isMandatory} onChange={(e) => updateSpace(space.id, 'isMandatory', e.target.checked)} />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#04222D]"></div>
+                    </label>
+                </div>
             </div>
 
-            <hr className="border-[#E4E4E7]" />
-
             {/* Layout and Capacity */}
-            <div className="flex flex-col gap-4">
+            <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col gap-4 shadow-sm">
                 <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Layout and Capacity</h5>
                 <div className="flex flex-col gap-1">
                     <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Layout</label>
@@ -312,25 +368,37 @@ export default function VenueStep2SpacesAndItems({
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2 mt-2">
-                    <div className="flex flex-col items-center p-3 bg-white border border-[#E4E4E7] rounded-[12px]">
+                    <div className="flex flex-col items-center p-3 bg-[#F9F9F9] border border-[#E4E4E7] rounded-[12px]">
                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase mb-1">STANDING</span>
-                        <input type="text" placeholder="300" value={space.capacityStanding} onChange={(e) => updateSpace(space.id, 'capacityStanding', e.target.value.replace(/\D/g, ''))} className="w-full text-center text-[16px] font-bold text-[#030303] focus:outline-none" />
+                        <input type="text" placeholder="300" value={space.capacityStanding} onChange={(e) => updateSpace(space.id, 'capacityStanding', e.target.value.replace(/\D/g, ''))} className="w-full text-center bg-transparent text-[16px] font-bold text-[#030303] focus:outline-none" />
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-white border border-[#E4E4E7] rounded-[12px]">
+                    <div className="flex flex-col items-center p-3 bg-[#F9F9F9] border border-[#E4E4E7] rounded-[12px]">
                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase mb-1">SITTING</span>
-                        <input type="text" placeholder="150" value={space.capacitySitting} onChange={(e) => updateSpace(space.id, 'capacitySitting', e.target.value.replace(/\D/g, ''))} className="w-full text-center text-[16px] font-bold text-[#030303] focus:outline-none" />
+                        <input type="text" placeholder="150" value={space.capacitySitting} onChange={(e) => updateSpace(space.id, 'capacitySitting', e.target.value.replace(/\D/g, ''))} className="w-full text-center bg-transparent text-[16px] font-bold text-[#030303] focus:outline-none" />
                     </div>
-                    <div className="flex flex-col items-center p-3 bg-white border border-[#E4E4E7] rounded-[12px]">
+                    <div className="flex flex-col items-center p-3 bg-[#F9F9F9] border border-[#E4E4E7] rounded-[12px]">
                         <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#9F9FA9] uppercase mb-1">DINNING</span>
-                        <input type="text" placeholder="120" value={space.capacityDining} onChange={(e) => updateSpace(space.id, 'capacityDining', e.target.value.replace(/\D/g, ''))} className="w-full text-center text-[16px] font-bold text-[#030303] focus:outline-none" />
+                        <input type="text" placeholder="120" value={space.capacityDining} onChange={(e) => updateSpace(space.id, 'capacityDining', e.target.value.replace(/\D/g, ''))} className="w-full text-center bg-transparent text-[16px] font-bold text-[#030303] focus:outline-none" />
                     </div>
                 </div>
             </div>
 
-            <hr className="border-[#E4E4E7]" />
+            {/* Room Included */}
+            {space.type !== 'Room' && (
+                <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex items-center justify-between shadow-sm">
+                    <div className="flex flex-col">
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Room Included</span>
+                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">Customers can't opt out of it when they book this package.</span>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={space.roomIncluded} onChange={(e) => updateSpace(space.id, 'roomIncluded', e.target.checked)} />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#04222D]"></div>
+                    </label>
+                </div>
+            )}
 
             {/* Space features */}
-            <div className="flex flex-col gap-4">
+            <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col gap-4 shadow-sm">
                 <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Space features</h5>
                 
                 <div className="flex flex-col gap-2">
@@ -351,29 +419,38 @@ export default function VenueStep2SpacesAndItems({
                 <TagSection title="Amenities" options={AMENITY_SUGGESTIONS} selected={space.amenities} onChange={(vals) => updateSpace(space.id, 'amenities', vals)} />
             </div>
 
-            <hr className="border-[#E4E4E7]" />
-
-            {/* Pricing */}
-            <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>{space.name} Price</label>
-                    <div className="relative">
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] font-medium text-[#3F3F47]">$</span>
-                        <input type="text" placeholder="0.0" value={space.price} onChange={(e) => updateSpace(space.id, 'price', e.target.value.replace(/[^0-9.]/g, ''))} className={`${INPUT} pl-8`} style={{ fontFamily: 'Figtree, sans-serif' }} />
+            {/* Parking */}
+            {space.amenities.includes('Parking') && (
+                <div className="p-5 bg-white border border-[#E4E4E7] rounded-[16px] flex flex-col gap-4 shadow-sm">
+                    <h5 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">Parking</h5>
+                    
+                    <div className="flex flex-col gap-1">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Four Wheeler Capacity</label>
+                        <input type="text" placeholder="Placeholder" value={space.parkingFourWheeler} onChange={(e) => updateSpace(space.id, 'parkingFourWheeler', e.target.value.replace(/\D/g, ''))} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>Two Wheeler Capacity</label>
+                        <input type="text" placeholder="Placeholder" value={space.parkingTwoWheeler} onChange={(e) => updateSpace(space.id, 'parkingTwoWheeler', e.target.value.replace(/\D/g, ''))} className={INPUT} style={{ fontFamily: 'Figtree, sans-serif' }} />
+                    </div>
+                    
+                    <div className="flex items-center justify-between pt-2">
+                        <div className="flex flex-col">
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Valet Service</span>
+                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">Professional parking assistance</span>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" className="sr-only peer" checked={space.valetService} onChange={(e) => updateSpace(space.id, 'valetService', e.target.checked)} />
+                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#04222D]"></div>
+                        </label>
                     </div>
                 </div>
-                
-                <div className="flex flex-col gap-1">
-                    <label style={{ fontFamily: 'Figtree, sans-serif' }} className={LABEL}>How do you charge?</label>
-                    <DropdownField value={space.billingUnit} options={['Per hour', 'Per day', 'Per event']} placeholder="Per hour" onChange={(v) => updateSpace(space.id, 'billingUnit', v)} dropdownId={`${space.id}-billing-unit`} />
-                </div>
-            </div>
+            )}
 
             <button 
                 type="button"
-                onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleSpaceExpand(space.id); }} 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingSpaceId(null); }} 
                 style={{ fontFamily: 'Figtree, sans-serif' }} 
-                className="w-full py-4 mt-2 text-white rounded-full font-semibold text-[16px] tracking-wide transition-colors shadow-sm bg-[#8B9A9F] hover:bg-[#04222D]"
+                className="w-full py-4 mt-2 text-white rounded-[12px] sm:rounded-full font-semibold text-[16px] tracking-wide transition-colors shadow-sm bg-[#04222D] hover:bg-[#031820]"
             >
                 Save Space
             </button>
@@ -430,7 +507,7 @@ export default function VenueStep2SpacesAndItems({
                 {spaces.length === 0 ? (
                     <div onClick={handleAddSpace} className="w-full h-[250px] bg-white border border-dashed border-[#E4E4E7] rounded-[24px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
                         <div className="text-center flex flex-col gap-1.5 items-center">
-                            <Plus size={32} className="text-[#9F9FA9] mb-2" />
+                            <img src="/images/venue/empty_spaces.jpg" alt="No Spaces" className="w-32 h-32 object-contain mb-2 rounded-xl mix-blend-multiply" />
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#3F3F47]">No Spaces added</p>
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-[18px]">To add a space click Add space on<br />top or in this box</p>
                         </div>
@@ -439,8 +516,8 @@ export default function VenueStep2SpacesAndItems({
                     <div className="flex flex-col gap-4">
                         {spaces.map((space) => (
                             <div key={space.id} className="bg-[#F9F9F9] border border-[#E4E4E7] rounded-[16px] flex flex-col transition-all">
-                                <div className="p-5 flex items-center justify-between cursor-pointer rounded-t-[16px]" onClick={() => toggleSpaceExpand(space.id)}>
-                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{space.name}</h4>
+                                <div className="p-5 flex items-center justify-between cursor-pointer rounded-[16px]" onClick={() => setEditingSpaceId(space.id)}>
+                                    <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{space.name || `Space ${spaces.findIndex(s => s.id === space.id) + 1}`}</h4>
                                     <div className="flex items-center gap-4 text-[#3F3F47]">
                                         <div className="relative">
                                             <button type="button" onClick={(e) => { e.stopPropagation(); setActiveMenuDropdown(activeMenuDropdown === space.id ? null : space.id); }} className="hover:text-[#030303] transition-colors flex items-center justify-center">
@@ -460,15 +537,10 @@ export default function VenueStep2SpacesAndItems({
                                             )}
                                         </div>
                                         <button type="button" className="hover:text-[#030303] transition-colors flex items-center justify-center">
-                                            {space.isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                            <ChevronDown size={20} className="-rotate-90" />
                                         </button>
                                     </div>
                                 </div>
-                                {space.isExpanded && (
-                                    <div className="px-4 pb-5 flex flex-col gap-4">
-                                        {renderSpaceForm(space)}
-                                    </div>
-                                )}
                             </div>
                         ))}
                     </div>
@@ -487,7 +559,7 @@ export default function VenueStep2SpacesAndItems({
                 {inHouseServices.length === 0 ? (
                     <div onClick={() => { setEditingInHouse(null); setIsAddingInHouse(true); }} className="w-full h-[250px] bg-white border border-dashed border-[#E4E4E7] rounded-[24px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
                         <div className="text-center flex flex-col gap-1.5 items-center">
-                            <Plus size={32} className="text-[#9F9FA9] mb-2" />
+                            <img src="/images/venue/empty_services.jpg" alt="No In-House Services" className="w-32 h-32 object-contain mb-2 rounded-xl mix-blend-multiply" />
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#3F3F47]">No In-House services added</p>
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-[18px]">To add an service click Add on top or in<br />this box</p>
                         </div>
@@ -511,7 +583,7 @@ export default function VenueStep2SpacesAndItems({
                 {addons.length === 0 ? (
                     <div onClick={() => { setEditingAddon(null); setIsAddingAddon(true); }} className="w-full h-[250px] bg-white border border-dashed border-[#E4E4E7] rounded-[24px] flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-all">
                         <div className="text-center flex flex-col gap-1.5 items-center">
-                            <Plus size={32} className="text-[#9F9FA9] mb-2" />
+                            <img src="/images/venue/empty_addons.jpg" alt="No Add-ons" className="w-32 h-32 object-contain mb-2 rounded-xl mix-blend-multiply" />
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#3F3F47]">No Add-ons</p>
                             <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9] leading-[18px]">To add an add-on click Add on top or in<br />this box</p>
                         </div>
@@ -525,12 +597,28 @@ export default function VenueStep2SpacesAndItems({
 
             {/* ── Whats Included ── */}
             <div className={CARD}>
-                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider mb-[-12px]">WHATS INCLUDED</h3>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">List everything a customer gets when they book this package</p>
+                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-[-12px]">About The Package</h3>
+                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47]">List everything a customer gets when they book this package</p>
                 <textarea
                     placeholder="Enter details"
                     value={providedDetails}
-                    onChange={(e) => setProvidedDetails(e.target.value)}
+                    onChange={(e) => {
+                        if (e.target.value.length === 1 && e.target.value !== '•') {
+                            setProvidedDetails('• ' + e.target.value);
+                        } else {
+                            setProvidedDetails(e.target.value);
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const target = e.target as HTMLTextAreaElement;
+                            const start = target.selectionStart;
+                            const val = target.value;
+                            setProvidedDetails(val.substring(0, start) + '\n• ' + val.substring(target.selectionEnd));
+                            setTimeout(() => { target.selectionStart = target.selectionEnd = start + 3; }, 0);
+                        }
+                    }}
                     rows={4}
                     style={{ fontFamily: 'Figtree, sans-serif' }}
                     className={`${INPUT} resize-none`}
@@ -540,14 +628,30 @@ export default function VenueStep2SpacesAndItems({
             {/* ── Whats Not Included ── */}
             <div className={CARD}>
                 <div className="flex items-center gap-2 mb-[-12px]">
-                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303] uppercase tracking-wider">WHATS NOT INCLUDED</h3>
-                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center"><Info size={12} className="text-red-600" /></div>
+                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">What's Not Included</h3>
+                    <ShieldAlert size={20} fill="#EF4444" stroke="white" />
                 </div>
-                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-[#9F9FA9]">Help customers know what they'll need to arrange separately</p>
+                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#3F3F47]">Help customers know what they'll need to arrange separately</p>
                 <textarea
-                    placeholder="Enter details"
+                    placeholder="Entre Details..."
                     value={notProvidedDetails}
-                    onChange={(e) => setNotProvidedDetails(e.target.value)}
+                    onChange={(e) => {
+                        if (e.target.value.length === 1 && e.target.value !== '•') {
+                            setNotProvidedDetails('• ' + e.target.value);
+                        } else {
+                            setNotProvidedDetails(e.target.value);
+                        }
+                    }}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const target = e.target as HTMLTextAreaElement;
+                            const start = target.selectionStart;
+                            const val = target.value;
+                            setNotProvidedDetails(val.substring(0, start) + '\n• ' + val.substring(target.selectionEnd));
+                            setTimeout(() => { target.selectionStart = target.selectionEnd = start + 3; }, 0);
+                        }
+                    }}
                     rows={4}
                     style={{ fontFamily: 'Figtree, sans-serif' }}
                     className={`${INPUT} resize-none`}
@@ -572,6 +676,77 @@ export default function VenueStep2SpacesAndItems({
                     onClose={() => { setIsAddingAddon(false); setEditingAddon(null); }}
                     onSave={handleSaveAddonLocal}
                 />
+            )}
+
+            {isChoosingSpaceType && (
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 transition-opacity">
+                    <div className="bg-white w-full sm:w-[400px] h-[85vh] sm:h-[80vh] rounded-t-[24px] sm:rounded-b-[24px] flex flex-col overflow-hidden animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10">
+                        {/* Header */}
+                        <div className="px-6 pt-6 pb-4 border-b border-[#E4E4E7] flex items-center justify-between shrink-0">
+                            <div>
+                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">Choose Space Types</h3>
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9]">Pick space types that will be provided</p>
+                            </div>
+                            <button type="button" onClick={() => setIsChoosingSpaceType(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+                                <X size={16} className="text-[#3F3F47]" />
+                            </button>
+                        </div>
+                        {/* List */}
+                        <div className="flex-1 overflow-y-auto">
+                            {SPACE_TYPES.map(type => (
+                                <div 
+                                    key={type} 
+                                    onClick={() => setSelectedSpaceType(type)}
+                                    className="flex items-center justify-between px-6 py-4 border-b border-[#E4E4E7] cursor-pointer hover:bg-gray-50 transition-colors"
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center shrink-0">
+                                            <img src="/images/venue/empty_spaces.jpg" alt="Space" className="w-full h-full object-cover mix-blend-multiply opacity-80" />
+                                        </div>
+                                        <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">{type}</span>
+                                    </div>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${selectedSpaceType === type ? 'border-[#04222D]' : 'border-gray-300'}`}>
+                                        {selectedSpaceType === type && <div className="w-2.5 h-2.5 bg-[#04222D] rounded-full" />}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {/* Footer */}
+                        <div className="p-4 pb-24 sm:pb-4 shrink-0 bg-white border-t border-[#E4E4E7]">
+                            <button 
+                                type="button"
+                                onClick={confirmAddSpace}
+                                disabled={!selectedSpaceType}
+                                style={{ fontFamily: 'Figtree, sans-serif' }}
+                                className={`w-full py-3.5 rounded-[12px] text-[15px] font-bold transition-colors ${selectedSpaceType ? 'bg-[#04222D] text-white hover:bg-[#031820]' : 'bg-[#04222D]/50 text-white/70 cursor-not-allowed'}`}
+                            >
+                                Add
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {editingSpaceId && (
+                <div className="fixed inset-0 z-50 bg-white flex flex-col animate-in slide-in-from-right overflow-hidden">
+                    <div className="flex-1 overflow-y-auto pb-8">
+                        <div className="px-6 pt-12 pb-4 border-b border-[#E4E4E7] flex items-center justify-between sticky top-0 bg-white z-10">
+                            <div>
+                                <h2 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303]">Space {spaces.findIndex(s => s.id === editingSpaceId) + 1}</h2>
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#9F9FA9] mt-1">Fill out the details about the item you chose.</p>
+                            </div>
+                            <button onClick={() => {
+                                deleteSpace(editingSpaceId);
+                                setEditingSpaceId(null);
+                            }} className="w-10 h-10 flex items-center justify-center text-red-500 hover:bg-red-50 rounded-full transition-colors">
+                                <Trash2 size={20} />
+                            </button>
+                        </div>
+                        <div className="px-6 py-6 max-w-2xl mx-auto">
+                            {renderSpaceForm(spaces.find(s => s.id === editingSpaceId)!)}
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

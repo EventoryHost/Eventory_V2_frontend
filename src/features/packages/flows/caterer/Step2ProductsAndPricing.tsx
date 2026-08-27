@@ -4,7 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { CollapsibleSection } from '../../components/CollapsibleSection';
 
 import React from 'react';
-import { ChevronUp, ChevronDown, MoreHorizontal, Trash2, X, Search } from 'lucide-react';
+import { ChevronUp, ChevronDown, MoreHorizontal, Trash2, X, Search, ChevronRight, PlusCircle } from 'lucide-react';
 import { MenuData, FoodItem } from '../../shared/types';
 import { AddonModal, Addon } from '../../components/AddonModal';
 import { VariantManager } from '../../components/VariantManager';
@@ -12,11 +12,13 @@ import { VariantManager } from '../../components/VariantManager';
 interface Props {
     packageId?: string | null;
     packageGroupId?: string | null;
+    minMealsPreference: number | null;
+    setMinMealsPreference: React.Dispatch<React.SetStateAction<number | null>>;
     menus: MenuData[];
     setMenus: React.Dispatch<React.SetStateAction<MenuData[]>>;
     toggleMenuExpand: (id: string) => void;
     deleteMenu: (id: string) => void;
-    handleAddMenu: () => void;
+    handleAddMenu: (categories?: string[], mealType?: string) => void;
     activeMenuDropdown: string | null;
     setActiveMenuDropdown: (v: string | null) => void;
 
@@ -51,22 +53,77 @@ const CROCKERY_SUGGESTIONS = [
     'Porcelain', 'Wooden Cutlery', 'Banana Leaf Service', 'Gold-plated Cutlery'
 ];
 
-const FOOD_SUGGESTIONS: Record<string, string[]> = {
-    'Salads': ['Green Salad', 'Russian Salad', 'Caesar Salad', 'Corn Salad', 'Greek Salad', 'Kachumber Salad', 'Sprout Salad'],
-    'Breads': ['Butter Naan', 'Garlic Naan', 'Plain Naan', 'Tandoori Roti', 'Missi Roti', 'Lachha Paratha', 'Kulcha', 'Roomali Roti', 'Poori'],
-    'Rice': ['Veg Biryani', 'Hyderabadi Biryani', 'Jeera Rice', 'Steamed Rice', 'Peas Pulao', 'Kashmiri Pulao', 'Curd Rice', 'Saffron Rice'],
-    'Starters': ['Paneer Tikka', 'Hara Bhara Kebab', 'Spring Rolls', 'Crispy Baby Corn', 'Chicken Tikka', 'Tandoori Chicken', 'Fish Fingers', 'Chilli Paneer', 'Veg Manchurian', 'Dahi Kebab', 'Corn Kebab', 'Aloo Tikki'],
-    'Main Course': ['Dal Makhani', 'Paneer Butter Masala', 'Shahi Paneer', 'Kadhai Paneer', 'Chana Masala', 'Malai Kofta', 'Dal Tadka', 'Dum Aloo', 'Mix Veg Curry', 'Butter Chicken', 'Chicken Curry', 'Mutton Rogan Josh'],
-    'Dessert': ['Gulab Jamun', 'Rasgulla', 'Rasmalai', 'Jalebi with Rabri', 'Moong Dal Halwa', 'Gajar Ka Halwa', 'Ice Cream with Hot Chocolate', 'Kulfi Falooda', 'Fruit Custard', 'Brownie with Ice Cream'],
-    'Desserts': ['Gulab Jamun', 'Rasgulla', 'Rasmalai', 'Jalebi with Rabri', 'Moong Dal Halwa', 'Gajar Ka Halwa', 'Ice Cream with Hot Chocolate', 'Kulfi Falooda', 'Fruit Custard', 'Brownie with Ice Cream'],
-    'Beverages': ['Virgin Mojito', 'Masala Cold Drink', 'Blue Lagoon', 'Fresh Fruit Juice', 'Masala Chai', 'Filter Coffee', 'Hot Espresso', 'Iced Tea', 'Pina Colada'],
-    'Chats': ['Pani Puri / Golgappa', 'Papdi Chat', 'Bhel Puri', 'Dahi Puri', 'Raj Kachori', 'Aloo Tikki Chat', 'Dahi Bhalla', 'Samosa Chat', 'Sev Puri'],
-    'Miscellaneous': ['Roasted Papad', 'Masala Papad', 'Mixed Pickle', 'Green Chutney', 'Tamarind Chutney', 'Raita', 'Pineapple Raita', 'Boondi Raita']
+const FOOD_SUGGESTIONS: Record<string, { top: string[], all: string[] }> = {
+    'Breads': {
+        top: ['Butter Naan', 'Tandoori Roti', 'Paratha', 'Puri', 'Lachcha Paratha', 'Rumali Roti', 'Kulcha', 'Bhature'],
+        all: ['Butter Naan', 'Tandoori Roti', 'Paratha', 'Puri', 'Lachcha Paratha', 'Rumali Roti', 'Kulcha', 'Bhature', 'Garlic Naan', 'Pudina Paratha', 'Missi Roti', 'Stuffed Kulcha']
+    },
+    'Desserts': {
+        top: ['Gulab Jamun', 'Jalebi', 'Rasgulla', 'Kheer', 'Kaju Katli', 'Rabdi', 'Kulfi', 'Barfi', 'Motichoor Laddu', 'Phirni'],
+        all: ['Gulab Jamun', 'Jalebi', 'Rasgulla', 'Kheer', 'Kaju Katli', 'Rabdi', 'Kulfi', 'Barfi', 'Motichoor Laddu', 'Phirni', 'Mithai Mix', 'Peda', 'Laddu', 'Momos Dessert', 'Malpua', 'Halwa (Gajar/Suji)', 'Ice Cream Counter', 'Chocolate Fountain', 'Falooda', 'Shahi Tukda']
+    },
+    'Starters': {
+        top: ['Samosa', 'Paneer Tikka', 'Chicken Lollipop', 'Gol Gappa', 'Aloo Tikki', 'Shami Kebab', 'Tandoori Prawns', 'Hara Bhara Kebab'],
+        all: ['Samosa', 'Paneer Tikka', 'Chicken Lollipop', 'Gol Gappa', 'Aloo Tikki', 'Shami Kebab', 'Tandoori Prawns', 'Hara Bhara Kebab', 'Chaat Bhel', 'Pav Bhaji', 'Dahi Bhalle', 'Sev Tamatar', 'Chikhalwali', 'Spring Rolls', 'Chilli Paneer', 'Mushroom Tikka', 'Veg Manchurian']
+    },
+    'Main Course': {
+        top: ['Dal Makhani', 'Paneer Butter Masala', 'Butter Chicken', 'Tandoori Chicken', 'Mutton Biryani', 'Shahi Paneer', 'Malai Kofta', 'Chana Masala', 'Kadai Paneer', 'Fish Curry'],
+        all: ['Dal Makhani', 'Paneer Butter Masala', 'Butter Chicken', 'Tandoori Chicken', 'Mutton Biryani', 'Shahi Paneer', 'Malai Kofta', 'Chana Masala', 'Kadai Paneer', 'Fish Curry', 'Palak Paneer', 'Aloo Gobi', 'Mixed Veg Curry', 'Rajma', 'Baingan Bharta', 'Veg Biryani', 'Pulao (Jeera/Veg)', 'Bhindi Masala', 'Kaju Curry', 'Prawn Masala', 'Keema', 'Tandoori Fish']
+    },
+    'Rice': {
+        top: ['Jeera Rice', 'Veg Biryani', 'Mutton Biryani', 'Pulao', 'Steamed Rice'],
+        all: ['Jeera Rice', 'Veg Biryani', 'Mutton Biryani', 'Pulao', 'Steamed Rice', 'Peas Pulao', 'Chicken Biryani', 'Kashmiri Pulao']
+    },
+    'Beverages': {
+        top: ['Tea', 'Coffee', 'Cold Drink', 'Fresh Juice', 'Mocktail', 'Jaljeera', 'Lassi', 'Butter Milk'],
+        all: ['Tea', 'Coffee', 'Cold Drink', 'Fresh Juice', 'Mocktail', 'Jaljeera', 'Lassi', 'Butter Milk', 'Aam Panna', 'Thandai', 'Mojito', 'Iced Tea']
+    },
+    'Salads': {
+        top: ['Green Salad', 'Russian Salad', 'Macaroni Salad', 'Kachumber Salad', 'Corn Salad', 'Sprout Salad', 'Fruit Salad', 'Tossed Salad'],
+        all: ['Green Salad', 'Russian Salad', 'Macaroni Salad', 'Kachumber Salad', 'Corn Salad', 'Sprout Salad', 'Fruit Salad', 'Tossed Salad']
+    },
+    'Soups': {
+        top: ['Tomato Soup', 'Sweet Corn Soup', 'Manchow Soup', 'Hot & Sour Soup', 'Mushroom Soup', 'Clear Soup', 'Minestrone Soup', 'Broccoli Soup'],
+        all: ['Tomato Soup', 'Sweet Corn Soup', 'Manchow Soup', 'Hot & Sour Soup', 'Mushroom Soup', 'Clear Soup', 'Minestrone Soup', 'Broccoli Soup']
+    },
+    'Accompaniments': {
+        top: ['Roasted Papad', 'Masala Papad', 'Mixed Pickle', 'Green Chutney', 'Tamarind Chutney', 'Raita', 'Pineapple Raita', 'Boondi Raita'],
+        all: ['Roasted Papad', 'Masala Papad', 'Mixed Pickle', 'Green Chutney', 'Tamarind Chutney', 'Raita', 'Pineapple Raita', 'Boondi Raita']
+    },
+    'Grilled Meats': {
+        top: ['Tandoori Chicken', 'Chicken Tikka', 'Mutton Seekh Kebab', 'Fish Tikka', 'Prawns Koliwada'],
+        all: ['Tandoori Chicken', 'Chicken Tikka', 'Mutton Seekh Kebab', 'Fish Tikka', 'Prawns Koliwada', 'Reshmi Kebab', 'Tangdi Kebab']
+    },
+    'Seafood': {
+        top: ['Fish Curry', 'Prawn Masala', 'Tandoori Fish', 'Fish Fry', 'Goan Fish Curry'],
+        all: ['Fish Curry', 'Prawn Masala', 'Tandoori Fish', 'Fish Fry', 'Goan Fish Curry', 'Prawns Pepper Fry', 'Crab Masala']
+    },
+    'Pastas': {
+        top: ['Penne Arrabbiata', 'Alfredo Pasta', 'Mac & Cheese', 'Aglio Olio', 'Pink Sauce Pasta'],
+        all: ['Penne Arrabbiata', 'Alfredo Pasta', 'Mac & Cheese', 'Aglio Olio', 'Pink Sauce Pasta', 'Pesto Pasta', 'Lasagna']
+    }
 };
+
+const ALL_CATEGORIES = [
+    { name: 'Breads', count: 28 },
+    { name: 'Pastas', count: 28 },
+    { name: 'Salads', count: 15 },
+    { name: 'Soups', count: 12 },
+    { name: 'Grilled Meats', count: 20 },
+    { name: 'Seafood', count: 18 },
+    { name: 'Desserts', count: 22 },
+    { name: 'Starters', count: 30 },
+    { name: 'Main Course', count: 40 },
+    { name: 'Beverages', count: 15 },
+    { name: 'Accompaniments', count: 10 },
+    { name: 'Rice', count: 15 },
+];
 
 export default function CatererStep2ProductsAndPricing({
     packageId,
     packageGroupId,
+    minMealsPreference,
+    setMinMealsPreference,
     menus,
     setMenus,
     toggleMenuExpand,
@@ -93,11 +150,17 @@ export default function CatererStep2ProductsAndPricing({
 }: Props) {
     // Inventory sub-tabs & text input states mapped by menu.id
     const [activeTabs, setActiveTabs] = React.useState<Record<string, string>>({});
+    const [activeMainSections, setActiveMainSections] = React.useState<Record<string, string>>({});
     const [typedInputs, setTypedInputs] = React.useState<Record<string, string>>({});
     
     // NEW STATES FOR SHEETS
-    const [isCategorySheetOpen, setIsCategorySheetOpen] = React.useState<string | null>(null);
+    const [isPreferenceSheetOpen, setIsPreferenceSheetOpen] = React.useState(false);
+    const [categorySelection, setCategorySelection] = React.useState<{ isOpen: boolean, step: 'meal-type' | 'category', isNewMenu: boolean, targetMenuId?: string } | null>(null);
+    const [selectedMealType, setSelectedMealType] = React.useState<string>('Breakfast');
+    const [selectedCategoriesList, setSelectedCategoriesList] = React.useState<string[]>([]);
+    const [categorySearchQuery, setCategorySearchQuery] = React.useState('');
     const [browseItemsSheet, setBrowseItemsSheet] = React.useState<{menuId: string, category: string} | null>(null);
+    const [bottomSheetSearchTerm, setBottomSheetSearchTerm] = React.useState('');
     const [isAddonSelectionSheetOpen, setIsAddonSelectionSheetOpen] = React.useState(false);
     const [showCrockerySuggestions, setShowCrockerySuggestions] = React.useState(false);
     const [activeMenuSuggestionId, setActiveMenuSuggestionId] = React.useState<string | null>(null);
@@ -441,21 +504,31 @@ export default function CatererStep2ProductsAndPricing({
             {/* ── Menu Options Header ── */}
             <div className="flex items-center justify-between border-t border-[#E4E4E7] pt-6 mt-4">
                 <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-bold text-[#71717B] tracking-wider uppercase">Menu Options <span className="text-[#C21A1A]">*</span></span>
-                <button 
-                    type="button" 
-                    onClick={handleAddMenu}
-                    style={{ fontFamily: 'Figtree, sans-serif' }}
-                    className="text-[15px] font-bold text-[#030303] flex items-center gap-1.5 hover:opacity-80 active:scale-95 transition-transform"
-                >
-                    Add Menu <span className="text-[20px] font-semibold leading-none">+</span>
-                </button>
+                {menus.length > 1 && (
+                    <button 
+                        type="button" 
+                        onClick={() => setIsPreferenceSheetOpen(true)}
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                        className={minMealsPreference 
+                            ? "bg-[#EFF6FF] text-[#3B82F6] px-3 py-1.5 rounded-full text-[13px] font-normal hover:bg-blue-100 transition-colors"
+                            : "text-[#3B82F6] text-[14px] font-bold hover:underline"
+                        }
+                    >
+                        {minMealsPreference ? `Atleast ${minMealsPreference} meal${minMealsPreference > 1 ? 's' : ''}` : 'Set Preference'}
+                    </button>
+                )}
             </div>
 
             {/* ── Render Menus List / Empty State ── */}
             {menus.length === 0 ? (
                 <div 
-                    onClick={handleAddMenu}
-                    className="border-2 border-dashed border-[#D4D4D8] rounded-[24px] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-all select-none"
+                    onClick={() => {
+                        setCategorySelection({ isOpen: true, step: 'meal-type', isNewMenu: true });
+                        setSelectedCategoriesList([]);
+                        setSelectedMealType('Breakfast');
+                        setCategorySearchQuery('');
+                    }}
+                    className="border-2 border-dashed border-[#D4D4D8] rounded-[24px] p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-gray-50 transition-all select-none mt-4"
                 >
                     <img 
                         src="https://dkuacgndftndz.cloudfront.net/inventory-page/caterer_flow/menu_options.png" 
@@ -466,32 +539,47 @@ export default function CatererStep2ProductsAndPricing({
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] font-medium text-[#71717B] mt-1">To add an item click on Add Item on top or in this box</p>
                 </div>
             ) : (
-                <div className="flex flex-col gap-4">
-                    {menus.map((menu, index) => (
-                        <div 
-                            key={menu.id} 
-                            onClick={() => setActiveMenuDropdown(menu.id)}
-                            className="p-6 flex justify-between items-center cursor-pointer bg-white rounded-[24px] border border-[#E4E4E7] hover:bg-gray-50 transition-colors shadow-sm"
-                        >
-                            <div className="flex flex-col gap-1">
-                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">
-                                    {menu.name || `Menu Option ${index + 1}`}
-                                </span>
-                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] font-medium">
-                                    Fill out the details about the item you chose.
-                                </span>
+                <div className="flex flex-col gap-6 mt-6">
+                    {['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Brunch', 'Custom'].map(mealType => {
+                        const mealMenus = menus.filter(m => m.type === mealType);
+                        if (mealMenus.length === 0) return null;
+                        
+                        return (
+                            <div key={mealType} className="flex flex-col gap-3">
+                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[11px] font-bold text-[#71717B] uppercase tracking-wider pl-1">{mealType}</span>
+                                {mealMenus.map((menu, index) => (
+                                    <div 
+                                        key={menu.id} 
+                                        onClick={() => setActiveMenuDropdown(menu.id)}
+                                        className="p-5 flex justify-between items-center cursor-pointer bg-white rounded-[16px] border border-[#E4E4E7] hover:bg-gray-50 transition-colors shadow-sm"
+                                    >
+                                        <div className="flex items-center justify-between w-full">
+                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">
+                                                {menu.name || `Menu Option ${index + 1}`}
+                                            </span>
+                                            <div className="flex items-center text-[#A1A1AA]">
+                                                <ChevronRight size={20} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                            <div className="flex items-center gap-4">
-                                <button 
-                                    type="button" 
-                                    onClick={(e) => { e.stopPropagation(); deleteMenu(menu.id); }}
-                                    className="text-red-500 hover:text-red-700 transition-colors"
-                                >
-                                    <Trash2 size={20} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
+                    
+                    <button 
+                        type="button" 
+                        onClick={() => {
+                            setCategorySelection({ isOpen: true, step: 'meal-type', isNewMenu: true });
+                            setSelectedCategoriesList([]);
+                            setSelectedMealType('Breakfast');
+                            setCategorySearchQuery('');
+                        }}
+                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                        className="w-full py-3.5 bg-[#F4F4F5] rounded-[16px] text-[15px] font-bold text-[#030303] flex items-center justify-center gap-2 hover:bg-[#E4E4E7] transition-colors mt-2"
+                    >
+                        Add <PlusCircle size={18} />
+                    </button>
                 </div>
             )}
 
@@ -592,7 +680,8 @@ export default function CatererStep2ProductsAndPricing({
             {activeMenuDropdown && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 z-[60] bg-white flex flex-col overflow-hidden">
                     {menus.filter(m => m.id === activeMenuDropdown).map(menu => {
-                        const currentTab = activeTabs[menu.id] || 'Starters';
+                        const currentTab = activeTabs[menu.id] !== undefined ? activeTabs[menu.id] : (Object.keys(menu.inventory || {})[0] || '');
+                        const currentMainSection = activeMainSections[menu.id] !== undefined ? activeMainSections[menu.id] : 'Menu Builder';
                         const currentInput = typedInputs[menu.id] || '';
                         return (
                             <div key={menu.id} className="flex flex-col h-full relative">
@@ -612,7 +701,8 @@ export default function CatererStep2ProductsAndPricing({
                                     <div className="bg-white rounded-[16px] border border-[#E4E4E7] overflow-hidden shrink-0">
                                         <CollapsibleSection 
                                             title="Menu Basics" 
-                                            defaultOpen={false}
+                                            isOpen={currentMainSection === 'Menu Basics'}
+                                            onToggle={() => setActiveMainSections(prev => ({ ...prev, [menu.id]: currentMainSection === 'Menu Basics' ? '' : 'Menu Basics' }))}
                                             subtitle="2/2"
                                             icon={
                                                 <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${menu.name.trim() && menu.type ? 'bg-[#16A34A]' : 'bg-[#E4E4E7]'}`}>
@@ -671,7 +761,8 @@ export default function CatererStep2ProductsAndPricing({
                                     <div className="bg-white rounded-[16px] border border-[#E4E4E7] overflow-hidden shrink-0">
                                         <CollapsibleSection 
                                             title="Menu Builder" 
-                                            defaultOpen={true}
+                                            isOpen={currentMainSection === 'Menu Builder'}
+                                            onToggle={() => setActiveMainSections(prev => ({ ...prev, [menu.id]: currentMainSection === 'Menu Builder' ? '' : 'Menu Builder' }))}
                                             subtitle="1/1"
                                             icon={
                                                 <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${Object.values(menu.inventory || {}).some(items => items.length > 0) ? 'bg-[#16A34A]' : 'bg-[#E4E4E7]'}`}>
@@ -696,7 +787,11 @@ export default function CatererStep2ProductsAndPricing({
                                             <div className="flex flex-col gap-4 px-3 pb-5 sm:px-4">
                                                 <div className="flex items-center justify-between">
                                                     <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-[#030303]">Food Categories</span>
-                                                    <button type="button" onClick={() => setIsCategorySheetOpen(menu.id)} className="flex items-center gap-1.5 text-[14px] font-bold text-[#030303] hover:opacity-80">
+                                                    <button type="button" onClick={() => {
+                                                        setCategorySelection({ isOpen: true, step: 'category', isNewMenu: false, targetMenuId: menu.id });
+                                                        setSelectedCategoriesList(Object.keys(menu.inventory || {}));
+                                                        setCategorySearchQuery('');
+                                                    }} className="flex items-center gap-1.5 text-[14px] font-bold text-[#030303] hover:opacity-80">
                                                         Edit 
                                                         <div className="w-5 h-5 rounded-full bg-[#FAFAFA] border border-[#E4E4E7] flex items-center justify-center">
                                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
@@ -705,19 +800,12 @@ export default function CatererStep2ProductsAndPricing({
                                                 </div>
 
                                                 {/* Accordions for Categories */}
-                                                {['Starters', 'Main Course', 'Breads'].map(category => {
+                                                {Object.keys(menu.inventory || {}).map(category => {
                                                     const isCategoryExpanded = currentTab === category;
                                                     const categoryItems = menu.inventory[category] || [];
                                                     const limit = Math.min(menu.chooseLimits?.[category] !== undefined ? menu.chooseLimits[category] : categoryItems.length, Math.max(1, categoryItems.length));
                                                     
-                                                    let suggestions: string[] = [];
-                                                    if (category === 'Starters') {
-                                                        suggestions = ['Paneer Butter Masala', 'Chole Bhature', 'Dal Makhani', 'Paneer Tikka', 'Aloo Gobi', 'Rogan Josh'];
-                                                    } else if (category === 'Main Course') {
-                                                        suggestions = ['Butter Chicken', 'Kadhai Paneer', 'Mix Veg', 'Mutton Curry'];
-                                                    } else if (category === 'Breads') {
-                                                        suggestions = ['Lachha Paratha', 'Roomali Roti', 'Missi Roti', 'Plain Naan', 'Garlic Naan'];
-                                                    }
+                                                    let suggestions: string[] = FOOD_SUGGESTIONS[category]?.top || [];
                                                         
                                                     return (
                                                         <div key={category} className={`border rounded-[16px] overflow-hidden transition-colors ${isCategoryExpanded ? 'border-[#04222D]' : 'border-[#E4E4E7]'}`}>
@@ -748,8 +836,8 @@ export default function CatererStep2ProductsAndPricing({
                                                                                 </button>
                                                                             ))}
                                                                         </div>
-                                                                        <button type="button" onClick={() => setBrowseItemsSheet({menuId: menu.id, category})} className="mt-2 w-max px-6 py-2.5 bg-white border border-[#030303] rounded-[24px] text-[14px] font-bold text-[#030303] hover:bg-gray-50 transition-all">
-                                                                            Browse All items
+                                                                        <button type="button" onClick={() => { setBrowseItemsSheet({menuId: menu.id, category}); setBottomSheetSearchTerm(''); }} className="mt-2 w-max px-6 py-2.5 bg-white border border-[#030303] rounded-[24px] text-[14px] font-bold text-[#030303] hover:bg-gray-50 transition-all">
+                                                                            Show All Items
                                                                         </button>
                                                                     </div>
 
@@ -857,7 +945,8 @@ export default function CatererStep2ProductsAndPricing({
                                     <div className="bg-white rounded-[16px] border border-[#E4E4E7] overflow-hidden shrink-0">
                                         <CollapsibleSection 
                                             title="Tags And Pricing" 
-                                            defaultOpen={true}
+                                            isOpen={currentMainSection === 'Tags And Pricing'}
+                                            onToggle={() => setActiveMainSections(prev => ({ ...prev, [menu.id]: currentMainSection === 'Tags And Pricing' ? '' : 'Tags And Pricing' }))}
                                             subtitle="2/2"
                                             icon={
                                                 <div className={`w-[18px] h-[18px] rounded-full flex items-center justify-center ${(menu.serviceStyles?.length > 0 && menu.priceModel?.trim()) ? 'bg-[#16A34A]' : 'bg-[#E4E4E7]'}`}>
@@ -1005,37 +1094,6 @@ export default function CatererStep2ProductsAndPricing({
                                 </div>
                             
                                 {/* Bottom Sheets */}
-                                {isCategorySheetOpen === menu.id && (
-                                    <div className="absolute inset-0 bg-black/40 z-[70] flex flex-col justify-end">
-                                        <div className="bg-white rounded-t-[24px] p-6 h-[80vh] flex flex-col animate-in slide-in-from-bottom-full duration-300">
-                                            <div className="flex items-center justify-between mb-6">
-                                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">Select Category</h3>
-                                                <button onClick={() => setIsCategorySheetOpen(null)} className="p-2 text-gray-500 hover:bg-gray-100 rounded-full"><X size={20}/></button>
-                                            </div>
-                                            <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-8">
-                                                {['Starters', 'Main Course', 'Breads', 'Desserts', 'Beverages', 'Salads', 'Soups', 'Accompaniments'].map(cat => {
-                                                    const isAdded = menu?.inventory?.[cat] !== undefined;
-                                                    return (
-                                                        <button 
-                                                            key={cat}
-                                                            onClick={() => {
-                                                                if (isAdded) return;
-                                                                setMenus(prev => prev.map(m => m.id === menu.id ? { ...m, inventory: { ...m.inventory, [cat]: [] } } : m));
-                                                                setIsCategorySheetOpen(null);
-                                                                setActiveTabs(prev => ({ ...prev, [menu.id]: cat }));
-                                                            }}
-                                                            className={`flex items-center justify-between p-4 rounded-[16px] border ${isAdded ? 'border-transparent bg-gray-50 opacity-60 cursor-not-allowed' : 'border-[#E4E4E7] hover:border-[#030303] bg-white transition-colors'}`}
-                                                        >
-                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{cat}</span>
-                                                            {isAdded ? <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#16A34A]">Added</span> : <span className="text-[20px] font-light text-[#A1A1AA]">+</span>}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
                                 {browseItemsSheet && browseItemsSheet.menuId === menu.id && (
                                     <div className="absolute inset-0 bg-black/40 z-[70] flex flex-col justify-end">
                                         <div className="bg-white rounded-t-[24px] p-6 h-[85vh] flex flex-col animate-in slide-in-from-bottom-full duration-300">
@@ -1045,7 +1103,7 @@ export default function CatererStep2ProductsAndPricing({
                                             </div>
                                             <div className="relative mb-4">
                                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                                                <input type="text" placeholder="Search dishes..." style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full pl-11 p-3.5 bg-[#FAFAFA] border border-[#E4E4E7] rounded-[12px] text-[15px] focus:outline-none focus:ring-1 focus:ring-gray-300" />
+                                                <input type="text" placeholder={`Search ${browseItemsSheet.category}...`} value={bottomSheetSearchTerm} onChange={(e) => setBottomSheetSearchTerm(e.target.value)} style={{ fontFamily: 'Figtree, sans-serif' }} className="w-full pl-11 p-3.5 bg-[#FAFAFA] border border-[#E4E4E7] rounded-[12px] text-[15px] focus:outline-none focus:ring-1 focus:ring-gray-300" />
                                             </div>
                                             <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none">
                                                 {['All', 'Veg', 'Non-veg', 'Egg'].map(f => (
@@ -1053,11 +1111,17 @@ export default function CatererStep2ProductsAndPricing({
                                                 ))}
                                             </div>
                                             <div className="flex-1 overflow-y-auto flex flex-col gap-3 pb-8">
-                                                {['Paneer Tikka', 'Chicken Tikka', 'Hara Bhara Kebab', 'Soya Chaap', 'Seekh Kebab', 'Dal Makhani', 'Butter Chicken', 'Naan', 'Roti', 'Biryani'].map(dish => (
-                                                    <div key={dish} className="flex items-center justify-between p-4 rounded-[16px] border border-[#E4E4E7] bg-white">
-                                                        <div className="flex items-center gap-3">
-                                                            {renderFoodTypeIcon(dish.includes('Chicken') ? 'Non-veg' : 'Veg', 'w-4 h-4')}
-                                                            <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{dish}</span>
+                                                {(() => {
+                                                    const activeMenu = menus.find(m => m.id === browseItemsSheet.menuId);
+                                                    const categoryItemsForSheet = activeMenu?.inventory[browseItemsSheet.category] || [];
+                                                    return (FOOD_SUGGESTIONS[browseItemsSheet.category]?.all || [])
+                                                        .filter(dish => dish.toLowerCase().includes(bottomSheetSearchTerm.toLowerCase()))
+                                                        .filter(dish => !categoryItemsForSheet.some(item => item.name.toLowerCase() === dish.toLowerCase()))
+                                                        .map(dish => (
+                                                        <div key={dish} className="flex items-center justify-between p-4 rounded-[16px] border border-[#E4E4E7] bg-white">
+                                                            <div className="flex items-center gap-3">
+                                                                {renderFoodTypeIcon(dish.includes('Chicken') || dish.includes('Mutton') || dish.includes('Fish') || dish.includes('Prawn') || dish.includes('Keema') ? 'Non-veg' : 'Veg', 'w-4 h-4')}
+                                                                <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[15px] font-bold text-[#030303]">{dish}</span>
                                                         </div>
                                                         <button 
                                                             onClick={() => handleAddFoodItem(browseItemsSheet.menuId, browseItemsSheet.category, dish)}
@@ -1066,7 +1130,7 @@ export default function CatererStep2ProductsAndPricing({
                                                             +
                                                         </button>
                                                     </div>
-                                                ))}
+                                                ))})()}
                                             </div>
                                         </div>
                                     </div>
@@ -1078,6 +1142,53 @@ export default function CatererStep2ProductsAndPricing({
                 document.body
             )}
 
+
+            {/* ── Menu Selection Rules Bottom Sheet ── */}
+            {isPreferenceSheetOpen && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[70] bg-black/40 flex flex-col justify-end">
+                    <div className="bg-white rounded-t-[24px] p-6 flex flex-col animate-in slide-in-from-bottom-full duration-300 relative mx-auto w-full max-w-2xl">
+                        <div className="flex items-start justify-between mb-2">
+                            <div>
+                                <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[20px] font-bold text-[#030303]">Menu Selection Rules</h3>
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] mt-1">Set Menu preferences based on your needs</p>
+                            </div>
+                            <button onClick={() => setIsPreferenceSheetOpen(false)} className="p-2 bg-[#F4F4F5] hover:bg-gray-200 rounded-full transition-colors"><X size={20}/></button>
+                        </div>
+                        
+                        <div className="border-t border-[#F4F4F5] my-4"></div>
+                        
+                        <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303] mb-1">Minimum meal types</h4>
+                        <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] mb-5 leading-relaxed">
+                            Select the minimum number of meal types customers must choose.
+                        </p>
+                        
+                        <div className="flex flex-wrap gap-3 mb-8">
+                            {Array.from({ length: Math.max(0, menus.length - 1) }, (_, i) => i + 1).map(num => (
+                                <button 
+                                    key={num}
+                                    onClick={() => setMinMealsPreference(num)}
+                                    className={`px-5 py-2.5 rounded-full text-[14px] font-medium transition-all ${
+                                        minMealsPreference === num 
+                                            ? 'bg-white border-2 border-[#030303] text-[#030303] shadow-sm' 
+                                            : 'bg-white border border-[#D4D4D8] text-[#71717B] hover:border-gray-400'
+                                    }`}
+                                >
+                                    Atleast {num}
+                                </button>
+                            ))}
+                        </div>
+                        
+                        <button 
+                            onClick={() => setIsPreferenceSheetOpen(false)}
+                            style={{ fontFamily: 'Figtree, sans-serif' }} 
+                            className="w-full bg-[#04222D] text-white py-4 rounded-[16px] font-bold text-[15px] hover:bg-gray-800 transition-all shadow-md mb-2"
+                        >
+                            Save Rule
+                        </button>
+                    </div>
+                </div>,
+                document.body
+            )}
 
             {/* Add-on Selection Sheet */}
             {isAddonSelectionSheetOpen && typeof document !== 'undefined' && createPortal(
@@ -1146,6 +1257,151 @@ export default function CatererStep2ProductsAndPricing({
                                 </div>
                             </button>
                         </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Category Selection Bottom Sheet */}
+            {categorySelection?.isOpen && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 bg-black/40 z-[90] flex flex-col justify-end">
+                    <div className="bg-white rounded-t-[24px] p-6 h-[85vh] flex flex-col animate-in slide-in-from-bottom-full duration-300 mx-auto w-full max-w-2xl relative">
+                        {categorySelection.step === 'meal-type' ? (
+                            <>
+                                <div className="flex items-center justify-between mb-1">
+                                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">Choose Meal Type</h3>
+                                    <button onClick={() => setCategorySelection(null)} className="w-8 h-8 flex items-center justify-center bg-[#F4F4F5] hover:bg-[#E4E4E7] rounded-full transition-colors text-[#71717B]"><X size={16} strokeWidth={3}/></button>
+                                </div>
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] mb-6">Select the meal type that best suits this menu</p>
+                                
+                                <div className="flex-1 overflow-y-auto pb-32 scrollbar-none">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {['Breakfast', 'Lunch', 'Dinner', 'Snacks', 'Brunch', 'Custom'].map((meal) => {
+                                            const isSelected = selectedMealType === meal;
+                                            return (
+                                                <button
+                                                    key={meal}
+                                                    onClick={() => setSelectedMealType(meal)}
+                                                    className={`relative overflow-hidden h-28 rounded-[16px] border ${isSelected ? 'border-[#04222D] border-[2px] shadow-sm' : 'border-[#E4E4E7] hover:border-[#D4D4D8] border-[1px]'} bg-white transition-all text-left flex flex-col`}
+                                                >
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="p-4 text-[15px] font-bold text-[#030303] relative z-10">{meal}</span>
+                                                    <div className="absolute right-0 bottom-0 w-20 h-20 opacity-95">
+                                                        <img 
+                                                            src={`/images/meal-types/${meal.toLowerCase()}.jpg`} 
+                                                            alt={meal} 
+                                                            style={{ mixBlendMode: 'multiply' }}
+                                                            className="w-full h-full object-contain mix-blend-multiply rounded-br-[16px]" 
+                                                        />
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                                
+                                {/* Sticky Continue Button */}
+                                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent">
+                                    <button
+                                        type="button"
+                                        onClick={() => setCategorySelection(prev => prev ? { ...prev, step: 'category' } : null)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 rounded-[16px] text-[16px] font-bold transition-all shadow-md bg-[#04222D] text-white hover:bg-opacity-90"
+                                    >
+                                        Continue
+                                    </button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="flex items-center justify-between mb-1">
+                                    <h3 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[18px] font-bold text-[#030303]">Add a category</h3>
+                                    <button onClick={() => setCategorySelection(null)} className="w-8 h-8 flex items-center justify-center bg-[#F4F4F5] hover:bg-[#E4E4E7] rounded-full transition-colors text-[#71717B]"><X size={16} strokeWidth={3}/></button>
+                                </div>
+                                <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] text-[#71717B] mb-6">Pick a course to add to this menu.</p>
+                                
+                                <div className="relative mb-4">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search any category of food" 
+                                        value={categorySearchQuery}
+                                        onChange={(e) => setCategorySearchQuery(e.target.value)}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }} 
+                                        className="w-full pl-11 p-4 bg-white border border-[#E4E4E7] rounded-[12px] text-[15px] focus:outline-none focus:ring-1 focus:ring-gray-300 shadow-sm" 
+                                    />
+                                </div>
+                                
+                                <div className="flex-1 overflow-y-auto flex flex-col pb-32 scrollbar-none divide-y divide-[#E4E4E7]">
+                                    {ALL_CATEGORIES.filter(c => c.name.toLowerCase().includes(categorySearchQuery.toLowerCase())).map(category => {
+                                        const isChecked = selectedCategoriesList.includes(category.name);
+                                        return (
+                                            <label 
+                                                key={category.name} 
+                                                className="flex items-center justify-between py-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[16px] font-bold text-[#030303]">{category.name}</span>
+                                                    <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[13px] text-[#A1A1AA] mt-1">{category.count} dishes</span>
+                                                </div>
+                                                <div className={`w-6 h-6 rounded-[6px] border-2 flex items-center justify-center transition-colors ${
+                                                    isChecked ? 'bg-[#04222D] border-[#04222D]' : 'border-[#D4D4D8]'
+                                                }`}>
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="hidden" 
+                                                        checked={isChecked}
+                                                        onChange={() => {
+                                                            setSelectedCategoriesList(prev => 
+                                                                prev.includes(category.name) 
+                                                                    ? prev.filter(c => c !== category.name)
+                                                                    : [...prev, category.name]
+                                                            );
+                                                        }}
+                                                    />
+                                                    {isChecked && (
+                                                        <svg className="w-3.5 h-3.5 text-white stroke-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                            </label>
+                                        );
+                                    })}
+                                </div>
+                                
+                                {/* Sticky Add Button inside modal */}
+                                <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-white via-white to-transparent">
+                                    <button
+                                        type="button"
+                                        disabled={selectedCategoriesList.length === 0}
+                                        onClick={() => {
+                                            if (categorySelection.isNewMenu) {
+                                                handleAddMenu(selectedCategoriesList, selectedMealType);
+                                            } else if (categorySelection.targetMenuId) {
+                                                // Update existing menu's inventory keys
+                                                setMenus(prev => prev.map(m => {
+                                                    if (m.id !== categorySelection.targetMenuId) return m;
+                                                    const newInventory = { ...m.inventory };
+                                                    selectedCategoriesList.forEach(cat => {
+                                                        if (!newInventory[cat]) newInventory[cat] = [];
+                                                    });
+                                                    const syncedInventory: Record<string, FoodItem[]> = {};
+                                                    selectedCategoriesList.forEach(cat => {
+                                                        syncedInventory[cat] = newInventory[cat] || [];
+                                                    });
+                                                    return { ...m, inventory: syncedInventory };
+                                                }));
+                                            }
+                                            setCategorySelection(null);
+                                        }}
+                                        style={{ fontFamily: 'Figtree, sans-serif' }}
+                                        className="w-full p-4 rounded-[16px] text-[16px] font-bold transition-all shadow-md bg-[#04222D] text-white hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Add {selectedCategoriesList.length} categories
+                                    </button>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>,
                 document.body

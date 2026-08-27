@@ -67,10 +67,23 @@ export default function VenueStep4SampleMedia({
                     <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[#3F3F47]">No spaces added yet. Please go back to Step 2 to add spaces.</p>
                 </div>
             ) : (
-                spaces.map((space, idx) => {
-                    const files = spaceMedia[space.id] || [];
-                    
-                    return (
+                <>
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-[12px] mb-2 flex items-start gap-3">
+                        <div className="text-blue-500 mt-0.5">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.5" />
+                                <path d="M12 16V12M12 8H12.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[14px] font-bold text-blue-900">Minimum 3 Images Required</h4>
+                            <p style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] text-blue-700 font-medium mt-0.5">You must upload at least 3 images in total across your spaces to complete this step.</p>
+                        </div>
+                    </div>
+                    {spaces.map((space, idx) => {
+                        const files = spaceMedia[space.id] || [];
+                        
+                        return (
                         <div key={space.id} className="flex flex-col gap-3">
                             <span style={{ fontFamily: 'Figtree, sans-serif' }} className="text-[12px] font-bold text-[#9F9FA9] uppercase tracking-wider pl-2">
                                 {space.name || `SPACE ${idx + 1}`} SAMPLE MEDIA
@@ -130,7 +143,8 @@ export default function VenueStep4SampleMedia({
                             )}
                         </div>
                     );
-                })
+                })}
+                </>
             )}
 
             {previewFile && (
