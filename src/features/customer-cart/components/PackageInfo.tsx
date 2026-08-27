@@ -14,14 +14,12 @@ export default function PackageInfo({
   cartPackage,
   eventDetails,
   specialRequest,
-  onEditDetails,
   onRemove,
   onMoveToWishlist,
 }: {
   cartPackage: CartPackage;
   eventDetails: EventDetailsData;
   specialRequest: string;
-  onEditDetails: () => void;
   onRemove: () => void;
   onMoveToWishlist: () => void;
 }) {
@@ -74,7 +72,7 @@ export default function PackageInfo({
           <RefundPolicyLink />
         </div>
 
-        <VendorActions onRemove={onRemove} onMoveToWishlist={onMoveToWishlist} onEdit={onEditDetails} />
+        <VendorActions onRemove={onRemove} onMoveToWishlist={onMoveToWishlist} editHref={cartPackage.href} />
       </div>
     </div>
   );

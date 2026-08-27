@@ -13,7 +13,7 @@ import {
   type RawCartPayload,
 } from "@/lib/customerCartApi";
 import { ApiError } from "@/lib/apiClient";
-import type { AppliedCoupon, CartPageData, CartVendor, RecommendedAddon, EventDetails as EventDetailsData } from "../types";
+import type { AppliedCoupon, CartPageData, CartVendor, RecommendedAddon } from "../types";
 import { getCartPageData, mapCartPayload } from "../services/getCartPageData";
 import { mockCartPageData, mockRecommendedAddons } from "../data/mockCartData";
 import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
@@ -122,15 +122,13 @@ export default function CartPageContent() {
     const item = vendors.find((v) => v.id === itemId);
     if (!item) return;
     try {
-      if (item.selected) {
-        // Unchecking removes the item from the cart entirely, rather than just
-        // excluding it from the checkout total.
-        const payload = await removeCartItem(itemId);
-        await applyPayload(payload);
-      } else {
-        const payload = await updateCartItem(itemId, { selectedForCheckout: true });
-        await applyPayload(payload);
-      }
+      // Unchecking only excludes the item from the checkout total —
+      // selectedForCheckout is a plain toggle, the item stays in the cart
+      // either way. cartPricingService.js only sums selectedForCheckout:true
+      // items, so the backend already reflects this correctly with no
+      // change needed there.
+      const payload = await updateCartItem(itemId, { selectedForCheckout: !item.selected });
+      await applyPayload(payload);
     } catch (error) {
       setLoadError(error instanceof ApiError ? error.message : "Couldn't update that item.");
     }
@@ -160,21 +158,6 @@ export default function CartPageContent() {
       return;
     }
     void moveToWishlistNow(itemId);
-  }
-
-  async function handleSaveEventDetails(itemId: string, details: EventDetailsData) {
-    const payload: Parameters<typeof updateCartItem>[1] = {};
-    if (details.eventType) payload.eventType = details.eventType;
-    if (details.date) payload.date = details.date;
-    if (details.timeRange) payload.timeSlot = details.timeRange;
-    if (details.guestCount != null) payload.guests = details.guestCount;
-    if (details.location) payload.location = details.location;
-    try {
-      const result = await updateCartItem(itemId, payload);
-      await applyPayload(result);
-    } catch (error) {
-      setLoadError(error instanceof ApiError ? error.message : "Couldn't save event details.");
-    }
   }
 
   async function handleAddRecommendedAddon(addon: RecommendedAddon) {
@@ -324,7 +307,6 @@ export default function CartPageContent() {
                 onToggleSelected={handleToggleSelected}
                 onRemove={handleRemove}
                 onMoveToWishlist={handleMoveToWishlist}
-                onSaveEventDetails={handleSaveEventDetails}
                 onIncrementAddon={handleIncrementAddon}
                 onDecrementAddon={handleDecrementAddon}
                 onRemoveAddon={handleRemoveAddon}

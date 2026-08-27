@@ -1,17 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
+import NeedHelpImageCarousel from "./NeedHelpImageCarousel";
 
 export default function ExploreEvents() {
   return (
     <div className="mx-auto mt-10 flex w-full max-w-[1320px] flex-col lg:flex-row items-center gap-8 lg:gap-10 rounded-3xl bg-[#FFFAF1] px-6 py-8 lg:px-10">
-      <div className="w-full lg:flex-1">
-        <Image
-          src="/images/customer/hero-explore-events.png"
-          alt="Event setup"
-          width={744}
-          height={480}
-          className="w-full h-auto rounded-2xl object-cover"
-        />
+      <div className="relative w-full aspect-[744/480] overflow-hidden rounded-2xl lg:flex-1">
+        <NeedHelpImageCarousel />
       </div>
 
       <div className="hidden lg:block w-px self-stretch bg-black/10" />

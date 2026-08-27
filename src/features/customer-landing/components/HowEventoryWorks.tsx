@@ -1,18 +1,23 @@
+import Image from "next/image";
+
 const STEPS = [
   {
     number: "1",
+    image: "/images/customer/step1.png",
     title: "Tell us what you need",
     description:
       "Share your event type, location, and date. Browse curated packages tailored to your requirements.",
   },
   {
     number: "2",
+    image: "/images/customer/step2.png",
     title: "Compare & Add to cart",
     description:
       "See transparent pricing, real reviews, and detailed inclusions. Add your favorites to cart.",
   },
   {
     number: "3",
+    image: "/images/customer/step3.png",
     title: "Book & Celebrate",
     description:
       "Confirm your booking with our secure process. We handle coordination with vendors.",
@@ -32,7 +37,13 @@ export default function HowEventoryWorks() {
       <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-8">
         {STEPS.map((step) => (
           <div key={step.number} className="flex flex-col gap-4">
-            <div className="relative aspect-square w-full max-w-[424px] rounded-[28px] border-4 border-[#FFF0DB] bg-white">
+            <div className="relative aspect-square w-full max-w-[424px] overflow-hidden rounded-[28px] border-4 border-[#FFF0DB] bg-white">
+              <Image
+                src={step.image}
+                alt={step.title}
+                fill
+                className="object-cover"
+              />
               <span
                 className="absolute -bottom-1 -left-1 flex h-14 items-center justify-center rounded-[50px] bg-[#FFF0DB] px-3 py-[1px] font-figtree text-[20px] font-bold text-[#3C060D]"
                 style={{ minWidth: "56px" }}

@@ -1,13 +1,15 @@
+import Link from "next/link";
 import { Trash2, Bookmark, SquarePen } from "lucide-react";
 
 export default function VendorActions({
   onRemove,
   onMoveToWishlist,
-  onEdit,
+  editHref,
 }: {
   onRemove: () => void;
   onMoveToWishlist: () => void;
-  onEdit: () => void;
+  /** Package-detail page — editing a package's details now happens there instead of the old in-cart modal. */
+  editHref: string;
 }) {
   return (
     <div className="mt-6 flex items-center justify-between border-t border-neutral-subtle pt-4">
@@ -29,13 +31,12 @@ export default function VendorActions({
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={onEdit}
+      <Link
+        href={editHref}
         className="flex items-center gap-2 font-figtree text-[13px] font-semibold text-brand-primary transition-colors hover:text-brand-primary/80"
       >
         <SquarePen className="h-4 w-4" /> Edit Package Details
-      </button>
+      </Link>
     </div>
   );
 }

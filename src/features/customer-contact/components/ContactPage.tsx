@@ -11,7 +11,8 @@ import PaymentSummary from "@/features/customer-booking/components/PaymentSummar
 import { useBookingSummaryData } from "@/features/customer-booking/hooks/useBookingSummaryData";
 import { useCheckoutStepGuard } from "@/features/customer-checkout/hooks/useCheckoutStepGuard";
 import CheckoutLoginGate from "@/features/customer-checkout/components/CheckoutLoginGate";
-import { confirmCheckoutSessionOffline } from "@/lib/customerCheckoutApi";
+import { confirmFreeCheckout, createTokenPayment } from "@/lib/customerPaymentApi";
+import { loadCashfree } from "@/lib/cashfree";
 import { clearCheckoutSessionId } from "@/lib/checkoutSession";
 import { ApiError } from "@/lib/apiClient";
 
@@ -22,22 +23,48 @@ export default function ContactPage() {
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
 
-  // No in-app payment step exists anymore (product decision — payment is
-  // handled off-platform for now) — "Continue to Payment" instead confirms
-  // the checkout session directly into real Booking(s), recorded as fully
-  // paid on trust (see confirmCheckoutSessionOffline's doc comment), then
-  // hands the created bookingIds to /booking-success to display for real.
+  // Real, in-app Cashfree payment (pay-integrate.txt, 2026-08-27) — the
+  // customer is redirected to Cashfree's hosted page to actually pay, then
+  // back to /payment/return, which polls status and hands off to
+  // /booking-success once the real Booking(s) exist. A genuinely Free
+  // (zero-token) package skips Cashfree entirely via confirm-free, since
+  // there's nothing to pay — see getBookingSummaryData.ts's isFreeCheckout.
+  // (confirm-offline still exists on the backend and works exactly as
+  // before, but this flow no longer calls it — see PaymentSummary usages
+  // elsewhere if that path is ever wanted again.)
   async function handleContinue() {
     if (!data?.sessionId) return;
+
+    if (!data.paymentSummary.isFreeCheckout && !data.paymentSummary.tokenConfigured) {
+      // Belt-and-suspenders — ctaDisabled below should already prevent this
+      // click, but pay-integrate.txt is explicit this call should never be
+      // attempted when there's no known amount to charge (a null
+      // tokenAmountTotal 400s on the backend rather than being silently
+      // safe to call).
+      setConfirmError(
+        "Token amount is unavailable — one or more vendors haven't configured an advance/token yet. Edit a line in Review to refresh the quote, or contact support."
+      );
+      return;
+    }
+
     setConfirming(true);
     setConfirmError(null);
     try {
-      const result = await confirmCheckoutSessionOffline(data.sessionId);
-      clearCheckoutSessionId();
-      router.push(`/booking-success?bookingIds=${result.bookingIds.join(",")}`);
+      if (data.paymentSummary.isFreeCheckout) {
+        const result = await confirmFreeCheckout(data.sessionId);
+        clearCheckoutSessionId();
+        router.push(`/booking-success?bookingIds=${result.bookingIds.join(",")}`);
+        return;
+      }
+
+      const result = await createTokenPayment(data.sessionId);
+      const cashfree = await loadCashfree();
+      // Navigates the browser away to Cashfree's own hosted page entirely —
+      // nothing after this line runs; the redirect back to /payment/return
+      // is what resumes the flow.
+      await cashfree.checkout({ paymentSessionId: result.paymentSessionId, redirectTarget: "_self" });
     } catch (err) {
-      setConfirmError(err instanceof ApiError ? err.message : "Couldn't confirm your booking. Please try again.");
-    } finally {
+      setConfirmError(err instanceof ApiError ? err.message : "Couldn't start payment. Please try again.");
       setConfirming(false);
     }
   }
@@ -110,10 +137,22 @@ export default function ContactPage() {
                   tokenAmount={data.paymentSummary.tokenAmount}
                   payInFull={data.paymentSummary.payInFull}
                   cancellationNote={data.paymentSummary.cancellationNote}
-                  ctaLabel={confirming ? "Confirming…" : "Continue to Payment"}
+                  ctaLabel={
+                    confirming
+                      ? "Redirecting to payment…"
+                      : data.paymentSummary.isFreeCheckout
+                        ? "Confirm Booking"
+                        : !data.paymentSummary.tokenConfigured
+                          ? "Payment not set up yet"
+                          : "Continue to Payment"
+                  }
                   onCtaClick={handleContinue}
                   ctaLoading={confirming}
-                  ctaDisabled={data.vendorGroups.length === 0 || !data.canContinue}
+                  ctaDisabled={
+                    data.vendorGroups.length === 0 ||
+                    !data.canContinue ||
+                    (!data.paymentSummary.isFreeCheckout && !data.paymentSummary.tokenConfigured)
+                  }
                   onApplyCoupon={applyCoupon}
                   couponLoading={couponLoading}
                   couponFeedback={couponFeedback}

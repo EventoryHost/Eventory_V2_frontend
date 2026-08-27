@@ -80,6 +80,17 @@ export interface BookingPaymentSummary {
    * grandTotal" and still requires a real payment.
    */
   isFreeCheckout: boolean;
+  /**
+   * False when quote.tokenAmountTotal is null — one or more vendors haven't
+   * configured an advance/token on their package, so there's nothing a real
+   * payment (or confirm-free) can charge. Distinct from both isFreeCheckout
+   * (tokenAmountTotal === 0, a real "nothing to pay" case) and payInFull
+   * (which only describes the 0-vs-split shape of a *known* amount). Gate
+   * the Pay/Continue action on `isFreeCheckout || tokenConfigured` — see
+   * pay-integrate.txt Step 2, which is explicit that the real-payment button
+   * should never be shown at all when this is false.
+   */
+  tokenConfigured: boolean;
 }
 
 export interface BookingContactDetails {

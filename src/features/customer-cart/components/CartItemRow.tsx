@@ -1,9 +1,5 @@
-"use client";
-
-import { useState } from "react";
-import type { CartVendor, EventDetails as EventDetailsData, RecommendedAddon } from "../types";
+import type { CartVendor, RecommendedAddon } from "../types";
 import PackageInfo from "./PackageInfo";
-import EditEventDetailsModal from "./EditEventDetailsModal";
 import AddedAddonsSection from "./AddedAddonsSection";
 import AddonSection from "./AddonSection";
 
@@ -13,7 +9,6 @@ export default function CartItemRow({
   onToggleSelected,
   onRemove,
   onMoveToWishlist,
-  onSaveEventDetails,
   onIncrementAddon,
   onDecrementAddon,
   onRemoveAddon,
@@ -24,14 +19,11 @@ export default function CartItemRow({
   onToggleSelected: (id: string) => void;
   onRemove: (id: string) => void;
   onMoveToWishlist: (id: string) => void;
-  onSaveEventDetails: (id: string, details: EventDetailsData) => void;
   onIncrementAddon: (itemId: string, addonId: string) => void;
   onDecrementAddon: (itemId: string, addonId: string) => void;
   onRemoveAddon: (itemId: string, addonId: string) => void;
   onAddRecommendedAddon: (addon: RecommendedAddon) => void;
 }) {
-  const [isEditOpen, setIsEditOpen] = useState(false);
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-3">
@@ -40,7 +32,9 @@ export default function CartItemRow({
           checked={item.selected}
           onChange={() => onToggleSelected(item.id)}
           aria-label={
-            item.selected ? `Remove ${item.package.title} from cart` : `Select ${item.package.title} for checkout`
+            item.selected
+              ? `Deselect ${item.package.title} for checkout`
+              : `Select ${item.package.title} for checkout`
           }
           className="h-4 w-4 rounded border-neutral-tertiary text-brand-primary focus:ring-brand-primary"
         />
@@ -56,7 +50,6 @@ export default function CartItemRow({
           cartPackage={item.package}
           eventDetails={item.eventDetails}
           specialRequest={item.specialRequest}
-          onEditDetails={() => setIsEditOpen(true)}
           onRemove={() => onRemove(item.id)}
           onMoveToWishlist={() => onMoveToWishlist(item.id)}
         />
@@ -74,13 +67,6 @@ export default function CartItemRow({
       {recommendedAddons.length > 0 && (
         <AddonSection addons={recommendedAddons} onAdd={onAddRecommendedAddon} />
       )}
-
-      <EditEventDetailsModal
-        isOpen={isEditOpen}
-        onClose={() => setIsEditOpen(false)}
-        initialDetails={item.eventDetails}
-        onSave={(details) => onSaveEventDetails(item.id, details)}
-      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 const STEPS = [
   { label: "Review", href: "/booking-summary" },
   { label: "Details", href: "/contact" },
+  { label: "Payment", href: "/payment/return" },
 ];
 
 export default function CheckoutStepper() {

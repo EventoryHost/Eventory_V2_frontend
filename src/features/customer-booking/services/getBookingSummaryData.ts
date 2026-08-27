@@ -152,6 +152,7 @@ function emptyBookingSummaryData(): BookingSummaryData {
       tokenAmount: formatPrice(0),
       payInFull: true,
       isFreeCheckout: false,
+      tokenConfigured: false,
       cancellationNote: "Free cancellation may apply — check each package's policy for exact dates.",
     },
   };
@@ -287,6 +288,12 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       tokenAmount: formatPrice(payInFull ? (quote?.grandTotal ?? 0) : (quote?.tokenAmountTotal ?? 0)),
       payInFull,
       isFreeCheckout: quote?.tokenAmountTotal === 0,
+      // Distinct from payInFull (line 252) — payInFull covers "known amount,
+      // no advance/remaining split" too, which is a perfectly payable state.
+      // This is specifically "there is no known amount at all yet" — the
+      // one case pay-integrate.txt says should never reach POST
+      // /payments/token in the first place.
+      tokenConfigured: quote != null && quote.tokenAmountTotal != null,
       // When one or more vendors have no token configured, quote.note is
       // backend-internal explanatory text (why tokenAmountTotal/remainingTotal
       // were withheld) — not customer-facing copy, so it's swapped for the
