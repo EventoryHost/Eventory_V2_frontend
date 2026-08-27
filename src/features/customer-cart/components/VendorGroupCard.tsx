@@ -1,6 +1,6 @@
 "use client";
 
-import type { CartVendor, EventDetails as EventDetailsData, RecommendedAddon } from "../types";
+import type { CartVendor, RecommendedAddon } from "../types";
 import CartItemRow from "./CartItemRow";
 
 /**
@@ -17,7 +17,6 @@ export default function VendorGroupCard({
   onToggleSelected,
   onRemove,
   onMoveToWishlist,
-  onSaveEventDetails,
   onIncrementAddon,
   onDecrementAddon,
   onRemoveAddon,
@@ -30,7 +29,6 @@ export default function VendorGroupCard({
   onToggleSelected: (id: string) => void;
   onRemove: (id: string) => void;
   onMoveToWishlist: (id: string) => void;
-  onSaveEventDetails: (id: string, details: EventDetailsData) => void;
   onIncrementAddon: (itemId: string, addonId: string) => void;
   onDecrementAddon: (itemId: string, addonId: string) => void;
   onRemoveAddon: (itemId: string, addonId: string) => void;
@@ -63,7 +61,6 @@ export default function VendorGroupCard({
               onToggleSelected={onToggleSelected}
               onRemove={onRemove}
               onMoveToWishlist={onMoveToWishlist}
-              onSaveEventDetails={onSaveEventDetails}
               onIncrementAddon={onIncrementAddon}
               onDecrementAddon={onDecrementAddon}
               onRemoveAddon={onRemoveAddon}
