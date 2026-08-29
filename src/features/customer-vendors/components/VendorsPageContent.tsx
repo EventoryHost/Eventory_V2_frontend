@@ -22,7 +22,6 @@ import SortMenu from "./SortMenu";
 import ResultsHeader from "./ResultsHeader";
 import VendorGrid from "./VendorGrid";
 import VendorList from "./VendorList";
-import VendorGridCard from "./VendorGridCard";
 import VendorCardSkeletonGroup from "./VendorCardSkeleton";
 import VendorEmptyState from "./VendorEmptyState";
 import LoadMoreButton from "./LoadMoreButton";
@@ -334,20 +333,6 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
 
           <ResultsHeader heading={heading} resultCount={filteredVendors.length} />
         </div>
-
-        {data.demoVendor && (
-          <div className="mt-6 max-w-xs">
-            <p className="mb-2 font-figtree text-[12px] font-semibold text-neutral-secondary">
-              Preview how a package page looks
-            </p>
-            <VendorGridCard
-              vendor={data.demoVendor}
-              isBookmarked={false}
-              onToggleBookmark={() => {}}
-              badge="Preview"
-            />
-          </div>
-        )}
 
         <div className="mt-6">
           {isLoading ? (

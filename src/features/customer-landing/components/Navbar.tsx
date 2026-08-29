@@ -9,8 +9,8 @@ import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSe
 import { SUPPORTED_CITIES, useSelectedCity } from "../hooks/useSelectedCity";
 
 const NAV_LINKS = [
-  { label: "Events", hasDropdown: true, href: "/events" },
   { label: "Packages", hasDropdown: true, href: "/packages" },
+  { label: "Events", hasDropdown: true, href: "/events" },
   { label: "Vendor", hasDropdown: true, href: "/vendors" },
   { label: "Corporate", hasDropdown: true },
   { label: "EPP", hasDropdown: false },
