@@ -1,10 +1,57 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProductCard, { type ProductCardProps } from "./ProductCard";
+import {
+  getPopularPackages,
+  getPackageImage,
+  getPackageStartingPrice,
+  getPackageDurationLabel,
+  getPackageCapacityLabel,
+  type RawPackage,
+} from "@/lib/customerDiscoveryApi";
+import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
+import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 
-const PACKAGES: ProductCardProps[] = Array.from({ length: 6 }, () => ({
+const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
+
+// Icon/gradient per category — same images and colors as BrowseVendors.tsx's
+// category tiles, kept in sync there for visual consistency.
+const CATEGORY_META: Record<string, { icon: string; gradientFrom: string }> = {
+  "makeup-artist": { icon: "/images/customer/makeup.png", gradientFrom: "#FFDFB2" },
+  caterer: { icon: "/images/customer/caterers.png", gradientFrom: "#FFCCD3" },
+  "venue-provider": { icon: "/images/customer/venue.png", gradientFrom: "#C2E3FF" },
+  "dj-artist": { icon: "/images/customer/dj.png", gradientFrom: "#E0CCFF" },
+  decorator: { icon: "/images/customer/decorator.png", gradientFrom: "#FFEFC2" },
+  photographer: { icon: "/images/customer/video.png", gradientFrom: "#CCFFE2" },
+};
+
+function toProductCardProps(pkg: RawPackage): ProductCardProps {
+  const categoryId = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType];
+  const meta = categoryId ? CATEGORY_META[categoryId] : undefined;
+  const categoryLabel = VENDOR_CATEGORIES.find((c) => c.id === categoryId)?.label ?? pkg.vendorType;
+
+  return {
+    image: getPackageImage(pkg) ?? FALLBACK_IMAGE,
+    categoryLabel,
+    categoryIcon: meta?.icon ?? FALLBACK_IMAGE,
+    tags: pkg.step1_eventAndCrew?.eventCategories ?? [],
+    title: pkg.step1_eventAndCrew?.packageName ?? "Package",
+    rating: pkg.vendorId?.rating ?? 0,
+    reviewCount: pkg.vendorId?.reviewsCount ?? 0,
+    duration: getPackageDurationLabel(pkg),
+    guestCapacity: getPackageCapacityLabel(pkg),
+    price: `₹${getPackageStartingPrice(pkg).toLocaleString("en-IN")}`,
+    locations: pkg.vendorId?.city ? [pkg.vendorId.city] : ["—"],
+    categoryGradientFrom: meta?.gradientFrom,
+    href: `/packages/${pkg._id}`,
+  };
+}
+
+// Static placeholder — shown until GET /customer/packages/popular resolves,
+// or if it fails.
+const FALLBACK_PACKAGES: ProductCardProps[] = Array.from({ length: 6 }, () => ({
   image: "/images/customer/packages-pics.png",
   categoryLabel: "Makeup Artist",
   categoryIcon: "/images/customer/makeup.png",
@@ -22,6 +69,22 @@ const SCROLL_AMOUNT = 336;
 
 export default function PackagesCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [packages, setPackages] = useState<ProductCardProps[]>(FALLBACK_PACKAGES);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPopularPackages({ limit: 6 })
+      .then((response) => {
+        if (cancelled || response.packages.length === 0) return;
+        setPackages(response.packages.map(toProductCardProps));
+      })
+      .catch(() => {
+        // Keep the static fallback on failure.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const scroll = (direction: "left" | "right") => {
     scrollRef.current?.scrollBy({
@@ -67,7 +130,7 @@ export default function PackagesCarousel() {
         ref={scrollRef}
         className="mt-8 flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        {PACKAGES.map((pkg, i) => (
+        {packages.map((pkg, i) => (
           <div key={i} className="shrink-0 snap-start">
             <ProductCard {...pkg} />
           </div>

@@ -149,6 +149,16 @@ export async function getPackagesFilters() {
   return apiFetch<PackagesFiltersResponse>("/customer/packages/filters", { auth: false });
 }
 
+export interface PopularPackagesResponse extends BrowsePackagesResponse {
+  /** true when fewer than `limit` packages have real bookings yet and the rest were backfilled with newest Live packages. */
+  usingFallback?: boolean;
+}
+
+/** Ranked by real booking volume (Completed/active bookings only) — same package/vendor shape as browsePackages, so mapPackageToVendor/ProductCard mapping is reused as-is. */
+export async function getPopularPackages(params: { limit?: number } = {}) {
+  return apiFetch<PopularPackagesResponse>(`/customer/packages/popular${toQueryString(params)}`, { auth: false });
+}
+
 /** step3_policiesAndCharges.packagePricing.price is the authoritative "starting price" — the same field the backend itself filters/sorts/facets on. */
 export function getPackageStartingPrice(pkg: RawPackage): number {
   return pkg.step3_policiesAndCharges?.packagePricing?.price ?? 0;
