@@ -1,29 +1,43 @@
 import Image from "next/image";
+import Link from "next/link";
 
+// categoryId matches the ids VENDOR_CATEGORIES uses in
+// customer-vendors/data/filterConfig.ts, so each card deep-links straight
+// into that category's tab on /vendors.
 const VENDOR_CATEGORIES = [
   {
     label: "Caterer",
+    categoryId: "caterer",
     image: "/images/customer/caterers.png",
     color: "#FFCCD3",
   },
   {
     label: "Decorator",
+    categoryId: "decorator",
     image: "/images/customer/decorator.png",
     color: "#FFEFC2",
   },
-  { label: "DJ Artist", image: "/images/customer/dj.png", color: "#E0CCFF" },
+  {
+    label: "DJ Artist",
+    categoryId: "dj-artist",
+    image: "/images/customer/dj.png",
+    color: "#E0CCFF",
+  },
   {
     label: "Makeup Artist",
+    categoryId: "makeup-artist",
     image: "/images/customer/makeup.png",
     color: "#FFDFB2",
   },
   {
     label: "Venue provider",
+    categoryId: "venue-provider",
     image: "/images/customer/venue.png",
     color: "#C2E3FF",
   },
   {
     label: "Photographer & Videographer",
+    categoryId: "photographer",
     image: "/images/customer/video.png",
     color: "#CCFFE2",
   },
@@ -42,9 +56,9 @@ export default function BrowseVendors() {
 
       <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
         {VENDOR_CATEGORIES.map((category) => (
-          <button
+          <Link
             key={category.label}
-            type="button"
+            href={`/vendors?category=${category.categoryId}`}
             style={{
               background: `radial-gradient(circle at 100% 100%, ${category.color} 0%, #ffffff 65%)`,
             }}
@@ -60,7 +74,7 @@ export default function BrowseVendors() {
               height={160}
               className="absolute -bottom-2 -right-2 h-[55%] w-[55%] object-contain"
             />
-          </button>
+          </Link>
         ))}
       </div>
     </section>
