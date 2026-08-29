@@ -17,6 +17,7 @@ export type ProductCardProps = {
   locations: string[];
   categoryGradientFrom?: string;
   categoryGradientTo?: string;
+  href?: string;
 };
 
 function formatTags(tags: string[]) {
@@ -41,10 +42,11 @@ export default function ProductCard({
   locations,
   categoryGradientFrom = "#FFE5E9",
   categoryGradientTo = "#ffffff",
+  href = "/packages",
 }: ProductCardProps) {
   return (
     <Link
-      href="/packages"
+      href={href}
       className="block w-[316px] overflow-hidden rounded-2xl border border-black/5 bg-white"
     >
       {/* Image */}
