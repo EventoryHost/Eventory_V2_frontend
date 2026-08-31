@@ -80,6 +80,7 @@ export interface PackagesFiltersResponse {
 }
 
 export interface BrowsePackagesParams {
+  q?: string;
   eventCategory?: string;
   vendorType?: string;
   city?: string;
@@ -103,6 +104,45 @@ function toQueryString(params: object) {
 
 export async function browsePackages(params: BrowsePackagesParams = {}) {
   return apiFetch<BrowsePackagesResponse>(`/customer/packages${toQueryString(params)}`, { auth: false });
+}
+
+export interface RawFeaturedReview {
+  _id: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  customerName?: string;
+  customerAvatar?: string;
+  packageName?: string;
+}
+
+export interface FeaturedReviewsResponse {
+  status: "SUCCESS";
+  items: RawFeaturedReview[];
+}
+
+/**
+ * NOT YET IMPLEMENTED ON THE BACKEND — proposed spec for the landing page's
+ * "Loved by X Happy Customers" carousel, which needs a handful of top
+ * reviews across the whole platform. The backend currently only has
+ * per-package (GET /customer/packages/:packageId/reviews) and per-vendor
+ * (GET /customer/vendors/:vendorId/reviews) review listings — there's no
+ * site-wide equivalent yet.
+ *
+ * Requested: GET /customer/reviews/featured?limit=8&minRating=4
+ *   - Same Review model/status="Published" filter as the existing review
+ *     endpoints, just not scoped to one package/vendor.
+ *   - Sort by rating desc, then createdAt desc (highest-rated, most recent).
+ *   - Response pre-flattened (no nested populate needed client-side):
+ *     { status: "SUCCESS", items: [{ _id, rating, comment, createdAt,
+ *       customerName, customerAvatar, packageName }] }
+ *
+ * Until this exists (or returns nothing — there's no review-submission
+ * endpoint yet either, so `customer_reviews` may currently be empty),
+ * callers should catch/ignore failures and fall back to static content.
+ */
+export async function getFeaturedReviews(params: { limit?: number; minRating?: number } = {}) {
+  return apiFetch<FeaturedReviewsResponse>(`/customer/reviews/featured${toQueryString(params)}`, { auth: false });
 }
 
 export async function getPackagesFilters() {

@@ -70,6 +70,11 @@ const nextConfig: NextConfig = {
         hostname: "dkuacgndftndz.cloudfront.net",
       },
       {
+        // Prod CloudFront distribution — dev/prod use separate CDN domains.
+        protocol: "https",
+        hostname: "d2mpjhtg0p589t.cloudfront.net",
+      },
+      {
         protocol: "https",
         hostname: "images.unsplash.com",
       }

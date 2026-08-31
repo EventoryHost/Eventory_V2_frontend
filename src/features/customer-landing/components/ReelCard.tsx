@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Heart, MessageCircle } from "lucide-react";
 
 function InstagramIcon({ className }: { className?: string }) {
@@ -21,7 +20,8 @@ function InstagramIcon({ className }: { className?: string }) {
 
 export type ReelCardProps = {
   handle: string;
-  thumbnail?: string;
+  /** Instagram reel shortcode (the id in instagram.com/reel/<id>/) — embedded via Instagram's public, no-auth embed iframe. */
+  reelId: string;
   caption: string;
   likes: string;
   comments: string;
@@ -29,7 +29,7 @@ export type ReelCardProps = {
 
 export default function ReelCard({
   handle,
-  thumbnail,
+  reelId,
   caption,
   likes,
   comments,
@@ -44,15 +44,22 @@ export default function ReelCard({
           </span>
         </div>
 
-        <div className="relative h-[381px] w-full bg-[#FFF2F4]">
-          {thumbnail && (
-            <Image
-              src={thumbnail}
-              alt={caption}
-              fill
-              className="object-cover"
-            />
-          )}
+        {/*
+          Always mount the iframe rather than gating it behind our own
+          click-to-play overlay — Instagram's embed already ships its own
+          cover-frame poster + play button and only starts loading/playing
+          the video once *that* is clicked, so this shows the real reel cover
+          immediately instead of a blank placeholder.
+        */}
+        <div className="relative h-[381px] w-full overflow-hidden bg-black">
+          <iframe
+            src={`https://www.instagram.com/reel/${reelId}/embed/`}
+            title={caption}
+            className="absolute left-0 top-[-54px] h-[calc(100%+110px)] w-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            scrolling="no"
+          />
         </div>
       </div>
 

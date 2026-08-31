@@ -4,48 +4,84 @@ import { useRef } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ReelCard, { type ReelCardProps } from "./ReelCard";
 
+/**
+ * Each reel embeds via Instagram's public, no-auth `instagram.com/reel/<id>/embed/`
+ * iframe (same technique as the v1 site's trending-reels.tsx) — no backend
+ * endpoint, API key, or env var is needed for this. The iframe itself shows
+ * the reel's real cover frame with Instagram's own play button baked in,
+ * and only starts loading/playing the video once that's clicked.
+ *
+ * This list is NOT auto-fetched from Instagram — it's a manually maintained
+ * shortcode list, same as v1. Truly automatic "latest N reels" would require
+ * the Instagram Graph API instead: a Business/Creator IG account linked to a
+ * Facebook Page, a Meta developer app, and a long-lived access token that
+ * needs periodic refresh — real backend work (a proxy endpoint so the token
+ * never ships to the client) if that's wanted later.
+ */
+
+
+// reelId/caption — real posts from the @eventory account, supplied directly
+// as instagram.com/reel/<id>/ links. Captions/likes/comments are still
+// decorative placeholders (pulling real caption text/engagement counts needs
+// the Instagram Graph API — see ReelsCarousel's doc comment above). This list
+// needs manual upkeep to stay "latest" — swap in new reel shortcodes as
+// Eventory posts new reels.
 const REELS: ReelCardProps[] = [
   {
     handle: "@eventory",
-    caption: "Plan your Event for holi 2026 and celebrate with yo...",
+    reelId: "DScrLUEk6sA",
+    caption: "Are you ready to truly enjoy a New Year party?",
     likes: "22k",
     comments: "20",
   },
   {
     handle: "@eventory",
-    caption: "Book your Summer Festival 2026 and enjoy vibrant acti...",
+    reelId: "DSH9C7tjSmw",
+    caption: "Planning a New Year Party? Just Eventory it!",
     likes: "18k",
     comments: "15",
   },
   {
     handle: "@eventory",
-    caption: "Organize your Autumn Fair 2026 and gather the comm...",
+    reelId: "DQ6zsxRk71C",
+    caption: "Discover the best vendor network for any event",
     likes: "12k",
     comments: "10",
   },
   {
     handle: "@eventory",
-    caption: "Prepare for the Winter Wonderland 2026 and spre...",
-    likes: "25k",
-    comments: "30",
-  },
-  {
-    handle: "@eventory",
-    caption: "Join the New Year Celebration 2027 and ring i...",
-    likes: "30k",
-    comments: "25",
-  },
-  {
-    handle: "@eventory",
-    caption: "Experience the Spring Gala 2026 and connect with nat...",
+    reelId: "DQwfzLaEzQB",
+    caption: "Creating premium party experiences for every occasion",
     likes: "14k",
     comments: "12",
   },
   {
     handle: "@eventory",
-    caption: "Celebrate your Wedding season 2026...",
-    likes: "20k",
-    comments: "18",
+    reelId: "DV_ai9lk4lH",
+    caption: "Check out our latest reel!",
+    likes: "22k",
+    comments: "20",
+  },
+  {
+    handle: "@eventory",
+    reelId: "DVOoLpak6xK",
+    caption: "Check out our latest reel!",
+    likes: "18k",
+    comments: "15",
+  },
+  {
+    handle: "@eventory",
+    reelId: "DUYbhv5Exv_",
+    caption: "Check out our latest reel!",
+    likes: "12k",
+    comments: "10",
+  },
+  {
+    handle: "@eventory",
+    reelId: "DUFjFwpClvo",
+    caption: "Check out our latest reel!",
+    likes: "14k",
+    comments: "12",
   },
 ];
 

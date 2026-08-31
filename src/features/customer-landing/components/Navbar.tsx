@@ -6,10 +6,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
+import { SUPPORTED_CITIES, useSelectedCity } from "../hooks/useSelectedCity";
 
 const NAV_LINKS = [
-  { label: "Events", hasDropdown: true, href: "/events" },
   { label: "Packages", hasDropdown: true, href: "/packages" },
+  { label: "Events", hasDropdown: true, href: "/events" },
   { label: "Vendor", hasDropdown: true, href: "/vendors" },
   { label: "Corporate", hasDropdown: true },
   { label: "EPP", hasDropdown: false },
@@ -35,15 +36,54 @@ function Logo() {
 }
 
 function CitySelect() {
+  const { city, setCity } = useSelectedCity();
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isOpen]);
+
   return (
-    <button
-      type="button"
-      className="flex items-center gap-1 text-brand-950 font-semibold text-[13px] leading-[20px]"
-    >
-      <MapPin size={16} />
-      Select City
-      <ChevronDown size={14} />
-    </button>
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        className="flex items-center gap-1 text-brand-950 font-semibold text-[13px] leading-[20px]"
+      >
+        <MapPin size={16} />
+        {city ?? "Select City"}
+        <ChevronDown size={14} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-full z-10 mt-2 w-44 rounded-xl border border-black/5 bg-white py-2 shadow-lg">
+          {SUPPORTED_CITIES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                setCity(option);
+                setIsOpen(false);
+              }}
+              className={`block w-full px-4 py-2 text-left font-figtree text-[13px] transition-colors hover:bg-brand-subtle ${
+                option === city ? "font-semibold text-brand-primary" : "text-brand-950"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

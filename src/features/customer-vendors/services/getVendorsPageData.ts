@@ -1,6 +1,6 @@
 import type { VendorsPageData } from "../types";
 import { VENDOR_CATEGORIES, VENDORS_PAGE_SIZE } from "../data/filterConfig";
-import { mapPackageToVendor, pickDemoVendor } from "../mappers";
+import { mapPackageToVendor } from "../mappers";
 import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
 
 /**
@@ -26,6 +26,5 @@ export async function getVendorsPageData(): Promise<VendorsPageData> {
       id: category,
       label: category,
     })),
-    demoVendor: pickDemoVendor(vendors),
   };
 }

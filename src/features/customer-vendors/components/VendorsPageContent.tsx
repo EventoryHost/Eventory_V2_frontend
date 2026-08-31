@@ -22,7 +22,6 @@ import SortMenu from "./SortMenu";
 import ResultsHeader from "./ResultsHeader";
 import VendorGrid from "./VendorGrid";
 import VendorList from "./VendorList";
-import VendorGridCard from "./VendorGridCard";
 import VendorCardSkeletonGroup from "./VendorCardSkeleton";
 import VendorEmptyState from "./VendorEmptyState";
 import LoadMoreButton from "./LoadMoreButton";
@@ -42,7 +41,17 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const [sort, setSort] = useState<SortOption>((searchParams.get("sort") as SortOption) ?? "newest");
   const [view, setView] = useState<ViewMode>((searchParams.get("view") as ViewMode) ?? "grid");
 
-  const [selected, setSelected] = useState<SelectedFilters>(EMPTY_SELECTED);
+  // Deep-link-only params from the landing page search card — `eventCategory`
+  // and `date` aren't exposed as in-page controls here (event type is a
+  // multi-select checkbox that stays client-side, see filterVendors.ts), so
+  // they're captured once from the URL and threaded straight into every
+  // browsePackages call below rather than kept as reactive state.
+  const initialEventCategory = useRef(searchParams.get("eventType") ?? undefined);
+  const initialDate = useRef(searchParams.get("date") ?? undefined);
+
+  const [selected, setSelected] = useState<SelectedFilters>(() =>
+    initialEventCategory.current ? { eventType: [initialEventCategory.current], pricing: [] } : EMPTY_SELECTED
+  );
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const { isLoggedIn } = useCustomerSession();
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
@@ -88,6 +97,14 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Debounced so the server-side `q` search doesn't fire a request per
+  // keystroke — only once typing pauses.
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
   // Keep the shareable URL in sync with the state that's meaningful to deep-link
   // (category, search, sort, view). Checkbox filters stay local-only.
   useEffect(() => {
@@ -101,22 +118,33 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sort, view]);
 
-  // Refetch page 1 from the real API whenever category or sort changes.
-  // Skips the very first run when category/sort match what the server
-  // already fetched into `data` ("all"/"newest") — refetching immediately
-  // would just flash a skeleton over data we already have. A deep link like
-  // /vendors?category=caterer differs from that default, so it still fetches
-  // on mount to actually apply the requested filter.
+  // Refetch page 1 from the real API whenever category, sort, or the
+  // debounced search term changes. Skips the very first run when
+  // category/sort/search all match what the server already fetched into
+  // `data` ("all"/"newest"/"") — refetching immediately would just flash a
+  // skeleton over data we already have. A deep link like
+  // /vendors?category=caterer or ?q=... differs from that default, so it
+  // still fetches on mount to actually apply the requested filter.
   const isFirstRun = useRef(true);
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (category === "all" && sort === "newest") return;
+      if (
+        category === "all" &&
+        sort === "newest" &&
+        !debouncedSearch &&
+        !initialEventCategory.current &&
+        !initialDate.current
+      )
+        return;
     }
     let cancelled = false;
     setIsLoading(true);
     browsePackages({
+      q: debouncedSearch || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
+      eventCategory: initialEventCategory.current,
+      date: initialDate.current,
       sort: SORT_UI_TO_API[sort],
       page: 1,
       limit: VENDORS_PAGE_SIZE,
@@ -136,7 +164,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     return () => {
       cancelled = true;
     };
-  }, [category, sort]);
+  }, [category, sort, debouncedSearch]);
 
   async function handleLoadMore() {
     if (isLoadingMore || page >= totalPages) return;
@@ -144,7 +172,10 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     try {
       const nextPage = page + 1;
       const response = await browsePackages({
+        q: debouncedSearch || undefined,
         vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
+        eventCategory: initialEventCategory.current,
+        date: initialDate.current,
         sort: SORT_UI_TO_API[sort],
         page: nextPage,
         limit: VENDORS_PAGE_SIZE,
@@ -302,20 +333,6 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
 
           <ResultsHeader heading={heading} resultCount={filteredVendors.length} />
         </div>
-
-        {data.demoVendor && (
-          <div className="mt-6 max-w-xs">
-            <p className="mb-2 font-figtree text-[12px] font-semibold text-neutral-secondary">
-              Preview how a package page looks
-            </p>
-            <VendorGridCard
-              vendor={data.demoVendor}
-              isBookmarked={false}
-              onToggleBookmark={() => {}}
-              badge="Preview"
-            />
-          </div>
-        )}
 
         <div className="mt-6">
           {isLoading ? (
