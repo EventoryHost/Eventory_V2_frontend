@@ -8,7 +8,6 @@ import VariantSelector from "./VariantSelector";
 import PackageSummary from "./PackageSummary";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
-import NotIncludedSection from "./NotIncludedSection";
 import NotesForVendor from "./NotesForVendor";
 import VendorRequirements from "./VendorRequirements";
 import AddonsCarousel from "./AddonsCarousel";
@@ -70,7 +69,6 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           <PackageSummary summary={data.summary} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && <IncludedItems items={data.includedItems} />}
-          {data.notIncluded && data.notIncluded.length > 0 && <NotIncludedSection items={data.notIncluded} />}
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
           {data.vendorRequirements.length > 0 && <VendorRequirements requirements={data.vendorRequirements} />}
           {data.addons.length > 0 && (

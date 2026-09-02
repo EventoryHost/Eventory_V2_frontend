@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, SquareArrowOutUpRight } from "lucide-react";
+import { CheckCircle2, SquareArrowOutUpRight } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
@@ -89,13 +89,6 @@ export default function IncludedItems({ items }: { items: IncludedItemEntry[] })
             </div>
           ))}
         </div>
-
-        <a
-          href="#not-included"
-          className="flex h-10 items-center gap-1 rounded-b-2xl bg-[#FAFAFA] px-[28px] py-2 font-figtree text-[14px] font-medium leading-[20px] text-[#B4112A] hover:underline"
-        >
-          Check Exclusions <ArrowRight className="h-4 w-4" />
-        </a>
       </div>
     </section>
   );

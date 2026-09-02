@@ -25,6 +25,7 @@ import { VOLUME_OPTIONS } from "../data/workshopCategories";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
+import { formatMinutesLabel } from "@/lib/formatMinutes";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
@@ -63,6 +64,16 @@ function priceOf(pkg: RawFullPackage): number {
 function originalPriceOf(pkg: RawFullPackage): number | undefined {
   const charges = pkg.step3_policiesAndCharges;
   return charges?.packagePricing?.originalPrice ?? charges?.overallPriceOfPackage?.originalPrice ?? undefined;
+}
+
+// TEMPORARY: backend confirmed durationOfSetup is stored in HOURS (both
+// vendor forms label it that way), but several real values (e.g. 60) exceed
+// even the Decorator form's own 24-hour dropdown max and read as implausible
+// setup lead times in hours. Per explicit instruction, treating the raw
+// number as MINUTES for display for now — revert to plain hours once
+// backend/product clarifies or the underlying data is cleaned up.
+function formatSetupTime(durationOfSetupMinutes: number): string {
+  return `${formatMinutesLabel(durationOfSetupMinutes)} before start`;
 }
 
 function mapVariant(pkg: RawFullPackage, mostBookedVariantId?: string | null): PackageVariant {
@@ -467,7 +478,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
 
   const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
-  const duration = pkg.step1_eventAndCrew?.duration;
+  const durationOfSetup = pkg.step1_eventAndCrew?.durationOfSetup;
   const price = priceOf(pkg);
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   const categoryMeta = CATEGORY_META[slug];
@@ -495,10 +506,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
         ? `${setups.length} — ${setups.map((s) => s.name).filter(Boolean).slice(0, 3).join(", ")}`
         : "—",
       serviceArea: vendor?.serviceAreas?.join(", ") || vendor?.city || "—",
-      setupTime:
-        duration?.minHours || duration?.maxHours
-          ? `${duration.minHours && duration.maxHours && duration.minHours !== duration.maxHours ? `${duration.minHours}-${duration.maxHours}` : (duration.minHours ?? duration.maxHours)} hrs before start`
-          : "—",
+      // durationOfSetup is lead time needed before the event starts — a
+      // single number, not a range (step1_eventAndCrew.duration is a
+      // different field entirely: how long the EVENT itself runs). See
+      // formatSetupTime's comment for the current minutes-vs-hours caveat.
+      setupTime: durationOfSetup ? formatSetupTime(durationOfSetup) : "—",
       crewSize:
         crew?.minPeople || crew?.maxPeople
           ? `${crew.minPeople && crew.maxPeople && crew.minPeople !== crew.maxPeople ? `${crew.minPeople}-${crew.maxPeople}` : (crew.minPeople ?? crew.maxPeople)} crew`

@@ -145,7 +145,10 @@ export interface RawFullPackage {
   step1_eventAndCrew: {
     packageName: string;
     eventCategories?: string[];
+    /** How long the EVENT itself runs — not setup lead time (see durationOfSetup below). */
     duration?: { minHours?: number; maxHours?: number };
+    /** Hours of setup lead time needed before the event starts — a single number, not a range. */
+    durationOfSetup?: number;
     crewSize?: { minPeople?: number; maxPeople?: number; roles?: string[] };
     capacity?: { minGuests?: number; maxGuests?: number };
     venueNeeds?: {
