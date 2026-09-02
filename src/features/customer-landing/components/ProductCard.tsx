@@ -99,15 +99,17 @@ export default function ProductCard({
           {title}
         </h3>
 
-        {/* Rating */}
-        <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary">
-            <Star className="h-3 w-3 fill-white text-white" />
-          </span>
-          <span className="font-figtree text-[14px] font-medium text-[#71717B]">
-            {rating} from {reviewCount} reviews
-          </span>
-        </div>
+        {/* Rating — only shown once the package actually has reviews */}
+        {reviewCount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary">
+              <Star className="h-3 w-3 fill-white text-white" />
+            </span>
+            <span className="font-figtree text-[14px] font-medium text-[#71717B]">
+              {rating} from {reviewCount} reviews
+            </span>
+          </div>
+        )}
 
         {/* Duration / guests */}
         <div className="flex items-center gap-6">

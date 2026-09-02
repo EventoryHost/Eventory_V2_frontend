@@ -21,6 +21,9 @@ export interface RawDecoratorSetupItem {
   price?: number;
   description?: string;
   volume?: string;
+  /** Color options offered for this item — an item with any colors listed is treated as customisable. */
+  colors?: string[];
+  subCategory?: string;
 }
 
 export interface RawDecoratorSetup {
@@ -45,6 +48,13 @@ export interface RawDecoratorAddOn {
   price?: number;
   billingUnit?: string;
   mediaUrls?: string[];
+  description?: string;
+  productUsage?: "Indoor" | "Outdoor" | "Both";
+  physicalSpec?: {
+    /** Free-text color list (e.g. "White, Red, Green") — not structured swatches. */
+    color?: string;
+    dimensions?: { length?: number; breadth?: number; height?: number; unit?: string };
+  };
 }
 
 export interface RawPavPackageItem {
@@ -135,7 +145,10 @@ export interface RawFullPackage {
   step1_eventAndCrew: {
     packageName: string;
     eventCategories?: string[];
+    /** How long the EVENT itself runs — not setup lead time (see durationOfSetup below). */
     duration?: { minHours?: number; maxHours?: number };
+    /** Hours of setup lead time needed before the event starts — a single number, not a range. */
+    durationOfSetup?: number;
     crewSize?: { minPeople?: number; maxPeople?: number; roles?: string[] };
     capacity?: { minGuests?: number; maxGuests?: number };
     venueNeeds?: {
@@ -161,9 +174,12 @@ export interface RawFullPackage {
     notIncluded?: string[];
   };
   step3_policiesAndCharges: {
-    packagePricing: { price: number; billingUnit?: string; noOfPeople?: string };
-    // VenueProvider replaces packagePricing with this field instead.
-    overallPriceOfPackage?: { price: number; billingUnit?: string };
+    packagePricing: { price: number; billingUnit?: string; noOfPeople?: string; originalPrice?: number | null };
+    // VenueProvider replaces packagePricing with this field instead — so its
+    // discount, if ever set, could land under either field depending on
+    // which one the vendor-side Venue Provider pricing form actually writes
+    // to. originalPriceOf() below checks both.
+    overallPriceOfPackage?: { price: number; billingUnit?: string; originalPrice?: number | null };
     gstInclusive?: boolean;
     gstRatePercent?: number;
     guestTiers?: { maxGuests: number; price: number }[];
@@ -277,7 +293,9 @@ export interface RawPackageGroupResponse {
   status: "SUCCESS";
   count: number;
   packageGroupId: string;
-  packages: RawFullPackage[];
+  packages: (RawFullPackage & { bookingsCount?: number })[];
+  /** The variant (packageId) with the highest real booking count in this group — null if every variant is still tied at 0. */
+  mostBookedVariantId: string | null;
 }
 
 /**

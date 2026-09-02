@@ -3,6 +3,7 @@ import type {
   PackageVariant,
   GalleryImage,
   IncludedItemEntry,
+  IncludedItemDetail,
   AddonItem,
   VendorRequirement,
   VendorRequirementIcon,
@@ -23,23 +24,14 @@ import {
 import { VOLUME_OPTIONS } from "../data/workshopCategories";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
+import { CATEGORY_META } from "@/lib/categoryMeta";
+import { formatMinutesLabel } from "@/lib/formatMinutes";
+import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
 import { formatPrice } from "../utils/formatPrice";
 
 export class PackageNotFoundError extends Error {}
-
-// Reuses the same category photography already shipped for the packages
-// landing page (see src/features/customer-packages/data/mockPackagesPageData.ts)
-// rather than introducing new assets.
-const CATEGORY_ICON_BY_SLUG: Record<string, string> = {
-  decorator: "/images/customer/decorator.png",
-  caterer: "/images/customer/caterers.png",
-  "venue-provider": "/images/customer/venue.png",
-  "dj-artist": "/images/customer/dj.png",
-  "makeup-artist": "/images/customer/makeup.png",
-  photographer: "/images/customer/video.png",
-};
 
 function vendorOf(pkg: RawFullPackage): RawVendorPublic | null {
   return typeof pkg.vendorId === "object" ? pkg.vendorId : null;
@@ -65,7 +57,26 @@ function priceOf(pkg: RawFullPackage): number {
   return pkg.step3_policiesAndCharges?.packagePricing?.price ?? 0;
 }
 
-function mapVariant(pkg: RawFullPackage): PackageVariant {
+// VenueProvider prices via overallPriceOfPackage, not packagePricing (see
+// priceOf() above) — a discount for that vendor type could land under
+// either field depending on which one the vendor-side pricing form actually
+// writes to, so check both rather than assuming.
+function originalPriceOf(pkg: RawFullPackage): number | undefined {
+  const charges = pkg.step3_policiesAndCharges;
+  return charges?.packagePricing?.originalPrice ?? charges?.overallPriceOfPackage?.originalPrice ?? undefined;
+}
+
+// TEMPORARY: backend confirmed durationOfSetup is stored in HOURS (both
+// vendor forms label it that way), but several real values (e.g. 60) exceed
+// even the Decorator form's own 24-hour dropdown max and read as implausible
+// setup lead times in hours. Per explicit instruction, treating the raw
+// number as MINUTES for display for now — revert to plain hours once
+// backend/product clarifies or the underlying data is cleaned up.
+function formatSetupTime(durationOfSetupMinutes: number): string {
+  return `${formatMinutesLabel(durationOfSetupMinutes)} before start`;
+}
+
+function mapVariant(pkg: RawFullPackage, mostBookedVariantId?: string | null): PackageVariant {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return {
     id: pkg._id,
@@ -75,6 +86,8 @@ function mapVariant(pkg: RawFullPackage): PackageVariant {
     itemsCount: setups.reduce((sum, s) => sum + (s.items?.length ?? 0), 0),
     description: setups[0]?.description ?? "",
     price: priceOf(pkg),
+    originalPrice: originalPriceOf(pkg),
+    badge: mostBookedVariantId && pkg._id === mostBookedVariantId ? "Most booked" : undefined,
   };
 }
 
@@ -102,26 +115,51 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
 
 function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
-  return setups.map((setup, i) => ({
-    id: setup._id ?? `setup-${i}`,
-    image: setup.setupPhoto,
-    title: setup.name ?? "Setup",
-    details: [
+  return setups.map((setup, i) => {
+    const structures = setup.structuresIncluded ?? [];
+    const themes = setup.themes ?? [];
+    const items = setup.items ?? [];
+
+    const details: IncludedItemDetail[] = [
       { label: "Decorating", value: setup.decoratingWhat || "—" },
-      { label: "Setup type", value: "—" },
-    ],
-    themeOptions: setup.themes && setup.themes.length > 0 ? setup.themes : undefined,
-    price: setup.price ?? 0,
-    items: (setup.items ?? []).map((line, idx) => ({
-      id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
-      label: line.name ?? "Item",
-      qty: line.qty ?? 1,
-      originalQty: line.qty ?? 1,
-      volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
-      volume: line.volume || undefined,
-      originalVolume: line.volume || undefined,
-    })),
-  }));
+    ];
+    // Setup type (Indoor/Outdoor) has no backing field on a setup — dropped
+    // rather than shown as a placeholder, same call as PackageSummary.tsx.
+    if (structures.length > 0) {
+      details.push({
+        label: "Structures Included",
+        value: structures[0],
+        moreCount: structures.length > 1 ? structures.length - 1 : undefined,
+      });
+    }
+    if (themes.length > 0) {
+      details.push({
+        label: "Theme",
+        value: themes[0],
+        moreCount: themes.length > 1 ? themes.length - 1 : undefined,
+      });
+    }
+
+    return {
+      id: setup._id ?? `setup-${i}`,
+      image: setup.setupPhoto,
+      title: setup.name ?? "Setup",
+      details,
+      themeOptions: themes.length > 0 ? themes : undefined,
+      price: setup.price ?? 0,
+      items: items.map((line, idx) => ({
+        id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
+        label: line.name ?? "Item",
+        qty: line.qty ?? 1,
+        originalQty: line.qty ?? 1,
+        volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
+        volume: line.volume || undefined,
+        originalVolume: line.volume || undefined,
+      })),
+      // An item offering color choices counts as customer-facing customisation.
+      customisationsCount: items.filter((line) => (line.colors?.length ?? 0) > 0).length,
+    };
+  });
 }
 
 // PAV packages have no per-item price or sub-item list (pricing/checklist is
@@ -273,18 +311,43 @@ function mapNotIncluded(pkg: RawFullPackage): string[] {
   return pkg.step2_productsAndPricing?.notIncluded ?? [];
 }
 
+function formatDimensions(dimensions?: { length?: number; breadth?: number; height?: number; unit?: string }): string {
+  const { length, breadth, height, unit } = dimensions ?? {};
+  const parts = [length, breadth, height].filter((v): v is number => v != null);
+  if (parts.length === 0) return "—";
+  return `${parts.join("×")}${unit ? ` ${unit}` : ""}`;
+}
+
 function mapAddons(pkg: RawFullPackage): AddonItem[] {
   const addOns = pkg.step2_productsAndPricing?.addOns ?? [];
-  return addOns.map((addon, i) => ({
-    id: addon._id ?? `addon-${i}`,
-    category: addon.category || addon.addOnType || "Add-on",
-    image: addon.mediaUrls?.[0],
-    title: addon.name ?? "Add-on",
-    subCategory: addon.subCategory ?? "",
-    qtyLabel: addon.quantity ? `${addon.quantity} unit${addon.quantity > 1 ? "s" : ""}` : "1 unit",
-    price: addon.price ?? 0,
-    unitLabel: addon.billingUnit ? `/${addon.billingUnit}` : "",
-  }));
+  return addOns.map((addon, i) => {
+    // colourOptions deliberately left unset — physicalSpec.color is a
+    // free-text string (e.g. "White, Red, Green"), not structured swatches.
+    // Parsing that into fake hex colors would be guessing colors that were
+    // never actually specified. Shown as a plain "Color" detail row instead
+    // until there's a real colourOptions field on the schema (flagged to
+    // backend, pending a product decision).
+    const details: IncludedItemDetail[] = [
+      { label: "Setup type", value: addon.productUsage || "—" },
+      { label: "Dimensions", value: formatDimensions(addon.physicalSpec?.dimensions) },
+    ];
+    if (addon.physicalSpec?.color) {
+      details.push({ label: "Color", value: addon.physicalSpec.color });
+    }
+
+    return {
+      id: addon._id ?? `addon-${i}`,
+      category: addon.category || addon.addOnType || "Add-on",
+      image: addon.mediaUrls?.[0],
+      title: addon.name ?? "Add-on",
+      subCategory: addon.subCategory ?? "",
+      qtyLabel: addon.quantity ? `${addon.quantity} unit${addon.quantity > 1 ? "s" : ""}` : "1 unit",
+      price: addon.price ?? 0,
+      unitLabel: addon.billingUnit ? `/${addon.billingUnit}` : "",
+      description: addon.description,
+      details,
+    };
+  });
 }
 
 function mapPolicySlot(
@@ -390,15 +453,22 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   let variants: PackageVariant[] = [mapVariant(pkg)];
   try {
     const group = await getPackageGroupVariants(pkg.packageGroupId);
-    if (group.packages.length) variants = group.packages.map(mapVariant);
+    if (group.packages.length) {
+      variants = group.packages.map((groupPkg) => mapVariant(groupPkg, group.mostBookedVariantId));
+    }
   } catch {
     // Sibling variants are a nice-to-have — fall back to just this one package.
   }
 
+  // total: 0 here (not vendor?.reviewsCount) — that field is the vendor's
+  // review count across ALL their packages, not this one, and items is
+  // empty either way. Reporting a nonzero total with no items would make
+  // PackageDetailPage's `reviews.total > 0` gate show an empty Reviews
+  // section instead of hiding it.
   const reviews = await buildReviews(packageId).catch(
     (): ReviewsSummary => ({
-      average: vendor?.rating ?? 0,
-      total: vendor?.reviewsCount ?? 0,
+      average: 0,
+      total: 0,
       breakdown: [],
       categories: [],
       filters: [{ id: "all", label: "All" }],
@@ -408,15 +478,17 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
 
   const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
-  const duration = pkg.step1_eventAndCrew?.duration;
+  const durationOfSetup = pkg.step1_eventAndCrew?.durationOfSetup;
   const price = priceOf(pkg);
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
+  const categoryMeta = CATEGORY_META[slug];
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
 
   return {
     id: pkg._id,
-    categoryLabel: pkg.vendorType,
-    categoryIcon: CATEGORY_ICON_BY_SLUG[slug],
+    categoryLabel: VENDOR_CATEGORIES.find((c) => c.id === slug)?.label ?? pkg.vendorType,
+    categoryIcon: categoryMeta?.icon,
+    categoryGradientFrom: categoryMeta?.gradientFrom,
     eventTags: eventCategories.slice(0, 3),
     moreEventTagsCount: Math.max(0, eventCategories.length - 3),
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",
@@ -434,10 +506,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
         ? `${setups.length} — ${setups.map((s) => s.name).filter(Boolean).slice(0, 3).join(", ")}`
         : "—",
       serviceArea: vendor?.serviceAreas?.join(", ") || vendor?.city || "—",
-      setupTime:
-        duration?.minHours || duration?.maxHours
-          ? `${duration.minHours && duration.maxHours && duration.minHours !== duration.maxHours ? `${duration.minHours}-${duration.maxHours}` : (duration.minHours ?? duration.maxHours)} hrs before start`
-          : "—",
+      // durationOfSetup is lead time needed before the event starts — a
+      // single number, not a range (step1_eventAndCrew.duration is a
+      // different field entirely: how long the EVENT itself runs). See
+      // formatSetupTime's comment for the current minutes-vs-hours caveat.
+      setupTime: durationOfSetup ? formatSetupTime(durationOfSetup) : "—",
       crewSize:
         crew?.minPeople || crew?.maxPeople
           ? `${crew.minPeople && crew.maxPeople && crew.minPeople !== crew.maxPeople ? `${crew.minPeople}-${crew.maxPeople}` : (crew.minPeople ?? crew.maxPeople)} crew`

@@ -90,18 +90,22 @@ export interface WorkshopCategoryDef {
 export interface IncludedItemDetail {
   label: string;
   value: string;
+  /** Count of additional values beyond `value` (e.g. value="Chair Decor", moreCount=2 -> "Chair Decor, +2 more"). Only set when the underlying field is a real array with more than one entry. */
+  moreCount?: number;
 }
 
 export interface IncludedItemEntry {
   id: string;
   image?: string;
   title: string;
-  /** Vendor-type-specific facts (Decorator: Decorating/Setup type; PAV: Style/Quantity/Delivery; etc). */
+  /** Vendor-type-specific facts (Decorator: Decorating/Structures Included/Theme; PAV: Style/Quantity/Delivery; etc). */
   details: IncludedItemDetail[];
   /** Decorator-only — the setup's applied theme tag(s), shown as a pill picker in the setup detail view. Undefined for vendor types with no theme concept. */
   themeOptions?: string[];
   price: number;
   items: IncludedItemLine[];
+  /** Count of items in this setup that offer customer-facing customisation (currently: items with color options). Undefined/0 hides the chip rather than showing a fabricated count. */
+  customisationsCount?: number;
 }
 
 export type VendorRequirementIcon = "electricity" | "stage" | "ac" | "room" | "vehicle" | "permission" | "storage" | "water" | "parking";
@@ -209,6 +213,8 @@ export interface PackageDetail {
   id: string;
   categoryLabel: string;
   categoryIcon?: string;
+  /** Category badge background gradient start color — same per-category palette as the landing page's ProductCard. */
+  categoryGradientFrom?: string;
   /** Second breadcrumb segment after the category, e.g. the vendor's storefront name. */
   vendorUnitName?: string;
   eventTags: string[];

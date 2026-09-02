@@ -13,19 +13,9 @@ import {
 } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
+import { CATEGORY_META } from "@/lib/categoryMeta";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
-
-// Icon/gradient per category — same images and colors as BrowseVendors.tsx's
-// category tiles, kept in sync there for visual consistency.
-const CATEGORY_META: Record<string, { icon: string; gradientFrom: string }> = {
-  "makeup-artist": { icon: "/images/customer/makeup.png", gradientFrom: "#FFDFB2" },
-  caterer: { icon: "/images/customer/caterers.png", gradientFrom: "#FFCCD3" },
-  "venue-provider": { icon: "/images/customer/venue.png", gradientFrom: "#C2E3FF" },
-  "dj-artist": { icon: "/images/customer/dj.png", gradientFrom: "#E0CCFF" },
-  decorator: { icon: "/images/customer/decorator.png", gradientFrom: "#FFEFC2" },
-  photographer: { icon: "/images/customer/video.png", gradientFrom: "#CCFFE2" },
-};
 
 function toProductCardProps(pkg: RawPackage): ProductCardProps {
   const categoryId = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType];
