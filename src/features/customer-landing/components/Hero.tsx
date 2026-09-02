@@ -16,12 +16,19 @@ import ReadyToPlanBanner from "./ReadyToPlanBanner";
 
 const Hero = () => {
   return (
-    <section className="w-full px-4 pt-16 pb-10 sm:pt-20 lg:pt-24">
-      <div className="relative isolate overflow-hidden">
-        <div className="pointer-events-none absolute -top-24 left-1/2 h-[420px] w-[620px] -translate-x-1/2 rounded-full bg-[#FFFAF1] blur-3xl" />
-        <div className="pointer-events-none absolute -top-20 right-[-80px] h-[300px] w-[300px] rounded-full bg-[#FFFAF1] blur-3xl" />
-        <div className="pointer-events-none absolute top-[220px] right-[40px] h-[220px] w-[220px] rounded-full bg-[#FFFAF1] blur-3xl" />
+    <section className="relative isolate w-full overflow-hidden px-4 pb-10">
+      {/* Design team's pre-composed gradient-spot background, replacing the
+          hand-placed blur circles — see hero-bg.svg. Anchored to the very
+          top of the section (flush against the navbar, no gap) rather than
+          the padded content wrapper below, which starts lower. */}
+      <img
+        src="/images/customer/hero-bg.svg"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 w-full object-cover"
+      />
 
+      <div className="pt-6 sm:pt-8 lg:pt-10">
         <div className="relative z-10">
           <HeroHeading />
           <HeroSubtext />

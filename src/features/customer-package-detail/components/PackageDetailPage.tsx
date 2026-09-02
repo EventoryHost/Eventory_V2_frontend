@@ -4,9 +4,7 @@ import { useMemo, useState } from "react";
 import type { PackageDetail } from "../types";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
-import AnchorNav from "./AnchorNav";
 import VariantSelector from "./VariantSelector";
-import PackageQuickStats from "./PackageQuickStats";
 import PackageSummary from "./PackageSummary";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
@@ -56,13 +54,10 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
   }
 
   return (
+    <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
       <HeroGallery images={data.gallery} />
       <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
-
-      <div className="mt-6">
-        <AnchorNav />
-      </div>
 
       <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
         <div className="space-y-10 lg:col-span-2">
@@ -72,7 +67,6 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
             onSelect={setSelectedVariantId}
           />
 
-          <PackageQuickStats summary={data.summary} />
           <PackageSummary summary={data.summary} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && <IncludedItems items={data.includedItems} />}
@@ -101,5 +95,6 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
         />
       </div>
     </main>
+    </div>
   );
 }

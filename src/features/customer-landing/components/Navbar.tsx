@@ -183,11 +183,17 @@ export default function Navbar() {
   return (
     <>
     <header
-      className={`fixed top-0 inset-x-0 z-50 w-full border-b border-black/5 bg-customer-bg transition-transform duration-300 ${
+      className={`fixed top-[0.61px] inset-x-0 z-50 w-full border-b border-black/5 bg-customer-bg transition-transform duration-300 ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
-      <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 py-4">
+      {/*
+        h-[71px] lives on this row, not the <header>, so the header still
+        grows to fit the mobile dropdown panel below when it's open — a fixed
+        height on <header> itself would make the border-bottom cut through
+        the middle of that open panel instead of sitting at its true bottom.
+      */}
+      <div className="mx-auto flex h-[71px] max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* First div: logo + location */}
         <div className="flex items-center gap-6">
           <Logo />
@@ -233,7 +239,7 @@ export default function Navbar() {
         </div>
       )}
     </header>
-    <div className="h-[72px] w-full" />
+    <div className="h-[71.61px] w-full" />
     </>
   );
 }
