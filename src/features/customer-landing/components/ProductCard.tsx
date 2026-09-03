@@ -142,11 +142,12 @@ export default function ProductCard({
           </p>
         </div>
 
-        {/* Location */}
+        {/* Location — only the first 2, "..." appended when there are more */}
         <div className="flex items-center gap-2">
           <MapPin className="h-4 w-4 shrink-0 text-[#790B1A]" />
           <p className="truncate font-figtree text-[14px] font-medium text-[#790B1A]">
-            {locations.join(", ")}
+            {locations.slice(0, 2).join(", ")}
+            {locations.length > 2 ? "..." : ""}
           </p>
         </div>
       </div>

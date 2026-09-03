@@ -22,6 +22,13 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
   const meta = categoryId ? CATEGORY_META[categoryId] : undefined;
   const categoryLabel = VENDOR_CATEGORIES.find((c) => c.id === categoryId)?.label ?? pkg.vendorType;
 
+  // Same source composition as the PDP header's locationSummary (city, then
+  // service areas) — kept consistent between the two so a package's
+  // "location" reads the same wherever it's shown.
+  const locationList = [pkg.vendorId?.city, ...(pkg.vendorId?.serviceAreas ?? [])].filter(
+    (location): location is string => Boolean(location)
+  );
+
   return {
     image: getPackageImage(pkg) ?? FALLBACK_IMAGE,
     categoryLabel,
@@ -33,7 +40,7 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
     duration: getPackageDurationLabel(pkg),
     guestCapacity: getPackageCapacityLabel(pkg),
     price: `₹${getPackageStartingPrice(pkg).toLocaleString("en-IN")}`,
-    locations: pkg.vendorId?.city ? [pkg.vendorId.city] : ["—"],
+    locations: locationList.length > 0 ? locationList : ["—"],
     categoryGradientFrom: meta?.gradientFrom,
     href: `/packages/${pkg._id}`,
   };

@@ -17,6 +17,10 @@ import VendorNotePromptModal from "./VendorNotePromptModal";
 export default function StickyBookingCard({
   packageId,
   packageTotal,
+  teamAndEquipmentCharge,
+  teamAndEquipmentBillingUnit,
+  overtimeChargeRate,
+  overtimeBillingUnit,
   gstPercent,
   tokenAmount,
   selectedAddons,
@@ -27,6 +31,10 @@ export default function StickyBookingCard({
 }: {
   packageId: string;
   packageTotal: number;
+  teamAndEquipmentCharge: number;
+  teamAndEquipmentBillingUnit?: string;
+  overtimeChargeRate: number;
+  overtimeBillingUnit?: string;
   gstPercent: number;
   tokenAmount: number;
   selectedAddons: SelectedAddon[];
@@ -345,6 +353,10 @@ export default function StickyBookingCard({
         onClose={() => setIsBreakdownOpen(false)}
         includedItems={includedItems}
         selectedAddons={selectedAddons}
+        teamAndEquipmentCharge={teamAndEquipmentCharge}
+        teamAndEquipmentBillingUnit={teamAndEquipmentBillingUnit}
+        overtimeChargeRate={overtimeChargeRate}
+        overtimeBillingUnit={overtimeBillingUnit}
         subtotal={packageTotal}
         gstPercent={gstPercent}
         gstAmount={gstAmount}

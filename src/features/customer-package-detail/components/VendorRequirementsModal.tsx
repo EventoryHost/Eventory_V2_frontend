@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Zap, LayoutGrid, Snowflake, DoorOpen, Truck, Hammer, Archive, Droplet, ParkingSquare, X, type LucideIcon } from "lucide-react";
+import { Zap, LayoutGrid, Snowflake, DoorOpen, Truck, Hammer, Archive, Droplet, ParkingSquare, Lightbulb, Shield, X, type LucideIcon } from "lucide-react";
 import type { VendorRequirement, VendorRequirementIcon } from "../types";
 
 const ICON_MAP: Record<VendorRequirementIcon, LucideIcon> = {
@@ -15,6 +15,8 @@ const ICON_MAP: Record<VendorRequirementIcon, LucideIcon> = {
   storage: Archive,
   water: Droplet,
   parking: ParkingSquare,
+  lighting: Lightbulb,
+  security: Shield,
 };
 
 function RequirementCard({ requirement }: { requirement: VendorRequirement }) {

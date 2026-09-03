@@ -1,10 +1,19 @@
+"use client";
+
+import { useState } from "react";
 import { CheckCircle2, SquareArrowOutUpRight } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
+import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
 import PlaceholderMedia from "./PlaceholderMedia";
 import SectionHeading from "./SectionHeading";
+import CustomizeWorkshopModal from "./CustomizeWorkshopModal";
 
 export default function IncludedItems({ items }: { items: IncludedItemEntry[] }) {
+  const workshop = useCustomizeWorkshop(items);
+  const [activeSetupId, setActiveSetupId] = useState<string | null>(null);
+  const activeSetup = items.find((setup) => setup.id === activeSetupId) ?? null;
+
   return (
     <section id="included" className="border-t border-black/5 pt-8">
       <SectionHeading>What&apos;s Included</SectionHeading>
@@ -47,6 +56,7 @@ export default function IncludedItems({ items }: { items: IncludedItemEntry[] })
 
                 <button
                   type="button"
+                  onClick={() => setActiveSetupId(setup.id)}
                   className="flex shrink-0 items-center gap-1.5 self-start rounded-full border border-black/15 px-3.5 py-2 font-figtree text-[13px] font-medium text-brand-950 transition hover:bg-black/5"
                 >
                   <SquareArrowOutUpRight className="h-3.5 w-3.5" />
@@ -90,6 +100,15 @@ export default function IncludedItems({ items }: { items: IncludedItemEntry[] })
           ))}
         </div>
       </div>
+
+      {activeSetup && (
+        <CustomizeWorkshopModal
+          setup={activeSetup}
+          items={workshop.itemsBySetup[activeSetup.id] ?? []}
+          workshop={workshop}
+          onClose={() => setActiveSetupId(null)}
+        />
+      )}
     </section>
   );
 }

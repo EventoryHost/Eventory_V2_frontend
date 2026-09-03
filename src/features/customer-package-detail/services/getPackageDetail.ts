@@ -109,8 +109,14 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
     { flag: needs.power, id: "req-electricity", label: "Electricity", icon: "electricity" },
     { flag: needs.stage, id: "req-stage", label: "Stage", icon: "stage" },
     { flag: needs.ac, id: "req-ac", label: "Air Conditioner", icon: "ac" },
+    { flag: needs.lighting, id: "req-lighting", label: "Lighting", icon: "lighting" },
+    { flag: needs.security, id: "req-security", label: "Security", icon: "security" },
   ];
-  return entries.filter((e) => e.flag).map(({ id, label, icon }) => ({ id, label, icon }));
+  const requirements = entries.filter((e) => e.flag).map(({ id, label, icon }) => ({ id, label, icon }));
+  if (needs.customText?.trim()) {
+    requirements.push({ id: "req-custom", label: needs.customText.trim(), icon: "room" });
+  }
+  return requirements;
 }
 
 function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
@@ -506,6 +512,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
         ? `${setups.length} — ${setups.map((s) => s.name).filter(Boolean).slice(0, 3).join(", ")}`
         : "—",
       serviceArea: vendor?.serviceAreas?.join(", ") || vendor?.city || "—",
+      serviceAreaList: vendor?.serviceAreas?.length ? vendor.serviceAreas : vendor?.city ? [vendor.city] : undefined,
       // durationOfSetup is lead time needed before the event starts — a
       // single number, not a range (step1_eventAndCrew.duration is a
       // different field entirely: how long the EVENT itself runs). See
@@ -535,6 +542,10 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     pricing: {
       gstPercent: pkg.step3_policiesAndCharges?.gstRatePercent ?? 0,
       tokenAmount: tokenAmountFor(pkg, price),
+      teamAndEquipmentCharge: pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0,
+      teamAndEquipmentBillingUnit: pkg.step3_policiesAndCharges?.teamAndEquipment?.billingUnit,
+      overtimeChargeRate: pkg.step3_policiesAndCharges?.overtimeCharges?.price ?? 0,
+      overtimeBillingUnit: pkg.step3_policiesAndCharges?.overtimeCharges?.billingUnit,
     },
   };
 }

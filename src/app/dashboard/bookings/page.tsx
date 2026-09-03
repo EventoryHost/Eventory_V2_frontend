@@ -112,7 +112,14 @@ export default function BookingsPage() {
     }
   }, [vendorId, activeTab]);
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => {
+    // fetchData's first statement is a synchronous setIsLoading(true) — calling
+    // it directly here would run that setState synchronously within the
+    // effect body. Deferring by a tick keeps fetchData reusable as-is (e.g.
+    // for a manual refresh button) while avoiding the cascading-render lint.
+    const timeoutId = setTimeout(() => fetchData(), 0);
+    return () => clearTimeout(timeoutId);
+  }, [fetchData]);
 
   const displayedBookings = showMockData ? (DUMMY_BOOKINGS as unknown as Booking[]) : bookings;
   
