@@ -108,7 +108,7 @@ export interface IncludedItemEntry {
   customisationsCount?: number;
 }
 
-export type VendorRequirementIcon = "electricity" | "stage" | "ac" | "room" | "vehicle" | "permission" | "storage" | "water" | "parking";
+export type VendorRequirementIcon = "electricity" | "stage" | "ac" | "room" | "vehicle" | "permission" | "storage" | "water" | "parking" | "lighting" | "security";
 
 export interface VendorRequirement {
   id: string;
@@ -207,6 +207,12 @@ export interface ReviewsSummary {
 export interface PackagePricing {
   gstPercent: number;
   tokenAmount: number;
+  /** Flat charge for the vendor's team/crew + equipment — a real add-on to the base package price, included in the subtotal. */
+  teamAndEquipmentCharge: number;
+  teamAndEquipmentBillingUnit?: string;
+  /** Rate disclosure only (e.g. "₹500/hr") — NOT included in the subtotal, since it only applies if the event actually runs over. */
+  overtimeChargeRate: number;
+  overtimeBillingUnit?: string;
 }
 
 export interface PackageDetail {
@@ -233,6 +239,8 @@ export interface PackageDetail {
   summary: {
     setupsLabel: string;
     serviceArea: string;
+    /** Raw list behind `serviceArea` (which is just its comma-joined display string) — kept for UIs that show/expand individual locations rather than one flat string. */
+    serviceAreaList?: string[];
     setupTime: string;
     crewSize: string;
     setupCoverage?: string;

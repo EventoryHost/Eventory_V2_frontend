@@ -13,6 +13,10 @@ export default function PriceBreakdownDialog({
   onClose,
   includedItems,
   selectedAddons,
+  teamAndEquipmentCharge,
+  teamAndEquipmentBillingUnit,
+  overtimeChargeRate,
+  overtimeBillingUnit,
   subtotal,
   gstPercent,
   gstAmount,
@@ -24,6 +28,10 @@ export default function PriceBreakdownDialog({
   onClose: () => void;
   includedItems: IncludedItemEntry[];
   selectedAddons: SelectedAddon[];
+  teamAndEquipmentCharge: number;
+  teamAndEquipmentBillingUnit?: string;
+  overtimeChargeRate: number;
+  overtimeBillingUnit?: string;
   subtotal: number;
   gstPercent: number;
   gstAmount: number;
@@ -88,6 +96,22 @@ export default function PriceBreakdownDialog({
                 </div>
               ))}
 
+              {teamAndEquipmentCharge > 0 && (
+                <div className="flex items-center justify-between gap-3 py-3">
+                  <div className="font-figtree text-[14px] font-medium text-brand-950">
+                    Team &amp; equipment
+                    {teamAndEquipmentBillingUnit && (
+                      <span className="ml-1 font-figtree text-[12px] font-normal text-neutral-tertiary">
+                        /{teamAndEquipmentBillingUnit}
+                      </span>
+                    )}
+                  </div>
+                  <div className="shrink-0 font-figtree text-[14px] font-bold text-brand-950">
+                    {formatPrice(teamAndEquipmentCharge)}
+                  </div>
+                </div>
+              )}
+
               {selectedAddons.length > 0 && (
                 <div className="py-3">
                   <button
@@ -134,6 +158,13 @@ export default function PriceBreakdownDialog({
                 <span>{formatPrice(gstAmount)}</span>
               </div>
             </div>
+
+            {overtimeChargeRate > 0 && (
+              <p className="mt-2 font-figtree text-[12px] text-neutral-tertiary">
+                Overtime charged at {formatPrice(overtimeChargeRate)}
+                {overtimeBillingUnit ? `/${overtimeBillingUnit}` : ""} if the event runs over — not included above.
+              </p>
+            )}
 
             <div className="mt-4 flex items-center justify-between border-t border-black/5 pt-4">
               <span className="font-figtree text-[16px] font-bold text-brand-950">Estimated total</span>

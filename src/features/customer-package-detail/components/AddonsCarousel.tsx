@@ -18,10 +18,7 @@ export default function AddonsCarousel({
 
   return (
     <section id="addons" className="border-t border-black/5 pt-8">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <SectionHeading eyebrow="Optional · nothing is pre-selected">Add-ons &amp; extras</SectionHeading>
-        <p className="font-figtree text-[12px] text-neutral-tertiary">Every add-on updates the price in the card on the right.</p>
-      </div>
+      <SectionHeading>Add-ons &amp; extras</SectionHeading>
 
       <AddedAddonsSummary
         addons={addedAddons}

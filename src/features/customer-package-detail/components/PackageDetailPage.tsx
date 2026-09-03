@@ -43,7 +43,11 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
     [selectedAddons]
   );
 
-  const packageTotal = (selectedVariant?.price ?? 0) + addonsTotal;
+  // Team & equipment is a real, separate flat charge on top of the package's
+  // base price (step3_policiesAndCharges.teamAndEquipment) — included in the
+  // subtotal. Overtime is a rate disclosure only (only charged if the event
+  // actually runs over), so it's surfaced separately, not added here.
+  const packageTotal = (selectedVariant?.price ?? 0) + data.pricing.teamAndEquipmentCharge + addonsTotal;
 
   function changeAddonQuantity(addonId: string, delta: number) {
     setAddonQuantities((prev) => {
@@ -70,7 +74,7 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && <IncludedItems items={data.includedItems} />}
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
-          {data.vendorRequirements.length > 0 && <VendorRequirements requirements={data.vendorRequirements} />}
+          <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
             <AddonsCarousel addons={data.addons} quantities={addonQuantities} onChangeQuantity={changeAddonQuantity} />
           )}
@@ -83,6 +87,10 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
         <StickyBookingCard
           packageId={data.id}
           packageTotal={packageTotal}
+          teamAndEquipmentCharge={data.pricing.teamAndEquipmentCharge}
+          teamAndEquipmentBillingUnit={data.pricing.teamAndEquipmentBillingUnit}
+          overtimeChargeRate={data.pricing.overtimeChargeRate}
+          overtimeBillingUnit={data.pricing.overtimeBillingUnit}
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
           selectedAddons={selectedAddons}

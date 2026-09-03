@@ -174,6 +174,10 @@ export interface RawFullPackage {
     notIncluded?: string[];
   };
   step3_policiesAndCharges: {
+    /** Flat charge on top of packagePricing for the vendor's team/crew and equipment — a real, separate charge, not decorative. */
+    teamAndEquipment?: { price?: number; billingUnit?: string };
+    /** Rate disclosure only, not an upfront charge — only applies if the event actually runs over the booked hours. */
+    overtimeCharges?: { price?: number; billingUnit?: string };
     packagePricing: { price: number; billingUnit?: string; noOfPeople?: string; originalPrice?: number | null };
     // VenueProvider replaces packagePricing with this field instead — so its
     // discount, if ever set, could land under either field depending on
