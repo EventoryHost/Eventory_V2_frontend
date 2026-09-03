@@ -2,7 +2,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
@@ -19,12 +18,9 @@ const NAV_LINKS = [
 function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2">
-      <Image
-        src="/images/customer/ev-logo.png"
-        alt="Eventory"
-        width={28}
-        height={28}
-      />
+      {/* next/image blocks local SVGs by default (dangerouslyAllowSVG isn't
+          set) — plain img sidesteps that, same as hero-bg.svg elsewhere. */}
+      <img src="/nav-logo.svg" alt="Eventory" width={28} height={28} />
       <span
         className="text-brand-primary font-semibold text-[22px] sm:text-[26px] leading-[20px] tracking-[-0.03em]"
         style={{ fontFamily: "var(--font-lora)" }}
