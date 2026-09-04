@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Star, Clock, Users, MapPin } from "lucide-react";
+import { Bookmark, Star, Clock, Users, Map } from "lucide-react";
 
 export type ProductCardProps = {
   image: string;
@@ -141,15 +141,17 @@ export default function ProductCard({
             </span>
           </p>
         </div>
+      </div>
 
-        {/* Location — only the first 2, "..." appended when there are more */}
-        <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 shrink-0 text-[#790B1A]" />
-          <p className="truncate font-figtree text-[14px] font-medium text-[#790B1A]">
-            {locations.slice(0, 2).join(", ")}
-            {locations.length > 2 ? "..." : ""}
-          </p>
-        </div>
+      {/* Location — full-bleed footer strip, its own top border separate from
+          the padded content above. Only the first 2 locations, "..." appended
+          when there are more. */}
+      <div className="flex items-center gap-2 border-t border-[#F0F0F0] px-4 py-1.5">
+        <Map className="h-4 w-4 shrink-0 text-[#790B1A]" />
+        <p className="truncate font-figtree text-[14px] font-medium text-[#790B1A]">
+          Available in {locations.slice(0, 2).join(", ")}
+          {locations.length > 2 ? "..." : ""}
+        </p>
       </div>
     </Link>
   );

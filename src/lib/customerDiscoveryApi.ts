@@ -48,6 +48,17 @@ export interface RawPackage {
     capacity?: { minGuests?: number; maxGuests?: number };
     duration?: { minHours?: number; maxHours?: number };
   };
+  step2_productsAndPricing?: {
+    /**
+     * Vendor-authored "what's included" highlights. NOT reliably short/
+     * pill-shaped across vendor types — confirmed with backend:
+     * MakeupArtist vendors tend to enter short bullets (one per array
+     * entry), but Decorator/Caterer/PAV/DJArtist vendors often type one
+     * long multi-line paragraph into a single entry instead. See
+     * extractHighlightTags() below, which is built defensively around this.
+     */
+    included?: string[];
+  };
   step3_policiesAndCharges: {
     packagePricing: { price: number; billingUnit?: string; noOfPeople?: string };
     gstInclusive?: boolean;
@@ -167,6 +178,28 @@ export function getPackageStartingPrice(pkg: RawPackage): number {
 
 export function getPackageImage(pkg: RawPackage): string | undefined {
   return pkg.step4_sampleMedia?.media?.[0]?.url;
+}
+
+const MAX_TAG_LENGTH = 40;
+const LIST_PREFIX_PATTERN = /^[\s]*(?:[-•*]|\d+[.)])\s*/;
+
+/**
+ * Derives short, pill-shaped highlight tags from the vendor-authored
+ * `included` field. Confirmed with backend: this data is NOT reliably
+ * short/bulleted across vendor types — MakeupArtist vendors tend to enter
+ * one short bullet per array entry, but Decorator/Caterer/PAV/DJArtist
+ * vendors often type one long multi-line paragraph into a single entry
+ * instead. So this splits every entry on its own newlines first (recovering
+ * real bullets typed as one block of text), strips common list-numbering
+ * prefixes, then drops anything still too long to read as a tag rather than
+ * a sentence — it does not reshape/fabricate structure beyond that.
+ */
+export function extractHighlightTags(pkg: RawPackage): string[] {
+  const included = pkg.step2_productsAndPricing?.included ?? [];
+  return included
+    .flatMap((entry) => entry.split(/\r?\n/))
+    .map((line) => line.replace(LIST_PREFIX_PATTERN, "").trim())
+    .filter((line) => line.length > 0 && line.length <= MAX_TAG_LENGTH);
 }
 
 // TEMPORARY: treating minHours/maxHours as MINUTES for display, same as the
