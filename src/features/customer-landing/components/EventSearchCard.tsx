@@ -7,6 +7,11 @@ import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig
 import SearchDropdown from "./SearchDropdown";
 import SearchDatePicker from "./SearchDatePicker";
 
+// "Birthday" is a redundant duplicate of "Birthday Party" in the backend's
+// event-category list — dropped from this dropdown specifically (an exact
+// match only, so "Birthday Party" itself is unaffected).
+const HIDDEN_EVENT_CATEGORIES = new Set(["birthday"]);
+
 export default function EventSearchCard() {
   const router = useRouter();
   const [eventCategories, setEventCategories] = useState<string[]>([]);
@@ -44,7 +49,9 @@ export default function EventSearchCard() {
         value={eventType}
         onChange={setEventType}
         placeholder="Any event type"
-        options={eventCategories.map((category) => ({ value: category, label: category }))}
+        options={eventCategories
+          .filter((category) => !HIDDEN_EVENT_CATEGORIES.has(category.trim().toLowerCase()))
+          .map((category) => ({ value: category, label: category }))}
       />
 
       <SearchDropdown
