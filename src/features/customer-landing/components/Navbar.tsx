@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { SUPPORTED_CITIES, useSelectedCity } from "../hooks/useSelectedCity";
+import { useSelectedCity } from "../hooks/useSelectedCity";
+import LocationPickerModal from "./LocationPickerModal";
 
 const NAV_LINKS = [
   { label: "Packages", hasDropdown: true, href: "/packages" },
@@ -55,29 +56,18 @@ function CitySelect() {
         aria-expanded={isOpen}
         className="flex items-center gap-1 text-brand-950 font-semibold text-[13px] leading-[20px]"
       >
-        <MapPin size={16} />
-        {city ?? "Select City"}
-        <ChevronDown size={14} />
+        <MapPin size={16} className="shrink-0" />
+        <span className="max-w-55 truncate" title={city ?? undefined}>
+          {city ?? "Select City"}
+        </span>
+        <ChevronDown size={14} className="shrink-0" />
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-10 mt-2 w-44 rounded-xl border border-black/5 bg-white py-2 shadow-lg">
-          {SUPPORTED_CITIES.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => {
-                setCity(option);
-                setIsOpen(false);
-              }}
-              className={`block w-full px-4 py-2 text-left font-figtree text-[13px] transition-colors hover:bg-brand-subtle ${
-                option === city ? "font-semibold text-brand-primary" : "text-brand-950"
-              }`}
-            >
-              {option}
-            </button>
-          ))}
-        </div>
+        <LocationPickerModal
+          onClose={() => setIsOpen(false)}
+          onSelect={(label) => setCity(label)}
+        />
       )}
     </div>
   );
