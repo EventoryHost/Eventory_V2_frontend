@@ -4,9 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPackagesFilters } from "@/lib/customerDiscoveryApi";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
-
-const SELECT_CLASSES =
-  "w-full rounded-full bg-[#F4F4F5] px-5 py-3 text-[14px] text-[#71717B] outline-none appearance-none";
+import SearchDropdown from "./SearchDropdown";
+import SearchDatePicker from "./SearchDatePicker";
 
 export default function EventSearchCard() {
   const router = useRouter();
@@ -40,53 +39,26 @@ export default function EventSearchCard() {
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-end gap-4 rounded-3xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-6 py-6">
-      <div className="flex-1 flex flex-col gap-2">
-        <label className="text-[14px] font-semibold text-brand-950">
-          Event Type
-        </label>
-        <select
-          value={eventType}
-          onChange={(e) => setEventType(e.target.value)}
-          className={SELECT_CLASSES}
-        >
-          <option value="">Any event type</option>
-          {eventCategories.map((category) => (
-            <option key={category} value={category}>
-              {category}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SearchDropdown
+        label="Event Type"
+        value={eventType}
+        onChange={setEventType}
+        placeholder="Any event type"
+        options={eventCategories.map((category) => ({ value: category, label: category }))}
+      />
 
-      <div className="flex-1 flex flex-col gap-2">
-        <label className="text-[14px] font-semibold text-brand-950">
-          Choose vendor service
-        </label>
-        <select
-          value={vendorService}
-          onChange={(e) => setVendorService(e.target.value)}
-          className={SELECT_CLASSES}
-        >
-          <option value="">Any service</option>
-          {VENDOR_CATEGORIES.filter((category) => category.id !== "all").map((category) => (
-            <option key={category.id} value={category.id}>
-              {category.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SearchDropdown
+        label="Choose vendor service"
+        value={vendorService}
+        onChange={setVendorService}
+        placeholder="Any service"
+        options={VENDOR_CATEGORIES.filter((category) => category.id !== "all").map((category) => ({
+          value: category.id,
+          label: category.label,
+        }))}
+      />
 
-      <div className="flex-1 flex flex-col gap-2">
-        <label className="text-[14px] font-semibold text-brand-950">
-          Event Date
-        </label>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="w-full rounded-full bg-[#F4F4F5] px-5 py-3 text-[14px] text-[#71717B] outline-none"
-        />
-      </div>
+      <SearchDatePicker label="Event Date" value={date} onChange={setDate} placeholder="Select date" />
 
       <button
         type="button"

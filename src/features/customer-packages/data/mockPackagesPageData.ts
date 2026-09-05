@@ -211,6 +211,18 @@ export const mockPackagesPageData: PackagesPageData = {
   ],
   defaultVendorCategoryId: "decorator",
 
+  // Mock/demo data — pretend every category has real packages so the demo
+  // page keeps showing full mock content rather than the "coming soon"
+  // empty state (that's driven from live data in getPackagesPageData.ts).
+  hasPackagesByCategory: {
+    decorator: true,
+    caterer: true,
+    "venue-provider": true,
+    "dj-artist": true,
+    "makeup-artist": true,
+    photographer: true,
+  },
+
   blocksByCategory: {
     decorator: buildCategoryBlocks(
       "decorator",

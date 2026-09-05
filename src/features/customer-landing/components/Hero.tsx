@@ -17,15 +17,22 @@ import ReadyToPlanBanner from "./ReadyToPlanBanner";
 const Hero = () => {
   return (
     <section className="relative isolate w-full overflow-hidden px-4 pb-10">
-      {/* Design team's pre-composed gradient-spot background, replacing the
-          hand-placed blur circles — see hero-bg.svg. Anchored to the very
-          top of the section (flush against the navbar, no gap) rather than
-          the padded content wrapper below, which starts lower. */}
+      {/*
+        Design team's pre-composed gradient-spot background — see
+        hero-bg.svg. The server markup has this flush at inset-x-0/top-0
+        with zero padding/margin above it (verified directly against the
+        rendered HTML), so a visible pale strip here isn't a CSS gap — it's
+        the asset's own top rows being a light/cream color that blends into
+        the page background. Shifted up via a negative `top` (clipped by
+        this section's `overflow-hidden`) to crop that strip out of view;
+        tweak the -Npx value below if it's still showing or now shows too
+        much of the image cut off.
+      */}
       <img
         src="/images/customer/hero-bg.svg"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 w-full object-cover"
+        className="pointer-events-none absolute inset-x-0 -top-20 -z-10 w-full object-cover"
       />
 
       <div className="pt-6 sm:pt-8 lg:pt-10">

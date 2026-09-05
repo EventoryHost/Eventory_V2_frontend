@@ -119,12 +119,14 @@ export default function ProductCard({
               {duration}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <Users className="h-4 w-4 text-[#71717B]" />
-            <span className="font-figtree text-[14px] font-medium text-[#71717B]">
-              {guestCapacity}
-            </span>
-          </div>
+          {guestCapacity !== "—" && (
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-[#71717B]" />
+              <span className="font-figtree text-[14px] font-medium text-[#71717B]">
+                {guestCapacity}
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="h-px w-full bg-black/10" />

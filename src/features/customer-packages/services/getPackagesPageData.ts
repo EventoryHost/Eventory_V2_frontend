@@ -49,9 +49,12 @@ export async function getPackagesPageData(): Promise<PackagesPageData> {
   );
   const realItemsByCategory = new Map(realItemsEntries);
 
+  const hasPackagesByCategory: Record<string, boolean> = {};
+
   const blocksByCategory = Object.fromEntries(
     Object.entries(mockPackagesPageData.blocksByCategory).map(([categoryId, blocks]) => {
       const realItemLists = realItemsByCategory.get(categoryId) ?? [];
+      hasPackagesByCategory[categoryId] = realItemLists.some((items) => items.length > 0);
       let productBlockIndex = 0;
 
       const nextBlocks: PackagesPageBlock[] = blocks.map((block) => {
@@ -68,5 +71,5 @@ export async function getPackagesPageData(): Promise<PackagesPageData> {
     })
   );
 
-  return { ...mockPackagesPageData, blocksByCategory };
+  return { ...mockPackagesPageData, blocksByCategory, hasPackagesByCategory };
 }
