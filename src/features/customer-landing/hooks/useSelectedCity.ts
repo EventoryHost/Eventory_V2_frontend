@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { detectCurrentLocation } from "@/lib/geocoding";
 
 const STORAGE_KEY = "eventory_selected_city";
 
+// Not a validation allowlist — just left in place in case some other UI
+// still wants a short, curated list of major cities to offer. Auto-detect
+// and manual picks both now show precise, free-form district/locality
+// labels instead of normalizing onto this list.
 export const SUPPORTED_CITIES = [
   "Mumbai",
   "Pune",
@@ -48,51 +53,29 @@ function persist(next: string) {
   }
 }
 
-/** Matches a free-form locality/city string from reverse geocoding against our supported list. */
-function matchSupportedCity(candidate: string): string | null {
-  const normalized = candidate.trim().toLowerCase();
-  return SUPPORTED_CITIES.find((c) => c.toLowerCase() === normalized) ?? null;
-}
-
-function detectCityFromGeolocation() {
-  if (hasRequestedLocation || !navigator.geolocation) return;
+async function detectCityFromGeolocation() {
+  if (hasRequestedLocation) return;
   hasRequestedLocation = true;
 
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
-      try {
-        const { latitude, longitude } = position.coords;
-        // Free, no-API-key reverse geocoding endpoint — good enough for a
-        // best-effort "detect my city" default. Swap for a backend-proxied
-        // provider later if rate limits become an issue.
-        const response = await fetch(
-          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-        );
-        if (!response.ok) return;
-        const data = await response.json();
-        const candidate: string | undefined = data.city || data.locality || data.principalSubdivision;
-        if (!candidate) return;
-        city = matchSupportedCity(candidate) ?? candidate;
-        persist(city);
-        emit();
-      } catch {
-        // Silently fall back to "Select City" — this is a convenience default, not critical.
-      }
-    },
-    () => {
-      // Permission denied or unavailable — user can still pick manually.
-    },
-    { timeout: 8000 }
-  );
+  // Passive, best-effort default — an imprecise/denied/unsupported outcome
+  // just leaves the picker on "Select City" so the user picks manually (or
+  // uses the picker's own "Auto-detect my location" button, which surfaces
+  // these same outcomes as visible feedback instead of failing silently).
+  const outcome = await detectCurrentLocation();
+  if (outcome.status !== "success") return;
+  city = outcome.label;
+  persist(city);
+  emit();
 }
 
+/** Overwrites the auto-detected city — a manual pick from LocationPickerModal always wins. */
 export function setSelectedCity(next: string) {
   city = next;
   persist(next);
   emit();
 }
 
-/** Detected/selected city for the navbar's city picker, with browser-geolocation autodetect on first load. */
+/** Detected/selected city for the navbar's location picker, with browser-geolocation autodetect on first load. */
 export function useSelectedCity() {
   const [selectedCity, setSelectedCityState] = useState<string | null>(null);
 

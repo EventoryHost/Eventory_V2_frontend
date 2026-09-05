@@ -24,10 +24,10 @@ export default function ActiveFilterChips({
           key={chip.key}
           type="button"
           onClick={chip.onRemove}
-          className="group flex h-[32px] items-center gap-2 rounded-full border border-black/10 bg-neutral-subtle px-4 transition-all hover:border-brand-primary"
+          className="group flex h-[32px] items-center gap-2 rounded-full border border-[#3C060D] bg-[#FDEEF0] px-4 transition-opacity hover:opacity-80"
         >
-          <span className="font-figtree text-[13px] text-neutral-primary">{chip.label}</span>
-          <X className="h-4 w-4 text-neutral-tertiary group-hover:text-brand-primary" />
+          <span className="font-figtree text-[13px] text-[#3C060D]">{chip.label}</span>
+          <X className="h-4 w-4 text-[#3C060D]" />
         </button>
       ))}
       <button

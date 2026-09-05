@@ -26,6 +26,7 @@ import VendorCardSkeletonGroup from "./VendorCardSkeleton";
 import VendorEmptyState from "./VendorEmptyState";
 import LoadMoreButton from "./LoadMoreButton";
 import type { SelectedFilters } from "./FilterPanelContent";
+import NoPackagesFound from "@/features/customer-packages/components/NoPackagesFound";
 
 const DEFAULT_CITY = "Ghaziabad";
 
@@ -206,6 +207,16 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const filteredVendors = useMemo(() => filterVendors(vendors, filters), [vendors, filters]);
   const hasMore = page < totalPages;
 
+  // "This category has no packages at all yet" (the Packages page's
+  // "coming soon" state) vs. "your search/filters found nothing" (the
+  // generic empty state) are different situations — only the former should
+  // show the coming-soon illustration + WhatsApp CTA. That's true when the
+  // *unfiltered* backend fetch for this category came back empty with no
+  // search term active; a search or checkbox filter narrowing a
+  // non-empty category down to zero results is still just "no results".
+  const categoryHasNoPackages =
+    category !== "all" && vendors.length === 0 && !debouncedSearch;
+
   const activeCategoryLabel = data.categories.find((item) => item.id === category)?.label ?? "All";
   const heading =
     category === "all" ? `Vendors In ${DEFAULT_CITY}` : `${activeCategoryLabel} In ${DEFAULT_CITY}`;
@@ -326,17 +337,23 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
             onSelect={handleCategorySelect}
           />
 
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <ActiveFilterChips chips={chips} onClearAll={clearAll} />
-            <SortMenu value={sort} onChange={handleSortChange} />
-          </div>
+          {!categoryHasNoPackages && (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <ActiveFilterChips chips={chips} onClearAll={clearAll} />
+                <SortMenu value={sort} onChange={handleSortChange} />
+              </div>
 
-          <ResultsHeader heading={heading} resultCount={filteredVendors.length} />
+              <ResultsHeader heading={heading} resultCount={filteredVendors.length} />
+            </>
+          )}
         </div>
 
         <div className="mt-6">
           {isLoading ? (
             <VendorCardSkeletonGroup view={view} />
+          ) : categoryHasNoPackages ? (
+            <NoPackagesFound categoryId={category} categoryLabel={activeCategoryLabel} />
           ) : filteredVendors.length === 0 ? (
             <VendorEmptyState onClearFilters={clearAll} />
           ) : (

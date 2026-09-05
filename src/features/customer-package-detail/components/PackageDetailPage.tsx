@@ -4,13 +4,10 @@ import { useMemo, useState } from "react";
 import type { PackageDetail } from "../types";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
-import AnchorNav from "./AnchorNav";
 import VariantSelector from "./VariantSelector";
-import PackageQuickStats from "./PackageQuickStats";
 import PackageSummary from "./PackageSummary";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
-import NotIncludedSection from "./NotIncludedSection";
 import NotesForVendor from "./NotesForVendor";
 import VendorRequirements from "./VendorRequirements";
 import AddonsCarousel from "./AddonsCarousel";
@@ -46,7 +43,11 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
     [selectedAddons]
   );
 
-  const packageTotal = (selectedVariant?.price ?? 0) + addonsTotal;
+  // Team & equipment is a real, separate flat charge on top of the package's
+  // base price (step3_policiesAndCharges.teamAndEquipment) — included in the
+  // subtotal. Overtime is a rate disclosure only (only charged if the event
+  // actually runs over), so it's surfaced separately, not added here.
+  const packageTotal = (selectedVariant?.price ?? 0) + data.pricing.teamAndEquipmentCharge + addonsTotal;
 
   function changeAddonQuantity(addonId: string, delta: number) {
     setAddonQuantities((prev) => {
@@ -56,13 +57,10 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
   }
 
   return (
+    <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
       <HeroGallery images={data.gallery} />
       <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
-
-      <div className="mt-6">
-        <AnchorNav />
-      </div>
 
       <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
         <div className="space-y-10 lg:col-span-2">
@@ -72,13 +70,11 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
             onSelect={setSelectedVariantId}
           />
 
-          <PackageQuickStats summary={data.summary} />
           <PackageSummary summary={data.summary} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && <IncludedItems items={data.includedItems} />}
-          {data.notIncluded && data.notIncluded.length > 0 && <NotIncludedSection items={data.notIncluded} />}
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
-          {data.vendorRequirements.length > 0 && <VendorRequirements requirements={data.vendorRequirements} />}
+          <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
             <AddonsCarousel addons={data.addons} quantities={addonQuantities} onChangeQuantity={changeAddonQuantity} />
           )}
@@ -91,6 +87,10 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
         <StickyBookingCard
           packageId={data.id}
           packageTotal={packageTotal}
+          teamAndEquipmentCharge={data.pricing.teamAndEquipmentCharge}
+          teamAndEquipmentBillingUnit={data.pricing.teamAndEquipmentBillingUnit}
+          overtimeChargeRate={data.pricing.overtimeChargeRate}
+          overtimeBillingUnit={data.pricing.overtimeBillingUnit}
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
           selectedAddons={selectedAddons}
@@ -101,5 +101,6 @@ export default function PackageDetailPage({ data }: { data: PackageDetail }) {
         />
       </div>
     </main>
+    </div>
   );
 }
