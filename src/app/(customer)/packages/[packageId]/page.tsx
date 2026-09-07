@@ -13,11 +13,13 @@ export default async function PackageDetail({
 }) {
   const { packageId } = await params;
 
+  let data;
   try {
-    const data = await getPackageDetail(packageId);
-    return <PackageDetailPage data={data} />;
+    data = await getPackageDetail(packageId);
   } catch (error) {
     if (error instanceof PackageNotFoundError) notFound();
     throw error;
   }
+
+  return <PackageDetailPage data={data} />;
 }

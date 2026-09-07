@@ -1,10 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Clock, MapPin, Users } from "lucide-react";
+import { Bookmark, Clock, Map, Users } from "lucide-react";
 import type { Vendor } from "../types";
 import { formatPrice } from "../utils/currency";
-import { CATEGORY_ICON } from "./categoryIcons";
 import VendorRating from "./VendorRating";
+
+const FALLBACK_CATEGORY_ICON = "/images/customer/packages-pics.png";
 
 function formatEventTags(eventTypes: string[]) {
   return eventTypes.slice(0, 2).join(" • ");
@@ -21,7 +22,7 @@ export default function VendorGridCard({
   onToggleBookmark: (id: string) => void;
   badge?: string;
 }) {
-  const CategoryIcon = CATEGORY_ICON[vendor.category];
+  const hasGuestCapacity = vendor.guestCapacity && vendor.guestCapacity !== "—";
 
   return (
     <Link
@@ -60,14 +61,26 @@ export default function VendorGridCard({
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-center gap-2">
-          <div className="flex shrink-0 items-center gap-1 rounded bg-[#FFF5F6] px-2.5 py-1">
-            {CategoryIcon && <CategoryIcon className="h-3.5 w-3.5 text-brand-primary" />}
-            <span className="font-figtree text-[11px] font-bold tracking-tight text-brand-primary uppercase">
+          <div
+            className="flex w-fit shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
+            style={{
+              background: `linear-gradient(to left, ${vendor.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
+            }}
+          >
+            <Image
+              src={vendor.categoryIcon ?? FALLBACK_CATEGORY_ICON}
+              alt={vendor.categoryLabel}
+              width={16}
+              height={16}
+              className="h-4 w-4 rounded-full object-contain"
+            />
+            <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap">
               {vendor.categoryLabel}
             </span>
           </div>
-          <span className="truncate font-figtree text-[11px] font-medium text-neutral-tertiary">
-            • {formatEventTags(vendor.eventTypes)}
+          <span className="h-4 w-px shrink-0 bg-black/10" />
+          <span className="truncate font-figtree text-[11px] font-medium text-error-700">
+            {formatEventTags(vendor.eventTypes)}
           </span>
         </div>
 
@@ -75,39 +88,47 @@ export default function VendorGridCard({
           {vendor.packageName}
         </h3>
 
-        <VendorRating rating={vendor.rating} reviewCount={vendor.reviewCount} />
+        {vendor.reviewCount > 0 && <VendorRating rating={vendor.rating} reviewCount={vendor.reviewCount} />}
 
-        <div className="flex items-center gap-4 font-figtree text-[13px] text-neutral-secondary">
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-4 w-4" />
-            {vendor.duration}
+        {(hasGuestCapacity || vendor.duration !== "—") && (
+          <div className="flex items-center gap-4 font-figtree text-[13px] text-neutral-secondary">
+            {vendor.duration !== "—" && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-4 w-4" />
+                {vendor.duration}
+              </div>
+            )}
+            {hasGuestCapacity && (
+              <div className="flex items-center gap-1.5">
+                <Users className="h-4 w-4" />
+                {vendor.guestCapacity}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-1.5">
-            <Users className="h-4 w-4" />
-            {vendor.guestCapacity}
-          </div>
+        )}
+
+        <div className="mt-auto border-t border-black/5 pt-4">
+          <p className="mb-0.5 font-figtree text-[11px] font-bold tracking-wider text-neutral-tertiary uppercase">
+            Starting From
+          </p>
+          <p className="font-figtree text-[22px] leading-none font-bold text-neutral-primary sm:text-[24px]">
+            {formatPrice(vendor.startingPrice)}
+            <span className="ml-1 font-figtree text-[13px] font-bold text-neutral-secondary">
+              /event
+            </span>
+          </p>
         </div>
+      </div>
 
-        <div className="mt-auto flex flex-col gap-3 border-t border-black/5 pt-4">
-          <div>
-            <p className="mb-0.5 font-figtree text-[11px] font-bold tracking-wider text-neutral-tertiary uppercase">
-              Starting From
-            </p>
-            <p className="font-figtree text-[22px] leading-none font-bold text-neutral-primary sm:text-[24px]">
-              {formatPrice(vendor.startingPrice)}
-              <span className="ml-1 font-figtree text-[13px] font-bold text-neutral-secondary">
-                /event
-              </span>
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <MapPin className="h-4 w-4 shrink-0 text-error-700" />
-            <p className="truncate font-figtree text-[12px] font-medium text-error-700">
-              {vendor.location}
-            </p>
-          </div>
-        </div>
+      {/* Location — full-bleed footer strip, its own top border separate from
+          the padded content above. Only the first 2 locations, "..." appended
+          when there are more. */}
+      <div className="flex items-center gap-2 border-t border-[#F0F0F0] px-4 py-1.5">
+        <Map className="h-4 w-4 shrink-0 text-error-700" />
+        <p className="truncate font-figtree text-[13px] font-medium text-error-700">
+          Available in {vendor.locations.slice(0, 2).join(", ")}
+          {vendor.locations.length > 2 ? "..." : ""}
+        </p>
       </div>
     </Link>
   );

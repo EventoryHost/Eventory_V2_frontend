@@ -12,8 +12,10 @@ export default async function VendorsPage() {
   const data = await getVendorsPageData();
 
   return (
-    <Suspense fallback={null}>
-      <VendorsPageContent data={data} />
-    </Suspense>
+    <div className="bg-white">
+      <Suspense fallback={null}>
+        <VendorsPageContent data={data} />
+      </Suspense>
+    </div>
   );
 }

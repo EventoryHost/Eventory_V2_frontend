@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { MapPin, Share2, Star, Bookmark, BadgeCheck } from "lucide-react";
 import type { PackageDetail } from "../types";
-import Breadcrumb from "@/components/customer/Breadcrumb";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
@@ -19,7 +18,7 @@ export default function PackageHeaderInfo({
     | "id"
     | "categoryLabel"
     | "categoryIcon"
-    | "vendorUnitName"
+    | "categoryGradientFrom"
     | "eventTags"
     | "moreEventTagsCount"
     | "title"
@@ -79,24 +78,28 @@ export default function PackageHeaderInfo({
 
   return (
     <section>
-      <div className="mb-3">
-        <Breadcrumb
-          items={[
-            { label: data.categoryLabel, href: "/packages" },
-            { label: data.vendorUnitName || data.vendorName },
-          ]}
-        />
-      </div>
-
-      <div className="mb-3 flex flex-wrap items-center gap-2 font-figtree text-[11px] font-semibold tracking-wider text-neutral-tertiary uppercase">
-        <span className="flex items-center gap-1.5">
+      <div className="mb-3 flex flex-wrap items-center gap-3 font-figtree text-[13px]">
+        <div
+          className="flex shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
+          style={{
+            background: `linear-gradient(to left, ${data.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
+          }}
+        >
           {data.categoryIcon && (
-            <Image src={data.categoryIcon} alt="" width={20} height={20} className="h-5 w-5 rounded-full object-cover" />
+            <Image
+              src={data.categoryIcon}
+              alt={data.categoryLabel}
+              width={20}
+              height={20}
+              className="h-5 w-5 rounded-full object-contain"
+            />
           )}
-          {data.categoryLabel}
-        </span>
-        <span className="text-neutral-tertiary/50">•</span>
-        <span className="normal-case">
+          <span className="font-figtree text-[12px] font-semibold whitespace-nowrap text-brand-950">
+            {data.categoryLabel}
+          </span>
+        </div>
+        <span className="h-4 w-px shrink-0 bg-black/10" />
+        <span className="font-figtree text-[13px] font-medium text-[#B4112A]">
           {data.eventTags.join(" • ")}
           {data.moreEventTagsCount > 0 && (
             <>
@@ -135,16 +138,20 @@ export default function PackageHeaderInfo({
 
       <div className="flex flex-wrap items-center justify-between gap-3 font-figtree text-[13px]">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 font-semibold text-brand-950">
-            <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
-            {data.rating}
-            <span className="font-normal text-neutral-tertiary underline">
-              &nbsp;(from {data.reviewCount} reviews)
-            </span>
-          </div>
-          <span className="h-1 w-1 rounded-full bg-neutral-tertiary/40" />
+          {data.reviewCount > 0 && (
+            <>
+              <div className="flex items-center gap-1 font-semibold text-brand-950">
+                <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
+                {data.rating}
+                <span className="font-normal text-neutral-tertiary underline">
+                  &nbsp;(from {data.reviewCount} reviews)
+                </span>
+              </div>
+              <span className="h-1 w-1 rounded-full bg-neutral-tertiary/40" />
+            </>
+          )}
           <div className="flex items-center gap-1.5 text-neutral-secondary">
-            <MapPin className="h-4 w-4" />
+            <MapPin className="h-4 w-4" style={{ color: "#EA1D3B" }} />
             {data.locationSummary}... <span className="font-medium text-brand-950 underline">See the location</span>
           </div>
         </div>
@@ -170,6 +177,8 @@ export default function PackageHeaderInfo({
           </button>
         </div>
       </div>
+
+      <hr className="mt-6 border-black/5" />
 
       <AuthModal
         isOpen={isAuthOpen}

@@ -18,13 +18,21 @@ export interface Vendor {
   /** Category slug — matches VendorCategory.id. */
   category: string;
   categoryLabel: string;
+  /** Category chip icon/gradient — same per-category look as the landing page's ProductCard (src/lib/categoryMeta.ts). */
+  categoryIcon?: string;
+  categoryGradientFrom?: string;
   eventTypes: string[];
+  /** Short vendor-authored highlights (e.g. "Bridal Makeup", "Fashion Photography") — cleaned from the real `included` field, which isn't reliably tag-shaped across every vendor type. Can be empty. */
+  highlightTags: string[];
   rating: number;
   reviewCount: number;
   duration: string;
   guestCapacity: string;
   startingPrice: number;
+  /** City only — kept for the existing text-search haystack in filterVendors.ts. */
   location: string;
+  /** City + service areas, same source composition as the PDP header / landing-page cards. */
+  locations: string[];
   description: string;
   images: string[];
   isBookmarked?: boolean;

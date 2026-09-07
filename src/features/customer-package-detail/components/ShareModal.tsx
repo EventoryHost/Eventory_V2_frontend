@@ -117,24 +117,24 @@ export default function ShareModal({
             exit={{ opacity: 0, scale: 0.96 }}
             className="relative max-h-[85vh] w-full max-w-[520px] overflow-y-auto rounded-3xl bg-white p-6 shadow-xl sm:p-8"
           >
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <h3 className="font-figtree text-[20px] font-bold text-brand-950">Share this package</h3>
+            <div className="mb-5 flex items-start justify-between gap-3 border-b border-black/10 pb-4">
+              <h3 className="font-figtree text-[22px] font-bold text-brand-950">Share this package</h3>
               <button
                 type="button"
                 aria-label="Close"
                 onClick={onClose}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black/5 text-neutral-secondary transition-colors hover:bg-black/10"
+                className="flex h-8 w-8 shrink-0 items-center justify-center text-brand-950 transition-colors hover:text-neutral-secondary"
               >
-                <X size={16} />
+                <X size={22} />
               </button>
             </div>
 
-            <div className="mb-6 flex items-center gap-3 rounded-xl bg-neutral-subtle p-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center gap-0.5 rounded-lg bg-brand-primary/10 font-figtree text-[13px] font-bold text-brand-primary">
-                <Star className="h-3.5 w-3.5 fill-brand-primary text-brand-primary" />
+            <div className="mb-6 flex items-center gap-3">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center gap-1 rounded-2xl bg-[#F4F4F5] font-figtree text-[16px] font-bold text-brand-950">
                 {target.rating}
+                <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
               </div>
-              <p className="font-figtree text-[13px] text-neutral-secondary">
+              <p className="font-figtree text-[14px] text-neutral-secondary">
                 <span className="font-semibold text-brand-950">{target.title}</span> · {target.vendorName} ·{" "}
                 {target.locationSummary} · {target.eventsCount} events
               </p>
@@ -146,14 +146,14 @@ export default function ShareModal({
                   key={option.id}
                   type="button"
                   onClick={option.onClick}
-                  className="flex items-center gap-2.5 rounded-xl border border-black/10 px-4 py-3 font-figtree text-[13px] font-medium text-brand-950 transition hover:border-black/25"
+                  className="flex items-center gap-3 rounded-2xl border border-black/10 px-4 py-4 font-figtree text-[14px] font-medium text-brand-950 transition hover:border-black/25"
                 >
-                  <option.icon className="h-4 w-4 shrink-0" /> {option.label}
+                  <option.icon className="h-5 w-5 shrink-0" /> {option.label}
                 </button>
               ))}
             </div>
 
-            <div className="mt-5 rounded-xl bg-neutral-subtle p-4">
+            <div className="mt-5 rounded-2xl bg-[#FAFAFA] p-4">
               <div className="flex items-center gap-2 font-figtree text-[14px] font-bold text-brand-950">
                 <FileText className="h-4 w-4 text-brand-primary" /> Create a complete quotation
               </div>
@@ -166,9 +166,9 @@ export default function ShareModal({
                   onClose();
                   onCreateQuotation();
                 }}
-                className="mt-3 w-full rounded-lg bg-brand-primary py-2.5 font-figtree text-[13px] font-semibold text-white transition hover:bg-rose-600"
+                className="mt-3 w-full rounded-full bg-brand-primary/70 py-2.5 font-figtree text-[14px] font-semibold text-white transition hover:bg-brand-primary/80"
               >
-                Go to booking details
+                Create quotation
               </button>
             </div>
           </motion.div>

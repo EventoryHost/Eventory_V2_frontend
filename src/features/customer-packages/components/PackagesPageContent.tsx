@@ -8,10 +8,13 @@ import PackageCategorySection from "./PackageCategorySection";
 import FestiveOfferBanner from "./FestiveOfferBanner";
 import MagicalMomentsSection from "./MagicalMomentsSection";
 import BudgetEstimatorSection from "./BudgetEstimatorSection";
+import NoPackagesFound from "./NoPackagesFound";
 
 export default function PackagesPageContent({ data }: { data: PackagesPageData }) {
   const [activeCategoryId, setActiveCategoryId] = useState(data.defaultVendorCategoryId);
   const blocks = data.blocksByCategory[activeCategoryId] ?? [];
+  const hasPackages = data.hasPackagesByCategory[activeCategoryId] ?? true;
+  const activeCategory = data.vendorCategories.find((category) => category.id === activeCategoryId);
 
   return (
     <div className="flex w-full flex-col gap-6 pt-4 pb-12 sm:gap-8 sm:pt-6 sm:pb-16">
@@ -23,20 +26,27 @@ export default function PackagesPageContent({ data }: { data: PackagesPageData }
         onSelect={setActiveCategoryId}
       />
 
-      {blocks.map((block) => {
-        switch (block.type) {
-          case "packageCategorySection":
-            return <PackageCategorySection key={block.data.id} section={block.data} />;
-          case "festiveOffer":
-            return <FestiveOfferBanner key={block.data.id} offer={block.data} />;
-          case "magicalMoments":
-            return <MagicalMomentsSection key={block.data.id} data={block.data} />;
-          case "budgetEstimator":
-            return <BudgetEstimatorSection key={block.data.id} data={block.data} />;
-          default:
-            return null;
-        }
-      })}
+      {!hasPackages ? (
+        <NoPackagesFound
+          categoryId={activeCategoryId}
+          categoryLabel={activeCategory?.label ?? "These"}
+        />
+      ) : (
+        blocks.map((block) => {
+          switch (block.type) {
+            case "packageCategorySection":
+              return <PackageCategorySection key={block.data.id} section={block.data} />;
+            case "festiveOffer":
+              return <FestiveOfferBanner key={block.data.id} offer={block.data} />;
+            case "magicalMoments":
+              return <MagicalMomentsSection key={block.data.id} data={block.data} />;
+            case "budgetEstimator":
+              return <BudgetEstimatorSection key={block.data.id} data={block.data} />;
+            default:
+              return null;
+          }
+        })
+      )}
     </div>
   );
 }

@@ -110,4 +110,12 @@ export interface PackagesPageData {
   defaultVendorCategoryId: string;
   /** Ordered content sections per vendor-category tab — CMS/API-driven, not hardcoded in JSX. */
   blocksByCategory: Record<string, PackagesPageBlock[]>;
+  /**
+   * Whether GET /customer/packages actually returned any real packages for
+   * this category. `blocksByCategory` always has *something* in it (mock
+   * CMS blocks like festive offers stay even with zero real packages), so
+   * this is the real signal for the "coming soon" empty state — not an
+   * empty `blocksByCategory` entry.
+   */
+  hasPackagesByCategory: Record<string, boolean>;
 }

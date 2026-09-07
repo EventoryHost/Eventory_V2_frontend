@@ -49,7 +49,13 @@ export default function FilterSection({
                   type="checkbox"
                   checked={selectedIds.includes(option.id)}
                   onChange={() => onToggle(option.id)}
-                  className="h-4 w-4 rounded border-black/20 text-brand-primary focus:ring-1 focus:ring-brand-primary"
+                  // text-* doesn't control a checkbox's checked-state color —
+                  // that's accent-color, a separate CSS property — which is
+                  // why this was rendering the browser's default blue instead.
+                  // No border/focus-ring classes here — with accent-color set,
+                  // those rendered as a visible dark edge around the already
+                  // black-filled box instead of a clean fill.
+                  className="h-4 w-4 rounded accent-black outline-none"
                 />
                 <span className="font-figtree text-[14px] text-neutral-secondary transition-colors group-hover:text-brand-primary">
                   {option.label}

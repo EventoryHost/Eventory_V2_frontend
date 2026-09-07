@@ -525,5 +525,7 @@ export const mockPackageDetail: PackageDetail = {
   pricing: {
     gstPercent: 18,
     tokenAmount: 5000,
+    teamAndEquipmentCharge: 0,
+    overtimeChargeRate: 0,
   },
 };
