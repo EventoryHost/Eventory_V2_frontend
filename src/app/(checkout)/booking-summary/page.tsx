@@ -2,5 +2,9 @@
 import BookingSummaryPage from "@/features/customer-booking/components/BookingSummaryPage";
 
 export default function BookingSummary() {
-  return <BookingSummaryPage />;
+  return (
+    <div className="bg-white">
+      <BookingSummaryPage />
+    </div>
+  );
 }

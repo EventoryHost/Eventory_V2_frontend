@@ -35,6 +35,15 @@ export interface RawCheckoutSession {
   bookingNote: string;
   lines: RawCheckoutSessionLine[];
   lockedQuote: RawCartQuote | null;
+  /**
+   * Snapshotted from the cart at session-creation time (source:"cart" only),
+   * same as bookingNote/contactDetails — never re-synced afterward, so this
+   * won't reflect a coupon applied/removed on the cart after this session
+   * was created. discountAmount is real but stays 0 until the backend's
+   * Coupon/Offer model exists (2026-09-08 handoff) — code is real and
+   * populated as soon as a customer applies one, independent of that.
+   */
+  coupon: { code: string; discountAmount: number } | null;
 }
 
 export interface RawCheckoutSessionAvailabilityEntry {

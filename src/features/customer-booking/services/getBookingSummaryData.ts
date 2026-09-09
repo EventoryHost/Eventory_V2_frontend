@@ -11,27 +11,18 @@ import { getVendorPublic, type RawVendorPublicMinimal } from "@/lib/vendorPublic
 import type { RawCartQuoteLine } from "@/lib/customerCartApi";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
 import { formatShortDate, getCancellationTiers } from "@/features/customer-package-detail/utils/cancellationPolicy";
+import { CATEGORY_META } from "@/lib/categoryMeta";
+import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import type {
   BookingLineRow,
+  BookingPaymentMilestone,
   BookingServiceItem,
   BookingSummaryData,
   BookingVendorGroup,
 } from "../types";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
-
-// Same slug/icon photography already used for the Package Detail page (see
-// customer-package-detail/services/getPackageDetail.ts's CATEGORY_ICON_BY_SLUG)
-// — kept local since it's a small, self-contained lookup, same pattern as
-// customer-cart/utils/categoryMeta.ts.
-const CATEGORY_ICON_BY_TYPE: Record<string, string> = {
-  Decorator: "/images/customer/decorator.png",
-  Caterer: "/images/customer/caterers.png",
-  VenueProvider: "/images/customer/venue.png",
-  DJArtist: "/images/customer/dj.png",
-  MakeupArtist: "/images/customer/makeup.png",
-  PAV: "/images/customer/video.png",
-};
+const FALLBACK_GRADIENT = "#FFE5E9";
 
 const CATEGORY_LABEL_BY_TYPE: Record<string, string> = {
   Decorator: "Decorator",
@@ -65,6 +56,12 @@ function mapLine(
   quoteLine: RawCartQuoteLine | undefined
 ): BookingServiceItem {
   const vendorType = line.packageSnapshot.vendorType ?? "";
+  // Same category icon+gradient every other card in the app uses (landing,
+  // vendor listing, cart, PDP) — this used to be a single hardcoded pink
+  // gradient regardless of category, so every service here showed the same
+  // chip color no matter what it actually was.
+  const categorySlug = VENDOR_TYPE_TO_CATEGORY[vendorType];
+  const categoryMeta = categorySlug ? CATEGORY_META[categorySlug] : undefined;
   const stillAvailable = availabilityEntry?.packageStillAvailable ?? true;
   // availability.overall is the fine-grained date/time/capacity check —
   // distinct from packageStillAvailable (does the package still exist at
@@ -77,7 +74,8 @@ function mapLine(
     vendorId: line.vendorId,
     image: line.packageSnapshot.image || FALLBACK_IMAGE,
     categoryLabel: CATEGORY_LABEL_BY_TYPE[vendorType] ?? vendorType ?? "Package",
-    categoryIcon: CATEGORY_ICON_BY_TYPE[vendorType] ?? FALLBACK_IMAGE,
+    categoryIcon: categoryMeta?.icon ?? FALLBACK_IMAGE,
+    categoryGradientFrom: categoryMeta?.gradientFrom ?? FALLBACK_GRADIENT,
     vendorName: vendorName ?? vendorType ?? "Vendor",
     serviceName: line.packageSnapshot.name ?? "Package",
     packageTier: line.packageSnapshot.variantType ?? "",
@@ -120,6 +118,25 @@ function earliestFullRefundCutoff(lines: RawCheckoutSessionLine[]): Date | null 
   return getCancellationTiers(earliestIso)?.fullRefundCutoff ?? null;
 }
 
+function mapMilestones(
+  quote: RawCheckoutSessionResponse["session"]["lockedQuote"],
+  lineById: Map<string, RawCheckoutSessionLine>
+): BookingPaymentMilestone[] {
+  if (!quote) return [];
+  return quote.lines.flatMap((quoteLine) => {
+    const serviceName = lineById.get(quoteLine.cartItemId)?.packageSnapshot.name ?? "Package";
+    return (quoteLine.milestones ?? []).map((milestone) => ({
+      serviceName,
+      title: milestone.title,
+      percentage: milestone.percentage,
+      amount: milestone.amount != null ? formatPrice(milestone.amount) : null,
+      due: milestone.dueDate
+        ? formatShortDate(new Date(milestone.dueDate))
+        : (milestone.dueDaysRaw ?? null),
+    }));
+  });
+}
+
 async function resolveVendors(vendorIds: string[]): Promise<Map<string, RawVendorPublicMinimal>> {
   const unique = [...new Set(vendorIds)];
   const map = new Map<string, RawVendorPublicMinimal>();
@@ -153,6 +170,8 @@ function emptyBookingSummaryData(): BookingSummaryData {
       payInFull: true,
       isFreeCheckout: false,
       tokenConfigured: false,
+      milestones: [],
+      appliedCouponCode: null,
       cancellationNote: "Free cancellation may apply — check each package's policy for exact dates.",
     },
   };
@@ -267,6 +286,12 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
     }
   }
 
+  // Real per-package payment schedule, straight from each vendor's own
+  // paymentMilestones config (cartPricingService.js's computeLineMilestones)
+  // — "See full payment schedule" used to have nowhere to send this, even
+  // though the backend already returns it on every line.
+  const milestones = mapMilestones(quote, lineById);
+
   return {
     sessionId: session._id,
     canContinue: validation.canContinue,
@@ -294,6 +319,8 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       // one case pay-integrate.txt says should never reach POST
       // /payments/token in the first place.
       tokenConfigured: quote != null && quote.tokenAmountTotal != null,
+      milestones,
+      appliedCouponCode: session.coupon?.code ?? null,
       // When one or more vendors have no token configured, quote.note is
       // backend-internal explanatory text (why tokenAmountTotal/remainingTotal
       // were withheld) — not customer-facing copy, so it's swapped for the

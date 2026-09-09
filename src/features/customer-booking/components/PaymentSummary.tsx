@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Tag, ChevronRight, ShieldCheck, Info, ArrowRight } from "lucide-react";
+import { Tag, ShieldCheck, Info, ArrowRight, BadgeCheck } from "lucide-react";
 
 export type PaymentSummaryProps = {
   vendorCount: number;
@@ -23,6 +23,17 @@ export type PaymentSummaryProps = {
   couponLoading?: boolean;
   couponFeedback?: string | null;
   onViewSchedule?: () => void;
+  /** True when tokenAmount is genuinely 0 (every line resolved free) — hides the "Pay now to confirm" box entirely instead of showing a nonsensical "Pay ₹0 today". */
+  isFreeCheckout?: boolean;
+  /**
+   * The coupon code snapshotted onto this checkout session (session.coupon.code,
+   * per the 2026-09-08 backend handoff) — null when none applied. Persistent,
+   * unlike couponFeedback's one-shot toast message. No remove control here on
+   * purpose: removal only happens from Cart (checkout sessions don't re-sync
+   * from cart after creation), applying a different code here is what
+   * replaces it (triggers a fresh session on refresh).
+   */
+  appliedCouponCode?: string | null;
 };
 
 export default function PaymentSummary({
@@ -42,6 +53,8 @@ export default function PaymentSummary({
   couponLoading = false,
   couponFeedback,
   onViewSchedule,
+  appliedCouponCode,
+  isFreeCheckout = false,
 }: PaymentSummaryProps) {
   const [code, setCode] = useState("");
 
@@ -59,6 +72,15 @@ export default function PaymentSummary({
         </div>
 
         <div className="flex flex-col gap-3">
+          {appliedCouponCode && (
+            <div className="flex items-center gap-2 rounded-2xl border border-success-700/20 bg-success-subtle px-3 py-2.5">
+              <BadgeCheck size={16} className="shrink-0 text-success-700" />
+              <span className="font-figtree text-[13px] font-semibold text-success-700">
+                Coupon {appliedCouponCode} applied
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center gap-2">
             <div className="flex h-11 min-h-11 flex-1 items-center gap-2 rounded-[16px] border border-[#E4E4E7] pt-[1px] pr-3 pb-[1px] pl-3">
               <Tag size={16} className="shrink-0 text-[#71717B]" />
@@ -86,14 +108,6 @@ export default function PaymentSummary({
               {couponFeedback}
             </p>
           )}
-
-          <button
-            type="button"
-            className="flex w-fit items-center gap-1 font-figtree text-[12px] font-semibold leading-[18px] text-[#F0596F]"
-          >
-            View available offers
-            <ChevronRight size={14} />
-          </button>
         </div>
 
         <div className="h-px w-full bg-[#E4E4E7]" />
@@ -122,37 +136,39 @@ export default function PaymentSummary({
           </span>
         </div>
 
-        <div className="w-full max-w-[318px] overflow-hidden rounded-[16px] border border-[#E4E4E7]">
-          <div className="flex flex-col gap-3 p-4">
-            <span className="flex items-center gap-1.5 font-figtree text-[11px] font-semibold tracking-[0.03em] text-[#71717B] uppercase">
-              <ShieldCheck size={14} />
-              {payInFull ? "Pay in full to confirm" : "Pay now to confirm"}
-            </span>
-
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-figtree text-[32px] font-semibold leading-[32px] tracking-[-0.02em] text-[#030303]">
-                {tokenAmount}
+        {!isFreeCheckout && (
+          <div className="w-full max-w-[318px] overflow-hidden rounded-[16px] border border-[#E4E4E7]">
+            <div className="flex flex-col gap-3 p-4">
+              <span className="flex items-center gap-1.5 font-figtree text-[11px] font-semibold tracking-[0.03em] text-[#71717B] uppercase">
+                <ShieldCheck size={14} />
+                {payInFull ? "Pay in full to confirm" : "Pay now to confirm"}
               </span>
 
-              <span className="flex w-fit items-center gap-1 rounded-full bg-[#EFF6FF] pt-1 pr-2.5 pb-1 pl-2.5">
-                <Info size={12} className="text-[#1447E6]" />
-                <span className="font-figtree text-[11px] font-semibold leading-[16.5px] text-[#1447E6]">
-                  Token Amount
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="font-figtree text-[32px] font-semibold leading-[32px] tracking-[-0.02em] text-[#030303]">
+                  {tokenAmount}
                 </span>
-              </span>
+
+                <span className="flex w-fit items-center gap-1 rounded-full bg-[#EFF6FF] pt-1 pr-2.5 pb-1 pl-2.5">
+                  <Info size={12} className="text-[#1447E6]" />
+                  <span className="font-figtree text-[11px] font-semibold leading-[16.5px] text-[#1447E6]">
+                    Token Amount
+                  </span>
+                </span>
+              </div>
+            </div>
+
+            <div className="h-px w-full bg-[#E4E4E7]" />
+
+            <div className="px-4 pt-3 pb-2">
+              <p className="font-figtree text-[12px] font-medium leading-[19.5px] text-[#3F3F47]">
+                {payInFull
+                  ? `Pay ${tokenAmount} in full to confirm your booking.`
+                  : `Pay just ${tokenAmount} today to lock in your event. The rest is due closer to the date.`}
+              </p>
             </div>
           </div>
-
-          <div className="h-px w-full bg-[#E4E4E7]" />
-
-          <div className="px-4 pt-3 pb-2">
-            <p className="font-figtree text-[12px] font-medium leading-[19.5px] text-[#3F3F47]">
-              {payInFull
-                ? `Pay ${tokenAmount} in full to confirm your booking.`
-                : `Pay just ${tokenAmount} today to lock in your event. The rest is due closer to the date.`}
-            </p>
-          </div>
-        </div>
+        )}
 
         {ctaDisabled ? (
           <span className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white opacity-50">

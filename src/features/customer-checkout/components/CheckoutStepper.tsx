@@ -13,7 +13,7 @@ export default function CheckoutStepper() {
   const activeIndex = STEPS.findIndex((step) => step.href === pathname);
 
   return (
-    <div className="flex w-full items-center justify-center overflow-x-auto px-4 py-5 lg:py-8">
+    <div className="flex w-full items-center justify-center overflow-x-auto px-4 py-1 lg:py-1">
       <div className="flex items-center gap-2 lg:gap-4">
         {STEPS.map((step, i) => {
           // Linear flow, not tabs: the current step and every step already
@@ -24,7 +24,10 @@ export default function CheckoutStepper() {
           const isDone = i <= activeIndex;
           const isCurrent = i === activeIndex;
           return (
-            <div key={step.href} className="flex shrink-0 items-center gap-2 lg:gap-4">
+            <div
+              key={step.href}
+              className="flex shrink-0 items-center gap-2 lg:gap-4"
+            >
               {i > 0 && (
                 <div
                   className={`h-px w-5 shrink-0 lg:w-10 ${

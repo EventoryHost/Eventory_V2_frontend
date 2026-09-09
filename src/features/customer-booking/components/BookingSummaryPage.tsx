@@ -1,22 +1,37 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import BookingSummaryHeader from "./BookingSummaryHeader";
 import VendorSummaryRow from "./VendorSummaryRow";
 import ServiceBookingCard from "./ServiceBookingCard";
 import PaymentSummary from "./PaymentSummary";
+import PaymentScheduleDialog from "./PaymentScheduleDialog";
 import CheckoutLoginGate from "@/features/customer-checkout/components/CheckoutLoginGate";
 import { useBookingSummaryData } from "../hooks/useBookingSummaryData";
 
 export default function BookingSummaryPage() {
-  const { data, loading, error, refresh, applyCoupon, couponLoading, couponFeedback } = useBookingSummaryData();
+  const {
+    data,
+    loading,
+    error,
+    refresh,
+    applyCoupon,
+    couponLoading,
+    couponFeedback,
+  } = useBookingSummaryData();
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
   const blockedServices =
-    data && !data.readyForPayment ? data.vendorGroups.flatMap((g) => g.services).filter((s) => !s.isBookable) : [];
+    data && !data.readyForPayment
+      ? data.vendorGroups
+          .flatMap((g) => g.services)
+          .filter((s) => !s.isBookable)
+      : [];
 
   return (
     <CheckoutLoginGate>
-      <div className="mx-auto w-full max-w-[1320px] px-4 pt-8 pb-16 sm:px-6 lg:px-16">
+      <div className="mx-auto w-full max-w-[1320px] px-4  pb-16 sm:px-6 lg:px-16">
         <BookingSummaryHeader />
 
         {loading && (
@@ -45,17 +60,28 @@ export default function BookingSummaryPage() {
           </div>
         )}
 
-        {!loading && !error && data && data.vendorGroups.length > 0 && blockedServices.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] px-5 py-4 font-figtree text-[13px] text-[#92400E]">
-            Can&apos;t continue yet — {blockedServices.map((s) => `${s.serviceName} (${s.vendorName})`).join(", ")}{" "}
-            {blockedServices.length === 1 ? "doesn't" : "don't"} work with the current date, time or guest count. Edit
-            the package&apos;s event details (via &quot;Edit Package&quot;) or remove it to continue.
-          </div>
-        )}
+        {!loading &&
+          !error &&
+          data &&
+          data.vendorGroups.length > 0 &&
+          blockedServices.length > 0 && (
+            <div className="mt-6 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] px-5 py-4 font-figtree text-[13px] text-[#92400E]">
+              Can&apos;t continue yet —{" "}
+              {blockedServices
+                .map((s) => `${s.serviceName} (${s.vendorName})`)
+                .join(", ")}{" "}
+              {blockedServices.length === 1 ? "doesn't" : "don't"} work with the
+              current date, time or guest count. Edit the package&apos;s event
+              details (via &quot;Edit Package&quot;) or remove it to continue.
+            </div>
+          )}
 
         {!loading && !error && data && (data.lineErrors?.length ?? 0) > 0 && (
           <div className="mt-6 flex flex-col gap-1 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] px-5 py-4 font-figtree text-[13px] text-[#92400E]">
-            <span>You&apos;ll be blocked at the Details step until these are fixed (via &quot;Edit Package&quot;):</span>
+            <span>
+              You&apos;ll be blocked at the Details step until these are fixed
+              (via &quot;Edit Package&quot;):
+            </span>
             <ul className="list-disc pl-5">
               {data.lineErrors.map((message) => (
                 <li key={message}>{message}</li>
@@ -68,7 +94,10 @@ export default function BookingSummaryPage() {
           <div className="mt-8 flex flex-col gap-8 lg:flex-row lg:items-start">
             <div className="flex w-full flex-col gap-8 lg:flex-1">
               {data.vendorGroups.map((group) => (
-                <div key={group.vendorId} className="flex w-full flex-col gap-4">
+                <div
+                  key={group.vendorId}
+                  className="flex w-full flex-col gap-4"
+                >
                   <VendorSummaryRow
                     avatar={group.avatar}
                     avatarInitial={group.avatarInitial}
@@ -88,6 +117,7 @@ export default function BookingSummaryPage() {
                       image={service.image}
                       categoryLabel={service.categoryLabel}
                       categoryIcon={service.categoryIcon}
+                      categoryGradientFrom={service.categoryGradientFrom}
                       vendorName={service.vendorName}
                       serviceName={service.serviceName}
                       packageTier={service.packageTier}
@@ -121,14 +151,25 @@ export default function BookingSummaryPage() {
                 // Not data.canContinue: that also requires contact.valid, which
                 // can only become true after the Details step — gating this
                 // button on it would make it impossible to ever reach Details.
-                ctaDisabled={data.vendorGroups.length === 0 || !data.readyForPayment}
+                ctaDisabled={
+                  data.vendorGroups.length === 0 || !data.readyForPayment
+                }
                 onApplyCoupon={applyCoupon}
                 couponLoading={couponLoading}
                 couponFeedback={couponFeedback}
+                appliedCouponCode={data.paymentSummary.appliedCouponCode}
+                isFreeCheckout={data.paymentSummary.isFreeCheckout}
+                onViewSchedule={() => setIsScheduleOpen(true)}
               />
             </div>
           </div>
         )}
+
+        <PaymentScheduleDialog
+          isOpen={isScheduleOpen}
+          onClose={() => setIsScheduleOpen(false)}
+          milestones={data?.paymentSummary.milestones ?? []}
+        />
       </div>
     </CheckoutLoginGate>
   );

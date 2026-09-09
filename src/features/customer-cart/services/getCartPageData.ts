@@ -24,7 +24,16 @@ function mapAddon(raw: RawCartItem["selectedAddOns"][number], itemId: string, in
   };
 }
 
-function mapItem(item: RawCartItem, vendorNames: Map<string, { name: string; initial: string }>): CartVendor {
+export interface VendorCardMeta {
+  name: string;
+  initial: string;
+  avatar?: string;
+  rating: number;
+  reviewCount: number;
+  eventsOnEventory: number;
+}
+
+function mapItem(item: RawCartItem, vendorNames: Map<string, VendorCardMeta>, vendorSubtotal: number): CartVendor {
   const vendor = vendorNames.get(item.vendorId);
   const vendorName = vendor?.name ?? item.packageSnapshot.vendorType ?? "Vendor";
   return {
@@ -32,13 +41,25 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, { name: string; ini
     vendorId: item.vendorId,
     vendorName,
     avatarInitial: vendor?.initial ?? vendorName[0]?.toUpperCase() ?? "V",
+    avatar: vendor?.avatar,
+    rating: vendor?.rating ?? 0,
+    reviewCount: vendor?.reviewCount ?? 0,
+    eventsOnEventory: vendor?.eventsOnEventory ?? 0,
+    // The backend's own per-vendor total (RawCartVendorGroup.vendorSubtotal)
+    // — correctly includes add-ons/quantity, unlike summing item.package.price
+    // client-side, which would silently drop add-on costs.
+    vendorSubtotal,
     package: {
       id: item.packageId,
       categoryLabel: item.packageSnapshot.vendorType ?? "",
       title: item.packageSnapshot.name ?? "Package",
+      variantType: item.packageSnapshot.variantType ?? "",
       image: item.packageSnapshot.image,
       price: item.currentPrice ?? item.packageSnapshot.price ?? 0,
-      href: `/packages/${item.packageId}`,
+      // editItemId tells the PDP which exact cart line to prefill from and
+      // save back to (see PackageDetailPage/StickyBookingCard) — without it,
+      // "Edit Package Details" just reopened the PDP with every field blank.
+      href: `/packages/${item.packageId}?editItemId=${item._id}`,
     },
     selected: item.selectedForCheckout,
     eventDetails: {
@@ -55,15 +76,25 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, { name: string; ini
   };
 }
 
-async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, { name: string; initial: string }>> {
+async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, VendorCardMeta>> {
   const unique = [...new Set(vendorIds)];
-  const map = new Map<string, { name: string; initial: string }>();
+  const map = new Map<string, VendorCardMeta>();
   await Promise.all(
     unique.map(async (id) => {
       try {
         const { vendor } = await getVendorPublic(id);
         const name = vendor.businessName ?? "Vendor";
-        map.set(id, { name, initial: name[0]?.toUpperCase() ?? "V" });
+        map.set(id, {
+          name,
+          initial: name[0]?.toUpperCase() ?? "V",
+          avatar: vendor.profilePicture,
+          rating: vendor.rating ?? 0,
+          reviewCount: vendor.reviewsCount ?? 0,
+          // bookingsPerYear is a coarse self-reported figure vendors fill in
+          // at onboarding — same fallback chain as customer-booking's
+          // getBookingSummaryData.ts and getPackageDetail.ts's mapVendor.
+          eventsOnEventory: Number(vendor.bookingsPerYear) || vendor.reviewsCount || 0,
+        });
       } catch {
         // Best-effort — a card just falls back to its package's vendorType label.
       }
@@ -72,11 +103,13 @@ async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, { na
   return map;
 }
 
-export function mapCartPayload(payload: RawCartPayload, vendorNames: Map<string, { name: string; initial: string }>): CartPageData {
-  const items = payload.vendors.flatMap((group) => group.items);
+export function mapCartPayload(payload: RawCartPayload, vendorNames: Map<string, VendorCardMeta>): CartPageData {
+  const items = payload.vendors.flatMap((group) =>
+    group.items.map((item) => mapItem(item, vendorNames, group.vendorSubtotal))
+  );
   return {
     breadcrumb: BREADCRUMB,
-    vendors: items.map((item) => mapItem(item, vendorNames)),
+    vendors: items,
     itemCount: payload.itemCount,
     vendorCount: payload.vendorCount,
     subtotal: payload.subtotal,
