@@ -5,5 +5,9 @@ import CartPageContent from "@/features/customer-cart/components/CartPageContent
 // guest's id) only exists in the browser, so this page fetches client-side
 // inside CartPageContent rather than being server-rendered.
 export default function CartPage() {
-  return <CartPageContent />;
+  return (
+    <div className="bg-white">
+      <CartPageContent />
+    </div>
+  );
 }

@@ -159,6 +159,7 @@ export default function ContactPage() {
                   couponLoading={couponLoading}
                   couponFeedback={couponFeedback}
                   appliedCouponCode={data.paymentSummary.appliedCouponCode}
+                  isFreeCheckout={data.paymentSummary.isFreeCheckout}
                   onViewSchedule={() => setIsScheduleOpen(true)}
                 />
                 {confirmError && (

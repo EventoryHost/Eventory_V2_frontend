@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { PartyPopper, ShieldCheck } from "lucide-react";
+import { PartyPopper, SquarePen } from "lucide-react";
 import type { CartPackage, EventDetails as EventDetailsData } from "../types";
-import { formatPrice } from "../utils/currency";
 import { getCategoryIconMeta, getCategoryLabel } from "../utils/categoryMeta";
 import {
   formatDayMonth,
@@ -66,23 +65,25 @@ export default function PackageInfo({
                   {getCategoryLabel(cartPackage.categoryLabel)}
                 </span>
               </span>
-              <span className="h-4 w-px shrink-0 bg-black/10" />
             </div>
-            <div className="shrink-0 text-right">
-              <span className="font-figtree text-[20px] font-bold text-neutral-primary">
-                {formatPrice(cartPackage.price)}
-              </span>
-              <span className="font-figtree text-[13px] text-neutral-secondary"> /event</span>
-            </div>
+            <Link
+              href={cartPackage.href}
+              className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold text-neutral-primary transition-colors hover:text-brand-primary"
+            >
+              <SquarePen className="h-4 w-4" />
+              Edit Package
+            </Link>
           </div>
 
-          <Link href={cartPackage.href} className="hover:underline">
-            <h3
-              className="mb-3 font-figtree text-[16px] font-medium tracking-[-0.02em] text-[#3F3F47]"
-              style={{ lineHeight: "100%" }}
-            >
+          <Link href={cartPackage.href} className="mb-3 flex flex-wrap items-baseline gap-1 hover:underline">
+            <span className="font-figtree text-[16px] leading-none font-medium text-[#030303]">
               {cartPackage.title}
-            </h3>
+            </span>
+            {cartPackage.variantType && (
+              <span className="font-figtree text-[16px] leading-none font-medium text-[#71717B]">
+                &middot; {cartPackage.variantType}
+              </span>
+            )}
           </Link>
 
           <EventDetails details={eventDetails} />
@@ -95,14 +96,13 @@ export default function PackageInfo({
           )}
 
           {cancellationTiers && (
-            <div className="flex items-center gap-1.5 font-figtree text-[13px] font-semibold text-success-700">
-              <ShieldCheck className="h-4 w-4 shrink-0" />
+            <p className="font-figtree text-[14px] leading-[22px] font-medium text-[#008236]">
               Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
-            </div>
+            </p>
           )}
         </div>
 
-        <VendorActions onRemove={onRemove} onMoveToWishlist={onMoveToWishlist} editHref={cartPackage.href} />
+        <VendorActions price={cartPackage.price} onRemove={onRemove} onMoveToWishlist={onMoveToWishlist} />
       </div>
     </div>
   );

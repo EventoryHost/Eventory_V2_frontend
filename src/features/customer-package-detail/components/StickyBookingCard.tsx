@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin, ShieldCheck, Check } from "lucide-react";
+import { Calendar, MapPin, ShieldCheck, Check, Users } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem, getCart, updateCartItem, type RawCartEventDetails } from "@/lib/customerCartApi";
@@ -78,6 +78,7 @@ export default function StickyBookingCard({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
+  const [guestCount, setGuestCount] = useState("");
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
   const [isCancellationOpen, setIsCancellationOpen] = useState(false);
   const [justAdded, setJustAdded] = useState(false);
@@ -128,13 +129,23 @@ export default function StickyBookingCard({
       if (end) setEndTime(end.trim());
     }
     if (prefillEventDetails.location) setLocation(prefillEventDetails.location);
+    if (prefillEventDetails.guestCount != null) setGuestCount(String(prefillEventDetails.guestCount));
   }, [prefillEventDetails]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   const estimatedTotal = packageTotal + gstAmount;
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
   const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
-  const detailsComplete = Boolean(eventType && validEventDate && startTime && endTime && location.trim());
+  const parsedGuestCount = Number(guestCount);
+  const validGuestCount = guestCount.trim() && Number.isFinite(parsedGuestCount) && parsedGuestCount > 0;
+  // Cart's own "Event Details Missing" warning used to exist because this
+  // form never actually required (or even collected) a guest count, so
+  // every cart item was missing it regardless of what the customer filled
+  // in here — requiring it here instead is the real fix; see WarningCard's
+  // removal in CartPageContent.tsx.
+  const detailsComplete = Boolean(
+    eventType && validEventDate && startTime && endTime && location.trim() && validGuestCount
+  );
 
   function buildCartPayload(noteOverride?: string) {
     const timeSlot = [startTime, endTime].filter(Boolean).join(" - ") || undefined;
@@ -145,6 +156,7 @@ export default function StickyBookingCard({
       timeSlot,
       location: location || undefined,
       eventType: eventType || undefined,
+      guests: validGuestCount ? parsedGuestCount : undefined,
       specialRequest: note || undefined,
       selectedAddOns: selectedAddons.map((addon) => ({
         addOnId: addon.id,
@@ -310,6 +322,23 @@ export default function StickyBookingCard({
               <MapPin className="pointer-events-none absolute top-2.5 right-3 h-4 w-4 text-neutral-tertiary" />
             </div>
           </label>
+
+          <label className="block">
+            <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
+              Guest Count
+            </span>
+            <div className="relative">
+              <input
+                type="number"
+                min={1}
+                value={guestCount}
+                onChange={(event) => setGuestCount(event.target.value)}
+                placeholder="Number of guests"
+                className="w-full rounded-lg border border-black/15 py-2 pr-10 pl-3 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
+              />
+              <Users className="pointer-events-none absolute top-2.5 right-3 h-4 w-4 text-neutral-tertiary" />
+            </div>
+          </label>
         </form>
 
         {validEventDate && cancellationTiers ? (
@@ -364,7 +393,7 @@ export default function StickyBookingCard({
 
         {!detailsComplete && (
           <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">
-            Fill in event type, date, time and location to continue
+            Fill in event type, date, time, location and guest count to continue
           </p>
         )}
 

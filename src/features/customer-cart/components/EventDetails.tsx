@@ -29,7 +29,7 @@ export default function EventDetails({ details }: { details: EventDetailsData })
   return (
     <div className="mb-3 flex flex-col gap-2">
       {filled.length > 0 && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 font-figtree text-[13px] text-neutral-secondary">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 font-figtree text-[14px] leading-5.5 font-normal text-[#3F3F47]">
           {filled.map(({ key, icon: Icon }) => {
             const rawValue = details[key] as string | number;
             const displayValue =
@@ -50,7 +50,7 @@ export default function EventDetails({ details }: { details: EventDetailsData })
       )}
 
       {details.eventType && (
-        <span className="flex items-center gap-1.5 font-figtree text-[13px] text-neutral-secondary">
+        <span className="flex items-center gap-1.5 font-figtree text-[14px] leading-5.5 font-normal text-[#3F3F47]">
           <PartyPopper className="h-4 w-4 shrink-0" style={{ color: ICON_COLOR }} strokeWidth={1.33} />
           {details.eventType.charAt(0).toUpperCase() + details.eventType.slice(1)}
         </span>
