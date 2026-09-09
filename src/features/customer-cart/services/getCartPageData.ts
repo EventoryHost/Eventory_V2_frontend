@@ -38,7 +38,10 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, { name: string; ini
       title: item.packageSnapshot.name ?? "Package",
       image: item.packageSnapshot.image,
       price: item.currentPrice ?? item.packageSnapshot.price ?? 0,
-      href: `/packages/${item.packageId}`,
+      // editItemId tells the PDP which exact cart line to prefill from and
+      // save back to (see PackageDetailPage/StickyBookingCard) — without it,
+      // "Edit Package Details" just reopened the PDP with every field blank.
+      href: `/packages/${item.packageId}?editItemId=${item._id}`,
     },
     selected: item.selectedForCheckout,
     eventDetails: {

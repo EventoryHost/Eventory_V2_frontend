@@ -1,17 +1,5 @@
-import { Brush, Camera, Landmark, Music2, Sparkles, UtensilsCrossed, type LucideIcon } from "lucide-react";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
-
-// Same slug -> icon/label mapping as customer-vendors/components/categoryIcons.tsx,
-// kept local since it's a small, self-contained lookup (see the same pattern
-// in customer-package-detail/services/getPackageDetail.ts's CATEGORY_ICON_BY_SLUG).
-const ICON_BY_SLUG: Record<string, LucideIcon> = {
-  "makeup-artist": Brush,
-  caterer: UtensilsCrossed,
-  "venue-provider": Landmark,
-  "dj-artist": Music2,
-  decorator: Sparkles,
-  photographer: Camera,
-};
+import { CATEGORY_META } from "@/lib/categoryMeta";
 
 const LABEL_BY_SLUG: Record<string, string> = {
   "makeup-artist": "Makeup Artist",
@@ -22,9 +10,19 @@ const LABEL_BY_SLUG: Record<string, string> = {
   photographer: "Photographer",
 };
 
-export function getCategoryIcon(vendorType: string): LucideIcon {
+const FALLBACK_ICON = "/images/customer/packages-pics.png";
+const FALLBACK_GRADIENT = "#FFE5E9";
+
+/**
+ * Same gradient-pill + real category image used by ProductCard and the
+ * vendor listing cards (src/lib/categoryMeta.ts) — this cart card used to
+ * have its own local lucide-icon lookup, which is why its chip looked
+ * different from every other category badge in the app.
+ */
+export function getCategoryIconMeta(vendorType: string): { icon: string; gradientFrom: string } {
   const slug = VENDOR_TYPE_TO_CATEGORY[vendorType];
-  return (slug && ICON_BY_SLUG[slug]) || Sparkles;
+  const meta = slug ? CATEGORY_META[slug] : undefined;
+  return { icon: meta?.icon ?? FALLBACK_ICON, gradientFrom: meta?.gradientFrom ?? FALLBACK_GRADIENT };
 }
 
 export function getCategoryLabel(vendorType: string): string {

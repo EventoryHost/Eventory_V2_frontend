@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, MapPin, ShieldCheck, Check } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { addCartItem, getCart } from "@/lib/customerCartApi";
+import { addCartItem, getCart, updateCartItem, type RawCartEventDetails } from "@/lib/customerCartApi";
 import { ApiError } from "@/lib/apiClient";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -13,6 +13,30 @@ import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolic
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
 import CancellationPolicyDialog from "./CancellationPolicyDialog";
 import VendorNotePromptModal from "./VendorNotePromptModal";
+import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
+import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
+
+const EVENT_TYPE_OPTIONS = [
+  { value: "wedding", label: "Wedding" },
+  { value: "haldi", label: "Haldi" },
+  { value: "birthday", label: "Birthday" },
+  { value: "anniversary", label: "Anniversary" },
+];
+
+// Half-hour slots, stored as 24h "HH:MM" (same shape the native time input
+// produced, so buildCartPayload's `${startTime} - ${endTime}` join and any
+// backend expectations elsewhere don't change) but labeled in 12h format to
+// match the search bar's themed dropdown styling.
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const totalMinutes = index * 30;
+  const hours24 = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const value = `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  const period = hours24 < 12 ? "AM" : "PM";
+  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
+  const label = `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
+  return { value, label };
+});
 
 export default function StickyBookingCard({
   packageId,
@@ -28,6 +52,8 @@ export default function StickyBookingCard({
   vendorNote,
   onVendorNoteChange,
   cancellationPolicyText,
+  editItemId,
+  prefillEventDetails,
 }: {
   packageId: string;
   packageTotal: number;
@@ -42,6 +68,10 @@ export default function StickyBookingCard({
   vendorNote: string;
   onVendorNoteChange: (note: string) => void;
   cancellationPolicyText?: string;
+  /** Set when editing an existing cart line (see PackageDetailPage) — routes saves to updateCartItem instead of creating a new cart item. */
+  editItemId?: string;
+  /** This cart item's already-saved event details, to prefill the fields below instead of starting blank. */
+  prefillEventDetails?: RawCartEventDetails;
 }) {
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
@@ -62,8 +92,15 @@ export default function StickyBookingCard({
 
   // Reflects whether this exact package is already sitting in the cart, so
   // navigating back to its PDP doesn't invite adding a duplicate row —
-  // "Add to cart" becomes "In cart · view cart" instead.
+  // "Add to cart" becomes "In cart · view cart" instead. Skipped when
+  // editItemId is already known (arrived via Cart's "Edit Package Details")
+  // — the parent already fetched the cart to build that id, no need to
+  // repeat the request just to learn the same thing.
   useEffect(() => {
+    if (editItemId) {
+      setInCartItemId(editItemId);
+      return;
+    }
     let cancelled = false;
     getCart()
       .then((cart) => {
@@ -77,11 +114,24 @@ export default function StickyBookingCard({
     return () => {
       cancelled = true;
     };
-  }, [packageId]);
+  }, [packageId, editItemId]);
+
+  // Prefill from the cart item being edited — otherwise these all start
+  // blank on every visit, edit or not.
+  useEffect(() => {
+    if (!prefillEventDetails) return;
+    if (prefillEventDetails.eventType) setEventType(prefillEventDetails.eventType);
+    if (prefillEventDetails.date) setEventDate(prefillEventDetails.date.slice(0, 10));
+    if (prefillEventDetails.timeSlot) {
+      const [start, end] = prefillEventDetails.timeSlot.split(" - ");
+      if (start) setStartTime(start.trim());
+      if (end) setEndTime(end.trim());
+    }
+    if (prefillEventDetails.location) setLocation(prefillEventDetails.location);
+  }, [prefillEventDetails]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   const estimatedTotal = packageTotal + gstAmount;
-  const todayIso = new Date().toISOString().slice(0, 10);
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
   const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
   const detailsComplete = Boolean(eventType && validEventDate && startTime && endTime && location.trim());
@@ -109,8 +159,13 @@ export default function StickyBookingCard({
     setCartError(null);
     setIsSubmitting(true);
     try {
-      const result = await addCartItem(buildCartPayload(noteOverride));
-      setInCartItemId(result.itemId);
+      if (editItemId) {
+        await updateCartItem(editItemId, buildCartPayload(noteOverride));
+        setInCartItemId(editItemId);
+      } else {
+        const result = await addCartItem(buildCartPayload(noteOverride));
+        setInCartItemId(result.itemId);
+      }
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 2000);
     } catch (error) {
@@ -124,7 +179,11 @@ export default function StickyBookingCard({
     setCartError(null);
     setIsSubmitting(true);
     try {
-      await addCartItem(buildCartPayload(noteOverride));
+      if (editItemId) {
+        await updateCartItem(editItemId, buildCartPayload(noteOverride));
+      } else {
+        await addCartItem(buildCartPayload(noteOverride));
+      }
       router.push("/cart");
     } catch (error) {
       setCartError(error instanceof ApiError ? error.message : "Couldn't start booking. Please try again.");
@@ -135,7 +194,11 @@ export default function StickyBookingCard({
 
   function requestAddToCart() {
     if (!detailsComplete) return;
-    if (inCartItemId) {
+    // Not in edit mode and already in the cart — just take them to it
+    // rather than silently overwriting. In edit mode this same
+    // inCartItemId is expected (it's set to editItemId above) and should
+    // fall through to actually saving the edits.
+    if (inCartItemId && !editItemId) {
       router.push("/cart");
       return;
     }
@@ -197,60 +260,39 @@ export default function StickyBookingCard({
         </button>
 
         <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
-          <label className="block">
-            <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
-              Event Type
-            </span>
-            <select
-              id="event-type-select"
-              value={eventType}
-              onChange={(event) => setEventType(event.target.value)}
-              className="w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
-            >
-              <option value="">Choose Event Type</option>
-              <option value="wedding">Wedding</option>
-              <option value="haldi">Haldi</option>
-              <option value="birthday">Birthday</option>
-              <option value="anniversary">Anniversary</option>
-            </select>
-          </label>
+          <SearchDropdown
+            label="Event Type"
+            value={eventType}
+            onChange={setEventType}
+            placeholder="Choose Event Type"
+            options={EVENT_TYPE_OPTIONS}
+            triggerId="event-type-select"
+          />
 
-          <label className="block">
-            <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
-              Event Date
-            </span>
-            <input
-              type="date"
-              value={eventDate}
-              min={todayIso}
-              onChange={(event) => setEventDate(event.target.value)}
-              className="w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary [color-scheme:light]"
-            />
-          </label>
+          <SearchDatePicker
+            label="Event Date"
+            value={eventDate}
+            onChange={setEventDate}
+            placeholder="Choose Event Date"
+          />
 
           <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
-                Time In
-              </span>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-                className="w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary [color-scheme:light]"
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
-                Time Out
-              </span>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(event) => setEndTime(event.target.value)}
-                className="w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary [color-scheme:light]"
-              />
-            </label>
+            <SearchDropdown
+              label="Time In"
+              value={startTime}
+              onChange={setStartTime}
+              placeholder="Start time"
+              options={TIME_OPTIONS}
+              matchTriggerWidth
+            />
+            <SearchDropdown
+              label="Time Out"
+              value={endTime}
+              onChange={setEndTime}
+              placeholder="End time"
+              options={TIME_OPTIONS}
+              matchTriggerWidth
+            />
           </div>
 
           <label className="block">
@@ -293,7 +335,7 @@ export default function StickyBookingCard({
             disabled={isSubmitting || !detailsComplete}
             className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Book &amp; pay {formatPrice(tokenAmount)}
+            {tokenAmount > 0 ? `Book & pay ${formatPrice(tokenAmount)}` : "Book now"}
           </button>
           <button
             type="button"
@@ -301,13 +343,19 @@ export default function StickyBookingCard({
             disabled={isSubmitting || !detailsComplete}
             className="flex items-center justify-center gap-1.5 rounded-xl border border-black/15 py-3 font-figtree text-[14px] font-semibold text-brand-950 transition hover:border-black/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {inCartItemId ? (
+            {justAdded ? (
+              editItemId ? (
+                "Saved ✓"
+              ) : (
+                "Added ✓"
+              )
+            ) : editItemId ? (
+              "Save changes"
+            ) : inCartItemId ? (
               <>
                 <Check className="h-4 w-4" />
                 In cart &middot; view cart
               </>
-            ) : justAdded ? (
-              "Added ✓"
             ) : (
               "Add to cart"
             )}

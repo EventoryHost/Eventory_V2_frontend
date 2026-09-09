@@ -36,7 +36,13 @@ export default function CartItemRow({
               ? `Deselect ${item.package.title} for checkout`
               : `Select ${item.package.title} for checkout`
           }
-          className="h-4 w-4 rounded border-neutral-tertiary text-brand-primary focus:ring-brand-primary"
+          // text-* doesn't control a checkbox's checked-state fill color —
+          // that's accent-color — which is why this rendered the browser's
+          // default blue instead of following the app's own selection color
+          // (same fix as the /vendors filter checkboxes: accent-black, no
+          // separate border/focus-ring classes, which would otherwise show
+          // as a visible edge around the already-filled box).
+          className="h-4 w-4 rounded accent-black outline-none"
         />
         {!item.packageStillAvailable && (
           <span className="rounded-full bg-error-subtle px-2.5 py-1 font-figtree text-[11px] font-semibold text-error-700">

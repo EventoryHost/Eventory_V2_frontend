@@ -21,12 +21,23 @@ export default function SearchDropdown({
   onChange,
   options,
   placeholder,
+  matchTriggerWidth = false,
+  triggerId,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   options: SearchDropdownOption[];
   placeholder: string;
+  /**
+   * The hero search bar's columns are wide enough that the popup's own
+   * 314px min-width never mattered, but a narrower host (e.g. a half-width
+   * column in a sidebar grid) needs the popup capped to its trigger's own
+   * width instead, or it overflows sideways past the column.
+   */
+  matchTriggerWidth?: boolean;
+  /** Passed to the trigger button — lets callers `getElementById(...).focus()` it, e.g. to draw attention after a "fill this in" CTA. */
+  triggerId?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +59,7 @@ export default function SearchDropdown({
     <div ref={containerRef} className="relative flex-1">
       <label className="mb-2 block text-[14px] font-semibold text-brand-950">{label}</label>
       <button
+        id={triggerId}
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
@@ -58,7 +70,11 @@ export default function SearchDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 z-20 mt-2 max-h-[329px] w-full min-w-[314px] overflow-y-auto rounded-2xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
+        <div
+          className={`absolute top-full left-0 z-20 mt-2 max-h-[329px] w-full overflow-y-auto rounded-2xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.12)] ${
+            matchTriggerWidth ? "" : "min-w-[314px]"
+          }`}
+        >
           {options.map((option) => {
             const isSelected = option.value === value;
             return (

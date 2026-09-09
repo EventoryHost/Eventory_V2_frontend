@@ -8,6 +8,7 @@ import AlternateCoordinatorSection from "./AlternateCoordinatorSection";
 import BookingNotesSection from "./BookingNotesSection";
 import GstinToggleSection from "./GstinToggleSection";
 import PaymentSummary from "@/features/customer-booking/components/PaymentSummary";
+import PaymentScheduleDialog from "@/features/customer-booking/components/PaymentScheduleDialog";
 import { useBookingSummaryData } from "@/features/customer-booking/hooks/useBookingSummaryData";
 import { useCheckoutStepGuard } from "@/features/customer-checkout/hooks/useCheckoutStepGuard";
 import CheckoutLoginGate from "@/features/customer-checkout/components/CheckoutLoginGate";
@@ -22,6 +23,7 @@ export default function ContactPage() {
   const { redirecting } = useCheckoutStepGuard(data, loading, error);
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
 
   // Real, in-app Cashfree payment (pay-integrate.txt, 2026-08-27) — the
   // customer is redirected to Cashfree's hosted page to actually pay, then
@@ -156,6 +158,8 @@ export default function ContactPage() {
                   onApplyCoupon={applyCoupon}
                   couponLoading={couponLoading}
                   couponFeedback={couponFeedback}
+                  appliedCouponCode={data.paymentSummary.appliedCouponCode}
+                  onViewSchedule={() => setIsScheduleOpen(true)}
                 />
                 {confirmError && (
                   <p className="mt-3 text-center font-figtree text-[13px] text-[#B91C1C]">{confirmError}</p>
@@ -164,6 +168,12 @@ export default function ContactPage() {
             )}
           </div>
         </div>
+
+        <PaymentScheduleDialog
+          isOpen={isScheduleOpen}
+          onClose={() => setIsScheduleOpen(false)}
+          milestones={data?.paymentSummary.milestones ?? []}
+        />
       </div>
     </CheckoutLoginGate>
   );

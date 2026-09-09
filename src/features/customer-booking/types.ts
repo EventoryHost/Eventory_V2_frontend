@@ -26,6 +26,7 @@ export interface BookingServiceItem {
   image: string;
   categoryLabel: string;
   categoryIcon: string;
+  categoryGradientFrom: string;
   vendorName: string;
   serviceName: string;
   packageTier: string;
@@ -64,6 +65,15 @@ export interface BookingVendorGroup {
   services: BookingServiceItem[];
 }
 
+export interface BookingPaymentMilestone {
+  serviceName: string;
+  title: string;
+  percentage: number | null;
+  amount: string | null;
+  /** Formatted display date when the backend could compute one (needs the line's event date); otherwise the vendor's free-text "due X days before event" as a fallback. */
+  due: string | null;
+}
+
 export interface BookingPaymentSummary {
   vendorCount: number;
   packageCount: number;
@@ -91,6 +101,16 @@ export interface BookingPaymentSummary {
    * should never be shown at all when this is false.
    */
   tokenConfigured: boolean;
+  /** Real per-package payment schedule from the vendor's own paymentMilestones config (see cartPricingService.js's computeLineMilestones) — empty when no line has any milestones configured. */
+  milestones: BookingPaymentMilestone[];
+  /**
+   * The coupon code applied when this checkout session was created (from
+   * Cart.coupon, snapshotted — see RawCheckoutSession's own doc comment).
+   * Null when none was applied. Render "Coupon {code} applied" from this —
+   * don't build anything around discountAmount being nonzero yet, it's a
+   * known placeholder until the backend's real Coupon/Offer model exists.
+   */
+  appliedCouponCode: string | null;
 }
 
 export interface BookingContactDetails {
