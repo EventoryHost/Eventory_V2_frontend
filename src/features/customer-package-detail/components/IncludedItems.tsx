@@ -19,9 +19,14 @@ export default function IncludedItems({ items }: { items: IncludedItemEntry[] })
       <SectionHeading>What&apos;s Included</SectionHeading>
 
       <div className="overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white">
-        <div className="flex flex-col gap-4 p-4">
+        <div className="flex flex-col p-4">
           {items.map((setup, i) => (
-            <div key={setup.id} className="flex flex-col gap-4 rounded-xl border border-[#E4E4E7] bg-white p-4">
+            <div
+              key={setup.id}
+              className={`flex flex-col gap-4 py-4 first:pt-0 last:pb-0 ${
+                i > 0 ? "border-t border-[#E4E4E7]" : ""
+              }`}
+            >
               {/* Top: image + info + View setup */}
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
                 <div className="relative h-[178px] w-full shrink-0 overflow-hidden rounded-xl sm:w-[216px]">

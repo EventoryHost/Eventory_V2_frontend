@@ -7,6 +7,8 @@
 export interface BookingLineRow {
   label: string;
   value: string;
+  /** Optional explanatory text shown behind a small "?" next to the label (e.g. how the platform fee is worked out). */
+  hint?: string;
 }
 
 export interface BookingAddon {

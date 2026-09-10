@@ -12,11 +12,16 @@ export type VendorNextPayment = {
 
 export type YourPaymentsCardProps = {
   totalCost: string;
+  /** Formatted platform fee — empty string hides the row. */
+  convenienceFee?: string;
   paidToday: string;
   stillToPay: string;
   nextPayments: VendorNextPayment[];
   onSeeFullSchedule?: () => void;
 };
+
+const CONVENIENCE_FEE_HINT =
+  "A platform service & security fee. It varies by the vendor's size and track record, the package price, and how close to the event you book.";
 
 function AmountRow({ label, value, valueClassName = "text-[#09090B]" }: { label: string; value: string; valueClassName?: string }) {
   return (
@@ -49,6 +54,7 @@ function NextPaymentRow({ payment }: { payment: VendorNextPayment }) {
 
 export default function YourPaymentsCard({
   totalCost,
+  convenienceFee,
   paidToday,
   stillToPay,
   nextPayments,
@@ -65,6 +71,17 @@ export default function YourPaymentsCard({
 
       <div className="flex flex-col divide-y divide-[#E4E4E7]">
         <AmountRow label="Total cost of packages" value={totalCost} valueClassName="text-black" />
+        {convenienceFee && (
+          <div className="flex items-center justify-between gap-3 py-3">
+            <span className="flex items-center gap-1.5 font-figtree text-[15px] font-medium text-[#3F3F47] sm:text-[16px]">
+              Service &amp; security fee
+              <span title={CONVENIENCE_FEE_HINT} aria-label={CONVENIENCE_FEE_HINT} className="cursor-help text-[#9F9FA9]">
+                <Info size={14} />
+              </span>
+            </span>
+            <span className="font-figtree text-[18px] font-semibold text-black sm:text-[20px]">{convenienceFee}</span>
+          </div>
+        )}
         <AmountRow label="Amount paid today (token to lock your date)" value={paidToday} valueClassName="text-[#008236]" />
       </div>
       <div className="pt-5">

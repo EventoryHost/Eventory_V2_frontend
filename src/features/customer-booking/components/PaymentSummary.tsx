@@ -7,7 +7,7 @@ import { Tag, ShieldCheck, Info, ArrowRight, BadgeCheck } from "lucide-react";
 export type PaymentSummaryProps = {
   vendorCount: number;
   packageCount: number;
-  rows: { label: string; value: string }[];
+  rows: { label: string; value: string; hint?: string }[];
   grandTotal: string;
   tokenAmount: string;
   payInFull?: boolean;
@@ -114,11 +114,20 @@ export default function PaymentSummary({
 
         <div className="flex flex-col gap-4">
           {rows.map((row) => (
-            <div key={row.label} className="flex items-center justify-between">
-              <span className="font-figtree text-[12px] font-normal leading-[18px] text-[#71717B]">
+            <div key={row.label} className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-1 font-figtree text-[12px] font-normal leading-[18px] text-[#71717B]">
                 {row.label}
+                {row.hint && (
+                  <span
+                    title={row.hint}
+                    aria-label={row.hint}
+                    className="inline-flex cursor-help text-[#9F9FA9]"
+                  >
+                    <Info size={12} />
+                  </span>
+                )}
               </span>
-              <span className="font-figtree text-[12px] font-normal leading-[18px] text-[#3F3F47]">
+              <span className="shrink-0 text-right font-figtree text-[12px] font-normal leading-[18px] text-[#3F3F47]">
                 {row.value}
               </span>
             </div>

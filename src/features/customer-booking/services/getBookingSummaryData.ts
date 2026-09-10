@@ -9,6 +9,7 @@ import {
 import { clearCheckoutSessionId, getCheckoutSessionId, setCheckoutSessionId } from "@/lib/checkoutSession";
 import { getVendorPublic, type RawVendorPublicMinimal } from "@/lib/vendorPublicApi";
 import type { RawCartQuoteLine } from "@/lib/customerCartApi";
+import { buildConvenienceFeeRow } from "@/lib/convenienceFee";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
 import { formatShortDate, getCancellationTiers } from "@/features/customer-package-detail/utils/cancellationPolicy";
 import { CATEGORY_META } from "@/lib/categoryMeta";
@@ -274,9 +275,8 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
   const rows: BookingLineRow[] = [];
   if (quote) {
     rows.push({ label: "Total booking amount", value: formatPrice(quote.subtotal) });
-    if (quote.convenienceFeeConfigured) {
-      rows.push({ label: "Service & security fee", value: formatPrice(quote.convenienceFee) });
-    }
+    const feeRow = buildConvenienceFeeRow(quote, formatPrice);
+    if (feeRow) rows.push(feeRow);
     if (quote.discount) {
       rows.push({ label: "Discount", value: `-${formatPrice(quote.discount)}` });
     }

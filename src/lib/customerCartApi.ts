@@ -123,6 +123,26 @@ export interface RawCartQuoteMilestone {
   dueDate: string | null;
 }
 
+/**
+ * The per-line convenience-fee working, verbatim from the three lookup
+ * tables (2026-09-10 backend handoff) — vendor score, category band, price
+ * slab, days-to-event bucket, percentage, weight, base flat fee, and the
+ * `baseFee + linePrice × pct/100 × weight` formula string — for a
+ * "how is this calculated?" tooltip. Exact key names haven't been verified
+ * against a live authenticated response, so every field is optional.
+ */
+export interface RawConvenienceFeeBreakdown {
+  score?: number | null;
+  category?: string | null;
+  slab?: string | null;
+  dayBucket?: string | null;
+  percentage?: number | null;
+  weight?: number | null;
+  baseFee?: number | null;
+  formula?: string | null;
+  [key: string]: unknown;
+}
+
 export interface RawCartQuoteLine {
   cartItemId: string;
   vendorId: string;
@@ -140,6 +160,11 @@ export interface RawCartQuoteLine {
   gstRatePercent?: number | null;
   gstAmount?: number | null;
   lineTotalInclGst?: number;
+  /** This line's own platform fee — 0 with convenienceFeeConfigured false when the line's event date isn't set yet. */
+  convenienceFee?: number;
+  convenienceFeeConfigured?: boolean;
+  convenienceFeeReason?: string | null;
+  convenienceFeeBreakdown?: RawConvenienceFeeBreakdown | null;
   token?: RawCartQuoteToken;
   milestones?: RawCartQuoteMilestone[];
 }
@@ -148,9 +173,16 @@ export interface RawCartQuote {
   lines: RawCartQuoteLine[];
   subtotal: number;
   gstTotal: number;
-  convenienceFeePercent: number | null;
-  convenienceFeeConfigured: boolean;
+  /** Sum of every line's convenience fee (see RawCartQuoteLine). */
   convenienceFee: number;
+  /** Whether the platform fee applies to this order at all (kill-switch off, at least one line eligible). */
+  convenienceFeeConfigured: boolean;
+  /**
+   * False when some line still can't compute its fee (missing event date) —
+   * show "calculated once you set your event date", not ₹0. `convenienceFee`
+   * only reflects the lines that COULD compute while this is false.
+   */
+  convenienceFeeComplete: boolean;
   discount: number;
   grandTotal: number;
   tokenAmountTotal: number | null;

@@ -227,6 +227,8 @@ export interface PackageDetail {
   moreEventTagsCount: number;
   title: string;
   instantBooking: boolean;
+  /** False for Decorator / DJ / Photographer — a headcount isn't meaningful for those services, so the booking form hides (and doesn't require) the guest-count field. */
+  requiresGuestCount: boolean;
   vendorName: string;
   idVerified?: boolean;
   gstinVerified?: boolean;

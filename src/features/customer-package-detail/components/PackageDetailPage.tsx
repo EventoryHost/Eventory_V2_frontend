@@ -131,6 +131,7 @@ export default function PackageDetailPage({
           overtimeBillingUnit={data.pricing.overtimeBillingUnit}
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
+          requiresGuestCount={data.requiresGuestCount}
           selectedAddons={selectedAddons}
           includedItems={data.includedItems}
           vendorNote={vendorNote}

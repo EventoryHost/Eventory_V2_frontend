@@ -13,6 +13,7 @@ export const mockPackageDetail: PackageDetail = {
   moreEventTagsCount: 3,
   title: "Marigold Stage & Mandap — Haldi Special",
   instantBooking: true,
+  requiresGuestCount: false,
   vendorName: "Sharma Decorators",
   idVerified: true,
   gstinVerified: true,

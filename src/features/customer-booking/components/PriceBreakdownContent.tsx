@@ -67,10 +67,14 @@ export default function PriceBreakdownContent({
           <span>Subtotal</span>
           <span>{subtotal}</span>
         </div>
-        <div className="flex items-center justify-between font-figtree text-[13px] leading-[20px] text-[#71717B]">
-          <span>GST ({gstPercent}%)</span>
-          <span>{gstAmount}</span>
-        </div>
+        {/* Only when the vendor actually configured GST on this package — a
+            GST-free package resolves to 0% / a null amount. */}
+        {gstPercent > 0 && (
+          <div className="flex items-center justify-between font-figtree text-[13px] leading-[20px] text-[#71717B]">
+            <span>GST ({gstPercent}%)</span>
+            <span>{gstAmount}</span>
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between border-t border-[#E4E4E7] pt-4">

@@ -1,4 +1,4 @@
-import { getBookingDetail, type RawBooking } from "@/lib/customerBookingApi";
+import { getBookingDetail, type RawBooking, type RawBookingDetailResponse } from "@/lib/customerBookingApi";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
 import type { BookedServiceItem, BookedServiceStatus } from "../components/BookingSummaryCard";
 import type { VendorNextPayment } from "../components/YourPaymentsCard";
@@ -34,10 +34,18 @@ export interface BookingSuccessData {
   bookingIdLabel: string;
   services: BookedServiceItem[];
   totalCost: string;
+  /** Platform fee across all bookings, formatted — empty string when it's 0 / not applicable. */
+  convenienceFee: string;
   paidToday: string;
   stillToPay: string;
   nextPayments: VendorNextPayment[];
   changeDeadlineLabel: string;
+}
+
+/** grandTotal when the backend sent it, else totalAmount + convenienceFee, else just totalAmount. */
+function grandTotalOf(pb: RawBookingDetailResponse["priceBreakdown"]): number {
+  if (typeof pb.grandTotal === "number") return pb.grandTotal;
+  return (pb.totalAmount || 0) + (pb.convenienceFee || 0);
 }
 
 function vendorNameOf(booking: RawBooking): string {
@@ -118,7 +126,10 @@ export async function getBookingSuccessData(bookingIds: string[]): Promise<Booki
   const bookings = responses.map((r) => r.booking);
 
   const first = bookings[0];
-  const totalCost = bookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  // grandTotal (2026-09-10) already includes the platform fee — use it so
+  // the "Total cost" / "Still to pay" figures don't under-report.
+  const totalCost = responses.reduce((sum, r) => sum + grandTotalOf(r.priceBreakdown), 0);
+  const convenienceFee = responses.reduce((sum, r) => sum + (r.priceBreakdown.convenienceFee || 0), 0);
   const paidToday = bookings.reduce((sum, b) => sum + (b.totalReceived || 0), 0);
 
   return {
@@ -129,6 +140,7 @@ export async function getBookingSuccessData(bookingIds: string[]): Promise<Booki
       bookings.length > 1 ? `${first?.bookingId ?? ""} (+${bookings.length - 1} more)` : first?.bookingId ?? "",
     services: bookings.map(mapService),
     totalCost: formatPrice(totalCost),
+    convenienceFee: convenienceFee > 0 ? formatPrice(convenienceFee) : "",
     paidToday: formatPrice(paidToday),
     stillToPay: formatPrice(Math.max(0, totalCost - paidToday)),
     nextPayments: mapNextPayments(bookings),
