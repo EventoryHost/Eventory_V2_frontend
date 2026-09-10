@@ -1,4 +1,5 @@
 import { apiFetch } from "./apiClient";
+import type { RawConvenienceFeeBreakdown } from "./customerCartApi";
 
 // Raw shapes returned by /api/customer/bookings/:bookingId (Eventory_V2_backend
 // customerBookingController.js's getBookingDetail) — the "My Bookings" /
@@ -58,7 +59,16 @@ export interface RawBooking {
 export interface RawBookingDetailResponse {
   status: "SUCCESS";
   booking: RawBooking;
-  priceBreakdown: { totalAmount: number; totalReceived: number; amountDue: number };
+  priceBreakdown: {
+    totalAmount: number;
+    /** 2026-09-10: new — the platform fee for this booking (0 when not applicable). */
+    convenienceFee?: number;
+    convenienceFeeBreakdown?: RawConvenienceFeeBreakdown | null;
+    /** 2026-09-10: new — totalAmount + convenienceFee. amountDue is now measured against this. */
+    grandTotal?: number;
+    totalReceived: number;
+    amountDue: number;
+  };
   paymentTimeline: RawBookingMilestone[];
 }
 

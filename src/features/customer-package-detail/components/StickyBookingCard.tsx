@@ -6,6 +6,7 @@ import { Calendar, MapPin, ShieldCheck, Check, Users } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem, getCart, updateCartItem, type RawCartEventDetails } from "@/lib/customerCartApi";
+import { getConvenienceFeePreview, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
 import { ApiError } from "@/lib/apiClient";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -47,6 +48,7 @@ export default function StickyBookingCard({
   overtimeBillingUnit,
   gstPercent,
   tokenAmount,
+  requiresGuestCount = true,
   selectedAddons,
   includedItems,
   vendorNote,
@@ -63,6 +65,8 @@ export default function StickyBookingCard({
   overtimeBillingUnit?: string;
   gstPercent: number;
   tokenAmount: number;
+  /** Decorator / DJ / Photographer hide the guest-count field (and don't require it). */
+  requiresGuestCount?: boolean;
   selectedAddons: SelectedAddon[];
   includedItems: IncludedItemEntry[];
   vendorNote: string;
@@ -88,6 +92,7 @@ export default function StickyBookingCard({
   const [inCartItemId, setInCartItemId] = useState<string | null>(null);
   const [isNotePromptOpen, setIsNotePromptOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"cart" | "book" | null>(null);
+  const [conveniencePreview, setConveniencePreview] = useState<RawPdpConvenienceFee | null>(null);
   const router = useRouter();
   const { isLoggedIn } = useCustomerSession();
 
@@ -133,18 +138,41 @@ export default function StickyBookingCard({
   }, [prefillEventDetails]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
-  const estimatedTotal = packageTotal + gstAmount;
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
   const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
+
+  // Platform fee depends on the event date (and the vendor/price band), so
+  // it can only be previewed once a date is picked — the page itself is
+  // server-rendered with none. Re-fetched per date, cleared when it's unset.
+  // `configured: false` means "no date yet", not "fee is 0".
+  useEffect(() => {
+    if (!validEventDate) {
+      setConveniencePreview(null);
+      return;
+    }
+    let cancelled = false;
+    getConvenienceFeePreview(packageId, validEventDate).then((preview) => {
+      if (!cancelled) setConveniencePreview(preview);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [packageId, validEventDate]);
+
+  const convenienceFee =
+    conveniencePreview?.configured && validEventDate ? conveniencePreview.fee : 0;
+  const estimatedTotal = packageTotal + gstAmount + convenienceFee;
   const parsedGuestCount = Number(guestCount);
   const validGuestCount = guestCount.trim() && Number.isFinite(parsedGuestCount) && parsedGuestCount > 0;
   // Cart's own "Event Details Missing" warning used to exist because this
   // form never actually required (or even collected) a guest count, so
   // every cart item was missing it regardless of what the customer filled
   // in here — requiring it here instead is the real fix; see WarningCard's
-  // removal in CartPageContent.tsx.
+  // removal in CartPageContent.tsx. Decorator / DJ / Photographer opt out
+  // entirely (requiresGuestCount false) — the field is hidden and not required.
+  const guestCountComplete = requiresGuestCount ? Boolean(validGuestCount) : true;
   const detailsComplete = Boolean(
-    eventType && validEventDate && startTime && endTime && location.trim() && validGuestCount
+    eventType && validEventDate && startTime && endTime && location.trim() && guestCountComplete
   );
 
   function buildCartPayload(noteOverride?: string) {
@@ -156,7 +184,7 @@ export default function StickyBookingCard({
       timeSlot,
       location: location || undefined,
       eventType: eventType || undefined,
-      guests: validGuestCount ? parsedGuestCount : undefined,
+      guests: requiresGuestCount && validGuestCount ? parsedGuestCount : undefined,
       specialRequest: note || undefined,
       selectedAddOns: selectedAddons.map((addon) => ({
         addOnId: addon.id,
@@ -267,7 +295,7 @@ export default function StickyBookingCard({
             <span className="mb-1 font-figtree text-[11px] text-neutral-tertiary">estimated total</span>
           </div>
           <p className="font-figtree text-[12px] text-neutral-tertiary">
-            incl. {gstPercent}% GST · tap the price for the full breakdown
+            {gstPercent > 0 ? `incl. ${gstPercent}% GST · ` : ""}tap the price for the full breakdown
           </p>
         </button>
 
@@ -323,22 +351,24 @@ export default function StickyBookingCard({
             </div>
           </label>
 
-          <label className="block">
-            <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
-              Guest Count
-            </span>
-            <div className="relative">
-              <input
-                type="number"
-                min={1}
-                value={guestCount}
-                onChange={(event) => setGuestCount(event.target.value)}
-                placeholder="Number of guests"
-                className="w-full rounded-lg border border-black/15 py-2 pr-10 pl-3 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
-              />
-              <Users className="pointer-events-none absolute top-2.5 right-3 h-4 w-4 text-neutral-tertiary" />
-            </div>
-          </label>
+          {requiresGuestCount && (
+            <label className="block">
+              <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
+                Guest Count
+              </span>
+              <div className="relative">
+                <input
+                  type="number"
+                  min={1}
+                  value={guestCount}
+                  onChange={(event) => setGuestCount(event.target.value)}
+                  placeholder="Number of guests"
+                  className="w-full rounded-lg border border-black/15 py-2 pr-10 pl-3 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
+                />
+                <Users className="pointer-events-none absolute top-2.5 right-3 h-4 w-4 text-neutral-tertiary" />
+              </div>
+            </label>
+          )}
         </form>
 
         {validEventDate && cancellationTiers ? (
@@ -393,7 +423,9 @@ export default function StickyBookingCard({
 
         {!detailsComplete && (
           <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">
-            Fill in event type, date, time, location and guest count to continue
+            {requiresGuestCount
+              ? "Fill in event type, date, time, location and guest count to continue"
+              : "Fill in event type, date, time and location to continue"}
           </p>
         )}
 
@@ -437,6 +469,10 @@ export default function StickyBookingCard({
         subtotal={packageTotal}
         gstPercent={gstPercent}
         gstAmount={gstAmount}
+        convenienceFee={convenienceFee}
+        convenienceFeePending={Boolean(validEventDate && conveniencePreview && !conveniencePreview.configured)}
+        convenienceFeeReason={conveniencePreview?.reason ?? null}
+        convenienceFeeBreakdown={conveniencePreview?.breakdown ?? null}
         estimatedTotal={estimatedTotal}
         eventDateIso={validEventDate}
         onViewCancellationPolicy={() => {

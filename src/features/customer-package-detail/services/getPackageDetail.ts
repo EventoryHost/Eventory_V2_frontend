@@ -76,15 +76,87 @@ function formatSetupTime(durationOfSetupMinutes: number): string {
   return `${formatMinutesLabel(durationOfSetupMinutes)} before start`;
 }
 
+// setups only exist on Decorator packages — every other vendorType stores
+// its variant content under a different step2 field (menus/spaces/
+// packageItems/equipments+items), each with its own shape for "what's a
+// one-line description of the first entry" and "how many top-level things
+// are in this variant". Card counts/description used to only ever
+// populate for Decorator; every other category silently showed blank.
+function variantCardContentOf(pkg: RawFullPackage): { setupsCount: number; itemsCount: number; description: string } {
+  const step2 = pkg.step2_productsAndPricing;
+  switch (pkg.vendorType) {
+    case "Decorator": {
+      const setups = step2?.setups ?? [];
+      const setup = setups[0];
+      return {
+        setupsCount: setups.length,
+        itemsCount: setups.reduce((sum, s) => sum + (s.items?.length ?? 0), 0),
+        // description is a free-text field the vendor can leave blank
+        // entirely (as this one did) — decoratingWhat (what's being
+        // decorated) and themes are real, filled-in fields that describe
+        // the setup just as well when description itself is empty.
+        description: setup?.description || setup?.decoratingWhat || setup?.themes?.join(", ") || "",
+      };
+    }
+    case "Caterer": {
+      const menus = step2?.menus ?? [];
+      const menu = menus[0];
+      return {
+        setupsCount: 0,
+        itemsCount: menus.length,
+        description: menu ? [menu.type, menu.serviceStyle?.join(", ")].filter(Boolean).join(" · ") : "",
+      };
+    }
+    case "VenueProvider": {
+      const spaces = step2?.spaces ?? [];
+      const space = spaces[0];
+      return {
+        setupsCount: 0,
+        itemsCount: spaces.length,
+        description: space ? [space.spaceType, space.environment].filter(Boolean).join(" · ") : "",
+      };
+    }
+    case "PAV": {
+      const items = step2?.packageItems ?? [];
+      const item = items[0];
+      const details = item?.contentDetails;
+      return {
+        setupsCount: 0,
+        itemsCount: items.length,
+        description: details?.description || [details?.style, details?.categories?.join(", ")].filter(Boolean).join(" · "),
+      };
+    }
+    case "DJArtist": {
+      const items = (step2?.items as RawDjItem[] | undefined) ?? [];
+      const item = items[0];
+      return {
+        setupsCount: 0,
+        itemsCount: items.length + (step2?.equipments?.length ?? 0),
+        description: item?.contentDetails?.description || item?.performanceType || "",
+      };
+    }
+    case "MakeupArtist": {
+      const items = (step2?.items as RawMakeupItem[] | undefined) ?? [];
+      const item = items[0];
+      return {
+        setupsCount: 0,
+        itemsCount: items.length,
+        description: [item?.itemType, item?.styles?.join(", ") || item?.makeupType || item?.hairServiceType]
+          .filter(Boolean)
+          .join(" · "),
+      };
+    }
+    default:
+      return { setupsCount: 0, itemsCount: 0, description: "" };
+  }
+}
+
 function mapVariant(pkg: RawFullPackage, mostBookedVariantId?: string | null): PackageVariant {
-  const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return {
     id: pkg._id,
     label: pkg.variantType || "Standard",
     image: pkg.step4_sampleMedia?.media?.[0]?.url,
-    setupsCount: setups.length,
-    itemsCount: setups.reduce((sum, s) => sum + (s.items?.length ?? 0), 0),
-    description: setups[0]?.description ?? "",
+    ...variantCardContentOf(pkg),
     price: priceOf(pkg),
     originalPrice: originalPriceOf(pkg),
     badge: mostBookedVariantId && pkg._id === mostBookedVariantId ? "Most booked" : undefined,
@@ -489,6 +561,9 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   const categoryMeta = CATEGORY_META[slug];
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  // Decorator / DJ / Photographer bookings aren't priced or scoped by
+  // headcount, so the PDP booking form drops the guest-count field for them.
+  const requiresGuestCount = !["Decorator", "DJArtist", "PAV"].includes(pkg.vendorType);
 
   return {
     id: pkg._id,
@@ -499,6 +574,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     moreEventTagsCount: Math.max(0, eventCategories.length - 3),
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",
     instantBooking: pkg.bookingSettings?.bookingType === "Ready-to-Book",
+    requiresGuestCount,
     vendorName: vendor?.businessName ?? "Vendor",
     rating: vendor?.rating ?? reviews.average,
     reviewCount: reviews.total,

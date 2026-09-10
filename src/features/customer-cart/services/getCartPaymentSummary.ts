@@ -1,4 +1,5 @@
 import type { RawCartQuote } from "@/lib/customerCartApi";
+import { buildConvenienceFeeRow } from "@/lib/convenienceFee";
 import type { CartVendor } from "../types";
 import type { BookingLineRow, BookingPaymentMilestone } from "@/features/customer-booking/types";
 import { formatPrice } from "../utils/currency";
@@ -43,9 +44,8 @@ export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: Car
   const rows: BookingLineRow[] = [];
   if (quote) {
     rows.push({ label: "Total booking amount", value: formatPrice(quote.subtotal) });
-    if (quote.convenienceFeeConfigured) {
-      rows.push({ label: "Service & security fee", value: formatPrice(quote.convenienceFee) });
-    }
+    const feeRow = buildConvenienceFeeRow(quote, formatPrice);
+    if (feeRow) rows.push(feeRow);
     if (quote.discount) {
       rows.push({ label: "Discount", value: `-${formatPrice(quote.discount)}` });
     }

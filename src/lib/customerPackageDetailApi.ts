@@ -1,5 +1,6 @@
 import { apiFetch } from "./apiClient";
 import type { RawVendorPublic, RawPackageMedia } from "./customerDiscoveryApi";
+import type { RawConvenienceFeeBreakdown } from "./customerCartApi";
 
 // Raw shapes returned by GET /api/customer/packages/:packageId and
 // GET /api/customer/packages/:packageId/reviews, verified against
@@ -207,6 +208,18 @@ export interface RawPdpAvailability {
   overall: boolean | null;
 }
 
+/**
+ * pricingPreview.convenienceFee (2026-09-10 backend handoff) — only
+ * computed when the PDP request carries `?date=`; without it `configured`
+ * is false with a `reason` string and `fee` is 0.
+ */
+export interface RawPdpConvenienceFee {
+  fee: number;
+  configured: boolean;
+  reason?: string | null;
+  breakdown?: RawConvenienceFeeBreakdown | null;
+}
+
 export interface RawPdpPricingPreview {
   basePrice: number | null;
   billingUnit: string | null;
@@ -216,6 +229,7 @@ export interface RawPdpPricingPreview {
   gstAmount: number | null;
   total: number | null;
   note: string;
+  convenienceFee?: RawPdpConvenienceFee | null;
 }
 
 export interface RawPdpReviewItem {
@@ -260,6 +274,24 @@ export async function getPackageDetail(packageId: string, params: PackageDetailP
   return apiFetch<RawPackageDetailResponse>(`/customer/packages/${packageId}${toQueryString(params)}`, {
     auth: false,
   });
+}
+
+/**
+ * Just the dated convenience-fee preview for one package — the same PDP
+ * endpoint, called client-side once the customer picks an event date (the
+ * page itself is server-rendered with no date). Returns null on any error
+ * so the price breakdown simply omits the fee line rather than blocking.
+ */
+export async function getConvenienceFeePreview(
+  packageId: string,
+  date: string
+): Promise<RawPdpConvenienceFee | null> {
+  try {
+    const response = await getPackageDetail(packageId, { date });
+    return response.pricingPreview.convenienceFee ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export interface RawReviewAggregate {
