@@ -92,6 +92,8 @@ export interface IncludedItemDetail {
   value: string;
   /** Count of additional values beyond `value` (e.g. value="Chair Decor", moreCount=2 -> "Chair Decor, +2 more"). Only set when the underlying field is a real array with more than one entry. */
   moreCount?: number;
+  /** The full list `value`/`moreCount` were derived from — what "+N more" expands to reveal. Only set alongside moreCount. */
+  allValues?: string[];
 }
 
 export interface IncludedItemEntry {

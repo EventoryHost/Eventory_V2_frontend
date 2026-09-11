@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, CheckCircle2, SquareArrowOutUpRight, XCircle } from "lucide-react";
+import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
@@ -24,6 +24,19 @@ export default function IncludedItems({
   const [isExclusionsOpen, setIsExclusionsOpen] = useState(false);
   const [expandedImageSetupId, setExpandedImageSetupId] = useState<string | null>(null);
   const expandedImageSetup = items.find((setup) => setup.id === expandedImageSetupId) ?? null;
+  // Keyed by `${setupId}-${detailLabel}` — which "+N more" rows (e.g. this
+  // setup's "Structures Included") are currently expanded to show every
+  // value instead of just the first + a count.
+  const [expandedDetailKeys, setExpandedDetailKeys] = useState<Set<string>>(new Set());
+
+  function toggleDetailExpanded(key: string) {
+    setExpandedDetailKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }
 
   return (
     <section id="included" className="border-t border-black/5 pt-8">
@@ -72,15 +85,30 @@ export default function IncludedItems({
                   )}
 
                   <div className="mt-2 flex flex-col gap-1">
-                    {setup.details.map((detail) => (
-                      <p key={detail.label} className="font-figtree text-[12px] leading-[16px] text-[#71717B]">
-                        {detail.label}:{" "}
-                        <span className="text-[#3F3F47]">
-                          {detail.value}
-                          {detail.moreCount ? <span className="underline">, +{detail.moreCount} more</span> : null}
-                        </span>
-                      </p>
-                    ))}
+                    {setup.details.map((detail) => {
+                      const key = `${setup.id}-${detail.label}`;
+                      const isExpanded = expandedDetailKeys.has(key);
+                      return (
+                        <p key={detail.label} className="font-figtree text-[12px] leading-[16px] text-[#71717B]">
+                          {detail.label}:{" "}
+                          <span className="text-[#3F3F47]">
+                            {isExpanded && detail.allValues ? detail.allValues.join(", ") : detail.value}
+                            {detail.moreCount ? (
+                              <>
+                                {!isExpanded && ", "}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleDetailExpanded(key)}
+                                  className="underline"
+                                >
+                                  {isExpanded ? "Show less" : `+${detail.moreCount} more`}
+                                </button>
+                              </>
+                            ) : null}
+                          </span>
+                        </p>
+                      );
+                    })}
                   </div>
 
                   <div className="mt-3 font-figtree text-[18px] font-bold text-brand-950">
@@ -93,7 +121,10 @@ export default function IncludedItems({
                   onClick={() => setActiveSetupId(setup.id)}
                   className="flex shrink-0 items-center gap-1.5 self-start rounded-full border border-black/15 px-3.5 py-2 font-figtree text-[13px] font-medium text-brand-950 transition hover:bg-black/5"
                 >
-                  <SquareArrowOutUpRight className="h-3.5 w-3.5" />
+                  {/* next/image blocks local SVGs without dangerouslyAllowSVG
+                      set (not set in this project) — plain img sidesteps
+                      that, same as hero-bg.svg/nav-logo.svg elsewhere. */}
+                  <img src="/images/customer/viewsetup.svg" alt="" className="h-3.5 w-3.5" />
                   View setup
                 </button>
               </div>

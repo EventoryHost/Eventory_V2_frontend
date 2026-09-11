@@ -194,20 +194,31 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
 function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups.map((setup, i) => {
-    const structures = setup.structuresIncluded ?? [];
+    // Real bug, not a data gap: structuresIncluded is empty [] on every Live
+    // setup — vendors' rich, real structures text lands on the sibling
+    // `structures` field instead (near-identical name, confirmed via direct
+    // schema check). Reading the wrong-but-similarly-named field was why
+    // this row silently never showed anything.
+    const structures = setup.structures ?? [];
     const themes = setup.themes ?? [];
     const items = setup.items ?? [];
 
     const details: IncludedItemDetail[] = [
       { label: "Decorating", value: setup.decoratingWhat || "—" },
     ];
-    // Setup type (Indoor/Outdoor) has no backing field on a setup — dropped
-    // rather than shown as a placeholder, same call as PackageSummary.tsx.
+    // Also a real-field-with-a-confusing-name bug: referenceStyle IS the
+    // Indoor/Outdoor/Both flag (confirmed against the vendor-side form's own
+    // field comment) — a previous pass here assumed no such field existed
+    // at all and dropped this row entirely.
+    if (setup.referenceStyle) {
+      details.push({ label: "Setup type", value: setup.referenceStyle });
+    }
     if (structures.length > 0) {
       details.push({
         label: "Structures Included",
         value: structures[0],
         moreCount: structures.length > 1 ? structures.length - 1 : undefined,
+        allValues: structures,
       });
     }
     if (themes.length > 0) {
@@ -215,6 +226,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
         label: "Theme",
         value: themes[0],
         moreCount: themes.length > 1 ? themes.length - 1 : undefined,
+        allValues: themes,
       });
     }
 
