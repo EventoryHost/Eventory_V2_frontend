@@ -98,6 +98,8 @@ export interface IncludedItemEntry {
   id: string;
   image?: string;
   title: string;
+  /** Vendor-authored free text describing this item — only exists on the schema for Decorator/PAV/DJArtist; Caterer/VenueProvider/MakeupArtist have no such field, so this stays undefined there rather than showing a placeholder. */
+  description?: string;
   /** Vendor-type-specific facts (Decorator: Decorating/Structures Included/Theme; PAV: Style/Quantity/Delivery; etc). */
   details: IncludedItemDetail[];
   /** Decorator-only — the setup's applied theme tag(s), shown as a pill picker in the setup detail view. Undefined for vendor types with no theme concept. */
@@ -225,6 +227,8 @@ export interface PackageDetail {
   vendorUnitName?: string;
   eventTags: string[];
   moreEventTagsCount: number;
+  /** This package's full, uncapped event-category list (step1_eventAndCrew.eventCategories) — eventTags above is just the capped pill display near the title. Used to scope StickyBookingCard's Event Type dropdown to occasions this package is actually tagged for. */
+  eventCategories: string[];
   title: string;
   instantBooking: boolean;
   /** False for Decorator / DJ / Photographer — a headcount isn't meaningful for those services, so the booking form hides (and doesn't require) the guest-count field. */
@@ -235,6 +239,8 @@ export interface PackageDetail {
   rating: number;
   reviewCount: number;
   locationSummary: string;
+  /** Same city + service-area composition as locationSummary, uncapped — what the header's "See the location" expands to. */
+  fullLocationSummary: string;
   gallery: GalleryImage[];
   variants: PackageVariant[];
   defaultVariantId: string;

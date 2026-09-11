@@ -11,6 +11,7 @@ export const mockPackageDetail: PackageDetail = {
   vendorUnitName: "Welcome Decorators",
   eventTags: ["Wedding", "Anniversary", "Social Gathering"],
   moreEventTagsCount: 3,
+  eventCategories: ["Wedding", "Anniversary", "Social Gathering", "Birthday", "Corporate", "Haldi"],
   title: "Marigold Stage & Mandap — Haldi Special",
   instantBooking: true,
   requiresGuestCount: false,
@@ -20,6 +21,7 @@ export const mockPackageDetail: PackageDetail = {
   rating: 4.5,
   reviewCount: 13,
   locationSummary: "Delhi NCR, Gurugram, Noida",
+  fullLocationSummary: "Delhi NCR, Gurugram, Noida, Ghaziabad, Faridabad",
   gallery: [
     { id: "gallery-1", image: "/images/customer/haldi.jpg", alt: "Marigold stage main view" },
     { id: "gallery-2", image: "/images/customer/packages-pics.png", alt: "Stage detail — marigold garlands" },

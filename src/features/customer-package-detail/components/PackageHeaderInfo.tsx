@@ -29,6 +29,7 @@ export default function PackageHeaderInfo({
     | "rating"
     | "reviewCount"
     | "locationSummary"
+    | "fullLocationSummary"
     | "vendor"
   >;
   onCreateQuotation: () => void;
@@ -36,6 +37,8 @@ export default function PackageHeaderInfo({
   const { isLoggedIn } = useCustomerSession();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isLocationExpanded, setIsLocationExpanded] = useState(false);
+  const hasMoreLocation = data.fullLocationSummary !== data.locationSummary;
   const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isSaved = isLoggedIn && savedItemId !== null;
@@ -151,8 +154,17 @@ export default function PackageHeaderInfo({
             </>
           )}
           <div className="flex items-center gap-1.5 text-neutral-secondary">
-            <MapPin className="h-4 w-4" style={{ color: "#EA1D3B" }} />
-            {data.locationSummary}... <span className="font-medium text-brand-950 underline">See the location</span>
+            <MapPin className="h-4 w-4 shrink-0" style={{ color: "#EA1D3B" }} />
+            {isLocationExpanded ? data.fullLocationSummary : data.locationSummary}
+            {hasMoreLocation && (
+              <button
+                type="button"
+                onClick={() => setIsLocationExpanded((expanded) => !expanded)}
+                className="font-medium text-brand-950 underline"
+              >
+                {isLocationExpanded ? "Show less" : "...See the location"}
+              </button>
+            )}
           </div>
         </div>
 

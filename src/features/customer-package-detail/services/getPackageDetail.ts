@@ -222,6 +222,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
       id: setup._id ?? `setup-${i}`,
       image: setup.setupPhoto,
       title: setup.name ?? "Setup",
+      description: setup.description || undefined,
       details,
       themeOptions: themes.length > 0 ? themes : undefined,
       price: setup.price ?? 0,
@@ -248,6 +249,7 @@ function mapIncludedItemsPav(pkg: RawFullPackage): IncludedItemEntry[] {
   return items.map((item, i) => ({
     id: item._id ?? `item-${i}`,
     title: item.itemType || "Item",
+    description: item.contentDetails?.description || undefined,
     details: [
       { label: "Style", value: item.contentDetails?.style || item.contentDetails?.categories?.join(", ") || "—" },
       { label: "Quantity", value: item.contentDetails?.quantity != null ? String(item.contentDetails.quantity) : "—" },
@@ -307,6 +309,7 @@ function mapIncludedItemsDj(pkg: RawFullPackage): IncludedItemEntry[] {
   return items.map((item, i) => ({
     id: item._id ?? `dj-item-${i}`,
     title: item.name || item.performanceType || "Performance",
+    description: item.contentDetails?.description || undefined,
     details: [
       { label: "Type", value: item.performanceType || "—" },
       { label: "Genre", value: item.contentDetails?.genreOfMusic?.join(", ") || "—" },
@@ -572,6 +575,10 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     categoryGradientFrom: categoryMeta?.gradientFrom,
     eventTags: eventCategories.slice(0, 3),
     moreEventTagsCount: Math.max(0, eventCategories.length - 3),
+    // Full, uncapped list — eventTags above is just the pill display near
+    // the title (capped to 3 + a counter); StickyBookingCard's Event Type
+    // dropdown needs every category this package is actually tagged for.
+    eventCategories,
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",
     instantBooking: pkg.bookingSettings?.bookingType === "Ready-to-Book",
     requiresGuestCount,
@@ -580,6 +587,9 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     reviewCount: reviews.total,
     locationSummary:
       [vendor?.city, ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
+    // Same composition as locationSummary, just uncapped — what "See the
+    // location" expands to (city + every service area, not just the first 2).
+    fullLocationSummary: [vendor?.city, ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
     gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,
