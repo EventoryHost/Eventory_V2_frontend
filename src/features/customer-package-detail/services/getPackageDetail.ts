@@ -191,6 +191,33 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
   return requirements;
 }
 
+// Splits a free-text value on commas for display as "first part, +N more" —
+// used both for genuinely single-string fields (Decorating) and as a
+// fallback when a real array field (Structures Included/Theme) only has one
+// entry because the vendor wrote one run-on comma-separated sentence instead
+// of separate array items. This doesn't fabricate extra items — it's just
+// revealing the same text the vendor entered, click-to-expand instead of an
+// always-visible wall of text.
+function splitDisplayDetail(label: string, raw: string): IncludedItemDetail {
+  const parts = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) return { label, value: raw };
+  return { label, value: parts[0], moreCount: parts.length - 1, allValues: parts };
+}
+
+// For a real array field: multiple entries are shown as-is (first + "+N
+// more" over the real items). A single entry falls back to comma-splitting
+// that one string, since vendors often write it as one sentence.
+function buildListDetail(label: string, values: string[]): IncludedItemDetail | null {
+  if (values.length === 0) return null;
+  if (values.length > 1) {
+    return { label, value: values[0], moreCount: values.length - 1, allValues: values };
+  }
+  return splitDisplayDetail(label, values[0]);
+}
+
 function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups.map((setup, i) => {
@@ -204,7 +231,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
     const items = setup.items ?? [];
 
     const details: IncludedItemDetail[] = [
-      { label: "Decorating", value: setup.decoratingWhat || "—" },
+      splitDisplayDetail("Decorating", setup.decoratingWhat || "—"),
     ];
     // Also a real-field-with-a-confusing-name bug: referenceStyle IS the
     // Indoor/Outdoor/Both flag (confirmed against the vendor-side form's own
@@ -213,22 +240,10 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
     if (setup.referenceStyle) {
       details.push({ label: "Setup type", value: setup.referenceStyle });
     }
-    if (structures.length > 0) {
-      details.push({
-        label: "Structures Included",
-        value: structures[0],
-        moreCount: structures.length > 1 ? structures.length - 1 : undefined,
-        allValues: structures,
-      });
-    }
-    if (themes.length > 0) {
-      details.push({
-        label: "Theme",
-        value: themes[0],
-        moreCount: themes.length > 1 ? themes.length - 1 : undefined,
-        allValues: themes,
-      });
-    }
+    const structuresDetail = buildListDetail("Structures Included", structures);
+    if (structuresDetail) details.push(structuresDetail);
+    const themeDetail = buildListDetail("Theme", themes);
+    if (themeDetail) details.push(themeDetail);
 
     return {
       id: setup._id ?? `setup-${i}`,
@@ -621,7 +636,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
           ? `${crew.minPeople && crew.maxPeople && crew.minPeople !== crew.maxPeople ? `${crew.minPeople}-${crew.maxPeople}` : (crew.minPeople ?? crew.maxPeople)} crew`
           : "—",
     },
-    aboutText: vendor?.description || "No description provided yet.",
+    // This is the vendor's package-level write-up (step2_productsAndPricing.included —
+    // in practice almost always a single string, but joined in case a vendor entered
+    // multiple), not a vendor bio — hence "About this package" rather than "About Us"
+    // as the section heading (see AboutPackage.tsx).
+    aboutText: pkg.step2_productsAndPricing?.included?.join(" ") || "No description provided yet.",
     includedItems: mapIncludedItems(pkg),
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
