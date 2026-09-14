@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { PlusCircle, XCircle } from "lucide-react";
 import type { CustomizeRequest, IncludedItemEntry, IncludedItemLine } from "../types";
+import { formatPrice } from "../utils/formatPrice";
 import YourRequestsPanel from "./YourRequestsPanel";
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -15,36 +16,49 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 function ItemDetailCard({ item }: { item: IncludedItemLine }) {
-  const selectedColour = item.colours?.[0]
-    ? item.colourOptions?.find((c) => c.id === item.colours?.[0])
-    : undefined;
-
   return (
     <div className={`rounded-2xl border border-black/10 p-4 ${item.removalRequested ? "opacity-50" : ""}`}>
-      <h4
-        className={`font-figtree text-[15px] font-bold text-brand-950 ${item.removalRequested ? "line-through" : ""}`}
-      >
-        {item.label}
-        {item.isNew && (
-          <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-amber-700">
-            New
-          </span>
+      <div className="flex items-start justify-between gap-4">
+        <h4
+          className={`font-figtree text-[15px] font-bold text-brand-950 ${item.removalRequested ? "line-through" : ""}`}
+        >
+          {item.label}
+          {item.isNew && (
+            <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-amber-700">
+              New
+            </span>
+          )}
+        </h4>
+        {item.price != null && (
+          <span className="shrink-0 font-figtree text-[15px] font-bold text-brand-950">{formatPrice(item.price)}</span>
         )}
-      </h4>
+      </div>
       <div className="mt-3 grid grid-cols-3 gap-4">
         {item.category && <Stat label="Item Type" value={item.category} />}
         {item.typeLabel && item.type && <Stat label={item.typeLabel} value={item.type} />}
         {item.volume ? <Stat label="Volume" value={item.volume} /> : <Stat label="Quantity" value={String(item.qty)} />}
       </div>
-      {selectedColour && (
+      {item.colourOptions && item.colourOptions.length > 0 && (
         <div className="mt-3">
-          <div className="font-figtree text-[12px] text-neutral-tertiary">Color</div>
-          <div className="mt-1 flex items-center gap-1.5 font-figtree text-[14px] font-medium text-brand-950">
-            <span
-              className="h-3.5 w-3.5 rounded-full border border-black/10"
-              style={{ backgroundColor: selectedColour.swatch }}
-            />
-            {selectedColour.label}
+          <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">Color</div>
+          <div className="flex flex-wrap gap-2">
+            {item.colourOptions.map((colour) => {
+              const selected = item.colours?.includes(colour.id);
+              return (
+                <span
+                  key={colour.id}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-figtree text-[13px] font-medium ${
+                    selected ? "border-[1.5px] border-[#B4112A] text-brand-950" : "border-black/15 text-neutral-secondary"
+                  }`}
+                >
+                  <span
+                    className="h-4 w-4 shrink-0 rounded-full border border-black/10"
+                    style={{ backgroundColor: colour.swatch }}
+                  />
+                  {colour.label}
+                </span>
+              );
+            })}
           </div>
         </div>
       )}
@@ -117,7 +131,7 @@ export default function SetupDetailPanel({
                   onClick={() => setSelectedTheme(theme)}
                   className={`rounded-full border px-4 py-2 font-figtree text-[13px] transition ${
                     selectedTheme === theme
-                      ? "border-2 border-brand-950 font-semibold text-brand-950"
+                      ? "border-[1.5px] border-[#B4112A] font-semibold text-brand-950"
                       : "border-black/15 text-neutral-secondary hover:border-black/30"
                   }`}
                 >

@@ -11,7 +11,10 @@ import type { RawConvenienceFeeBreakdown } from "./customerCartApi";
 export interface RawBookingVendor {
   id?: string;
   _id?: string;
-  businessName?: string;
+  // Customer-facing surfaces never show the vendor's business name — only
+  // the vendor's own name. businessName has been dropped from this response
+  // entirely, not just left empty.
+  pocName?: string;
   profilePicture?: string;
   rating?: number;
   reviewsCount?: number;

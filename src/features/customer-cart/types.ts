@@ -50,10 +50,9 @@ export interface CartVendor {
   id: string;
   vendorId: string;
   /**
-   * Actually the vendor's businessName — GET /customer/vendors/:id's
-   * PUBLIC_VENDOR_FIELDS whitelist has no owner/contact-name field at all
-   * (only businessName), so there's no "vendor name, not business name" to
-   * source here yet. Kept named vendorName for minimal component churn.
+   * The vendor's own name (GET /customer/vendors/:id's PUBLIC_VENDOR_FIELDS
+   * pocName) — businessName is no longer exposed on customer-facing
+   * responses at all, so this is never a business name.
    */
   vendorName: string;
   avatarInitial: string;

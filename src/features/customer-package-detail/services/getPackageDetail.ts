@@ -4,6 +4,7 @@ import type {
   GalleryImage,
   IncludedItemEntry,
   IncludedItemDetail,
+  ColourOption,
   AddonItem,
   VendorRequirement,
   VendorRequirementIcon,
@@ -218,6 +219,57 @@ function buildListDetail(label: string, values: string[]): IncludedItemDetail | 
   return splitDisplayDetail(label, values[0]);
 }
 
+function slugifyColourName(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+// The vendor's real, chosen color NAMES ("Navy Blue", "Champagne", ...) — the
+// backend has no hex/swatch field for these. This is a best-effort visual dot
+// for a real name the vendor picked, not a fabricated color: unrecognised
+// names still show their real label text, just with a neutral placeholder dot.
+const COLOUR_SWATCH_MAP: Record<string, string> = {
+  white: "#FFFFFF",
+  red: "#D92D20",
+  green: "#12B76A",
+  orange: "#FF8A00",
+  brown: "#7A4A2B",
+  gold: "#D4AF37",
+  navy: "#1B2A4A",
+  "navy-blue": "#1B2A4A",
+  champagne: "#E8D9B5",
+  cream: "#F5EEDC",
+  ivory: "#FFFFF0",
+  maroon: "#5C0A24",
+  black: "#111111",
+  silver: "#C0C0C0",
+  blue: "#155EEF",
+  "sky-blue": "#7CC7FF",
+  "royal-blue": "#1B3FBF",
+  pink: "#F4C2C2",
+  purple: "#6941C6",
+  lavender: "#B497D6",
+  yellow: "#F5D90A",
+  peach: "#FFCBA4",
+  beige: "#E8DCC8",
+  grey: "#9AA0A6",
+  gray: "#9AA0A6",
+  "rose-gold": "#DB9A93",
+  teal: "#0E7C86",
+  turquoise: "#30D5C8",
+  magenta: "#D6249F",
+  marigold: "#F0A500",
+  multicolour: "#9AA0A6",
+  multicolor: "#9AA0A6",
+};
+
+function mapColourOptions(names: string[]): ColourOption[] {
+  return names.map((name) => ({
+    id: slugifyColourName(name),
+    label: name,
+    swatch: COLOUR_SWATCH_MAP[slugifyColourName(name)] ?? "#D0D0D0",
+  }));
+}
+
 function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups.map((setup, i) => {
@@ -253,15 +305,39 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
       details,
       themeOptions: themes.length > 0 ? themes : undefined,
       price: setup.price ?? 0,
-      items: items.map((line, idx) => ({
-        id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
-        label: line.name ?? "Item",
-        qty: line.qty ?? 1,
-        originalQty: line.qty ?? 1,
-        volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
-        volume: line.volume || undefined,
-        originalVolume: line.volume || undefined,
-      })),
+      items: items.map((line, idx) => {
+        // colors is the vendor's real list of color options offered for this
+        // item — not a single "chosen" color, so there's no backend default
+        // to read. Same convention as Setup Theme above: the first real
+        // option is shown as the current pick until the customer changes it
+        // in the customize workshop (toggleColour), not a fabricated value.
+        const colourOptions = line.colors?.length ? mapColourOptions(line.colors) : undefined;
+        const colours = colourOptions ? [colourOptions[0].id] : undefined;
+        // subCategory is only a meaningful extra fact when it says something
+        // beyond the item's own name (e.g. name="Chrome Balloons",
+        // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
+        // Bouquet", subCategory="Rose" — real extra detail, kept).
+        const type = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
+        return {
+          id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
+          label: line.name ?? "Item",
+          qty: line.qty ?? 1,
+          originalQty: line.qty ?? 1,
+          price: line.price,
+          // itemType is the item's broad category (e.g. "Balloons", "Flower")
+          // — real, already in the API response, previously dropped entirely.
+          category: line.itemType || undefined,
+          typeLabel: type ? `${line.itemType ?? "Sub"} Type` : undefined,
+          type,
+          originalType: type,
+          volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
+          volume: line.volume || undefined,
+          originalVolume: line.volume || undefined,
+          colourOptions,
+          colours,
+          originalColours: colours,
+        };
+      }),
       // An item offering color choices counts as customer-facing customisation.
       customisationsCount: items.filter((line) => (line.colors?.length ?? 0) > 0).length,
     };
@@ -484,7 +560,7 @@ function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
 
 function mapVendor(pkg: RawFullPackage): VendorInfo {
   const vendor = vendorOf(pkg);
-  const name = vendor?.businessName ?? "Vendor";
+  const name = vendor?.pocName ?? "Vendor";
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   return {
     id: vendor?.id ?? "",
@@ -609,7 +685,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",
     instantBooking: pkg.bookingSettings?.bookingType === "Ready-to-Book",
     requiresGuestCount,
-    vendorName: vendor?.businessName ?? "Vendor",
+    vendorName: vendor?.pocName ?? "Vendor",
     rating: vendor?.rating ?? reviews.average,
     reviewCount: reviews.total,
     locationSummary:

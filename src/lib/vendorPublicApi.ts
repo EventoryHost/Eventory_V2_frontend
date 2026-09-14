@@ -10,7 +10,10 @@ import { apiFetch } from "./apiClient";
 
 export interface RawVendorPublicMinimal {
   id: string;
-  businessName?: string;
+  // Customer-facing surfaces never show the vendor's business name — only
+  // the vendor's own name (pocName). businessName has been dropped from
+  // this response entirely, not just left empty.
+  pocName?: string;
   isIndividual?: boolean;
   vendorType?: string;
   eventCategories?: string[];

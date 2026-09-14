@@ -47,6 +47,8 @@ export interface IncludedItemLine {
   label: string;
   qty: number;
   originalQty: number;
+  /** This item's own price, when the vendor priced it individually rather than only at the setup level. Undefined hides the price row rather than showing a fabricated ₹0. */
+  price?: number;
   /** Free-text display category, e.g. "Flowers", "Furniture". */
   category?: string;
   typeLabel?: string;

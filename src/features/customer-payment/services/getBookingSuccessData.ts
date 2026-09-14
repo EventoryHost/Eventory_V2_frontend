@@ -49,7 +49,7 @@ function grandTotalOf(pb: RawBookingDetailResponse["priceBreakdown"]): number {
 }
 
 function vendorNameOf(booking: RawBooking): string {
-  return typeof booking.vendorId === "object" ? booking.vendorId.businessName || "Vendor" : "Vendor";
+  return typeof booking.vendorId === "object" ? booking.vendorId.pocName || "Vendor" : "Vendor";
 }
 
 // Right after confirmCheckoutSessionOffline, every booking is freshly
