@@ -172,10 +172,7 @@ export default function SetupDetailPanel({
         <YourRequestsPanel requests={requests} onDismiss={onDismissRequest} />
       </div>
 
-      <div className="flex items-center justify-between gap-4 border-t border-black/10 px-6 py-4">
-        <p className="font-figtree text-[12px] text-neutral-secondary">
-          Requests don&apos;t change your price — the vendor confirms them after booking.
-        </p>
+      <div className="flex items-center justify-end gap-4 border-t border-black/10 px-6 py-4">
         <button
           type="button"
           onClick={onSave}
