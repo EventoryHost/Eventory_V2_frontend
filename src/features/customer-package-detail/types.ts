@@ -47,6 +47,8 @@ export interface IncludedItemLine {
   label: string;
   qty: number;
   originalQty: number;
+  /** This item's own price, when the vendor priced it individually rather than only at the setup level. Undefined hides the price row rather than showing a fabricated ₹0. */
+  price?: number;
   /** Free-text display category, e.g. "Flowers", "Furniture". */
   category?: string;
   typeLabel?: string;
@@ -92,12 +94,16 @@ export interface IncludedItemDetail {
   value: string;
   /** Count of additional values beyond `value` (e.g. value="Chair Decor", moreCount=2 -> "Chair Decor, +2 more"). Only set when the underlying field is a real array with more than one entry. */
   moreCount?: number;
+  /** The full list `value`/`moreCount` were derived from — what "+N more" expands to reveal. Only set alongside moreCount. */
+  allValues?: string[];
 }
 
 export interface IncludedItemEntry {
   id: string;
   image?: string;
   title: string;
+  /** Vendor-authored free text describing this item — only exists on the schema for Decorator/PAV/DJArtist; Caterer/VenueProvider/MakeupArtist have no such field, so this stays undefined there rather than showing a placeholder. */
+  description?: string;
   /** Vendor-type-specific facts (Decorator: Decorating/Structures Included/Theme; PAV: Style/Quantity/Delivery; etc). */
   details: IncludedItemDetail[];
   /** Decorator-only — the setup's applied theme tag(s), shown as a pill picker in the setup detail view. Undefined for vendor types with no theme concept. */
@@ -225,6 +231,8 @@ export interface PackageDetail {
   vendorUnitName?: string;
   eventTags: string[];
   moreEventTagsCount: number;
+  /** This package's full, uncapped event-category list (step1_eventAndCrew.eventCategories) — eventTags above is just the capped pill display near the title. Used to scope StickyBookingCard's Event Type dropdown to occasions this package is actually tagged for. */
+  eventCategories: string[];
   title: string;
   instantBooking: boolean;
   /** False for Decorator / DJ / Photographer — a headcount isn't meaningful for those services, so the booking form hides (and doesn't require) the guest-count field. */
@@ -235,6 +243,8 @@ export interface PackageDetail {
   rating: number;
   reviewCount: number;
   locationSummary: string;
+  /** Same city + service-area composition as locationSummary, uncapped — what the header's "See the location" expands to. */
+  fullLocationSummary: string;
   gallery: GalleryImage[];
   variants: PackageVariant[];
   defaultVariantId: string;

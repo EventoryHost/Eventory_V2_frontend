@@ -1,5 +1,18 @@
 @import "tailwindcss";
 
+/* Tailwind's Preflight deliberately leaves <button>'s cursor at the browser
+   default (an arrow, not a hand) — only <a> gets a pointer cursor natively.
+   This app uses plain <button>s everywhere for link-styled text ("View
+   setup", "See location", "Learn more", price-breakdown triggers, etc.),
+   so without this every one of them showed the wrong cursor. Scoped to
+   :not(:disabled) so a genuinely disabled button still shows not-allowed/
+   default as expected. */
+@layer base {
+  button:not(:disabled) {
+    cursor: pointer;
+  }
+}
+
 :root {
   --customer-bg: #faf9f6;
   --brand-950: #1e0306;

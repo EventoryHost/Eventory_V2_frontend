@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, MapPin, ShieldCheck, Check, Users } from "lucide-react";
+import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem, getCart, updateCartItem, type RawCartEventDetails } from "@/lib/customerCartApi";
 import { getConvenienceFeePreview, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
+import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -16,13 +17,6 @@ import CancellationPolicyDialog from "./CancellationPolicyDialog";
 import VendorNotePromptModal from "./VendorNotePromptModal";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
-
-const EVENT_TYPE_OPTIONS = [
-  { value: "wedding", label: "Wedding" },
-  { value: "haldi", label: "Haldi" },
-  { value: "birthday", label: "Birthday" },
-  { value: "anniversary", label: "Anniversary" },
-];
 
 // Half-hour slots, stored as 24h "HH:MM" (same shape the native time input
 // produced, so buildCartPayload's `${startTime} - ${endTime}` join and any
@@ -49,6 +43,7 @@ export default function StickyBookingCard({
   gstPercent,
   tokenAmount,
   requiresGuestCount = true,
+  eventCategories,
   selectedAddons,
   includedItems,
   vendorNote,
@@ -67,6 +62,8 @@ export default function StickyBookingCard({
   tokenAmount: number;
   /** Decorator / DJ / Photographer hide the guest-count field (and don't require it). */
   requiresGuestCount?: boolean;
+  /** This package's own event categories (step1_eventAndCrew.eventCategories, via PackageDetail.eventCategories) — scopes the Event Type dropdown to occasions this package is actually tagged for, instead of a fixed made-up list. */
+  eventCategories: string[];
   selectedAddons: SelectedAddon[];
   includedItems: IncludedItemEntry[];
   vendorNote: string;
@@ -77,11 +74,22 @@ export default function StickyBookingCard({
   /** This cart item's already-saved event details, to prefill the fields below instead of starting blank. */
   prefillEventDetails?: RawCartEventDetails;
 }) {
+  const eventTypeOptions = useMemo(
+    () => eventCategories.map((category) => ({ value: category, label: category })),
+    [eventCategories]
+  );
   const [eventType, setEventType] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
+  // True while `location` still holds the auto-detected value untouched —
+  // clicking into the field then clears it outright (rather than leaving
+  // the customer to select-all/backspace it themselves) so they can just
+  // start typing their real address straight away.
+  const [isLocationAutoFilled, setIsLocationAutoFilled] = useState(false);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationDetectError, setLocationDetectError] = useState<string | null>(null);
   const [guestCount, setGuestCount] = useState("");
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);
   const [isCancellationOpen, setIsCancellationOpen] = useState(false);
@@ -133,9 +141,50 @@ export default function StickyBookingCard({
       if (start) setStartTime(start.trim());
       if (end) setEndTime(end.trim());
     }
-    if (prefillEventDetails.location) setLocation(prefillEventDetails.location);
+    if (prefillEventDetails.location) {
+      setLocation(prefillEventDetails.location);
+      // This is the customer's own previously-saved address, not an
+      // auto-detected guess — focusing the field shouldn't wipe it.
+      setIsLocationAutoFilled(false);
+    }
     if (prefillEventDetails.guestCount != null) setGuestCount(String(prefillEventDetails.guestCount));
   }, [prefillEventDetails]);
+
+  // Same auto-detect flow as the navbar's location picker (see
+  // useSelectedCity.ts / lib/geocoding.ts), and skipped entirely once
+  // editItemId is known (editing an existing cart line prefills its own
+  // real saved location instead). On mount this stays quiet on failure —
+  // same "best-effort default" call the navbar makes — but the explicit
+  // icon click always surfaces why it didn't work (denied/imprecise/
+  // unsupported/error), the same messages LocationPickerModal shows,
+  // instead of just doing nothing with no visible feedback.
+  async function detectAndFillLocation(showErrors: boolean) {
+    setIsDetectingLocation(true);
+    if (showErrors) setLocationDetectError(null);
+    const outcome = await detectCurrentLocation();
+    setIsDetectingLocation(false);
+    if (outcome.status === "success") {
+      setLocation(outcome.label);
+      setIsLocationAutoFilled(true);
+      return;
+    }
+    if (!showErrors) return;
+    setLocationDetectError(
+      outcome.status === "denied"
+        ? "Location access was denied — allow it in your browser, or type your address instead."
+        : outcome.status === "imprecise"
+          ? "Couldn't get a precise enough fix — try typing your address instead."
+          : outcome.status === "unsupported"
+            ? "Your browser doesn't support location detection — type your address instead."
+            : "Couldn't detect your location — try typing your address instead."
+    );
+  }
+
+  useEffect(() => {
+    if (editItemId) return;
+    void detectAndFillLocation(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editItemId]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
@@ -305,7 +354,7 @@ export default function StickyBookingCard({
             value={eventType}
             onChange={setEventType}
             placeholder="Choose Event Type"
-            options={EVENT_TYPE_OPTIONS}
+            options={eventTypeOptions}
             triggerId="event-type-select"
           />
 
@@ -343,12 +392,40 @@ export default function StickyBookingCard({
               <input
                 type="text"
                 value={location}
-                onChange={(event) => setLocation(event.target.value)}
+                onChange={(event) => {
+                  setLocation(event.target.value);
+                  setIsLocationAutoFilled(false);
+                  setLocationDetectError(null);
+                }}
+                onFocus={() => {
+                  // Clicking in to edit the auto-detected guess clears it
+                  // outright, rather than leaving the customer to
+                  // select-all/backspace it before typing their real one.
+                  if (isLocationAutoFilled) {
+                    setLocation("");
+                    setIsLocationAutoFilled(false);
+                  }
+                }}
                 placeholder="Enter event location"
                 className="w-full rounded-lg border border-black/15 py-2 pr-10 pl-3 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
               />
-              <MapPin className="pointer-events-none absolute top-2.5 right-3 h-4 w-4 text-neutral-tertiary" />
+              <button
+                type="button"
+                onClick={() => detectAndFillLocation(true)}
+                disabled={isDetectingLocation}
+                aria-label="Use my current location"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-tertiary transition-colors hover:text-brand-primary disabled:cursor-not-allowed"
+              >
+                {isDetectingLocation ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <MapPin className="h-4 w-4" />
+                )}
+              </button>
             </div>
+            {locationDetectError && (
+              <p className="mt-1.5 font-figtree text-[11px] font-medium text-error-700">{locationDetectError}</p>
+            )}
           </label>
 
           {requiresGuestCount && (

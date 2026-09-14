@@ -19,10 +19,16 @@ export default function VariantSelector({
       <p className="mb-4 font-figtree text-[14px] leading-[20px] font-normal align-middle">
         Variant Selected:{" "}
         <span className="font-semibold text-[#030303]">{selected?.label}</span>{" "}
-        <span className="font-semibold text-[#030303]">{selected && formatPrice(selected.price)}</span>
+        <span className="font-semibold text-[#030303]">
+          {selected && formatPrice(selected.price)}
+        </span>
       </p>
 
-      <div role="radiogroup" aria-label="Package variant" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div
+        role="radiogroup"
+        aria-label="Package variant"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-3"
+      >
         {variants.map((variant, i) => {
           const isSelected = variant.id === selectedId;
           return (
@@ -32,8 +38,10 @@ export default function VariantSelector({
               role="radio"
               aria-checked={isSelected}
               onClick={() => onSelect(variant.id)}
-              className={`relative mx-auto flex h-[300.61px] w-full max-w-[257.38px] flex-col overflow-hidden rounded-[24px] border-[1.5px] bg-white text-left transition ${
-                isSelected ? "border-[#F0596F]" : "border-[#E4E4E7] hover:border-black/20"
+              className={`relative mx-auto flex h-[300.61px] w-full max-w-[257.38px] flex-col overflow-hidden rounded-[24px] border-[2.5px] bg-white text-left transition ${
+                isSelected
+                  ? "border-[#F0596F]"
+                  : "border-[#E4E4E7] hover:border-black/20"
               }`}
             >
               {/*
@@ -61,10 +69,14 @@ export default function VariantSelector({
                 )}
                 <span
                   className={`absolute top-2 right-2 z-10 flex h-6 w-6 items-center justify-center rounded-full border ${
-                    isSelected ? "border-[#F0596F] bg-brand-primary text-white" : "border-[#E4E4E7] bg-[#FFFFFFE5]"
+                    isSelected
+                      ? "border-[#F0596F] bg-brand-primary text-white"
+                      : "border-[#E4E4E7] bg-[#FFFFFFE5]"
                   }`}
                 >
-                  {isSelected && <Check className="h-3.5 w-3.5" strokeWidth={3} />}
+                  {isSelected && (
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  )}
                 </span>
               </div>
 
@@ -74,7 +86,8 @@ export default function VariantSelector({
                     {variant.label}
                   </h3>
                   <span className="shrink-0 font-figtree text-[11px] leading-[16px] font-normal text-[#3F3F47]">
-                    {variant.setupsCount > 0 && `${variant.setupsCount} setup${variant.setupsCount > 1 ? "s" : ""} · `}
+                    {variant.setupsCount > 0 &&
+                      `${variant.setupsCount} setup${variant.setupsCount > 1 ? "s" : ""} · `}
                     {variant.itemsCount} items
                   </span>
                 </div>
@@ -93,7 +106,9 @@ export default function VariantSelector({
                   </span>
                 </div>
                 {variant.compareNote && (
-                  <div className="mt-0.5 font-figtree text-[11px] text-neutral-tertiary">{variant.compareNote}</div>
+                  <div className="mt-0.5 font-figtree text-[11px] text-neutral-tertiary">
+                    {variant.compareNote}
+                  </div>
                 )}
               </div>
             </button>

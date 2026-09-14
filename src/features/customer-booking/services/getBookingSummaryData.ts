@@ -244,7 +244,7 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
   const vendorGroups: BookingVendorGroup[] = vendorIds.map((vendorId) => {
     const lines = linesByVendor.get(vendorId) ?? [];
     const vendorInfo = vendorMap.get(vendorId);
-    const vendorName = vendorInfo?.businessName ?? lines[0]?.packageSnapshot.vendorType ?? "Vendor";
+    const vendorName = vendorInfo?.pocName ?? lines[0]?.packageSnapshot.vendorType ?? "Vendor";
     const subtotal = lines.reduce((sum, line) => {
       const quoteLine = quoteLineByLineId.get(line._id);
       return sum + (quoteLine?.lineTotalInclGst ?? quoteLine?.lineSubtotal ?? 0);
@@ -263,7 +263,7 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       packageCount: lines.length,
       subtotal: formatPrice(subtotal),
       services: lines.map((line) =>
-        mapLine(line, vendorInfo?.businessName, availabilityByLineId.get(line._id), quoteLineByLineId.get(line._id))
+        mapLine(line, vendorInfo?.pocName, availabilityByLineId.get(line._id), quoteLineByLineId.get(line._id))
       ),
     };
   });

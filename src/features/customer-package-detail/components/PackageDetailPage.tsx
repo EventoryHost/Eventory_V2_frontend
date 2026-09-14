@@ -110,7 +110,9 @@ export default function PackageDetailPage({
 
           <PackageSummary summary={data.summary} />
           <AboutPackage text={data.aboutText} />
-          {data.includedItems.length > 0 && <IncludedItems items={data.includedItems} />}
+          {data.includedItems.length > 0 && (
+            <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} />
+          )}
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
           <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
@@ -132,6 +134,7 @@ export default function PackageDetailPage({
           gstPercent={data.pricing.gstPercent}
           tokenAmount={data.pricing.tokenAmount}
           requiresGuestCount={data.requiresGuestCount}
+          eventCategories={data.eventCategories}
           selectedAddons={selectedAddons}
           includedItems={data.includedItems}
           vendorNote={vendorNote}

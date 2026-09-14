@@ -34,8 +34,13 @@ export interface RawDecoratorSetup {
   description?: string;
   price?: number;
   decoratingWhat?: string;
+  /** Confusingly named — this is actually the setup's Indoor/Outdoor/Both flag (confirmed against the vendor-side form's own field comment), not a "reference style" of any kind. */
+  referenceStyle?: "Indoor" | "Outdoor" | "Both";
   themes?: string[];
+  /** Always empty [] on every real setup — vendors never write to this field. The real, vendor-authored structures data lives on the sibling field below instead. */
   structuresIncluded?: string[];
+  /** The real "structures included" data (e.g. "Decorative geometric backdrop framework, balloon arch installation...") — confirmed populated on almost every Live setup, despite the near-identical name to structuresIncluded above. */
+  structures?: string[];
   items?: RawDecoratorSetupItem[];
 }
 

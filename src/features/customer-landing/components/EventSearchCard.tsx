@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPackagesFilters } from "@/lib/customerDiscoveryApi";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
-import SearchDropdown from "./SearchDropdown";
+import SearchAutocomplete from "./SearchAutocomplete";
 import SearchDatePicker from "./SearchDatePicker";
 
 // "Birthday" is a redundant duplicate of "Birthday Party" in the backend's
@@ -44,21 +44,21 @@ export default function EventSearchCard() {
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-end gap-4 rounded-3xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.06)] px-6 py-6">
-      <SearchDropdown
+      <SearchAutocomplete
         label="Event Type"
         value={eventType}
         onChange={setEventType}
-        placeholder="Any event type"
+        placeholder="Type to search event type"
         options={eventCategories
           .filter((category) => !HIDDEN_EVENT_CATEGORIES.has(category.trim().toLowerCase()))
           .map((category) => ({ value: category, label: category }))}
       />
 
-      <SearchDropdown
+      <SearchAutocomplete
         label="Choose vendor service"
         value={vendorService}
         onChange={setVendorService}
-        placeholder="Any service"
+        placeholder="Type to search service"
         options={VENDOR_CATEGORIES.filter((category) => category.id !== "all").map((category) => ({
           value: category.id,
           label: category.label,

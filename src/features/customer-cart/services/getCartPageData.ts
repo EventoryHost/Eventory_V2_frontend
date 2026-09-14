@@ -83,7 +83,7 @@ async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, Vend
     unique.map(async (id) => {
       try {
         const { vendor } = await getVendorPublic(id);
-        const name = vendor.businessName ?? "Vendor";
+        const name = vendor.pocName ?? "Vendor";
         map.set(id, {
           name,
           initial: name[0]?.toUpperCase() ?? "V",

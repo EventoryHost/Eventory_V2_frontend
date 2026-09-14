@@ -4,6 +4,7 @@ import type {
   GalleryImage,
   IncludedItemEntry,
   IncludedItemDetail,
+  ColourOption,
   AddonItem,
   VendorRequirement,
   VendorRequirementIcon,
@@ -191,49 +192,152 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
   return requirements;
 }
 
+// Splits a free-text value on commas for display as "first part, +N more" —
+// used both for genuinely single-string fields (Decorating) and as a
+// fallback when a real array field (Structures Included/Theme) only has one
+// entry because the vendor wrote one run-on comma-separated sentence instead
+// of separate array items. This doesn't fabricate extra items — it's just
+// revealing the same text the vendor entered, click-to-expand instead of an
+// always-visible wall of text.
+function splitDisplayDetail(label: string, raw: string): IncludedItemDetail {
+  const parts = raw
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+  if (parts.length <= 1) return { label, value: raw };
+  return { label, value: parts[0], moreCount: parts.length - 1, allValues: parts };
+}
+
+// For a real array field: multiple entries are shown as-is (first + "+N
+// more" over the real items). A single entry falls back to comma-splitting
+// that one string, since vendors often write it as one sentence.
+function buildListDetail(label: string, values: string[]): IncludedItemDetail | null {
+  if (values.length === 0) return null;
+  if (values.length > 1) {
+    return { label, value: values[0], moreCount: values.length - 1, allValues: values };
+  }
+  return splitDisplayDetail(label, values[0]);
+}
+
+function slugifyColourName(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+// The vendor's real, chosen color NAMES ("Navy Blue", "Champagne", ...) — the
+// backend has no hex/swatch field for these. This is a best-effort visual dot
+// for a real name the vendor picked, not a fabricated color: unrecognised
+// names still show their real label text, just with a neutral placeholder dot.
+const COLOUR_SWATCH_MAP: Record<string, string> = {
+  white: "#FFFFFF",
+  red: "#D92D20",
+  green: "#12B76A",
+  orange: "#FF8A00",
+  brown: "#7A4A2B",
+  gold: "#D4AF37",
+  navy: "#1B2A4A",
+  "navy-blue": "#1B2A4A",
+  champagne: "#E8D9B5",
+  cream: "#F5EEDC",
+  ivory: "#FFFFF0",
+  maroon: "#5C0A24",
+  black: "#111111",
+  silver: "#C0C0C0",
+  blue: "#155EEF",
+  "sky-blue": "#7CC7FF",
+  "royal-blue": "#1B3FBF",
+  pink: "#F4C2C2",
+  purple: "#6941C6",
+  lavender: "#B497D6",
+  yellow: "#F5D90A",
+  peach: "#FFCBA4",
+  beige: "#E8DCC8",
+  grey: "#9AA0A6",
+  gray: "#9AA0A6",
+  "rose-gold": "#DB9A93",
+  teal: "#0E7C86",
+  turquoise: "#30D5C8",
+  magenta: "#D6249F",
+  marigold: "#F0A500",
+  multicolour: "#9AA0A6",
+  multicolor: "#9AA0A6",
+};
+
+function mapColourOptions(names: string[]): ColourOption[] {
+  return names.map((name) => ({
+    id: slugifyColourName(name),
+    label: name,
+    swatch: COLOUR_SWATCH_MAP[slugifyColourName(name)] ?? "#D0D0D0",
+  }));
+}
+
 function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups.map((setup, i) => {
-    const structures = setup.structuresIncluded ?? [];
+    // Real bug, not a data gap: structuresIncluded is empty [] on every Live
+    // setup — vendors' rich, real structures text lands on the sibling
+    // `structures` field instead (near-identical name, confirmed via direct
+    // schema check). Reading the wrong-but-similarly-named field was why
+    // this row silently never showed anything.
+    const structures = setup.structures ?? [];
     const themes = setup.themes ?? [];
     const items = setup.items ?? [];
 
     const details: IncludedItemDetail[] = [
-      { label: "Decorating", value: setup.decoratingWhat || "—" },
+      splitDisplayDetail("Decorating", setup.decoratingWhat || "—"),
     ];
-    // Setup type (Indoor/Outdoor) has no backing field on a setup — dropped
-    // rather than shown as a placeholder, same call as PackageSummary.tsx.
-    if (structures.length > 0) {
-      details.push({
-        label: "Structures Included",
-        value: structures[0],
-        moreCount: structures.length > 1 ? structures.length - 1 : undefined,
-      });
+    // Also a real-field-with-a-confusing-name bug: referenceStyle IS the
+    // Indoor/Outdoor/Both flag (confirmed against the vendor-side form's own
+    // field comment) — a previous pass here assumed no such field existed
+    // at all and dropped this row entirely.
+    if (setup.referenceStyle) {
+      details.push({ label: "Setup type", value: setup.referenceStyle });
     }
-    if (themes.length > 0) {
-      details.push({
-        label: "Theme",
-        value: themes[0],
-        moreCount: themes.length > 1 ? themes.length - 1 : undefined,
-      });
-    }
+    const structuresDetail = buildListDetail("Structures Included", structures);
+    if (structuresDetail) details.push(structuresDetail);
+    const themeDetail = buildListDetail("Theme", themes);
+    if (themeDetail) details.push(themeDetail);
 
     return {
       id: setup._id ?? `setup-${i}`,
       image: setup.setupPhoto,
       title: setup.name ?? "Setup",
+      description: setup.description || undefined,
       details,
       themeOptions: themes.length > 0 ? themes : undefined,
       price: setup.price ?? 0,
-      items: items.map((line, idx) => ({
-        id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
-        label: line.name ?? "Item",
-        qty: line.qty ?? 1,
-        originalQty: line.qty ?? 1,
-        volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
-        volume: line.volume || undefined,
-        originalVolume: line.volume || undefined,
-      })),
+      items: items.map((line, idx) => {
+        // colors is the vendor's real list of color options offered for this
+        // item — not a single "chosen" color, so there's no backend default
+        // to read. Same convention as Setup Theme above: the first real
+        // option is shown as the current pick until the customer changes it
+        // in the customize workshop (toggleColour), not a fabricated value.
+        const colourOptions = line.colors?.length ? mapColourOptions(line.colors) : undefined;
+        const colours = colourOptions ? [colourOptions[0].id] : undefined;
+        // subCategory is only a meaningful extra fact when it says something
+        // beyond the item's own name (e.g. name="Chrome Balloons",
+        // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
+        // Bouquet", subCategory="Rose" — real extra detail, kept).
+        const type = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
+        return {
+          id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
+          label: line.name ?? "Item",
+          qty: line.qty ?? 1,
+          originalQty: line.qty ?? 1,
+          price: line.price,
+          // itemType is the item's broad category (e.g. "Balloons", "Flower")
+          // — real, already in the API response, previously dropped entirely.
+          category: line.itemType || undefined,
+          typeLabel: type ? `${line.itemType ?? "Sub"} Type` : undefined,
+          type,
+          originalType: type,
+          volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
+          volume: line.volume || undefined,
+          originalVolume: line.volume || undefined,
+          colourOptions,
+          colours,
+          originalColours: colours,
+        };
+      }),
       // An item offering color choices counts as customer-facing customisation.
       customisationsCount: items.filter((line) => (line.colors?.length ?? 0) > 0).length,
     };
@@ -248,6 +352,7 @@ function mapIncludedItemsPav(pkg: RawFullPackage): IncludedItemEntry[] {
   return items.map((item, i) => ({
     id: item._id ?? `item-${i}`,
     title: item.itemType || "Item",
+    description: item.contentDetails?.description || undefined,
     details: [
       { label: "Style", value: item.contentDetails?.style || item.contentDetails?.categories?.join(", ") || "—" },
       { label: "Quantity", value: item.contentDetails?.quantity != null ? String(item.contentDetails.quantity) : "—" },
@@ -307,6 +412,7 @@ function mapIncludedItemsDj(pkg: RawFullPackage): IncludedItemEntry[] {
   return items.map((item, i) => ({
     id: item._id ?? `dj-item-${i}`,
     title: item.name || item.performanceType || "Performance",
+    description: item.contentDetails?.description || undefined,
     details: [
       { label: "Type", value: item.performanceType || "—" },
       { label: "Genre", value: item.contentDetails?.genreOfMusic?.join(", ") || "—" },
@@ -454,7 +560,7 @@ function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
 
 function mapVendor(pkg: RawFullPackage): VendorInfo {
   const vendor = vendorOf(pkg);
-  const name = vendor?.businessName ?? "Vendor";
+  const name = vendor?.pocName ?? "Vendor";
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   return {
     id: vendor?.id ?? "",
@@ -572,14 +678,21 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     categoryGradientFrom: categoryMeta?.gradientFrom,
     eventTags: eventCategories.slice(0, 3),
     moreEventTagsCount: Math.max(0, eventCategories.length - 3),
+    // Full, uncapped list — eventTags above is just the pill display near
+    // the title (capped to 3 + a counter); StickyBookingCard's Event Type
+    // dropdown needs every category this package is actually tagged for.
+    eventCategories,
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",
     instantBooking: pkg.bookingSettings?.bookingType === "Ready-to-Book",
     requiresGuestCount,
-    vendorName: vendor?.businessName ?? "Vendor",
+    vendorName: vendor?.pocName ?? "Vendor",
     rating: vendor?.rating ?? reviews.average,
     reviewCount: reviews.total,
     locationSummary:
       [vendor?.city, ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
+    // Same composition as locationSummary, just uncapped — what "See the
+    // location" expands to (city + every service area, not just the first 2).
+    fullLocationSummary: [vendor?.city, ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
     gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,
@@ -599,7 +712,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
           ? `${crew.minPeople && crew.maxPeople && crew.minPeople !== crew.maxPeople ? `${crew.minPeople}-${crew.maxPeople}` : (crew.minPeople ?? crew.maxPeople)} crew`
           : "—",
     },
-    aboutText: vendor?.description || "No description provided yet.",
+    // This is the vendor's package-level write-up (step2_productsAndPricing.included —
+    // in practice almost always a single string, but joined in case a vendor entered
+    // multiple), not a vendor bio — hence "About this package" rather than "About Us"
+    // as the section heading (see AboutPackage.tsx).
+    aboutText: pkg.step2_productsAndPricing?.included?.join(" ") || "No description provided yet.",
     includedItems: mapIncludedItems(pkg),
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
