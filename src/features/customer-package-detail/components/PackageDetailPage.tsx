@@ -94,6 +94,12 @@ export default function PackageDetailPage({
     });
   }
 
+  // Absolute set, for the quantity input field — delta-based changeAddonQuantity
+  // can't express "type 12 directly". Same 0-floor as the +/- buttons.
+  function setAddonQuantity(addonId: string, qty: number) {
+    setAddonQuantities((prev) => ({ ...prev, [addonId]: Math.max(0, qty) }));
+  }
+
   return (
     <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
@@ -116,7 +122,12 @@ export default function PackageDetailPage({
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
           <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
-            <AddonsCarousel addons={data.addons} quantities={addonQuantities} onChangeQuantity={changeAddonQuantity} />
+            <AddonsCarousel
+              addons={data.addons}
+              quantities={addonQuantities}
+              onChangeQuantity={changeAddonQuantity}
+              onSetQuantity={setAddonQuantity}
+            />
           )}
           <PaymentProtection protection={data.paymentProtection} />
           {data.policies.length > 0 && <PoliciesSection policies={data.policies} />}

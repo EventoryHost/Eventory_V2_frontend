@@ -1,14 +1,3 @@
-import {
-  Armchair,
-  Flower2,
-  Grid3x3,
-  Lightbulb,
-  PartyPopper,
-  Shirt,
-  Signpost,
-  Sparkles,
-  type LucideIcon,
-} from "lucide-react";
 import type { ColourOption, WorkshopCategoryDef } from "../types";
 
 // The platform-defined category set customers pick from when adding a new
@@ -31,15 +20,17 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
 // value is preserved even if it doesn't match one of these three.
 export const VOLUME_OPTIONS = ["Low", "Medium", "High"];
 
-export const WORKSHOP_CATEGORY_ICONS: Record<string, LucideIcon> = {
-  Flowers: Flower2,
-  Lighting: Lightbulb,
-  Carpet: Grid3x3,
-  Furniture: Armchair,
-  Signage: Signpost,
-  "Fabric/Drapery": Shirt,
-  "Balloon Decor": PartyPopper,
-  Rangoli: Sparkles,
+// Illustration shown on each "Add an item" category card — saved as
+// /public/images/customize/<slug>.png.
+export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
+  Flowers: "/images/customize/flowers.png",
+  Lighting: "/images/customize/lighting.png",
+  Carpet: "/images/customize/carpet.png",
+  Furniture: "/images/customize/furniture.png",
+  Signage: "/images/customize/signage.png",
+  "Fabric/Drapery": "/images/customize/fabric.png",
+  "Balloon Decor": "/images/customize/balloon.png",
+  Rangoli: "/images/customize/rangoli.png",
 };
 
 export const COLOUR_PALETTE: ColourOption[] = [

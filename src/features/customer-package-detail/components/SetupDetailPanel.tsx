@@ -15,7 +15,15 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+// Item Details always shows the setup's ORIGINAL configuration — edits made
+// in "Customize items" show up only in the "Your requests" list below, never
+// here. So every attribute here reads the original* value, not the
+// live-edited one (workshop.itemsBySetup keeps both on the same object).
 function ItemDetailCard({ item }: { item: IncludedItemLine }) {
+  const displayType = item.originalType ?? item.type;
+  const displayVolume = item.originalVolume ?? item.volume;
+  const displayColours = item.originalColours ?? item.colours;
+
   return (
     <div className={`rounded-2xl border border-black/10 p-4 ${item.removalRequested ? "opacity-50" : ""}`}>
       <div className="flex items-start justify-between gap-4">
@@ -35,15 +43,15 @@ function ItemDetailCard({ item }: { item: IncludedItemLine }) {
       </div>
       <div className="mt-3 grid grid-cols-3 gap-4">
         {item.category && <Stat label="Item Type" value={item.category} />}
-        {item.typeLabel && item.type && <Stat label={item.typeLabel} value={item.type} />}
-        {item.volume ? <Stat label="Volume" value={item.volume} /> : <Stat label="Quantity" value={String(item.qty)} />}
+        {item.typeLabel && displayType && <Stat label={item.typeLabel} value={displayType} />}
+        {displayVolume ? <Stat label="Volume" value={displayVolume} /> : <Stat label="Quantity" value={String(item.originalQty)} />}
       </div>
       {item.colourOptions && item.colourOptions.length > 0 && (
         <div className="mt-3">
           <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">Color</div>
           <div className="flex flex-wrap gap-2">
             {item.colourOptions.map((colour) => {
-              const selected = item.colours?.includes(colour.id);
+              const selected = displayColours?.includes(colour.id);
               return (
                 <span
                   key={colour.id}
@@ -87,10 +95,12 @@ export default function SetupDetailPanel({
 }) {
   const [selectedTheme, setSelectedTheme] = useState(setup.themeOptions?.[0]);
 
+  // Same rule as ItemDetailCard — this summarises the setup's original
+  // colours, not whatever the customer has since picked in Customize items.
   const palette = useMemo(() => {
     const seen = new Map<string, string>();
     for (const item of items) {
-      for (const id of item.colours ?? []) {
+      for (const id of item.originalColours ?? item.colours ?? []) {
         const colour = item.colourOptions?.find((c) => c.id === id);
         if (colour) seen.set(colour.id, colour.label);
       }

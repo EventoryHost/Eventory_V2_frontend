@@ -9,6 +9,16 @@ import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSe
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import ShareModal from "./ShareModal";
 
+// Vendors sometimes author a single event-category entry as one composite
+// string with " / " as their own separator (e.g. "Ganesh Chaturthi / Ganesh
+// Sthapana / Home Puja") rather than separate array items — display-only
+// swap to match the " • " separator used between genuinely distinct tags,
+// without touching the underlying value (still needed as-is for exact-match
+// filtering elsewhere, e.g. StickyBookingCard's Event Type dropdown).
+function dotSeparated(tag: string): string {
+  return tag.replace(/\s*\/\s*/g, " • ");
+}
+
 export default function PackageHeaderInfo({
   data,
   onCreateQuotation,
@@ -103,7 +113,7 @@ export default function PackageHeaderInfo({
         </div>
         <span className="h-4 w-px shrink-0 bg-black/10" />
         <span className="font-figtree text-[13px] font-medium text-[#B4112A]">
-          {data.eventTags.join(" • ")}
+          {data.eventTags.map(dotSeparated).join(" • ")}
           {data.moreEventTagsCount > 0 && (
             <>
               {" "}and{" "}

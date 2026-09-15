@@ -7,10 +7,12 @@ export default function AddonsCarousel({
   addons,
   quantities,
   onChangeQuantity,
+  onSetQuantity,
 }: {
   addons: AddonItem[];
   quantities: Record<string, number>;
   onChangeQuantity: (id: string, delta: number) => void;
+  onSetQuantity: (id: string, qty: number) => void;
 }) {
   const addedAddons = addons
     .filter((addon) => (quantities[addon.id] ?? 0) > 0)
@@ -24,6 +26,7 @@ export default function AddonsCarousel({
         addons={addedAddons}
         onIncrement={(id) => onChangeQuantity(id, 1)}
         onDecrement={(id) => onChangeQuantity(id, -1)}
+        onSetQuantity={onSetQuantity}
         onRemove={(id) => onChangeQuantity(id, -(quantities[id] ?? 0))}
       />
 
@@ -35,7 +38,6 @@ export default function AddonsCarousel({
             seed={i}
             quantity={quantities[addon.id] ?? 0}
             onIncrement={() => onChangeQuantity(addon.id, 1)}
-            onDecrement={() => onChangeQuantity(addon.id, -1)}
           />
         ))}
       </div>
