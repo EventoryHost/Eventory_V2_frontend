@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2, Plus, Trash2 } from "lucide-react";
 import type { ColourOption, IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from "../types";
-import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_ICONS } from "../data/workshopCategories";
+import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_IMAGES } from "../data/workshopCategories";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import SetupDetailPanel from "./SetupDetailPanel";
 
@@ -517,23 +517,24 @@ function RemovalPanel({ item, onCancel }: { item: IncludedItemLine; onCancel: ()
 function CategoryGrid({ onPick }: { onPick: (category: WorkshopCategoryDef) => void }) {
   return (
     <div>
-      <h3 className="font-figtree text-[16px] font-bold text-brand-950">New item</h3>
-      <p className="mt-1 font-figtree text-[13px] text-neutral-secondary">Choose an item of your choice to add to the setup.</p>
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {WORKSHOP_CATEGORIES.map((category) => {
-          const Icon = WORKSHOP_CATEGORY_ICONS[category.id];
-          return (
-            <button
-              key={category.id}
-              type="button"
-              onClick={() => onPick(category)}
-              className="flex flex-col items-center gap-2 rounded-xl border border-black/10 px-3 py-4 text-center transition hover:border-brand-primary hover:bg-brand-primary/5"
-            >
-              {Icon && <Icon className="h-5 w-5 text-brand-950" />}
-              <span className="font-figtree text-[12px] font-medium text-brand-950">{category.label}</span>
-            </button>
-          );
-        })}
+      <h3 className="font-figtree text-[20px] font-bold text-brand-950">New item</h3>
+      <p className="mt-1 font-figtree text-[13px] text-neutral-secondary">Choose an item of your choice in the setup</p>
+      <div className="mt-5 grid grid-cols-2 gap-4">
+        {WORKSHOP_CATEGORIES.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            onClick={() => onPick(category)}
+            className="relative flex h-[100px] w-[206px] items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5"
+          >
+            <span className="font-figtree text-[14px] font-semibold text-brand-950">{category.label}</span>
+            <img
+              src={WORKSHOP_CATEGORY_IMAGES[category.id]}
+              alt=""
+              className="pointer-events-none absolute right-1 bottom-1 h-[62px] w-[62px] object-contain"
+            />
+          </button>
+        ))}
       </div>
     </div>
   );

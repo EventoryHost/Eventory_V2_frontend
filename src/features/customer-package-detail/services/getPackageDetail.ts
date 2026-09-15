@@ -338,8 +338,6 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           originalColours: colours,
         };
       }),
-      // An item offering color choices counts as customer-facing customisation.
-      customisationsCount: items.filter((line) => (line.colors?.length ?? 0) > 0).length,
     };
   });
 }
@@ -495,27 +493,33 @@ function mapNotIncluded(pkg: RawFullPackage): string[] {
   return pkg.step2_productsAndPricing?.notIncluded ?? [];
 }
 
-function formatDimensions(dimensions?: { length?: number; breadth?: number; height?: number; unit?: string }): string {
+function formatDimensions(dimensions?: { length?: number; breadth?: number; height?: number; unit?: string }): string | undefined {
   const { length, breadth, height, unit } = dimensions ?? {};
   const parts = [length, breadth, height].filter((v): v is number => v != null);
-  if (parts.length === 0) return "—";
+  if (parts.length === 0) return undefined;
   return `${parts.join("×")}${unit ? ` ${unit}` : ""}`;
 }
 
 function mapAddons(pkg: RawFullPackage): AddonItem[] {
   const addOns = pkg.step2_productsAndPricing?.addOns ?? [];
   return addOns.map((addon, i) => {
-    // colourOptions deliberately left unset — physicalSpec.color is a
-    // free-text string (e.g. "White, Red, Green"), not structured swatches.
-    // Parsing that into fake hex colors would be guessing colors that were
-    // never actually specified. Shown as a plain "Color" detail row instead
-    // until there's a real colourOptions field on the schema (flagged to
-    // backend, pending a product decision).
-    const details: IncludedItemDetail[] = [
-      { label: "Setup type", value: addon.productUsage || "—" },
-      { label: "Dimensions", value: formatDimensions(addon.physicalSpec?.dimensions) },
-    ];
-    if (addon.physicalSpec?.color) {
+    // Every row here is only added when the vendor actually set that field —
+    // no "—" placeholders standing in for missing data.
+    const details: IncludedItemDetail[] = [];
+    if (addon.productUsage) details.push({ label: "Setup type", value: addon.productUsage });
+    if (addon.quantity != null) details.push({ label: "Quantity", value: String(addon.quantity) });
+    const dimensions = formatDimensions(addon.physicalSpec?.dimensions);
+    if (dimensions) details.push({ label: "Dimensions", value: dimensions });
+    // colourOptions built from materialOptions — the real structured field
+    // (parallel to Decorator setup items' `colors`) — never from
+    // physicalSpec.color, which is free text and, per a live check across
+    // every package, identical ("White, Red, Green") on every populated
+    // add-on: an unedited form default, not real per-addon data. Shown as a
+    // plain "Color" detail row instead until backend confirms it's real.
+    // materialOptions itself is confirmed always [] on live data today, so
+    // this is currently inert — wired ahead of the data actually landing.
+    const colourOptions = addon.materialOptions?.length ? mapColourOptions(addon.materialOptions) : undefined;
+    if (!colourOptions && addon.physicalSpec?.color) {
       details.push({ label: "Color", value: addon.physicalSpec.color });
     }
 
@@ -529,7 +533,9 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
       price: addon.price ?? 0,
       unitLabel: addon.billingUnit ? `/${addon.billingUnit}` : "",
       description: addon.description,
+      warning: addon.policy?.writtenText,
       details,
+      colourOptions,
     };
   });
 }

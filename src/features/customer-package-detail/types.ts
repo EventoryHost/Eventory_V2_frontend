@@ -110,8 +110,6 @@ export interface IncludedItemEntry {
   themeOptions?: string[];
   price: number;
   items: IncludedItemLine[];
-  /** Count of items in this setup that offer customer-facing customisation (currently: items with color options). Undefined/0 hides the chip rather than showing a fabricated count. */
-  customisationsCount?: number;
 }
 
 export type VendorRequirementIcon = "electricity" | "stage" | "ac" | "room" | "vehicle" | "permission" | "storage" | "water" | "parking" | "lighting" | "security";

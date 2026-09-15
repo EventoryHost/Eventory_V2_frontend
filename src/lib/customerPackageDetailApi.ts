@@ -57,10 +57,14 @@ export interface RawDecoratorAddOn {
   description?: string;
   productUsage?: "Indoor" | "Outdoor" | "Both";
   physicalSpec?: {
-    /** Free-text color list (e.g. "White, Red, Green") — not structured swatches. */
+    /** Free-text color list — not structured swatches, and confirmed identical ("White, Red, Green") on every populated add-on across every live package checked, which looks like an unedited form default rather than real per-addon data (flagged to backend). */
     color?: string;
     dimensions?: { length?: number; breadth?: number; height?: number; unit?: string };
   };
+  /** Real structured field, parallel to Decorator setup items' `colors: string[]` — but confirmed always [] on every live add-on. Likely the intended fix for real per-addon color options once vendors populate it (flagged to backend). */
+  materialOptions?: string[];
+  /** Per-addon caution/handling note the vendor can write (e.g. "Do not Damage") — confirmed present on at least one live add-on. */
+  policy?: { writtenText?: string; files?: string[] };
 }
 
 export interface RawPavPackageItem {

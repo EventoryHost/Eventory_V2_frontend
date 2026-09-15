@@ -44,7 +44,19 @@ export default function IncludedItems({
 
       <div className="overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white">
         <div className="flex flex-col p-4">
-          {items.map((setup, i) => (
+          {items.map((setup, i) => {
+            // Not "how many items are customisable" — how many the customer
+            // has actually changed via "View setup" so far. Live off the
+            // workshop's own request list, so it starts unshown and grows as
+            // the customer customizes, rather than a fixed count baked in
+            // at load.
+            const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
+            // The checklist below (unlike the modal's per-item attribute
+            // cards) is meant to reflect what's actually in the setup right
+            // now — added/removed items and quantity changes — so it reads
+            // the workshop's live items, not the original setup.items.
+            const liveItems = workshop.itemsBySetup[setup.id] ?? setup.items;
+            return (
             <div
               key={setup.id}
               className={`flex flex-col gap-4 py-4 first:pt-0 last:pb-0 ${
@@ -129,7 +141,7 @@ export default function IncludedItems({
                 </button>
               </div>
 
-              {setup.items.length > 0 && (
+              {liveItems.length > 0 && (
                 <>
                   <hr className="border-dashed border-black/10" />
 
@@ -137,24 +149,37 @@ export default function IncludedItems({
                   <div className="flex flex-col justify-between gap-4 pb-3 sm:flex-row">
                     <div className="flex-1">
                       <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
-                        ITEMS ({setup.items.length} Items)
+                        ITEMS ({liveItems.length} Items)
                       </p>
                       <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-                        {setup.items.map((line) => (
-                          <div key={line.id} className="flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4 shrink-0 text-success-700" strokeWidth={1.5} />
-                            <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">
+                        {liveItems.map((line) => (
+                          <div
+                            key={line.id}
+                            className={`flex items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
+                          >
+                            <CheckCircle2
+                              className={`h-4 w-4 shrink-0 ${line.removalRequested ? "text-neutral-tertiary" : "text-success-700"}`}
+                              strokeWidth={1.5}
+                            />
+                            <span
+                              className={`font-figtree text-[14px] leading-[20px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}
+                            >
                               {line.label} × {line.qty}
                             </span>
+                            {line.isNew && (
+                              <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
+                                New
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {!!setup.customisationsCount && (
+                    {requestCount > 0 && (
                       <div className="shrink-0">
                         <span className="inline-flex h-8 min-h-8 w-[139px] items-center justify-center rounded-full bg-[#FFFBEB] px-4 font-figtree text-[13px] font-medium text-amber-700">
-                          {setup.customisationsCount} customisations
+                          {requestCount} customisation{requestCount === 1 ? "" : "s"}
                         </span>
                       </div>
                     )}
@@ -162,7 +187,8 @@ export default function IncludedItems({
                 </>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {notIncluded.length > 0 && (
