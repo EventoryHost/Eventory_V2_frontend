@@ -2,16 +2,25 @@ import { Minus, Plus, Trash2 } from "lucide-react";
 import type { SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
+import QuantityInput from "./QuantityInput";
+
+// A customer isn't going to want 1000 of a single add-on — this caps the
+// typed value the same way a real form field would, distinct from min=0
+// which lets typing down to 0 behave like the trash icon (filtered out of
+// this list once quantity hits 0, same as the decrement button already does).
+const MAX_ADDON_QUANTITY = 99;
 
 export default function AddedAddonsSummary({
   addons,
   onIncrement,
   onDecrement,
+  onSetQuantity,
   onRemove,
 }: {
   addons: SelectedAddon[];
   onIncrement: (id: string) => void;
   onDecrement: (id: string) => void;
+  onSetQuantity: (id: string, qty: number) => void;
   onRemove: (id: string) => void;
 }) {
   if (addons.length === 0) return null;
@@ -66,9 +75,14 @@ export default function AddedAddonsSummary({
                   >
                     <Minus className="h-3.5 w-3.5" />
                   </button>
-                  <span className="min-w-[1ch] text-center font-figtree text-[14px] font-medium text-brand-950">
-                    {addon.quantity}
-                  </span>
+                  <QuantityInput
+                    value={addon.quantity}
+                    onChange={(qty) => onSetQuantity(addon.id, qty)}
+                    min={1}
+                    max={MAX_ADDON_QUANTITY}
+                    aria-label={`Quantity for ${addon.title}`}
+                    className="w-9 rounded-md border border-transparent text-center font-figtree text-[14px] font-medium text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
+                  />
                   <button
                     type="button"
                     onClick={() => onIncrement(addon.id)}

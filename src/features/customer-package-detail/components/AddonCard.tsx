@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Minus, Plus } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
@@ -12,13 +12,11 @@ export default function AddonCard({
   addon,
   quantity,
   onIncrement,
-  onDecrement,
   seed = 0,
 }: {
   addon: AddonItem;
   quantity: number;
   onIncrement: () => void;
-  onDecrement: () => void;
   seed?: number;
 }) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -37,27 +35,11 @@ export default function AddonCard({
             {addon.category}
           </span>
 
-          {quantity > 0 ? (
-            <div className="absolute -bottom-4 right-3 flex items-center gap-2 rounded-full bg-brand-subtle px-1 py-1 text-brand-primary shadow-md">
-              <button
-                type="button"
-                onClick={onDecrement}
-                aria-label={`Remove one ${addon.title}`}
-                className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-brand-primary/10"
-              >
-                <Minus className="h-3.5 w-3.5" />
-              </button>
-              <span className="min-w-[1ch] font-figtree text-[13px] font-semibold">{quantity}</span>
-              <button
-                type="button"
-                onClick={onIncrement}
-                aria-label={`Add one more ${addon.title}`}
-                className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-brand-primary/10"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </button>
-            </div>
-          ) : (
+          {/* Once added, quantity is only ever changed from the "Added
+              Add-ons" summary tab above (AddedAddonsSummary) — no
+              increment/decrement here, and the + to add it again only
+              reappears once it's removed from that tab (quantity back to 0). */}
+          {quantity === 0 && (
             <button
               type="button"
               onClick={() => setIsDetailsOpen(true)}

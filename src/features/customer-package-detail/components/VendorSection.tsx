@@ -26,7 +26,7 @@ export default function VendorSection({ vendor }: { vendor: VendorInfo }) {
           </div>
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="font-figtree text-[16px] font-bold text-brand-950">Hosted by {vendor.name}</h3>
+              <h3 className="font-figtree text-[16px] font-bold text-brand-950">Served by {vendor.name}</h3>
               {vendor.verified && (
                 <span className="flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 font-figtree text-[12px] font-medium text-blue-600">
                   <BadgeCheck className="h-3.5 w-3.5 fill-blue-600 text-white" />

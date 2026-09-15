@@ -6,6 +6,7 @@ import type { ColourOption, IncludedItemEntry, IncludedItemLine, WorkshopCategor
 import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_IMAGES } from "../data/workshopCategories";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import SetupDetailPanel from "./SetupDetailPanel";
+import QuantityInput from "./QuantityInput";
 
 type FooterPhase = "idle" | "processing" | "committed";
 type ModalView = "detail" | "customize";
@@ -444,7 +445,14 @@ function AttributeEditor({
         >
           −
         </button>
-        <span className="w-8 text-center font-figtree text-[15px] font-semibold text-brand-950">{item.qty}</span>
+        <QuantityInput
+          value={item.qty}
+          onChange={onSetQuantity}
+          min={1}
+          max={99}
+          aria-label={`Quantity for ${item.label}`}
+          className="w-10 rounded-md border border-transparent text-center font-figtree text-[15px] font-semibold text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
+        />
         <button
           type="button"
           onClick={() => onSetQuantity(item.qty + 1)}
