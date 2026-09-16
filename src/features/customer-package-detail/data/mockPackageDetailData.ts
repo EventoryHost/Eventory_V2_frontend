@@ -76,8 +76,9 @@ export const mockPackageDetail: PackageDetail = {
     indoorOutdoor: "Both",
     sampleDecoration: "Mood board, no physical trial",
   },
-  aboutText:
+  aboutText: [
     "Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out. Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out. Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out. Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out.",
+  ],
   includedItems: [
     {
       id: "included-1",

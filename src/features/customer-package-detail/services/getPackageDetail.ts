@@ -51,11 +51,25 @@ function monthYear(iso: string): string {
 
 // VenueProvider packages price via overallPriceOfPackage instead of
 // packagePricing (see step3_policiesAndCharges discriminator override).
+//
+// Mirrors the backend's own getEffectivePackagePrice fallback chain — this
+// was previously just packagePricing.price, which is genuinely empty/0 on
+// some real Decorator packages (the vendor form lets pricing live on the
+// setups instead), silently producing a ₹0-based price here while cart/
+// checkout (which already uses the backend's fallback) priced it correctly.
+// That's what caused the PDP "Book & pay" token amount to disagree with
+// the cart's "Pay now to confirm" figure for the same package.
 function priceOf(pkg: RawFullPackage): number {
   if (pkg.vendorType === "VenueProvider") {
     return pkg.step3_policiesAndCharges?.overallPriceOfPackage?.price ?? 0;
   }
-  return pkg.step3_policiesAndCharges?.packagePricing?.price ?? 0;
+  const packagePrice = pkg.step3_policiesAndCharges?.packagePricing?.price;
+  if (packagePrice) return packagePrice;
+  if (pkg.vendorType === "Decorator") {
+    const setups = pkg.step2_productsAndPricing?.setups ?? [];
+    return setups.reduce((sum, setup) => sum + (setup.price ?? 0), 0);
+  }
+  return 0;
 }
 
 // VenueProvider prices via overallPriceOfPackage, not packagePricing (see
@@ -669,7 +683,18 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
   const durationOfSetup = pkg.step1_eventAndCrew?.durationOfSetup;
-  const price = priceOf(pkg);
+  // pricingPreview.subtotal is the backend's own authoritative price for
+  // THIS package (same fallback chain cart/checkout use server-side) —
+  // preferred over re-deriving it client-side via priceOf(), which can only
+  // ever approximate that logic and has drifted from it before (see
+  // priceOf's comment). Falls back to priceOf(pkg) only if the preview is
+  // ever missing (e.g. mock data path never populates it).
+  const price = response.pricingPreview?.subtotal ?? priceOf(pkg);
+  // The sibling-variant fetch above re-derives every card's price via
+  // priceOf(groupPkg) (that lighter endpoint carries no pricingPreview) —
+  // patch just the current package's own card back to the authoritative
+  // number so "Book & pay" and the variant card agree with each other too.
+  variants = variants.map((variant) => (variant.id === pkg._id ? { ...variant, price } : variant));
   const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   const categoryMeta = CATEGORY_META[slug];
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
@@ -718,11 +743,12 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
           ? `${crew.minPeople && crew.maxPeople && crew.minPeople !== crew.maxPeople ? `${crew.minPeople}-${crew.maxPeople}` : (crew.minPeople ?? crew.maxPeople)} crew`
           : "—",
     },
-    // This is the vendor's package-level write-up (step2_productsAndPricing.included —
-    // in practice almost always a single string, but joined in case a vendor entered
-    // multiple), not a vendor bio — hence "About this package" rather than "About Us"
-    // as the section heading (see AboutPackage.tsx).
-    aboutText: pkg.step2_productsAndPricing?.included?.join(" ") || "No description provided yet.",
+    // This is the vendor's package-level write-up (step2_productsAndPricing.included),
+    // not a vendor bio — hence "About this package" rather than "About Us" as the
+    // section heading (see AboutPackage.tsx). Passed through as the raw array —
+    // AboutPackage/parseAboutText.ts decides bullets vs. plain text from its shape,
+    // which a pre-joined string would have already destroyed.
+    aboutText: pkg.step2_productsAndPricing?.included?.length ? pkg.step2_productsAndPricing.included : ["No description provided yet."],
     includedItems: mapIncludedItems(pkg),
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
@@ -738,13 +764,26 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     policies: mapPolicies(pkg),
     vendor: mapVendor(pkg),
     reviews,
-    pricing: {
-      gstPercent: pkg.step3_policiesAndCharges?.gstRatePercent ?? 0,
-      tokenAmount: tokenAmountFor(pkg, price),
-      teamAndEquipmentCharge: pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0,
-      teamAndEquipmentBillingUnit: pkg.step3_policiesAndCharges?.teamAndEquipment?.billingUnit,
-      overtimeChargeRate: pkg.step3_policiesAndCharges?.overtimeCharges?.price ?? 0,
-      overtimeBillingUnit: pkg.step3_policiesAndCharges?.overtimeCharges?.billingUnit,
-    },
+    pricing: (() => {
+      const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
+      const gstPercent = pkg.step3_policiesAndCharges?.gstRatePercent ?? 0;
+      const preGstTotal = price + teamAndEquipmentCharge;
+      // The token/advance amount ("Book & pay X") is a percentage of the
+      // full upfront cost the customer actually owes — package price + team
+      // & equipment + GST — same base cart/checkout use. Feeding it the
+      // pre-GST subtotal alone under-quoted the advance due (₹520 vs cart's
+      // ₹614 on an 18%-GST, 20%-token package: 2600 → 3068 with GST → 613.6
+      // rounds to 614), disagreeing with what cart later asked for on the
+      // exact same package.
+      const gstAmount = Math.round((preGstTotal * gstPercent) / 100);
+      return {
+        gstPercent,
+        tokenAmount: tokenAmountFor(pkg, preGstTotal + gstAmount),
+        teamAndEquipmentCharge,
+        teamAndEquipmentBillingUnit: pkg.step3_policiesAndCharges?.teamAndEquipment?.billingUnit,
+        overtimeChargeRate: pkg.step3_policiesAndCharges?.overtimeCharges?.price ?? 0,
+        overtimeBillingUnit: pkg.step3_policiesAndCharges?.overtimeCharges?.billingUnit,
+      };
+    })(),
   };
 }
