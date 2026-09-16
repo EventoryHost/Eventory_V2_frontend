@@ -40,7 +40,7 @@ function pickImage(categoryId: string, index: number, offset: number) {
 
 const FESTIVE_OFFER: FestiveOffer = {
   id: "festive-offer",
-  image: "/images/customer/haldi.jpg",
+  image: "/images/customer/packages/festive-packages-banner-1.png",
   title: "Exclusive Festive Packages",
   subtitle: "Book now for upcoming Diwali & Wedding season events",
   discountLabel: "Up to 30%",
@@ -53,10 +53,10 @@ const FESTIVE_OFFER: FestiveOffer = {
 const FESTIVE_OFFER_SECOND: FestiveOffer = {
   ...FESTIVE_OFFER,
   id: "festive-offer-second",
-  image: "/images/customer/hero-explore-events.png",
+  image: "/images/customer/packages/festive-packages-banner-2.png",
 };
 
-const MAGICAL_MOMENTS_CAMPAIGN_IMAGE = "/images/customer/packages-pics.png";
+const MAGICAL_MOMENTS_CAMPAIGN_IMAGE = "/images/customer/packages/magical-moment.png";
 
 const BUDGET_ESTIMATOR: BudgetEstimator = {
   id: "budget-estimator",
@@ -177,7 +177,7 @@ export const mockPackagesPageData: PackagesPageData = {
   heroBanners: [
     {
       id: "hero-birthday",
-      image: "/images/customer/packages-pics.png",
+      image: "/images/customer/packages/birthday-aesthetics.png",
       title: "Birthday Aesthetics,\nDelivered Flawlessly.",
       subtitle: "Book top-tier decorators & curated party packages",
       ctaLabel: "Explore Packages",
@@ -185,7 +185,7 @@ export const mockPackagesPageData: PackagesPageData = {
     },
     {
       id: "hero-dj",
-      image: "/images/customer/dj.png",
+      image: "/images/customer/packages/every-beat-perfectly-curated.png",
       title: "Every Beat,\nPerfectly Curated.",
       subtitle: "Book professional DJs & live sound artists",
       ctaLabel: "Explore Packages",
@@ -193,7 +193,7 @@ export const mockPackagesPageData: PackagesPageData = {
     },
     {
       id: "hero-anniversary",
-      image: "/images/customer/hero-explore-events.png",
+      image: "/images/customer/packages/marriage-anniversary.png",
       title: "Marriage Anniversary,\nDelivered Flawlessly.",
       subtitle: "Book top-tier decorators & curated celebration packages",
       ctaLabel: "Explore Packages",

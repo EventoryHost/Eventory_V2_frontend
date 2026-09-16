@@ -5,6 +5,8 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, ChevronRight } from "lucide-react";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
+import type { RawConvenienceFeeBreakdown } from "@/lib/customerCartApi";
+import ConvenienceFeeInfo from "@/components/customer/ConvenienceFeeInfo";
 import { formatPrice } from "../utils/formatPrice";
 import { getCancellationTiers, formatShortDate } from "../utils/cancellationPolicy";
 
@@ -20,6 +22,10 @@ export default function PriceBreakdownDialog({
   subtotal,
   gstPercent,
   gstAmount,
+  convenienceFee = 0,
+  convenienceFeePending = false,
+  convenienceFeeReason = null,
+  convenienceFeeBreakdown = null,
   estimatedTotal,
   eventDateIso,
   onViewCancellationPolicy,
@@ -35,6 +41,12 @@ export default function PriceBreakdownDialog({
   subtotal: number;
   gstPercent: number;
   gstAmount: number;
+  /** Platform fee (0 when no event date is picked yet — see convenienceFeePending). */
+  convenienceFee?: number;
+  /** A date is picked but the backend couldn't compute the fee — show "calculated once you set your event date" copy instead of ₹0. */
+  convenienceFeePending?: boolean;
+  convenienceFeeReason?: string | null;
+  convenienceFeeBreakdown?: RawConvenienceFeeBreakdown | null;
   estimatedTotal: number;
   eventDateIso: string | null;
   onViewCancellationPolicy: () => void;
@@ -86,8 +98,10 @@ export default function PriceBreakdownDialog({
                 <div key={item.id} className="flex items-start justify-between gap-3 py-3">
                   <div>
                     <div className="font-figtree text-[14px] font-medium text-brand-950">{item.title}</div>
-                    {item.details[0]?.value && (
-                      <div className="font-figtree text-[12px] text-neutral-tertiary">{item.details[0].value}</div>
+                    {item.items.length > 0 && (
+                      <div className="font-figtree text-[12px] text-neutral-tertiary">
+                        {item.items.length} item{item.items.length === 1 ? "" : "s"}
+                      </div>
                     )}
                   </div>
                   <div className="shrink-0 font-figtree text-[14px] font-bold text-brand-950">
@@ -95,22 +109,6 @@ export default function PriceBreakdownDialog({
                   </div>
                 </div>
               ))}
-
-              {teamAndEquipmentCharge > 0 && (
-                <div className="flex items-center justify-between gap-3 py-3">
-                  <div className="font-figtree text-[14px] font-medium text-brand-950">
-                    Team &amp; equipment
-                    {teamAndEquipmentBillingUnit && (
-                      <span className="ml-1 font-figtree text-[12px] font-normal text-neutral-tertiary">
-                        /{teamAndEquipmentBillingUnit}
-                      </span>
-                    )}
-                  </div>
-                  <div className="shrink-0 font-figtree text-[14px] font-bold text-brand-950">
-                    {formatPrice(teamAndEquipmentCharge)}
-                  </div>
-                </div>
-              )}
 
               {selectedAddons.length > 0 && (
                 <div className="py-3">
@@ -149,14 +147,43 @@ export default function PriceBreakdownDialog({
             </div>
 
             <div className="mt-4 space-y-2 font-figtree text-[13px]">
+              {teamAndEquipmentCharge > 0 && (
+                <div className="flex justify-between text-neutral-secondary">
+                  <span>
+                    Team &amp; equipment
+                    {teamAndEquipmentBillingUnit && ` /${teamAndEquipmentBillingUnit}`}
+                  </span>
+                  <span>{formatPrice(teamAndEquipmentCharge)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-neutral-secondary">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
-              <div className="flex justify-between text-neutral-secondary">
-                <span>GST {gstPercent}%</span>
-                <span>{formatPrice(gstAmount)}</span>
-              </div>
+              {gstAmount > 0 && (
+                <div className="flex justify-between text-neutral-secondary">
+                  <span>GST {gstPercent}%</span>
+                  <span>{formatPrice(gstAmount)}</span>
+                </div>
+              )}
+              {convenienceFee > 0 && (
+                <div className="flex justify-between text-neutral-secondary">
+                  <span className="flex items-center gap-1">
+                    Service &amp; security fee
+                    <ConvenienceFeeInfo
+                      reason={convenienceFeeReason}
+                      breakdown={convenienceFeeBreakdown}
+                    />
+                  </span>
+                  <span>{formatPrice(convenienceFee)}</span>
+                </div>
+              )}
+              {convenienceFeePending && (
+                <div className="flex justify-between gap-3 text-neutral-tertiary">
+                  <span>Service &amp; security fee</span>
+                  <span className="text-right">Calculated once you set your event date</span>
+                </div>
+              )}
             </div>
 
             {overtimeChargeRate > 0 && (

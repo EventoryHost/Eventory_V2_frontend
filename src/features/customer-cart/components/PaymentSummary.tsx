@@ -21,6 +21,7 @@ export default function PaymentSummary({
   continueLoading,
   continueDisabled,
   continueMessage,
+  isLoggedIn,
 }: {
   vendorCount: number;
   itemCount: number;
@@ -38,6 +39,7 @@ export default function PaymentSummary({
   continueLoading: boolean;
   continueDisabled: boolean;
   continueMessage?: string | null;
+  isLoggedIn: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-neutral-subtle bg-white p-6 shadow-sm">
@@ -90,10 +92,10 @@ export default function PaymentSummary({
         type="button"
         onClick={onContinue}
         disabled={continueDisabled || continueLoading}
-        className="mb-6 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-primary py-4 font-figtree text-[16px] font-semibold text-white shadow-md transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+        className="mb-6 flex w-full items-center justify-center gap-2 rounded-full bg-brand-primary py-4 font-figtree text-[16px] font-semibold text-white shadow-md transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
       >
         {continueLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-        Continue to checkout
+        {isLoggedIn ? "Continue to checkout" : "Login to Checkout"}
       </button>
 
       {continueMessage && (

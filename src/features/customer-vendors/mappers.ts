@@ -27,7 +27,7 @@ export function mapPackageToVendor(pkg: RawPackage): Vendor {
 
   return {
     id: pkg._id,
-    name: pkg.vendorId?.businessName ?? "Vendor",
+    name: pkg.vendorId?.pocName ?? "Vendor",
     packageName: pkg.step1_eventAndCrew?.packageName ?? "Package",
     category,
     categoryLabel,

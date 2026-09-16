@@ -8,10 +8,13 @@ export const dynamic = "force-dynamic";
 
 export default async function PackageDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ packageId: string }>;
+  searchParams: Promise<{ editItemId?: string }>;
 }) {
   const { packageId } = await params;
+  const { editItemId } = await searchParams;
 
   let data;
   try {
@@ -21,5 +24,5 @@ export default async function PackageDetail({
     throw error;
   }
 
-  return <PackageDetailPage data={data} />;
+  return <PackageDetailPage data={data} editItemId={editItemId} />;
 }

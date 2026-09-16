@@ -1,5 +1,6 @@
 import { apiFetch } from "./apiClient";
 import type { RawVendorPublic, RawPackageMedia } from "./customerDiscoveryApi";
+import type { RawConvenienceFeeBreakdown } from "./customerCartApi";
 
 // Raw shapes returned by GET /api/customer/packages/:packageId and
 // GET /api/customer/packages/:packageId/reviews, verified against
@@ -33,8 +34,13 @@ export interface RawDecoratorSetup {
   description?: string;
   price?: number;
   decoratingWhat?: string;
+  /** Confusingly named — this is actually the setup's Indoor/Outdoor/Both flag (confirmed against the vendor-side form's own field comment), not a "reference style" of any kind. */
+  referenceStyle?: "Indoor" | "Outdoor" | "Both";
   themes?: string[];
+  /** Always empty [] on every real setup — vendors never write to this field. The real, vendor-authored structures data lives on the sibling field below instead. */
   structuresIncluded?: string[];
+  /** The real "structures included" data (e.g. "Decorative geometric backdrop framework, balloon arch installation...") — confirmed populated on almost every Live setup, despite the near-identical name to structuresIncluded above. */
+  structures?: string[];
   items?: RawDecoratorSetupItem[];
 }
 
@@ -51,10 +57,14 @@ export interface RawDecoratorAddOn {
   description?: string;
   productUsage?: "Indoor" | "Outdoor" | "Both";
   physicalSpec?: {
-    /** Free-text color list (e.g. "White, Red, Green") — not structured swatches. */
+    /** Free-text color list — not structured swatches, and confirmed identical ("White, Red, Green") on every populated add-on across every live package checked, which looks like an unedited form default rather than real per-addon data (flagged to backend). */
     color?: string;
     dimensions?: { length?: number; breadth?: number; height?: number; unit?: string };
   };
+  /** Real structured field, parallel to Decorator setup items' `colors: string[]` — but confirmed always [] on every live add-on. Likely the intended fix for real per-addon color options once vendors populate it (flagged to backend). */
+  materialOptions?: string[];
+  /** Per-addon caution/handling note the vendor can write (e.g. "Do not Damage") — confirmed present on at least one live add-on. */
+  policy?: { writtenText?: string; files?: string[] };
 }
 
 export interface RawPavPackageItem {
@@ -207,6 +217,18 @@ export interface RawPdpAvailability {
   overall: boolean | null;
 }
 
+/**
+ * pricingPreview.convenienceFee (2026-09-10 backend handoff) — only
+ * computed when the PDP request carries `?date=`; without it `configured`
+ * is false with a `reason` string and `fee` is 0.
+ */
+export interface RawPdpConvenienceFee {
+  fee: number;
+  configured: boolean;
+  reason?: string | null;
+  breakdown?: RawConvenienceFeeBreakdown | null;
+}
+
 export interface RawPdpPricingPreview {
   basePrice: number | null;
   billingUnit: string | null;
@@ -216,6 +238,7 @@ export interface RawPdpPricingPreview {
   gstAmount: number | null;
   total: number | null;
   note: string;
+  convenienceFee?: RawPdpConvenienceFee | null;
 }
 
 export interface RawPdpReviewItem {
@@ -260,6 +283,24 @@ export async function getPackageDetail(packageId: string, params: PackageDetailP
   return apiFetch<RawPackageDetailResponse>(`/customer/packages/${packageId}${toQueryString(params)}`, {
     auth: false,
   });
+}
+
+/**
+ * Just the dated convenience-fee preview for one package — the same PDP
+ * endpoint, called client-side once the customer picks an event date (the
+ * page itself is server-rendered with no date). Returns null on any error
+ * so the price breakdown simply omits the fee line rather than blocking.
+ */
+export async function getConvenienceFeePreview(
+  packageId: string,
+  date: string
+): Promise<RawPdpConvenienceFee | null> {
+  try {
+    const response = await getPackageDetail(packageId, { date });
+    return response.pricingPreview.convenienceFee ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export interface RawReviewAggregate {

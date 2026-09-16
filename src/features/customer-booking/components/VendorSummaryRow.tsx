@@ -45,23 +45,29 @@ export default function VendorSummaryRow({
             </span>
 
             <div className="flex items-center gap-1.5">
-              <span className="flex items-center gap-0.5">
-                {Array.from({ length: 5 }, (_, i) => (
-                  <Star
-                    key={i}
-                    size={12}
-                    className={
-                      i < Math.round(rating)
-                        ? "fill-[#F0596F] text-[#F0596F]"
-                        : "fill-[#E5E7EB] text-[#E5E7EB]"
-                    }
-                  />
-                ))}
-              </span>
+              {reviewCount > 0 && (
+                <>
+                  <span className="flex items-center gap-0.5">
+                    {Array.from({ length: 5 }, (_, i) => (
+                      <Star
+                        key={i}
+                        size={12}
+                        className={
+                          i < Math.round(rating)
+                            ? "fill-[#F0596F] text-[#F0596F]"
+                            : "fill-[#E5E7EB] text-[#E5E7EB]"
+                        }
+                      />
+                    ))}
+                  </span>
 
+                  <span className="font-figtree text-[14px] font-normal text-body-secondary whitespace-nowrap">
+                    {rating} ({reviewCount}) &middot;{" "}
+                  </span>
+                </>
+              )}
               <span className="font-figtree text-[14px] font-normal text-body-secondary whitespace-nowrap">
-                {rating} ({reviewCount}) &middot; {eventsOnEventory} events on
-                Eventory
+                {eventsOnEventory} events on Eventory
               </span>
             </div>
           </div>

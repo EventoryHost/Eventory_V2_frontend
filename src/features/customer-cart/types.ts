@@ -19,6 +19,8 @@ export interface CartPackage {
   id: string;
   categoryLabel: string;
   title: string;
+  /** The selected variant's tier name (item.packageSnapshot.variantType), e.g. "Basic Package" — empty string when the package has no variant tiers. */
+  variantType: string;
   image?: string;
   price: number;
   /** Package-detail route, e.g. `/packages/${id}` — see src/features/customer-package-detail. */
@@ -47,8 +49,19 @@ export interface CartVendor {
   /** Real CartItem._id — every mutation (update/remove/move-to-wishlist) targets this. */
   id: string;
   vendorId: string;
+  /**
+   * The vendor's own name (GET /customer/vendors/:id's PUBLIC_VENDOR_FIELDS
+   * pocName) — businessName is no longer exposed on customer-facing
+   * responses at all, so this is never a business name.
+   */
   vendorName: string;
   avatarInitial: string;
+  avatar?: string;
+  rating: number;
+  reviewCount: number;
+  eventsOnEventory: number;
+  /** This vendor's real backend-computed subtotal (RawCartVendorGroup.vendorSubtotal) — same value on every item sharing this vendorId. */
+  vendorSubtotal: number;
   package: CartPackage;
   selected: boolean;
   eventDetails: EventDetails;

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
@@ -87,18 +87,18 @@ export default function AddonDetailsModal({
               </div>
 
               <div className="flex-1 pr-8">
-                <h3 className="font-figtree text-[22px] font-semibold text-brand-950 sm:text-[24px]">{addon.title}</h3>
+                <h3 className="font-figtree text-[24px] leading-[32px] font-semibold text-[#030303]">{addon.title}</h3>
                 {addon.subCategory && (
-                  <p className="mt-0.5 font-figtree text-[14px] text-neutral-secondary">{addon.subCategory}</p>
+                  <p className="mt-0.5 font-figtree text-[12px] leading-[16px] font-normal text-[#71717B]">{addon.subCategory}</p>
                 )}
                 {description && (
-                  <p className="mt-2 font-figtree text-[15px] leading-6 text-neutral-secondary">
+                  <p className="mt-2 font-figtree text-[16px] leading-[24px] text-neutral-secondary">
                     {shownDescription}{" "}
                     {isLongDescription && (
                       <button
                         type="button"
                         onClick={() => setIsDescriptionExpanded((prev) => !prev)}
-                        className="font-figtree text-[15px] leading-6 text-brand-950 underline"
+                        className="font-figtree text-[16px] leading-[24px] text-brand-950 underline"
                       >
                         {isDescriptionExpanded ? "Show less" : "Read more"}
                       </button>
@@ -112,16 +112,23 @@ export default function AddonDetailsModal({
               <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
                 {addon.details.map((detail) => (
                   <div key={detail.label}>
-                    <div className="font-figtree text-[13px] text-neutral-secondary">{detail.label}</div>
-                    <div className="mt-0.5 font-figtree text-[15px] font-semibold text-brand-950">{detail.value}</div>
+                    <div className="font-figtree text-[12px] leading-[16px] font-normal text-[#71717B]">{detail.label}</div>
+                    <div className="mt-0.5 font-figtree text-[16px] leading-[24px] font-semibold text-[#030303]">{detail.value}</div>
                   </div>
                 ))}
               </div>
             )}
 
+            {addon.warning && (
+              <div className="mt-4 flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 font-figtree text-[13px] text-amber-800">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                {addon.warning}
+              </div>
+            )}
+
             {addon.colourOptions && addon.colourOptions.length > 0 && (
               <div className="mt-5">
-                <div className="mb-2 font-figtree text-[13px] font-semibold text-neutral-secondary">Choose a color</div>
+                <div className="mb-2 font-figtree text-[12px] leading-[16px] font-semibold text-[#71717B]">Choose a color</div>
                 <div className="flex flex-wrap gap-3">
                   {addon.colourOptions.map((colour) => {
                     const selected = selectedColourId === colour.id;
@@ -130,13 +137,13 @@ export default function AddonDetailsModal({
                         key={colour.id}
                         type="button"
                         onClick={() => setSelectedColourId(colour.id)}
-                        className={`flex items-center gap-1.5 rounded-2xl border py-2 pr-3 pl-2 transition ${
-                          selected ? "border-brand-primary" : "border-black/15 hover:border-black/30"
+                        className={`flex h-[58px] w-[129px] items-center gap-1.5 rounded-2xl border pt-2 pr-3 pb-2 pl-2 transition ${
+                          selected ? "border-[#B4112A]" : "border-[#D5DAE2] hover:border-black/30"
                         }`}
                       >
                         <span
                           className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 ${
-                            selected ? "border-brand-primary" : "border-black/10"
+                            selected ? "border-[#B4112A]" : "border-black/10"
                           }`}
                         >
                           <span className="h-8 w-8 rounded-full" style={{ backgroundColor: colour.swatch }} />
@@ -155,9 +162,13 @@ export default function AddonDetailsModal({
             <div className="mt-5 border-t border-black/10 pt-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-figtree text-[22px] font-bold text-brand-950">
+                  <div className="font-figtree text-[24px] leading-[24px] font-bold tracking-[-0.01em] text-black">
                     {formatPrice(addon.price)}
-                    {priceUnit && <span className="ml-1 font-figtree text-[13px] font-medium text-neutral-secondary">/{priceUnit}</span>}
+                    {priceUnit && (
+                      <span className="ml-1 font-figtree text-[14px] leading-[24px] font-medium tracking-[-0.01em] text-neutral-secondary">
+                        /{priceUnit}
+                      </span>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -170,7 +181,7 @@ export default function AddonDetailsModal({
                 <button
                   type="button"
                   onClick={handleAdd}
-                  className="shrink-0 rounded-full bg-brand-primary px-8 py-2.5 font-figtree text-[15px] font-semibold text-white transition hover:bg-rose-600"
+                  className="flex h-[44px] w-[94px] shrink-0 items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-brand-primary px-8 font-figtree text-[15px] font-semibold text-white transition hover:bg-rose-600"
                 >
                   Add
                 </button>

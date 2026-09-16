@@ -11,14 +11,17 @@ export const mockPackageDetail: PackageDetail = {
   vendorUnitName: "Welcome Decorators",
   eventTags: ["Wedding", "Anniversary", "Social Gathering"],
   moreEventTagsCount: 3,
+  eventCategories: ["Wedding", "Anniversary", "Social Gathering", "Birthday", "Corporate", "Haldi"],
   title: "Marigold Stage & Mandap — Haldi Special",
   instantBooking: true,
+  requiresGuestCount: false,
   vendorName: "Sharma Decorators",
   idVerified: true,
   gstinVerified: true,
   rating: 4.5,
   reviewCount: 13,
   locationSummary: "Delhi NCR, Gurugram, Noida",
+  fullLocationSummary: "Delhi NCR, Gurugram, Noida, Ghaziabad, Faridabad",
   gallery: [
     { id: "gallery-1", image: "/images/customer/haldi.jpg", alt: "Marigold stage main view" },
     { id: "gallery-2", image: "/images/customer/packages-pics.png", alt: "Stage detail — marigold garlands" },
@@ -73,8 +76,9 @@ export const mockPackageDetail: PackageDetail = {
     indoorOutdoor: "Both",
     sampleDecoration: "Mood board, no physical trial",
   },
-  aboutText:
+  aboutText: [
     "Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out. Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out. Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out. Specializing in trendy looks and precision application, perfect for proms and events where you want to stand out.",
+  ],
   includedItems: [
     {
       id: "included-1",

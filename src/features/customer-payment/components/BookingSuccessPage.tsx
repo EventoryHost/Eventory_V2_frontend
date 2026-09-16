@@ -57,6 +57,7 @@ export default function BookingSuccessPage() {
 
           <YourPaymentsCard
             totalCost={data.totalCost}
+            convenienceFee={data.convenienceFee}
             paidToday={data.paidToday}
             stillToPay={data.stillToPay}
             nextPayments={data.nextPayments}

@@ -25,6 +25,7 @@ export type ServiceBookingCardProps = {
   image: string;
   categoryLabel: string;
   categoryIcon: string;
+  categoryGradientFrom: string;
   vendorName: string;
   serviceName: string;
   packageTier: string;
@@ -47,6 +48,7 @@ export default function ServiceBookingCard({
   image,
   categoryLabel,
   categoryIcon,
+  categoryGradientFrom,
   vendorName,
   serviceName,
   packageTier,
@@ -76,7 +78,7 @@ export default function ServiceBookingCard({
             <div
               className="flex w-fit shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
               style={{
-                background: "linear-gradient(to left, #FFE5E9, #ffffff)",
+                background: `linear-gradient(to left, ${categoryGradientFrom}, #ffffff)`,
               }}
             >
               <Image
