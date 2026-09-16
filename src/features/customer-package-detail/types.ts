@@ -257,7 +257,8 @@ export interface PackageDetail {
     indoorOutdoor?: string;
     sampleDecoration?: string;
   };
-  aboutText: string;
+  /** Raw step2_productsAndPricing.included array — real bullet/paragraph structure is only decidable from the array shape + each entry's own \n, not a pre-joined string. See parseAboutText.ts. */
+  aboutText: string[];
   includedItems: IncludedItemEntry[];
   /** Things the package explicitly does not cover — shown right after What's Included. */
   notIncluded?: string[];
