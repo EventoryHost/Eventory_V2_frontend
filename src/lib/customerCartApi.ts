@@ -14,6 +14,20 @@ export interface RawCartAddOn {
   name: string;
   price: number;
   quantity: number;
+  /**
+   * NOT YET PERSISTED — the cart's own SelectedAddOnSchema currently only
+   * stores addOnId/name/price/quantity; once an add-on is added to cart,
+   * its category/subCategory/color/image are gone (confirmed against
+   * Eventory_V2_backend's schema). Typed here ahead of that backend change
+   * so the cart/booking-summary add-on rows light up automatically the
+   * moment these fields start coming through, with zero further frontend
+   * work — until then they're always undefined and those rows just show
+   * name/qty/price as before.
+   */
+  category?: string;
+  subCategory?: string;
+  color?: string;
+  image?: string;
 }
 
 export interface RawCartSelectedItem {

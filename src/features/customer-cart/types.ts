@@ -38,6 +38,10 @@ export interface CartAddon {
   added: boolean;
   quantity: number;
   variant?: string;
+  /** Not yet persisted by the cart backend once an add-on is added — see RawCartAddOn's doc comment. Undefined today; wired ahead of that field landing. */
+  subCategory?: string;
+  /** Same as above — the specific color the customer picked isn't stored anywhere once in cart. */
+  color?: string;
 }
 
 export interface BreadcrumbItem {

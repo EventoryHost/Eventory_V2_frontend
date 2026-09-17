@@ -33,8 +33,6 @@ export default function AddedAddonsSummary({
 
       <div className="flex flex-col divide-y divide-black/5">
         {addons.map((addon, i) => {
-          const color = addon.details?.find((detail) => detail.label === "Color")?.value;
-
           return (
             <div key={addon.id} className="flex items-center gap-3 py-4 first:pt-0">
               <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl">
@@ -53,9 +51,9 @@ export default function AddedAddonsSummary({
                   {addon.category}
                   {addon.subCategory ? ` · ${addon.subCategory}` : ""}
                 </p>
-                {color && (
+                {addon.color && (
                   <span className="mt-2 inline-flex items-center rounded-full border border-black/10 bg-white px-2.5 py-1 font-figtree text-[12px] leading-[18px] font-semibold text-[#030303]">
-                    Color: {color}
+                    Color: {addon.color}
                   </span>
                 )}
               </div>

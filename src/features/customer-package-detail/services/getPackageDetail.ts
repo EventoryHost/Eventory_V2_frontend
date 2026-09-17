@@ -514,6 +514,13 @@ function formatDimensions(dimensions?: { length?: number; breadth?: number; heig
   return `${parts.join("×")}${unit ? ` ${unit}` : ""}`;
 }
 
+// Confirmed live on a real add-on's policy.writtenText — a generic,
+// package-wide delivery/payment boilerplate paragraph, not a real per-addon
+// caution (unlike genuine short notes like "Do not Damage", which stay).
+// Filtered out by exact match rather than dropping every policy.writtenText.
+const GENERIC_ADDON_POLICY_TEXT =
+  "We are committed to delivering the decoration setup and services as mentioned in the package, within the agreed timeline. Our team will ensure timely arrival and professional execution at the event venue. We request customers to provide timely access to the venue and complete payments as per the agreed payment schedule to ensure smooth and timely service execution.";
+
 function mapAddons(pkg: RawFullPackage): AddonItem[] {
   const addOns = pkg.step2_productsAndPricing?.addOns ?? [];
   return addOns.map((addon, i) => {
@@ -547,7 +554,8 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
       price: addon.price ?? 0,
       unitLabel: addon.billingUnit ? `/${addon.billingUnit}` : "",
       description: addon.description,
-      warning: addon.policy?.writtenText,
+      warning:
+        addon.policy?.writtenText?.trim() === GENERIC_ADDON_POLICY_TEXT ? undefined : addon.policy?.writtenText,
       details,
       colourOptions,
     };
@@ -776,9 +784,13 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       // rounds to 614), disagreeing with what cart later asked for on the
       // exact same package.
       const gstAmount = Math.round((preGstTotal * gstPercent) / 100);
+      const tokenSettings =
+        pkg.bookingSettings?.paymentType === "Token" ? pkg.bookingSettings.token : undefined;
       return {
         gstPercent,
         tokenAmount: tokenAmountFor(pkg, preGstTotal + gstAmount),
+        tokenType: tokenSettings?.tokenType ?? null,
+        tokenValue: tokenSettings?.value ?? null,
         teamAndEquipmentCharge,
         teamAndEquipmentBillingUnit: pkg.step3_policiesAndCharges?.teamAndEquipment?.billingUnit,
         overtimeChargeRate: pkg.step3_policiesAndCharges?.overtimeCharges?.price ?? 0,

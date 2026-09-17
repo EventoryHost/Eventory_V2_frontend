@@ -18,6 +18,11 @@ export interface BookingAddon {
   price: string;
   /** Raw per-unit price (pre-formatting) — used to compute the Price breakdown total. */
   amount: number;
+  /** Not yet persisted by the cart backend once an add-on is added to cart — see RawCartAddOn's doc comment in lib/customerCartApi.ts. Undefined today; wired ahead of that field landing. */
+  category?: string;
+  subCategory?: string;
+  color?: string;
+  image?: string;
 }
 
 export interface BookingServiceItem {
@@ -37,6 +42,8 @@ export interface BookingServiceItem {
   location: string;
   eventType?: string;
   cancellationNote: string;
+  /** Which refund tier cancellationNote's text reflects — same three-tier window used in cart's PackageInfo.tsx — or null when the note is actually an availability/bookability warning instead (already its own red text). */
+  cancellationTierStatus: "full" | "half" | "none" | null;
   price: string;
   packageStillAvailable: boolean;
   /**

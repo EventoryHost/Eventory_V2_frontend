@@ -6,6 +6,7 @@ import { getCategoryIconMeta, getCategoryLabel } from "../utils/categoryMeta";
 import {
   formatDayMonth,
   getCancellationTiers,
+  getCancellationTierStatus,
 } from "@/features/customer-package-detail/utils/cancellationPolicy";
 import EventDetails from "./EventDetails";
 import VendorActions from "./VendorActions";
@@ -31,6 +32,11 @@ export default function PackageInfo({
   // from (see cancellationPolicy.ts), so this is Eventory's default tier,
   // computed off the real event date already sitting in this cart item.
   const cancellationTiers = eventDetails.date ? getCancellationTiers(eventDetails.date) : null;
+  // Which of the three tiers "now" actually falls into — the cutoff dates
+  // themselves don't move, so this used to always show the full-refund
+  // cutoff even after it had already passed (still labeled "Free
+  // cancellation" in green on a date that had come and gone).
+  const cancellationStatus = cancellationTiers ? getCancellationTierStatus(cancellationTiers) : null;
 
   return (
     <div className="flex flex-col md:flex-row">
@@ -95,9 +101,21 @@ export default function PackageInfo({
             </div>
           )}
 
-          {cancellationTiers && (
-            <p className="font-figtree text-[14px] leading-[22px] font-medium text-[#008236]">
-              Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
+          {cancellationTiers && cancellationStatus && (
+            <p
+              className={`font-figtree text-[14px] leading-[22px] font-medium ${
+                cancellationStatus === "full"
+                  ? "text-[#008236]"
+                  : cancellationStatus === "half"
+                    ? "text-amber-600"
+                    : "text-red-600"
+              }`}
+            >
+              {cancellationStatus === "full"
+                ? `Free cancellation till ${formatDayMonth(cancellationTiers.fullRefundCutoff)}`
+                : cancellationStatus === "half"
+                  ? `50% refund if cancelled before ${formatDayMonth(cancellationTiers.halfRefundCutoff)}`
+                  : "No refund on cancellation"}
             </p>
           )}
         </div>

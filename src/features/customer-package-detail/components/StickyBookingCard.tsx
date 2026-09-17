@@ -42,6 +42,8 @@ export default function StickyBookingCard({
   overtimeBillingUnit,
   gstPercent,
   tokenAmount,
+  tokenType,
+  tokenValue,
   requiresGuestCount = true,
   eventCategories,
   selectedAddons,
@@ -59,7 +61,10 @@ export default function StickyBookingCard({
   overtimeChargeRate: number;
   overtimeBillingUnit?: string;
   gstPercent: number;
+  /** Server-computed at page load, before any add-ons — only used as a fallback when tokenType/tokenValue are null (no token configured). See liveTokenAmount below for the figure actually shown. */
   tokenAmount: number;
+  tokenType: "Percentage" | "Fixed" | null;
+  tokenValue: number | null;
   /** Decorator / DJ / Photographer hide the guest-count field (and don't require it). */
   requiresGuestCount?: boolean;
   /** This package's own event categories (step1_eventAndCrew.eventCategories, via PackageDetail.eventCategories) — scopes the Event Type dropdown to occasions this package is actually tagged for, instead of a fixed made-up list. */
@@ -187,6 +192,19 @@ export default function StickyBookingCard({
   }, [editItemId]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
+  // Recomputed live off the current packageTotal (which already reacts to
+  // add-ons — see PackageDetailPage's packageTotal) instead of the static
+  // `tokenAmount` prop from page load, which only ever reflected the price
+  // before any add-ons were picked and never updated afterward — that's
+  // exactly why this button used to show the pre-add-on figure until the
+  // customer went to cart and saw the real one there instead.
+  const tokenBase = packageTotal + gstAmount;
+  const liveTokenAmount =
+    tokenType === "Percentage" && tokenValue != null
+      ? Math.round((tokenBase * tokenValue) / 100)
+      : tokenType === "Fixed" && tokenValue != null
+        ? Math.min(tokenValue, tokenBase)
+        : tokenAmount;
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
   const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
 
@@ -240,6 +258,15 @@ export default function StickyBookingCard({
         name: addon.title,
         price: addon.price,
         quantity: addon.quantity,
+        // category/subCategory come straight from the addon's own catalog
+        // entry (stable facts, not a per-booking choice). color is the
+        // specific swatch the customer picked in AddonDetailsModal — the
+        // one piece that's genuinely a selection, not catalog data — left
+        // unset when this addon has no color options at all.
+        category: addon.category || undefined,
+        subCategory: addon.subCategory || undefined,
+        color: addon.color,
+        image: addon.image,
       })),
     };
   }
@@ -471,7 +498,7 @@ export default function StickyBookingCard({
             disabled={isSubmitting || !detailsComplete}
             className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {tokenAmount > 0 ? `Book & pay ${formatPrice(tokenAmount)}` : "Book now"}
+            {liveTokenAmount > 0 ? `Book & pay ${formatPrice(liveTokenAmount)}` : "Book now"}
           </button>
           <button
             type="button"

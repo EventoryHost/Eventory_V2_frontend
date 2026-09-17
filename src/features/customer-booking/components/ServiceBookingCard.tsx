@@ -34,6 +34,8 @@ export type ServiceBookingCardProps = {
   location: string;
   eventType?: string;
   cancellationNote: string;
+  /** Which refund tier cancellationNote reflects — same three-tier color coding as cart's PackageInfo.tsx. Null when the note is an availability/bookability warning instead (already red via isBookable). */
+  cancellationTierStatus?: "full" | "half" | "none" | null;
   isBookable?: boolean;
   price: string;
   addons?: BookingAddon[];
@@ -57,6 +59,7 @@ export default function ServiceBookingCard({
   location,
   eventType,
   cancellationNote,
+  cancellationTierStatus = null,
   isBookable = true,
   price,
   addons = [],
@@ -135,7 +138,13 @@ export default function ServiceBookingCard({
 
           <p
             className={`font-figtree text-[14px] font-medium leading-[22px] ${
-              isBookable ? "text-[#008236]" : "text-[#B91C1C]"
+              !isBookable
+                ? "text-[#B91C1C]"
+                : cancellationTierStatus === "half"
+                  ? "text-amber-600"
+                  : cancellationTierStatus === "none"
+                    ? "text-red-600"
+                    : "text-[#008236]"
             }`}
           >
             {cancellationNote}
@@ -178,10 +187,12 @@ export default function ServiceBookingCard({
           {addons.map((addon) => (
             <AddOnRow
               key={addon.id}
-              image={FALLBACK_IMAGE}
+              image={addon.image || FALLBACK_IMAGE}
               name={addon.name}
               quantity={addon.quantity}
               price={addon.price}
+              category={[addon.category, addon.subCategory].filter(Boolean).join(" · ") || undefined}
+              attributes={addon.color ? [{ label: "Color", value: addon.color }] : undefined}
             />
           ))}
         </div>

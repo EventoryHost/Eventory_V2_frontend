@@ -143,6 +143,8 @@ export interface AddonItem {
 /** An add-on the customer has picked, carrying how many they picked. */
 export interface SelectedAddon extends AddonItem {
   quantity: number;
+  /** The color label the customer picked in the details modal (colourOptions is the available choices; this is the one they actually chose) — undefined when this addon has no color options at all. */
+  color?: string;
 }
 
 export type PolicyIcon = "shield" | "clock";
@@ -210,7 +212,11 @@ export interface ReviewsSummary {
 
 export interface PackagePricing {
   gstPercent: number;
+  /** Server-computed at page load — package price + team & equipment + GST only, before any add-ons are picked. StickyBookingCard recomputes the live figure itself (tokenType/tokenValue below) once add-ons are selected, since those change the base and this number can't retroactively account for them. */
   tokenAmount: number;
+  /** Null when no token/advance payment is configured for this package (paymentType !== "Token") — same condition getPackageDetail.ts's tokenAmountFor already gates on. */
+  tokenType: "Percentage" | "Fixed" | null;
+  tokenValue: number | null;
   /** Flat charge for the vendor's team/crew + equipment — a real add-on to the base package price, included in the subtotal. */
   teamAndEquipmentCharge: number;
   teamAndEquipmentBillingUnit?: string;

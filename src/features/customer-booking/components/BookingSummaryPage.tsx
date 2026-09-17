@@ -126,6 +126,7 @@ export default function BookingSummaryPage() {
                       location={service.location}
                       eventType={service.eventType}
                       cancellationNote={service.cancellationNote}
+                      cancellationTierStatus={service.cancellationTierStatus}
                       isBookable={service.isBookable}
                       price={service.price}
                       addons={service.addons}
