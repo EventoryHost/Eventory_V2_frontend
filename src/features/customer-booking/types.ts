@@ -26,8 +26,10 @@ export interface BookingAddon {
 }
 
 export interface BookingServiceItem {
-  /** The checkout session's line _id (see services/getBookingSummaryData.ts) — the identifier for note edits (PATCH .../lines/:lineId). */
+  /** The checkout session's line _id (see services/getBookingSummaryData.ts) — the identifier for note edits (PATCH .../lines/:lineId). NOT the same id as the CartItem this line came from — see cartItemId below. */
   lineId: string;
+  /** The original CartItem._id this line was created from (RawCheckoutSessionLine.sourceCartItemId) — what "Edit Package" needs to reopen the PDP prefilled, same editItemId cart's own Edit Package link uses. Null if this session wasn't created from the cart. */
+  cartItemId: string | null;
   packageId: string;
   vendorId: string;
   image: string;

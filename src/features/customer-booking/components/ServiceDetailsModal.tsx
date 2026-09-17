@@ -22,7 +22,14 @@ function mapSetups(detail: PackageDetail): SetupArticleCardProps[] {
     image: entry.image || FALLBACK_IMAGE,
     title: entry.title,
     price: entry.price ? formatPrice(entry.price) : "",
-    details: entry.details.filter((d) => d.value && d.value !== "—"),
+    // Same "+N more" expand data PDP's What's Included section already
+    // carries on each detail (Decorating/Structures Included/Theme/Setup
+    // type) — this used to only keep {label, value} and silently drop
+    // moreCount/allValues, so the expand control never had anything to work
+    // with here even though the same real data was right there.
+    details: entry.details
+      .filter((d) => d.value && d.value !== "—")
+      .map((d) => ({ label: d.label, value: d.value, moreCount: d.moreCount, allValues: d.allValues })),
     items: entry.items.map((line) => ({
       name: line.label,
       quantity: line.qty,

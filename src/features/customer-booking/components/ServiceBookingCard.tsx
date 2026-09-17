@@ -22,6 +22,8 @@ export type ServiceBookingCardProps = {
   packageId?: string;
   sessionId?: string;
   lineId?: string;
+  /** The CartItem._id this line came from — what "Edit Package" needs (lineId is a different, checkout-session-only id). Null/undefined if this session wasn't created from the cart. */
+  cartItemId?: string | null;
   image: string;
   categoryLabel: string;
   categoryIcon: string;
@@ -47,6 +49,7 @@ export default function ServiceBookingCard({
   packageId,
   sessionId,
   lineId,
+  cartItemId,
   image,
   categoryLabel,
   categoryIcon,
@@ -97,7 +100,11 @@ export default function ServiceBookingCard({
             </div>
 
             <Link
-              href="/cart"
+              // Same editItemId pattern cart's own "Edit Package" uses
+              // (getCartPageData.ts's href) — reopens the PDP prefilled from
+              // this exact line instead of just dumping the customer on
+              // /cart with nothing pre-selected.
+              href={packageId && cartItemId ? `/packages/${packageId}?editItemId=${cartItemId}` : "/cart"}
               className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#3F3F47]"
             >
               <Pencil size={14} />

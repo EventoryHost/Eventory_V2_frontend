@@ -114,6 +114,7 @@ export default function BookingSummaryPage() {
                       packageId={service.packageId}
                       sessionId={data.sessionId}
                       lineId={service.lineId}
+                      cartItemId={service.cartItemId}
                       image={service.image}
                       categoryLabel={service.categoryLabel}
                       categoryIcon={service.categoryIcon}

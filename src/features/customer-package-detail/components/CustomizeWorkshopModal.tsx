@@ -449,7 +449,12 @@ function AttributeEditor({
           value={item.qty}
           onChange={onSetQuantity}
           min={1}
-          max={99}
+          // Setup items are frequently measured in units like cm (e.g. a
+          // real Chrome Balloons line at 300cm) rather than "how many of
+          // this thing", so the add-ons' 99 cap silently clamped any real
+          // entry above that back down — 9999 covers real data without
+          // still being an effectively unbounded/unvalidated field.
+          max={9999}
           aria-label={`Quantity for ${item.label}`}
           className="w-10 rounded-md border border-transparent text-center font-figtree text-[15px] font-semibold text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
         />

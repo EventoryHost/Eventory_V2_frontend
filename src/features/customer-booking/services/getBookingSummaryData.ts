@@ -93,6 +93,7 @@ function mapLine(
         : "Cancellation terms apply — see full policy for exact dates.";
   return {
     lineId: line._id,
+    cartItemId: line.sourceCartItemId ?? null,
     packageId: line.packageId,
     vendorId: line.vendorId,
     image: line.packageSnapshot.image || FALLBACK_IMAGE,
