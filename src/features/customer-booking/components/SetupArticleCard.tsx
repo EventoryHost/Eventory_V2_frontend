@@ -101,7 +101,7 @@ export default function SetupArticleCard({
 
       <div className="flex flex-col gap-4">
         <span className="font-figtree text-[12px] font-medium tracking-[0.03em] text-[#71717B] uppercase">
-          Items
+          Items ({items.length} Item{items.length === 1 ? "" : "s"})
         </span>
 
         {items.map((item, i) => (

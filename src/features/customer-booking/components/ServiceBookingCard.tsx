@@ -15,6 +15,7 @@ import {
 import ServiceDetailsModal from "./ServiceDetailsModal";
 import AddOnRow from "./AddOnRow";
 import type { BookingAddon } from "../types";
+import type { RawCustomizeRequest } from "@/lib/customerCheckoutApi";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
@@ -42,6 +43,7 @@ export type ServiceBookingCardProps = {
   price: string;
   addons?: BookingAddon[];
   note?: string;
+  customizeRequests?: RawCustomizeRequest[];
   onUpdated?: () => void;
 };
 
@@ -67,6 +69,7 @@ export default function ServiceBookingCard({
   price,
   addons = [],
   note = "",
+  customizeRequests = [],
   onUpdated,
 }: ServiceBookingCardProps) {
   const [isAddonsOpen, setIsAddonsOpen] = useState(false);
@@ -219,6 +222,7 @@ export default function ServiceBookingCard({
         price={price}
         addons={addons}
         note={note}
+        customizeRequests={customizeRequests}
         onNoteSaved={onUpdated}
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}

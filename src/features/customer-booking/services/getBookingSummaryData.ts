@@ -94,6 +94,7 @@ function mapLine(
   return {
     lineId: line._id,
     cartItemId: line.sourceCartItemId ?? null,
+    customizeRequests: line.customizeRequests ?? [],
     packageId: line.packageId,
     vendorId: line.vendorId,
     image: line.packageSnapshot.image || FALLBACK_IMAGE,

@@ -7,8 +7,29 @@ import { clearCheckoutSessionId, getCheckoutSessionId } from "./checkoutSession"
 // sub-shapes intentionally reuse the cart's own raw types since the backend
 // documents them as identical to the cart/cart-quote payloads.
 
+/**
+ * Real, persisted backend field (CartItem.js/CheckoutSession.js/Booking.js's
+ * customizeRequestSchema) for the PDP's "Customize items" workshop — but the
+ * frontend currently never actually POSTs to it when adding/updating a cart
+ * item (useCustomizeWorkshop's requests are computed entirely client-side
+ * and thrown away on navigation). Typed here so booking summary can at
+ * least render real requests once that send-side gets built; until then
+ * this is always [] and the Requests panel stays empty, not fabricated.
+ */
+export interface RawCustomizeRequest {
+  setupId: string;
+  itemId: string;
+  requestType: "change" | "add" | "remove";
+  label: string;
+  quantity?: number;
+  type?: string;
+  colours?: string[];
+  volume?: string;
+}
+
 export interface RawCheckoutSessionLine {
   _id: string;
+  customizeRequests?: RawCustomizeRequest[];
   /**
    * The CartItem._id this line was created from (source:"cart" sessions) —
    * distinct from this line's own _id, which is a fresh id the checkout

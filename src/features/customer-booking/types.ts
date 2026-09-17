@@ -4,6 +4,8 @@
 // src/app/(checkout)/ share this one shape so the payment summary numbers
 // never drift between steps.
 
+import type { RawCustomizeRequest } from "@/lib/customerCheckoutApi";
+
 export interface BookingLineRow {
   label: string;
   value: string;
@@ -30,6 +32,8 @@ export interface BookingServiceItem {
   lineId: string;
   /** The original CartItem._id this line was created from (RawCheckoutSessionLine.sourceCartItemId) — what "Edit Package" needs to reopen the PDP prefilled, same editItemId cart's own Edit Package link uses. Null if this session wasn't created from the cart. */
   cartItemId: string | null;
+  /** Real, persisted PDP customize-item requests for this line — see RawCustomizeRequest's doc comment for why this is always [] today. */
+  customizeRequests: RawCustomizeRequest[];
   packageId: string;
   vendorId: string;
   image: string;
