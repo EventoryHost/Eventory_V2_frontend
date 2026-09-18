@@ -60,7 +60,11 @@ export default function PackageHeaderInfo({
     let cancelled = false;
     getWishlist()
       .then((res) => {
-        if (!cancelled) setSavedItemId(res.items.find((item) => item.packageId === data.id)?._id ?? null);
+        // packageId comes back POPULATED from GET /customer/wishlist, so this
+        // has to compare its _id — comparing the object to a string id was
+        // always false, leaving the Save button permanently "not saved".
+        if (!cancelled)
+          setSavedItemId(res.items.find((item) => item.packageId?._id === data.id)?._id ?? null);
       })
       .catch(() => {
         // Best-effort — the Save button just falls back to its "not saved" state.

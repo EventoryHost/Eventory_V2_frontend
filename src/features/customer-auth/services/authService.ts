@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/apiClient";
 import { apiUrl } from "@/lib/api";
-import type { Customer } from "@/lib/customerSession";
+import type { Customer, CustomerAddress } from "@/lib/customerSession";
 
 interface AuthResponse {
   success: true;
@@ -63,4 +63,60 @@ export async function setCustomerPassword(password: string) {
 /** Full-page redirect target — not a fetch call, the backend itself redirects to Google. */
 export function googleLoginUrl() {
   return apiUrl("/customer/auth/google");
+}
+
+/**
+ * The signed-in customer's own profile — GET /api/customers/:id, which is
+ * `protectCustomer, requireSelf` on the backend, so `customerId` must be the
+ * caller's own `id` (the model's `id` field, not `_id`) or it 403s.
+ *
+ * Note the plural `/customers` mount here: it's a different router from the
+ * `/customer/*` namespace everything else in this file uses.
+ */
+export async function getCustomerProfile(customerId: string) {
+  const response = await apiFetch<{ success: true; data: Customer }>(
+    `/customers/${encodeURIComponent(customerId)}`,
+    { auth: true }
+  );
+  return response.data;
+}
+
+/** Fields the backend lets a customer change on themselves — SELF_UPDATABLE_FIELDS in customerController.js. */
+export interface CustomerProfilePatch {
+  name?: string;
+  gender?: Customer["gender"];
+  profilePicture?: string;
+  dateOfBirth?: string;
+  /**
+   * Replaces the whole array — there's no per-address endpoint, so callers
+   * must send every address they want to keep, not just the changed one.
+   * Max 10, enforced by the validator.
+   */
+  addresses?: CustomerAddress[];
+}
+
+/**
+ * PATCH /api/customers/:id. The validator is `.strict()`, so any key outside
+ * the patch type above is a 400 rather than being silently dropped.
+ */
+export async function updateCustomerProfile(customerId: string, patch: CustomerProfilePatch) {
+  const response = await apiFetch<{ success: true; data: Customer }>(
+    `/customers/${encodeURIComponent(customerId)}`,
+    { method: "PATCH", auth: true, body: patch }
+  );
+  return response.data;
+}
+
+/**
+ * PATCH /api/customers/:id/email — its own endpoint because changing the
+ * address resets isEmailVerified (no verification mail is actually sent;
+ * the backend reports it honestly as unverified). 409s when another account
+ * already holds that address.
+ */
+export async function updateCustomerEmail(customerId: string, email: string) {
+  const response = await apiFetch<{ success: true; message: string; data: Customer }>(
+    `/customers/${encodeURIComponent(customerId)}/email`,
+    { method: "PATCH", auth: true, body: { email } }
+  );
+  return response.data;
 }

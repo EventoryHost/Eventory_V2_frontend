@@ -77,9 +77,11 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
         const ids = new Set<string>();
         wishlistItemIdsRef.current.clear();
         response.items.forEach((item) => {
+          // Populated object on read (see RawWishlistItem) — key off its _id,
+          // which is what addWishlistItem was given and what the cards match on.
           if (item.itemType === "Package" && item.packageId) {
-            ids.add(item.packageId);
-            wishlistItemIdsRef.current.set(item.packageId, item._id);
+            ids.add(item.packageId._id);
+            wishlistItemIdsRef.current.set(item.packageId._id, item._id);
           }
         });
         setBookmarkedIds(ids);
