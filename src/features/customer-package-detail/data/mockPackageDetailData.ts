@@ -7,6 +7,7 @@ import { COLOUR_PALETTE, VOLUME_OPTIONS } from "./workshopCategories";
 export const mockPackageDetail: PackageDetail = {
   id: "marigold-stage-mandap",
   categoryLabel: "Decorator",
+  categorySlug: "decorator",
   categoryIcon: "/images/customer/decorator.png",
   vendorUnitName: "Welcome Decorators",
   eventTags: ["Wedding", "Anniversary", "Social Gathering"],

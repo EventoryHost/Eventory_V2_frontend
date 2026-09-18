@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { MapPin, ChevronDown, ShoppingCart, Menu, X } from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
+import { customerFirstName } from "@/features/customer-auth/utils/displayName";
 import { useSelectedCity } from "../hooks/useSelectedCity";
 import LocationPickerModal from "./LocationPickerModal";
 
 const NAV_LINKS = [
-  { label: "Packages", hasDropdown: true, href: "/packages" },
   { label: "Events", hasDropdown: true, href: "/events" },
+  { label: "Packages", hasDropdown: true, href: "/packages" },
   { label: "Vendor", hasDropdown: true, href: "/vendors" },
   { label: "Corporate", hasDropdown: true },
   { label: "EPP", hasDropdown: false },
@@ -105,27 +106,29 @@ function CartButton() {
   return (
     <Link
       href="/cart"
-      className="flex items-center gap-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
+      className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
     >
-      <ShoppingCart size={18} />
+      <ShoppingCart size={20} />
       <span className="hidden sm:inline">Cart</span>
     </Link>
   );
 }
 
 function SignupLoginLink({ className = "" }: { className?: string }) {
-  const { isLoggedIn, session, isHydrated, logout } = useCustomerSession();
+  const { isLoggedIn, session, isHydrated } = useCustomerSession();
 
+  // Clicking this used to log the customer straight out — a destructive
+  // action on the one control they'd reach for to get to their account.
+  // It now opens the account dashboard, which is where Log Out lives.
   if (isHydrated && isLoggedIn && session) {
     return (
-      <button
-        type="button"
-        onClick={logout}
-        title="Log out"
+      <Link
+        href="/account"
+        title="Go to my account"
         className={`text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.02em] ${className}`}
       >
-        Hi, {session.name?.split(" ")[0] ?? "there"}
-      </button>
+        Hi, {customerFirstName(session)}
+      </Link>
     );
   }
 
@@ -193,10 +196,11 @@ export default function Navbar() {
           <NavLinks />
         </nav>
 
-        {/* Third div: signup/login + cart (desktop only) */}
-        <div className="hidden lg:flex items-center gap-6">
-          <SignupLoginLink />
+        {/* Third div: cart + signup/login (desktop only). Cart comes first —
+            that's the order in every frame of the design. */}
+        <div className="hidden lg:flex items-center gap-2">
           <CartButton />
+          <SignupLoginLink className="rounded-full px-4 py-2" />
         </div>
 
         {/* Mobile/tablet: cart + hamburger toggle */}

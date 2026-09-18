@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
+import { recordView } from "@/lib/recentlyViewed";
 import type { PackageDetail } from "../types";
+import { formatPrice } from "../utils/formatPrice";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
 import VariantSelector from "./VariantSelector";
@@ -67,6 +69,29 @@ export default function PackageDetailPage({
 
   const selectedVariant =
     data.variants.find((variant) => variant.id === selectedVariantId) ?? data.variants[0];
+
+  // Feeds the account dashboard's "Recently Viewed" list and "Viewed Items"
+  // count. There's no backend endpoint for this, so it's stored per-browser
+  // (src/lib/recentlyViewed.ts). Re-runs on variant change so the saved card
+  // shows the tier the customer actually landed on.
+  useEffect(() => {
+    recordView({
+      packageId: data.id,
+      title: data.title,
+      variantLabel: selectedVariant?.label,
+      image: data.gallery.find((image) => image.image)?.image,
+      categoryLabel: data.categoryLabel,
+      categorySlug: data.categorySlug,
+      categoryIcon: data.categoryIcon,
+      categoryGradientFrom: data.categoryGradientFrom,
+      eventTags: data.eventTags,
+      moreEventTagsCount: data.moreEventTagsCount,
+      rating: data.rating,
+      reviewCount: data.reviewCount,
+      price: formatPrice(selectedVariant?.price ?? 0),
+      locationSummary: data.locationSummary,
+    });
+  }, [data, selectedVariant]);
 
   const selectedAddons = useMemo(
     () =>

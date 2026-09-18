@@ -680,6 +680,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   return {
     id: pkg._id,
     categoryLabel: VENDOR_CATEGORIES.find((c) => c.id === slug)?.label ?? pkg.vendorType,
+    categorySlug: slug,
     categoryIcon: categoryMeta?.icon,
     categoryGradientFrom: categoryMeta?.gradientFrom,
     eventTags: eventCategories.slice(0, 3),

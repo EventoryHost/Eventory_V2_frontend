@@ -222,6 +222,8 @@ export interface PackagePricing {
 export interface PackageDetail {
   id: string;
   categoryLabel: string;
+  /** Category id slug ("decorator", "makeup-artist", …) — the stable key behind categoryLabel. */
+  categorySlug: string;
   categoryIcon?: string;
   /** Category badge background gradient start color — same per-category palette as the landing page's ProductCard. */
   categoryGradientFrom?: string;
