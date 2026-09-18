@@ -42,7 +42,7 @@ export default function VendorNoteSection({ sessionId, lineId, initialNote, onSa
         }}
         placeholder="Add a note for this vendor — colours, timing, anything they should know."
         rows={3}
-        className="w-full resize-none rounded-[16px] border border-[#E4E4E7] bg-[#FAFAFA] px-4 py-3 font-figtree text-[14px] text-[#030303] outline-none placeholder:text-[#9F9FA9] focus:border-[#F0596F]"
+        className="w-full resize-none rounded-2xl bg-[#F4F4F5] px-4 py-3 font-figtree text-[14px] leading-[22.75px] font-normal text-[#3F3F47] outline-none placeholder:text-[#9F9FA9] focus:outline-2 focus:outline-[#F0596F]"
       />
 
       <div className="flex items-center justify-between gap-3">

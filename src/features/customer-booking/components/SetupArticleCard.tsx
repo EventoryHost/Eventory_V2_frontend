@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 
 export type RequestAttribute = {
@@ -17,11 +20,20 @@ export type SetupItem = {
   requests: SetupRequest[];
 };
 
+export type SetupArticleDetail = {
+  label: string;
+  value: string;
+  /** Count of additional values beyond `value` — same "+N more" convention as PDP's What's Included section (IncludedItems.tsx). Only set when the underlying field is a real array/comma-list with more than one entry. */
+  moreCount?: number;
+  /** The full list `value`/`moreCount` were derived from — what "+N more" expands to reveal. */
+  allValues?: string[];
+};
+
 export type SetupArticleCardProps = {
   image: string;
   title: string;
   price: string;
-  details: { label: string; value: string }[];
+  details: SetupArticleDetail[];
   items: SetupItem[];
 };
 
@@ -32,6 +44,20 @@ export default function SetupArticleCard({
   details,
   items,
 }: SetupArticleCardProps) {
+  // Keyed by detail label — which "+N more" rows are currently expanded to
+  // show every value instead of just the first + a count. Same convention
+  // as PDP's What's Included section (IncludedItems.tsx).
+  const [expandedLabels, setExpandedLabels] = useState<Set<string>>(new Set());
+
+  function toggleExpanded(label: string) {
+    setExpandedLabels((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  }
+
   return (
     <div className="flex w-full max-w-[586px] flex-col gap-4 rounded-[24px] border border-[#E4E4E7] p-5">
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -49,15 +75,25 @@ export default function SetupArticleCard({
             </span>
           </div>
 
-          {details.map((detail) => (
-            <p
-              key={detail.label}
-              className="font-figtree text-[14px] font-normal leading-[24px]"
-            >
-              <span className="text-[#71717B]">{detail.label}: </span>
-              <span className="text-[#3F3F47]">{detail.value}</span>
-            </p>
-          ))}
+          {details.map((detail) => {
+            const isExpanded = expandedLabels.has(detail.label);
+            return (
+              <p key={detail.label} className="font-figtree text-[14px] font-normal leading-[24px]">
+                <span className="text-[#71717B]">{detail.label}: </span>
+                <span className="text-[#3F3F47]">
+                  {isExpanded && detail.allValues ? detail.allValues.join(", ") : detail.value}
+                  {detail.moreCount ? (
+                    <>
+                      {!isExpanded && ", "}
+                      <button type="button" onClick={() => toggleExpanded(detail.label)} className="underline">
+                        {isExpanded ? "Show less" : `+${detail.moreCount} more`}
+                      </button>
+                    </>
+                  ) : null}
+                </span>
+              </p>
+            );
+          })}
         </div>
       </div>
 
@@ -65,7 +101,7 @@ export default function SetupArticleCard({
 
       <div className="flex flex-col gap-4">
         <span className="font-figtree text-[12px] font-medium tracking-[0.03em] text-[#71717B] uppercase">
-          Items
+          Items ({items.length} Item{items.length === 1 ? "" : "s"})
         </span>
 
         {items.map((item, i) => (

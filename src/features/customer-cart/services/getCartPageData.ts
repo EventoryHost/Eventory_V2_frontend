@@ -13,14 +13,18 @@ function mapAddon(raw: RawCartItem["selectedAddOns"][number], itemId: string, in
   return {
     id: raw.addOnId ?? `${itemId}-addon-${index}`,
     title: raw.name,
-    // The cart's own SelectedAddOnSchema only stores addOnId/name/price/quantity —
-    // no category/image is persisted once an add-on is in the cart.
-    category: "",
-    image: undefined,
+    // The cart's own SelectedAddOnSchema only stores addOnId/name/price/quantity
+    // today — category/subCategory/color/image aren't persisted once an
+    // add-on is in the cart (see RawCartAddOn's doc comment), so these read
+    // as undefined/"" until backend adds them, not fabricated in the meantime.
+    category: raw.category ?? "",
+    image: raw.image,
     price: raw.price,
     unitLabel: "",
     added: true,
     quantity: raw.quantity,
+    subCategory: raw.subCategory,
+    color: raw.color,
   };
 }
 

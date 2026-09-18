@@ -230,7 +230,11 @@ export function buildSections(inputs: ComparisonInput[]): CompareSection[] {
     {
       id: "about",
       title: "ABOUT OF PACKAGE",
-      rows: keep([row("about", "Package Description", details.map((detail) => text(detail.aboutText)))]),
+      // aboutText is the raw step2_productsAndPricing.included array (see
+      // getPackageDetail.ts/parseAboutText.ts) — joined here since this
+      // compare cell just needs a plain preview string, not the bullet/
+      // paragraph structure the PDP's About section renders it as.
+      rows: keep([row("about", "Package Description", details.map((detail) => text(detail.aboutText.join(" "))))]),
     },
     overviewSection(inputs),
     {

@@ -6,6 +6,7 @@ import type {
   IncludedItemLine,
   WorkshopCategoryDef,
 } from "../types";
+import type { RawCustomizeRequest } from "@/lib/customerCartApi";
 import { COLOUR_PALETTE, VOLUME_OPTIONS } from "../data/workshopCategories";
 
 function hasChanged(item: IncludedItemLine): boolean {
@@ -127,6 +128,70 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     }));
   }
 
+  // Reconstructs itemsBySetup from a cart item's already-persisted
+  // customizeRequests (real requests sent by buildCartPayload on a previous
+  // visit) — otherwise reopening "Customize items" on an edit always starts
+  // fresh from the package's original items and silently loses whatever was
+  // already saved. Replays onto the ORIGINAL catalog items (not whatever's
+  // currently in state) so this is safe to call once, right after the
+  // catalog-only initial state has already rendered.
+  function hydrateFromRequests(requests: RawCustomizeRequest[]) {
+    if (requests.length === 0) return;
+    setItemsBySetup(() => {
+      const base: Record<string, IncludedItemLine[]> = Object.fromEntries(
+        setups.map((setup) => [setup.id, setup.items])
+      );
+      for (const request of requests) {
+        const list = base[request.setupId];
+        if (!list) continue;
+        if (request.requestType === "remove") {
+          base[request.setupId] = list.map((item) =>
+            item.id === request.itemId ? { ...item, removalRequested: true } : item
+          );
+        } else if (request.requestType === "change") {
+          base[request.setupId] = list.map((item) => {
+            if (item.id !== request.itemId) return item;
+            // colours came back from the backend as labels (see
+            // buildCartPayload) — resolve back to this item's own option
+            // ids, same ids toggleColour/colourOptions already use.
+            const colours = request.colours?.map(
+              (label) => item.colourOptions?.find((c) => c.label === label)?.id ?? label
+            );
+            return {
+              ...item,
+              qty: request.quantity ?? item.qty,
+              type: request.type ?? item.type,
+              volume: request.volume ?? item.volume,
+              colours: colours ?? item.colours,
+            };
+          });
+        } else if (request.requestType === "add" && !list.some((item) => item.id === request.itemId)) {
+          const colours = request.colours?.map(
+            (label) => COLOUR_PALETTE.find((c) => c.label === label)?.id ?? label
+          ) ?? [];
+          const newItem: IncludedItemLine = {
+            id: request.itemId,
+            label: request.label,
+            qty: request.quantity ?? 1,
+            originalQty: request.quantity ?? 1,
+            category: request.label,
+            type: request.type,
+            originalType: request.type,
+            colourOptions: COLOUR_PALETTE,
+            colours,
+            originalColours: [],
+            volumeOptions: VOLUME_OPTIONS,
+            volume: request.volume,
+            originalVolume: request.volume,
+            isNew: true,
+          };
+          base[request.setupId] = [...list, newItem];
+        }
+      }
+      return base;
+    });
+  }
+
   const requests: CustomizeRequest[] = useMemo(() => {
     const list: CustomizeRequest[] = [];
     for (const setup of setups) {
@@ -162,6 +227,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     addItem,
     cancelAdd,
     dismissRequest,
+    hydrateFromRequests,
   };
 }
 

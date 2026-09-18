@@ -3,7 +3,11 @@ import { buildConvenienceFeeRow } from "@/lib/convenienceFee";
 import type { CartVendor } from "../types";
 import type { BookingLineRow, BookingPaymentMilestone } from "@/features/customer-booking/types";
 import { formatPrice } from "../utils/currency";
-import { formatShortDate, getCancellationTiers } from "@/features/customer-package-detail/utils/cancellationPolicy";
+import {
+  formatShortDate,
+  getCancellationTiers,
+  getCancellationTierStatus,
+} from "@/features/customer-package-detail/utils/cancellationPolicy";
 
 export interface CartPaymentSummary {
   rows: BookingLineRow[];
@@ -20,7 +24,7 @@ export interface CartPaymentSummary {
 // (PDP's StickyBookingCard, customer-booking's getBookingSummaryData.ts) —
 // picks the earliest event date across all cart items since that's the one
 // the promise has to hold for.
-function earliestFullRefundCutoff(vendors: CartVendor[]): Date | null {
+function earliestCancellationTiers(vendors: CartVendor[]) {
   const eventDateIsos = vendors
     .map((v) => v.eventDetails.date)
     .filter((date): date is string => date != null && !isNaN(new Date(date).getTime()));
@@ -28,7 +32,7 @@ function earliestFullRefundCutoff(vendors: CartVendor[]): Date | null {
   const earliestIso = eventDateIsos.reduce((earliest, current) =>
     new Date(current).getTime() < new Date(earliest).getTime() ? current : earliest
   );
-  return getCancellationTiers(earliestIso)?.fullRefundCutoff ?? null;
+  return getCancellationTiers(earliestIso);
 }
 
 /**
@@ -39,7 +43,8 @@ function earliestFullRefundCutoff(vendors: CartVendor[]): Date | null {
  */
 export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: CartVendor[]): CartPaymentSummary {
   const payInFull = !quote || !quote.allTokensConfigured || quote.tokenAmountTotal == null;
-  const fullRefundCutoff = earliestFullRefundCutoff(vendors);
+  const cancellationTiers = earliestCancellationTiers(vendors);
+  const cancellationStatus = cancellationTiers ? getCancellationTierStatus(cancellationTiers) : null;
 
   const rows: BookingLineRow[] = [];
   if (quote) {
@@ -75,8 +80,12 @@ export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: Car
     tokenConfigured: quote != null && quote.tokenAmountTotal != null,
     milestones,
     cancellationNote: payInFull
-      ? fullRefundCutoff
-        ? `Free cancellation until ${formatShortDate(fullRefundCutoff)}. Held safely by Eventory until your event.`
+      ? cancellationTiers && cancellationStatus
+        ? cancellationStatus === "full"
+          ? `Free cancellation until ${formatShortDate(cancellationTiers.fullRefundCutoff)}. Held safely by Eventory until your event.`
+          : cancellationStatus === "half"
+            ? `50% refund if cancelled before ${formatShortDate(cancellationTiers.halfRefundCutoff)}.`
+            : "No refund on cancellation — the event is too close."
         : "Free cancellation may apply — check each package's policy for exact dates."
       : quote?.note || "Free cancellation may apply — check each package's policy for exact dates.",
   };

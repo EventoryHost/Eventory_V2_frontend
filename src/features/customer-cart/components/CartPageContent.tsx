@@ -36,7 +36,20 @@ type AuthIntent =
   | null;
 
 function toRawAddOns(addons: CartVendor["addons"]): RawCartAddOn[] {
-  return addons.map((addon) => ({ addOnId: addon.id, name: addon.title, price: addon.price, quantity: addon.quantity }));
+  // Forward category/subCategory/color/image back as-is when re-saving an
+  // existing cart addon (e.g. bumping its quantity) — these are already on
+  // the addon from GET /customer/cart (now that the backend persists them),
+  // and dropping them here would silently erase them on the next save.
+  return addons.map((addon) => ({
+    addOnId: addon.id,
+    name: addon.title,
+    price: addon.price,
+    quantity: addon.quantity,
+    category: addon.category || undefined,
+    subCategory: addon.subCategory,
+    color: addon.color,
+    image: addon.image,
+  }));
 }
 
 export default function CartPageContent() {
@@ -254,7 +267,20 @@ export default function CartPageContent() {
   async function handleAddRecommendedAddon(addon: RecommendedAddon) {
     const item = vendors.find((v) => v.id === addon.itemId);
     if (!item) return;
-    const nextAddOns = [...toRawAddOns(item.addons), { addOnId: addon.id, name: addon.title, price: addon.price, quantity: 1 }];
+    const nextAddOns = [
+      ...toRawAddOns(item.addons),
+      {
+        addOnId: addon.id,
+        name: addon.title,
+        price: addon.price,
+        quantity: 1,
+        category: addon.category || undefined,
+        subCategory: addon.subCategory || undefined,
+        image: addon.image,
+        // No colour picker on this one-click "recommended" add — nothing
+        // real to send, so left unset rather than guessed.
+      },
+    ];
     try {
       const payload = await updateCartItem(item.id, { selectedAddOns: nextAddOns });
       await applyPayload(payload);
@@ -282,6 +308,20 @@ export default function CartPageContent() {
     if (!item) return;
     const nextAddOns = toRawAddOns(item.addons).map((a) =>
       a.addOnId === addonId ? { ...a, quantity: Math.max(1, a.quantity - 1) } : a
+    );
+    try {
+      const payload = await updateCartItem(itemId, { selectedAddOns: nextAddOns });
+      await applyPayload(payload);
+    } catch (error) {
+      setLoadError(error instanceof ApiError ? error.message : "Couldn't update that add-on.");
+    }
+  }
+
+  async function handleSetAddonQuantity(itemId: string, addonId: string, qty: number) {
+    const item = vendors.find((v) => v.id === itemId);
+    if (!item) return;
+    const nextAddOns = toRawAddOns(item.addons).map((a) =>
+      a.addOnId === addonId ? { ...a, quantity: Math.max(1, qty) } : a
     );
     try {
       const payload = await updateCartItem(itemId, { selectedAddOns: nextAddOns });
@@ -441,6 +481,7 @@ export default function CartPageContent() {
                 onMoveToWishlist={handleMoveToWishlist}
                 onIncrementAddon={handleIncrementAddon}
                 onDecrementAddon={handleDecrementAddon}
+                onSetAddonQuantity={handleSetAddonQuantity}
                 onRemoveAddon={handleRemoveAddon}
                 onAddRecommendedAddon={handleAddRecommendedAddon}
               />

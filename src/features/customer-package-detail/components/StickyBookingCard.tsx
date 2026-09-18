@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { addCartItem, getCart, updateCartItem, type RawCartEventDetails } from "@/lib/customerCartApi";
+import { addCartItem, getCart, updateCartItem, type RawCartEventDetails, type RawCustomizeRequest } from "@/lib/customerCartApi";
 import { getConvenienceFeePreview, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
 import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
-import type { IncludedItemEntry, SelectedAddon } from "../types";
+import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
@@ -42,10 +42,13 @@ export default function StickyBookingCard({
   overtimeBillingUnit,
   gstPercent,
   tokenAmount,
+  tokenType,
+  tokenValue,
   requiresGuestCount = true,
   eventCategories,
   selectedAddons,
   includedItems,
+  customizeRequests,
   vendorNote,
   onVendorNoteChange,
   cancellationPolicyText,
@@ -59,13 +62,18 @@ export default function StickyBookingCard({
   overtimeChargeRate: number;
   overtimeBillingUnit?: string;
   gstPercent: number;
+  /** Server-computed at page load, before any add-ons — only used as a fallback when tokenType/tokenValue are null (no token configured). See liveTokenAmount below for the figure actually shown. */
   tokenAmount: number;
+  tokenType: "Percentage" | "Fixed" | null;
+  tokenValue: number | null;
   /** Decorator / DJ / Photographer hide the guest-count field (and don't require it). */
   requiresGuestCount?: boolean;
   /** This package's own event categories (step1_eventAndCrew.eventCategories, via PackageDetail.eventCategories) — scopes the Event Type dropdown to occasions this package is actually tagged for, instead of a fixed made-up list. */
   eventCategories: string[];
   selectedAddons: SelectedAddon[];
   includedItems: IncludedItemEntry[];
+  /** The PDP "Customize items" workshop's live requests (useCustomizeWorkshop, lifted up in PackageDetailPage) — sent as customizeRequests in the add/update cart payload below so they're no longer silently discarded on navigation. */
+  customizeRequests: CustomizeRequest[];
   vendorNote: string;
   onVendorNoteChange: (note: string) => void;
   cancellationPolicyText?: string;
@@ -187,6 +195,19 @@ export default function StickyBookingCard({
   }, [editItemId]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
+  // Recomputed live off the current packageTotal (which already reacts to
+  // add-ons — see PackageDetailPage's packageTotal) instead of the static
+  // `tokenAmount` prop from page load, which only ever reflected the price
+  // before any add-ons were picked and never updated afterward — that's
+  // exactly why this button used to show the pre-add-on figure until the
+  // customer went to cart and saw the real one there instead.
+  const tokenBase = packageTotal + gstAmount;
+  const liveTokenAmount =
+    tokenType === "Percentage" && tokenValue != null
+      ? Math.round((tokenBase * tokenValue) / 100)
+      : tokenType === "Fixed" && tokenValue != null
+        ? Math.min(tokenValue, tokenBase)
+        : tokenAmount;
   const validEventDate = eventDate && !isNaN(Date.parse(eventDate)) ? eventDate : null;
   const cancellationTiers = validEventDate ? getCancellationTiers(validEventDate) : null;
 
@@ -240,7 +261,36 @@ export default function StickyBookingCard({
         name: addon.title,
         price: addon.price,
         quantity: addon.quantity,
+        // category/subCategory come straight from the addon's own catalog
+        // entry (stable facts, not a per-booking choice). color is the
+        // specific swatch the customer picked in AddonDetailsModal — the
+        // one piece that's genuinely a selection, not catalog data — left
+        // unset when this addon has no color options at all.
+        category: addon.category || undefined,
+        subCategory: addon.subCategory || undefined,
+        color: addon.color,
+        image: addon.image,
       })),
+      // Real, persisted backend field (CartItem.js's customizeRequestSchema)
+      // that the PDP's "Customize items" workshop never actually sent here
+      // before — its requests were computed correctly (useCustomizeWorkshop)
+      // but simply discarded on navigation, which is why nothing ever
+      // showed up in booking summary despite that read-side already working.
+      customizeRequests: customizeRequests.map((request) => ({
+        setupId: request.setupId,
+        itemId: request.itemId,
+        requestType: request.requestType,
+        label: request.item.label,
+        quantity: request.item.qty,
+        type: request.item.type,
+        // Real colour names, not the slugified ids useCustomizeWorkshop uses
+        // internally — that's what the backend schema and vendor-facing
+        // display expect.
+        colours: request.item.colours?.map(
+          (id) => request.item.colourOptions?.find((c) => c.id === id)?.label ?? id
+        ),
+        volume: request.item.volume,
+      })) satisfies RawCustomizeRequest[],
     };
   }
 
@@ -471,7 +521,7 @@ export default function StickyBookingCard({
             disabled={isSubmitting || !detailsComplete}
             className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {tokenAmount > 0 ? `Book & pay ${formatPrice(tokenAmount)}` : "Book now"}
+            {liveTokenAmount > 0 ? `Book & pay ${formatPrice(liveTokenAmount)}` : "Book now"}
           </button>
           <button
             type="button"

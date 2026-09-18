@@ -9,11 +9,13 @@ export default function AddedAddonsSection({
   addons,
   onIncrement,
   onDecrement,
+  onSetQuantity,
   onRemove,
 }: {
   addons: CartAddon[];
   onIncrement: (id: string) => void;
   onDecrement: (id: string) => void;
+  onSetQuantity: (id: string, qty: number) => void;
   onRemove: (id: string) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -28,7 +30,7 @@ export default function AddedAddonsSection({
         aria-expanded={isExpanded}
         className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[#F2F2F2]"
       >
-        <h4 className="font-figtree text-[15px] font-semibold text-neutral-primary">
+        <h4 className="font-figtree text-[12px] leading-[16px] font-semibold text-[#111827]">
           Added Add-ons ({addons.length})
         </h4>
         <ChevronDown
@@ -47,6 +49,7 @@ export default function AddedAddonsSection({
                 addon={addon}
                 onIncrement={onIncrement}
                 onDecrement={onDecrement}
+                onSetQuantity={onSetQuantity}
                 onRemove={onRemove}
               />
             </Fragment>

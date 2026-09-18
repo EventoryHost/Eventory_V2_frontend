@@ -28,6 +28,7 @@ export default function VendorGroupCard({
   onMoveToWishlist,
   onIncrementAddon,
   onDecrementAddon,
+  onSetAddonQuantity,
   onRemoveAddon,
   onAddRecommendedAddon,
 }: {
@@ -46,6 +47,7 @@ export default function VendorGroupCard({
   onMoveToWishlist: (id: string) => void;
   onIncrementAddon: (itemId: string, addonId: string) => void;
   onDecrementAddon: (itemId: string, addonId: string) => void;
+  onSetAddonQuantity: (itemId: string, addonId: string, qty: number) => void;
   onRemoveAddon: (itemId: string, addonId: string) => void;
   onAddRecommendedAddon: (addon: RecommendedAddon) => void;
 }) {
@@ -149,6 +151,7 @@ export default function VendorGroupCard({
               onMoveToWishlist={onMoveToWishlist}
               onIncrementAddon={onIncrementAddon}
               onDecrementAddon={onDecrementAddon}
+              onSetAddonQuantity={onSetAddonQuantity}
               onRemoveAddon={onRemoveAddon}
               onAddRecommendedAddon={onAddRecommendedAddon}
             />

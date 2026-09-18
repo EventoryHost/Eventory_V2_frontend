@@ -1,6 +1,18 @@
 import { apiFetch } from "./apiClient";
-import type { RawCartAddOn, RawCartAvailability, RawCartEventDetails, RawCartQuote, RawCartSelectedItem } from "./customerCartApi";
+import type {
+  RawCartAddOn,
+  RawCartAvailability,
+  RawCartEventDetails,
+  RawCartQuote,
+  RawCartSelectedItem,
+  RawCustomizeRequest,
+} from "./customerCartApi";
 import { clearCheckoutSessionId, getCheckoutSessionId } from "./checkoutSession";
+
+// Re-exported so existing importers of RawCustomizeRequest from this module
+// don't need to change — the type itself now lives in customerCartApi.ts
+// since checkout/booking shapes reuse the cart's own raw types.
+export type { RawCustomizeRequest };
 
 // Raw shapes returned by /api/customer/checkout/session/* — see book-api.pdf
 // ("Booking Flow — API Handoff"). session.lockedQuote and the line
@@ -9,6 +21,17 @@ import { clearCheckoutSessionId, getCheckoutSessionId } from "./checkoutSession"
 
 export interface RawCheckoutSessionLine {
   _id: string;
+  customizeRequests?: RawCustomizeRequest[];
+  /**
+   * The CartItem._id this line was created from (source:"cart" sessions) —
+   * distinct from this line's own _id, which is a fresh id the checkout
+   * session generates for itself (confirmed against
+   * Eventory_V2_backend/src/controllers/customerCheckoutController.js's
+   * createCheckoutSession). "Edit Package" from booking summary needs THIS
+   * id (the same one cart's own PDP editItemId link uses) — lineId is the
+   * wrong id for that and silently produced a no-op prefill fetch.
+   */
+  sourceCartItemId?: string | null;
   vendorId: string;
   packageId: string;
   packageGroupId?: string;

@@ -8,11 +8,14 @@ export default function AddonsCarousel({
   quantities,
   onChangeQuantity,
   onSetQuantity,
+  onSetColour,
 }: {
   addons: AddonItem[];
   quantities: Record<string, number>;
   onChangeQuantity: (id: string, delta: number) => void;
   onSetQuantity: (id: string, qty: number) => void;
+  /** The color the customer picked in the add-on details modal — needs to reach the cart payload (see PackageDetailPage.tsx). */
+  onSetColour: (id: string, colourId: string) => void;
 }) {
   const addedAddons = addons
     .filter((addon) => (quantities[addon.id] ?? 0) > 0)
@@ -37,7 +40,10 @@ export default function AddonsCarousel({
             addon={addon}
             seed={i}
             quantity={quantities[addon.id] ?? 0}
-            onIncrement={() => onChangeQuantity(addon.id, 1)}
+            onAdd={(colourId) => {
+              onChangeQuantity(addon.id, 1);
+              if (colourId) onSetColour(addon.id, colourId);
+            }}
           />
         ))}
       </div>

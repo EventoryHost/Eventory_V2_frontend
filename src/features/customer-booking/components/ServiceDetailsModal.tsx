@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, Calendar, Clock, MapPin, Tag, Pencil } from "lucide-react";
 import CollapsibleSection from "./CollapsibleSection";
-import SetupArticleCard, { type SetupArticleCardProps } from "./SetupArticleCard";
+import SetupArticleCard, { type SetupArticleCardProps, type SetupRequest } from "./SetupArticleCard";
 import AddOnRow from "./AddOnRow";
 import NotIncludedRow from "./NotIncludedRow";
 import AllPoliciesContent from "./AllPoliciesContent";
@@ -12,23 +12,100 @@ import VendorNoteSection from "./VendorNoteSection";
 import PriceBreakdownContent from "./PriceBreakdownContent";
 import type { BookingAddon } from "../types";
 import { getPackageDetail } from "@/features/customer-package-detail/services/getPackageDetail";
-import type { PackageDetail } from "@/features/customer-package-detail/types";
+import type { IncludedItemLine, PackageDetail } from "@/features/customer-package-detail/types";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
+import type { RawCustomizeRequest } from "@/lib/customerCheckoutApi";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
-function mapSetups(detail: PackageDetail): SetupArticleCardProps[] {
+// colours on both the original catalog item and a real request are colour
+// ids (see PDP's toggleColour) — resolved to their display labels via the
+// item's own colourOptions, same as everywhere else this project shows a
+// picked colour.
+function colourLabels(ids: string[] | undefined, line: IncludedItemLine | undefined): string {
+  if (!ids?.length) return "";
+  return ids.map((id) => line?.colourOptions?.find((c) => c.id === id)?.label ?? id).join(", ");
+}
+
+// Diffs a real customize request against the setup's own original catalog
+// item to build the old-value/new-value attributes SetupArticleCard shows —
+// "change" gets a strikethrough old value, "add" shows only the new value
+// (there's no "old" for a brand-new item), matching PDP's own workshop UI.
+function buildRequestAttributes(request: RawCustomizeRequest, original: IncludedItemLine | undefined) {
+  const attributes: { label: string; oldValue?: string; newValue: string }[] = [];
+  const isChange = request.requestType === "change";
+  if (request.type) {
+    attributes.push({
+      label: original?.typeLabel || "Type",
+      oldValue: isChange ? original?.type : undefined,
+      newValue: request.type,
+    });
+  }
+  if (request.colours?.length) {
+    attributes.push({
+      label: "Colour",
+      oldValue: isChange ? colourLabels(original?.colours, original) || undefined : undefined,
+      newValue: request.colours.join(", "),
+    });
+  }
+  if (request.volume) {
+    attributes.push({
+      label: "Volume",
+      oldValue: isChange ? original?.volume : undefined,
+      newValue: request.volume,
+    });
+  }
+  return attributes;
+}
+
+function mapSetups(detail: PackageDetail, customizeRequests: RawCustomizeRequest[]): SetupArticleCardProps[] {
   return detail.includedItems.map((entry) => ({
     image: entry.image || FALLBACK_IMAGE,
     title: entry.title,
     price: entry.price ? formatPrice(entry.price) : "",
-    details: entry.details.filter((d) => d.value && d.value !== "—"),
-    items: entry.items.map((line) => ({
-      name: line.label,
-      quantity: line.qty,
-      subtitle: [line.category, line.type].filter(Boolean).join(" · "),
-      requests: [],
-    })),
+    // Same "+N more" expand data PDP's What's Included section already
+    // carries on each detail (Decorating/Structures Included/Theme/Setup
+    // type) — this used to only keep {label, value} and silently drop
+    // moreCount/allValues, so the expand control never had anything to work
+    // with here even though the same real data was right there.
+    details: entry.details
+      .filter((d) => d.value && d.value !== "—")
+      .map((d) => ({ label: d.label, value: d.value, moreCount: d.moreCount, allValues: d.allValues })),
+    items: [
+      ...entry.items.map((line) => {
+        const request = customizeRequests.find((r) => r.setupId === entry.id && r.itemId === line.id);
+        const requests: SetupRequest[] = [];
+        if (request?.requestType === "remove") {
+          requests.push({ status: "removal", label: line.label });
+        } else if (request) {
+          requests.push({
+            status: request.requestType === "add" ? "adding" : "change",
+            attributes: buildRequestAttributes(request, line),
+          });
+        }
+        return {
+          name: line.label,
+          quantity: request?.quantity ?? line.qty,
+          subtitle: [line.category, line.type].filter(Boolean).join(" · "),
+          requests,
+        };
+      }),
+      // Brand-new items added via the workshop have no catalog line to
+      // start from — they only exist as a request.
+      ...customizeRequests
+        .filter(
+          (r) =>
+            r.setupId === entry.id &&
+            r.requestType === "add" &&
+            !entry.items.some((line) => line.id === r.itemId)
+        )
+        .map((request) => ({
+          name: request.label,
+          quantity: request.quantity ?? 1,
+          subtitle: "",
+          requests: [{ status: "adding" as const, attributes: buildRequestAttributes(request, undefined) }],
+        })),
+    ],
   }));
 }
 
@@ -48,6 +125,7 @@ export type ServiceDetailsModalProps = {
   price: string;
   addons?: BookingAddon[];
   note?: string;
+  customizeRequests?: RawCustomizeRequest[];
   onNoteSaved?: () => void;
 };
 
@@ -67,6 +145,7 @@ export default function ServiceDetailsModal({
   price,
   addons = [],
   note = "",
+  customizeRequests = [],
   onNoteSaved,
 }: ServiceDetailsModalProps) {
   const [detail, setDetail] = useState<PackageDetail | null>(null);
@@ -103,7 +182,7 @@ export default function ServiceDetailsModal({
 
   if (!isOpen) return null;
 
-  const setups = detail ? mapSetups(detail) : [];
+  const setups = detail ? mapSetups(detail, customizeRequests) : [];
   const notIncluded = detail?.notIncluded ?? [];
   const policies = detail?.policies ?? [];
 
@@ -119,7 +198,8 @@ export default function ServiceDetailsModal({
     : [];
   const itemsSubtotal = detail ? detail.includedItems.reduce((sum, entry) => sum + entry.price, 0) : 0;
   const addonsSubtotal = addons.reduce((sum, addon) => sum + addon.amount * addon.quantity, 0);
-  const breakdownSubtotal = itemsSubtotal + addonsSubtotal;
+  const teamAndEquipmentCharge = detail?.pricing.teamAndEquipmentCharge ?? 0;
+  const breakdownSubtotal = itemsSubtotal + addonsSubtotal + teamAndEquipmentCharge;
   const gstPercent = detail?.pricing.gstPercent ?? 0;
   const gstAmount = Math.round((breakdownSubtotal * gstPercent) / 100);
   const breakdownTotal = breakdownSubtotal + gstAmount;
@@ -213,12 +293,12 @@ export default function ServiceDetailsModal({
                   {addons.map((addon) => (
                     <AddOnRow
                       key={addon.id}
-                      image={FALLBACK_IMAGE}
+                      image={addon.image || FALLBACK_IMAGE}
                       name={addon.name}
                       quantity={addon.quantity}
                       price={addon.price}
-                      category=""
-                      attributes={[]}
+                      category={[addon.category, addon.subCategory].filter(Boolean).join(" · ")}
+                      attributes={addon.color ? [{ label: "Color", value: addon.color }] : []}
                     />
                   ))}
                 </div>
@@ -242,6 +322,7 @@ export default function ServiceDetailsModal({
                 <PriceBreakdownContent
                   items={breakdownItems}
                   addons={addons}
+                  teamAndEquipmentCharge={teamAndEquipmentCharge > 0 ? formatPrice(teamAndEquipmentCharge) : undefined}
                   subtotal={formatPrice(breakdownSubtotal)}
                   gstPercent={gstPercent}
                   gstAmount={formatPrice(gstAmount)}
