@@ -67,6 +67,16 @@ export function groupBookingsByEvent(bookings: RawBookingListItem[]): BookingOrd
       cancelledCount: sorted.filter((row) => row.status === "Cancelled").length,
       declinedCount: sorted.filter((row) => row.status === "Declined").length,
       completedCount: sorted.filter((row) => row.status === "Completed").length,
+      // amountDue is computed per row by the controller (totalAmount -
+      // totalReceived); a row that has received nothing yet is the one still
+      // waiting on its advance. Cancelled/declined rows are excluded — money
+      // isn't pending on a booking that isn't happening.
+      advancePendingCount: sorted.filter(
+        (row) =>
+          row.amountDue > 0 &&
+          row.totalReceived === 0 &&
+          !["Cancelled", "Declined"].includes(row.status)
+      ).length,
       allConfirmed:
         sorted.length > 0 && sorted.every((row) => row.status === "Confirmed"),
       bookings: sorted,
