@@ -34,6 +34,19 @@ export async function createTokenPayment(checkoutSessionId: string) {
   });
 }
 
+/**
+ * Starts a Cashfree order for ONE payment milestone of an existing booking —
+ * the "Pay advance N" action on the booking detail banner. Same handoff as
+ * createTokenPayment: pass the returned paymentSessionId to the Cashfree SDK.
+ */
+export async function createMilestonePayment(bookingId: string, milestoneId: string) {
+  return apiFetch<RawTokenPaymentResponse>("/customer/payments/milestone", {
+    method: "POST",
+    auth: true,
+    body: { bookingId, milestoneId },
+  });
+}
+
 export interface ConfirmFreeCheckoutResponse {
   status: "SUCCESS";
   message: string;

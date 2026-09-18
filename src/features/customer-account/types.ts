@@ -33,6 +33,13 @@ export interface BookingOrderGroup {
   /** Vendor-declined rows, which read differently from a self-cancel. */
   declinedCount: number;
   completedCount: number;
+  /**
+   * Packages that owe money and have received none of it yet — the design's
+   * "Advance N pending". Measured as totalReceived === 0 with an amountDue,
+   * so a booking whose advance IS paid (but whose balance is naturally still
+   * outstanding until the event) doesn't read as pending.
+   */
+  advancePendingCount: number;
   /** True when every package in the group is confirmed — the design collapses
       that to a single "All packages confirmed" row instead of a count. */
   allConfirmed: boolean;
