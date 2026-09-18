@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import type { PackageDetail } from "../types";
+import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
 import VariantSelector from "./VariantSelector";
@@ -40,6 +41,11 @@ export default function PackageDetailPage({
   const [addonColours, setAddonColours] = useState<Record<string, string>>({});
   const [vendorNote, setVendorNote] = useState("");
   const [editCartItem, setEditCartItem] = useState<RawCartItem | null>(null);
+  // Lifted up from IncludedItems so buildCartPayload (StickyBookingCard) can
+  // also read workshop.requests — this used to live entirely inside
+  // IncludedItems, which meant the customize-items requests never reached
+  // the add-to-cart call at all.
+  const workshop = useCustomizeWorkshop(data.includedItems);
 
   // One-time prefill fetch — the variant itself doesn't need this (defaultVariantId
   // above already matches the exact package/variant this URL points to, which is
@@ -65,6 +71,7 @@ export default function PackageDetailPage({
         });
         setAddonQuantities(quantities);
         setAddonColours(colours);
+        workshop.hydrateFromRequests(match.customizeRequests ?? []);
       })
       .catch(() => {
         // Best-effort — worst case the page just behaves like a fresh (non-edit) visit.
@@ -135,7 +142,7 @@ export default function PackageDetailPage({
           <PackageSummary summary={data.summary} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && (
-            <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} />
+            <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} workshop={workshop} />
           )}
           <NotesForVendor value={vendorNote} onChange={setVendorNote} />
           <VendorRequirements requirements={data.vendorRequirements} />
@@ -169,6 +176,7 @@ export default function PackageDetailPage({
           eventCategories={data.eventCategories}
           selectedAddons={selectedAddons}
           includedItems={data.includedItems}
+          customizeRequests={workshop.requests}
           vendorNote={vendorNote}
           onVendorNoteChange={setVendorNote}
           editItemId={editCartItem?._id}

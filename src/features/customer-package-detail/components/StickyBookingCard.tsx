@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { addCartItem, getCart, updateCartItem, type RawCartEventDetails } from "@/lib/customerCartApi";
+import { addCartItem, getCart, updateCartItem, type RawCartEventDetails, type RawCustomizeRequest } from "@/lib/customerCartApi";
 import { getConvenienceFeePreview, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
 import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
-import type { IncludedItemEntry, SelectedAddon } from "../types";
+import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
@@ -48,6 +48,7 @@ export default function StickyBookingCard({
   eventCategories,
   selectedAddons,
   includedItems,
+  customizeRequests,
   vendorNote,
   onVendorNoteChange,
   cancellationPolicyText,
@@ -71,6 +72,8 @@ export default function StickyBookingCard({
   eventCategories: string[];
   selectedAddons: SelectedAddon[];
   includedItems: IncludedItemEntry[];
+  /** The PDP "Customize items" workshop's live requests (useCustomizeWorkshop, lifted up in PackageDetailPage) — sent as customizeRequests in the add/update cart payload below so they're no longer silently discarded on navigation. */
+  customizeRequests: CustomizeRequest[];
   vendorNote: string;
   onVendorNoteChange: (note: string) => void;
   cancellationPolicyText?: string;
@@ -268,6 +271,26 @@ export default function StickyBookingCard({
         color: addon.color,
         image: addon.image,
       })),
+      // Real, persisted backend field (CartItem.js's customizeRequestSchema)
+      // that the PDP's "Customize items" workshop never actually sent here
+      // before — its requests were computed correctly (useCustomizeWorkshop)
+      // but simply discarded on navigation, which is why nothing ever
+      // showed up in booking summary despite that read-side already working.
+      customizeRequests: customizeRequests.map((request) => ({
+        setupId: request.setupId,
+        itemId: request.itemId,
+        requestType: request.requestType,
+        label: request.item.label,
+        quantity: request.item.qty,
+        type: request.item.type,
+        // Real colour names, not the slugified ids useCustomizeWorkshop uses
+        // internally — that's what the backend schema and vendor-facing
+        // display expect.
+        colours: request.item.colours?.map(
+          (id) => request.item.colourOptions?.find((c) => c.id === id)?.label ?? id
+        ),
+        volume: request.item.volume,
+      })) satisfies RawCustomizeRequest[],
     };
   }
 

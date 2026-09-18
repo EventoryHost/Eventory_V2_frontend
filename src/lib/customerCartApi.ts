@@ -30,6 +30,24 @@ export interface RawCartAddOn {
   image?: string;
 }
 
+// Real, persisted backend field (CartItem.js/CheckoutSession.js/Booking.js's
+// customizeRequestSchema) for the PDP's "Customize items" workshop.
+// Write: POST /customer/cart/items and PATCH .../:itemId both already accept
+// and persist this. Read: GET /customer/cart, checkout session lines, and
+// GET /customer/bookings/:id all already return it (plain .lean() reads, no
+// field-stripping). Defined here (not customerCheckoutApi.ts) since the
+// checkout/booking shapes reuse the cart's own raw types.
+export interface RawCustomizeRequest {
+  setupId: string;
+  itemId: string;
+  requestType: "change" | "add" | "remove";
+  label: string;
+  quantity?: number;
+  type?: string;
+  colours?: string[];
+  volume?: string;
+}
+
 export interface RawCartSelectedItem {
   groupKey: string;
   itemId?: string;
@@ -76,6 +94,7 @@ export interface RawCartItem {
   eventDetails: RawCartEventDetails;
   selectedAddOns: RawCartAddOn[];
   selectedItems: RawCartSelectedItem[];
+  customizeRequests?: RawCustomizeRequest[];
   specialRequest: string;
   quantity: number;
   selectedForCheckout: boolean;
@@ -214,6 +233,7 @@ export interface AddCartItemParams {
   location?: string;
   selectedAddOns?: RawCartAddOn[];
   selectedItems?: RawCartSelectedItem[];
+  customizeRequests?: RawCustomizeRequest[];
   specialRequest?: string;
   quantity?: number;
 }
@@ -226,6 +246,7 @@ export interface UpdateCartItemParams {
   location?: string;
   selectedAddOns?: RawCartAddOn[];
   selectedItems?: RawCartSelectedItem[];
+  customizeRequests?: RawCustomizeRequest[];
   specialRequest?: string;
   quantity?: number;
   selectedForCheckout?: boolean;

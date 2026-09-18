@@ -198,7 +198,8 @@ export default function ServiceDetailsModal({
     : [];
   const itemsSubtotal = detail ? detail.includedItems.reduce((sum, entry) => sum + entry.price, 0) : 0;
   const addonsSubtotal = addons.reduce((sum, addon) => sum + addon.amount * addon.quantity, 0);
-  const breakdownSubtotal = itemsSubtotal + addonsSubtotal;
+  const teamAndEquipmentCharge = detail?.pricing.teamAndEquipmentCharge ?? 0;
+  const breakdownSubtotal = itemsSubtotal + addonsSubtotal + teamAndEquipmentCharge;
   const gstPercent = detail?.pricing.gstPercent ?? 0;
   const gstAmount = Math.round((breakdownSubtotal * gstPercent) / 100);
   const breakdownTotal = breakdownSubtotal + gstAmount;
@@ -292,12 +293,12 @@ export default function ServiceDetailsModal({
                   {addons.map((addon) => (
                     <AddOnRow
                       key={addon.id}
-                      image={FALLBACK_IMAGE}
+                      image={addon.image || FALLBACK_IMAGE}
                       name={addon.name}
                       quantity={addon.quantity}
                       price={addon.price}
-                      category=""
-                      attributes={[]}
+                      category={[addon.category, addon.subCategory].filter(Boolean).join(" · ")}
+                      attributes={addon.color ? [{ label: "Color", value: addon.color }] : []}
                     />
                   ))}
                 </div>
@@ -321,6 +322,7 @@ export default function ServiceDetailsModal({
                 <PriceBreakdownContent
                   items={breakdownItems}
                   addons={addons}
+                  teamAndEquipmentCharge={teamAndEquipmentCharge > 0 ? formatPrice(teamAndEquipmentCharge) : undefined}
                   subtotal={formatPrice(breakdownSubtotal)}
                   gstPercent={gstPercent}
                   gstAmount={formatPrice(gstAmount)}
