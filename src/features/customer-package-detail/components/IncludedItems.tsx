@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
-import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
+import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import PlaceholderMedia from "./PlaceholderMedia";
 import SectionHeading from "./SectionHeading";
 import CustomizeWorkshopModal from "./CustomizeWorkshopModal";
@@ -13,12 +13,14 @@ import IncludedItemImageModal from "./IncludedItemImageModal";
 export default function IncludedItems({
   items,
   notIncluded = [],
+  workshop,
 }: {
   items: IncludedItemEntry[];
   /** Real, vendor-authored exclusions (step2_productsAndPricing.notIncluded) — the footer bar only renders when there's something real to reveal. */
   notIncluded?: string[];
+  /** Lifted to PackageDetailPage so StickyBookingCard's add-to-cart call can also read workshop.requests — this used to be owned entirely inside this component, which meant the customize-items requests never reached the cart payload at all. */
+  workshop: UseCustomizeWorkshopResult;
 }) {
-  const workshop = useCustomizeWorkshop(items);
   const [activeSetupId, setActiveSetupId] = useState<string | null>(null);
   const activeSetup = items.find((setup) => setup.id === activeSetupId) ?? null;
   const [isExclusionsOpen, setIsExclusionsOpen] = useState(false);

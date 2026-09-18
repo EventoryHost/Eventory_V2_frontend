@@ -114,6 +114,7 @@ export default function BookingSummaryPage() {
                       packageId={service.packageId}
                       sessionId={data.sessionId}
                       lineId={service.lineId}
+                      cartItemId={service.cartItemId}
                       image={service.image}
                       categoryLabel={service.categoryLabel}
                       categoryIcon={service.categoryIcon}
@@ -126,10 +127,12 @@ export default function BookingSummaryPage() {
                       location={service.location}
                       eventType={service.eventType}
                       cancellationNote={service.cancellationNote}
+                      cancellationTierStatus={service.cancellationTierStatus}
                       isBookable={service.isBookable}
                       price={service.price}
                       addons={service.addons}
                       note={service.note}
+                      customizeRequests={service.customizeRequests}
                       onUpdated={refresh}
                     />
                   ))}

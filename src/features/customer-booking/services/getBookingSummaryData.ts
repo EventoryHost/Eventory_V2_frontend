@@ -11,7 +11,12 @@ import { getVendorPublic, type RawVendorPublicMinimal } from "@/lib/vendorPublic
 import type { RawCartQuoteLine } from "@/lib/customerCartApi";
 import { buildConvenienceFeeRow } from "@/lib/convenienceFee";
 import { formatPrice } from "@/features/customer-cart/utils/currency";
-import { formatShortDate, getCancellationTiers } from "@/features/customer-package-detail/utils/cancellationPolicy";
+import {
+  formatDayMonth,
+  formatShortDate,
+  getCancellationTiers,
+  getCancellationTierStatus,
+} from "@/features/customer-package-detail/utils/cancellationPolicy";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import type {
@@ -69,8 +74,27 @@ function mapLine(
   // all). A line can be perfectly "still available" and yet fail this,
   // e.g. no event date was set when the package was added to cart.
   const isBookable = stillAvailable && availabilityEntry?.availability?.overall !== false;
+  // Same real, tiered refund line as cart's PackageInfo.tsx — this used to
+  // be a static "Cancellation terms apply — see full policy for exact
+  // dates." regardless of the actual event date.
+  const cancellationTiers = line.eventDetails.date ? getCancellationTiers(line.eventDetails.date) : null;
+  const cancellationTierStatus =
+    stillAvailable && isBookable && cancellationTiers ? getCancellationTierStatus(cancellationTiers) : null;
+  const cancellationNote = !stillAvailable
+    ? "This package is no longer available — contact support before paying."
+    : !isBookable
+      ? "This booking can't be confirmed with the current date, time or guest count — edit your event details to continue."
+      : cancellationTierStatus && cancellationTiers
+        ? cancellationTierStatus === "full"
+          ? `Free cancellation till ${formatDayMonth(cancellationTiers.fullRefundCutoff)}`
+          : cancellationTierStatus === "half"
+            ? `50% refund if cancelled before ${formatDayMonth(cancellationTiers.halfRefundCutoff)}`
+            : "No refund on cancellation"
+        : "Cancellation terms apply — see full policy for exact dates.";
   return {
     lineId: line._id,
+    cartItemId: line.sourceCartItemId ?? null,
+    customizeRequests: line.customizeRequests ?? [],
     packageId: line.packageId,
     vendorId: line.vendorId,
     image: line.packageSnapshot.image || FALLBACK_IMAGE,
@@ -84,11 +108,8 @@ function mapLine(
     time: line.eventDetails.timeSlot ?? "Time to be confirmed",
     location: line.eventDetails.location ?? "Location to be confirmed",
     eventType: deriveEventType(line.specialRequest),
-    cancellationNote: !stillAvailable
-      ? "This package is no longer available — contact support before paying."
-      : !isBookable
-        ? "This booking can't be confirmed with the current date, time or guest count — edit your event details to continue."
-        : "Cancellation terms apply — see full policy for exact dates.",
+    cancellationNote,
+    cancellationTierStatus,
     price: formatPrice(line.packageSnapshot.price ?? quoteLine?.currentPrice ?? 0),
     packageStillAvailable: stillAvailable,
     isBookable,
@@ -99,16 +120,23 @@ function mapLine(
       quantity: addon.quantity,
       price: formatPrice(addon.price),
       amount: addon.price,
+      // Not yet persisted by the cart backend once an add-on is added — see
+      // RawCartAddOn's doc comment. Undefined today; wired ahead of that
+      // field landing.
+      category: addon.category,
+      subCategory: addon.subCategory,
+      color: addon.color,
+      image: addon.image,
     })),
     note: line.specialRequest,
   };
 }
 
-// The free-cancellation cutoff shown in the payment summary uses the same
-// platform-wide 14-days-before-event window as Package Detail's
+// The cancellation tiers shown in the payment summary use the same
+// platform-wide 14/3-days-before-event window as Package Detail's
 // StickyBookingCard (see cancellationPolicy.ts) — picks the earliest event
 // date across all lines since that's the one the promise has to hold for.
-function earliestFullRefundCutoff(lines: RawCheckoutSessionLine[]): Date | null {
+function earliestCancellationTiers(lines: RawCheckoutSessionLine[]) {
   const eventDateIsos = lines
     .map((line) => line.eventDetails.date)
     .filter((date): date is string => date != null && !isNaN(new Date(date).getTime()));
@@ -116,7 +144,7 @@ function earliestFullRefundCutoff(lines: RawCheckoutSessionLine[]): Date | null 
   const earliestIso = eventDateIsos.reduce((earliest, current) =>
     new Date(current).getTime() < new Date(earliest).getTime() ? current : earliest
   );
-  return getCancellationTiers(earliestIso)?.fullRefundCutoff ?? null;
+  return getCancellationTiers(earliestIso);
 }
 
 function mapMilestones(
@@ -247,7 +275,16 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
     const vendorName = vendorInfo?.pocName ?? lines[0]?.packageSnapshot.vendorType ?? "Vendor";
     const subtotal = lines.reduce((sum, line) => {
       const quoteLine = quoteLineByLineId.get(line._id);
-      return sum + (quoteLine?.lineTotalInclGst ?? quoteLine?.lineSubtotal ?? 0);
+      // Same fallback chain mapLine already uses for the per-service price
+      // (packageSnapshot.price, the value locked in when it was added to
+      // cart) — the quote line can come back missing for a given line
+      // (id-matching miss, or the session's lockedQuote just not covering
+      // it), and silently defaulting to 0 there made the whole vendor
+      // subtotal wrong/short instead of just that one line.
+      if (quoteLine?.lineTotalInclGst != null) return sum + quoteLine.lineTotalInclGst;
+      if (quoteLine?.lineSubtotal != null) return sum + quoteLine.lineSubtotal;
+      const addonsTotal = line.selectedAddOns.reduce((s, addon) => s + (addon.price ?? 0) * (addon.quantity ?? 1), 0);
+      return sum + (line.packageSnapshot.price ?? quoteLine?.currentPrice ?? 0) + addonsTotal;
     }, 0);
 
     return {
@@ -270,7 +307,8 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
 
   const itemCount = session.lines.length;
   const payInFull = !quote || !quote.allTokensConfigured || quote.tokenAmountTotal == null;
-  const fullRefundCutoff = earliestFullRefundCutoff(session.lines);
+  const cancellationTiers = earliestCancellationTiers(session.lines);
+  const cancellationStatus = cancellationTiers ? getCancellationTierStatus(cancellationTiers) : null;
 
   const rows: BookingLineRow[] = [];
   if (quote) {
@@ -327,8 +365,12 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       // generic trust line instead. Otherwise quote.note (or the generic
       // fallback) is shown as before.
       cancellationNote: payInFull
-        ? fullRefundCutoff
-          ? `Free cancellation until ${formatShortDate(fullRefundCutoff)}. Held safely by Eventory until your event.`
+        ? cancellationTiers && cancellationStatus
+          ? cancellationStatus === "full"
+            ? `Free cancellation until ${formatShortDate(cancellationTiers.fullRefundCutoff)}. Held safely by Eventory until your event.`
+            : cancellationStatus === "half"
+              ? `50% refund if cancelled before ${formatShortDate(cancellationTiers.halfRefundCutoff)}.`
+              : "No refund on cancellation — the event is too close."
           : "Free cancellation may apply — check each package's policy for exact dates."
         : quote?.note || "Free cancellation may apply — check each package's policy for exact dates.",
     },

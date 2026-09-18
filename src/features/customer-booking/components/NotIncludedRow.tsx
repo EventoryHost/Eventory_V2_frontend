@@ -8,14 +8,10 @@ export default function NotIncludedRow({
   category,
 }: NotIncludedRowProps) {
   return (
-    <div className="flex w-full max-w-[569px] flex-col gap-1.5">
-      <span className="font-figtree text-[14px] font-semibold leading-[20px] text-[#030303]">
-        {name}
-      </span>
+    <div className="w-full max-w-[569px] rounded-2xl bg-[#F4F4F5] p-4">
+      <p className="font-figtree text-[14px] leading-[22.75px] font-normal text-[#3F3F47]">{name}</p>
       {category && (
-        <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#71717B]">
-          {category}
-        </span>
+        <p className="mt-1 font-figtree text-[12px] leading-[20px] font-normal text-[#71717B]">{category}</p>
       )}
     </div>
   );

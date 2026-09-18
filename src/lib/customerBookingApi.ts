@@ -78,3 +78,63 @@ export interface RawBookingDetailResponse {
 export async function getBookingDetail(bookingId: string) {
   return apiFetch<RawBookingDetailResponse>(`/customer/bookings/${bookingId}`, { auth: true });
 }
+
+// --- "My Bookings" list (GET /api/customer/bookings) ---------------------
+//
+// The list endpoint selects a narrower field set than getBookingDetail
+// (BOOKING_LIST_FIELDS in customerBookingController.js), so it gets its own
+// type rather than reusing RawBooking — no customer/guestRange/notes/
+// paymentMilestones come back here. `amountDue` is computed per row by the
+// controller, not stored.
+
+export type BookingTab = "active" | "past" | "cancelled";
+
+export interface RawBookingListItem {
+  _id: string;
+  bookingId: string;
+  vendorId: RawBookingVendor | string;
+  packageId: string;
+  eventType: string | null;
+  eventDate: string;
+  location: string | null;
+  packageSnapshot: RawBookingPackageSnapshot | null;
+  paymentType: RawBooking["paymentType"];
+  status: RawBooking["status"];
+  totalAmount: number;
+  totalReceived: number;
+  amountDue: number;
+  createdAt: string;
+}
+
+export interface RawBookingsResponse {
+  status: "SUCCESS";
+  count: number;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  /** Badge counts across the customer's whole booking list — unaffected by `q`. */
+  counts: Record<BookingTab, number>;
+  bookings: RawBookingListItem[];
+}
+
+export interface GetBookingsParams {
+  tab?: BookingTab;
+  q?: string;
+  sort?: "newest" | "eventDate_asc" | "eventDate_desc" | "amount_desc";
+  page?: number;
+  limit?: number;
+}
+
+function toQueryString(params: object) {
+  const search = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") search.set(key, String(value));
+  });
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
+export async function getBookings(params: GetBookingsParams = {}) {
+  return apiFetch<RawBookingsResponse>(`/customer/bookings${toQueryString(params)}`, { auth: true });
+}

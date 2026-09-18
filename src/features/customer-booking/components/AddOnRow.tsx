@@ -9,6 +9,10 @@ export type AddOnRowProps = {
   attributes?: { label: string; value: string }[];
 };
 
+// Same layout as cart's AddedAddonRow — image left, title/category/color
+// middle, price right — just without the increment/decrement/delete
+// controls, since booking summary is read-only (editing happens back in
+// cart/PDP, not here).
 export default function AddOnRow({
   image,
   name,
@@ -18,40 +22,29 @@ export default function AddOnRow({
   attributes = [],
 }: AddOnRowProps) {
   return (
-    <div className="flex w-full max-w-[569px] gap-3">
-      <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-[12px]">
-        <Image src={image} alt={name} fill className="object-cover" />
+    <div className="flex items-center gap-3">
+      <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl bg-neutral-subtle">
+        <Image src={image} alt={name} fill sizes="84px" className="object-cover" />
       </div>
 
-      <div className="flex flex-1 flex-col gap-1.5">
-        <div className="flex items-start justify-between gap-2">
-          <span className="font-figtree text-[14px] font-semibold leading-[20px] text-[#030303]">
-            {name} &times;{quantity}
-          </span>
-          <span className="shrink-0 font-figtree text-[14px] font-semibold leading-[20px] text-[#030303]">
-            {price}
-          </span>
-        </div>
-
+      <div className="min-w-0 flex-1">
+        <h5 className="truncate font-figtree text-[14px] leading-[20px] font-semibold text-[#030303]">
+          {name} ×{quantity}
+        </h5>
         {category && (
-          <span className="font-figtree text-[12px] font-normal leading-[20px] text-[#71717B]">
-            {category}
+          <p className="mt-1 truncate font-figtree text-[12px] leading-[20px] text-[#71717B]">{category}</p>
+        )}
+        {attributes.map((attribute) => (
+          <span
+            key={attribute.label}
+            className="mt-2 inline-flex items-center rounded-full border border-black/10 bg-white px-2.5 py-1 font-figtree text-[12px] leading-[18px] font-semibold text-[#030303]"
+          >
+            {attribute.label}: {attribute.value}
           </span>
-        )}
-
-        {attributes.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {attributes.map((attribute) => (
-              <span
-                key={attribute.label}
-                className="flex w-fit items-center rounded-[12px] bg-[#F4F4F5] pt-2 pr-3 pb-2 pl-3 font-figtree text-[12px] font-semibold leading-[18px] text-[#030303]"
-              >
-                {attribute.label}: {attribute.value}
-              </span>
-            ))}
-          </div>
-        )}
+        ))}
       </div>
+
+      <p className="shrink-0 font-figtree text-[16px] leading-[20px] font-semibold text-[#030303]">{price}</p>
     </div>
   );
 }
