@@ -1,152 +1,205 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Map } from "lucide-react";
+import { Award, Bookmark, Calendar, Check, Share2 } from "lucide-react";
 import type { Vendor } from "../types";
-import { formatPrice } from "../utils/currency";
-import VendorRating from "./VendorRating";
+import { formatRangeStat, formatWishlistCount } from "../utils/vendorStats";
+import {
+  VendorCategoryChip,
+  VendorLocationStrip,
+  VendorNameHeader,
+  VendorRatingLine,
+} from "./VendorCardParts";
 
-const FALLBACK_CATEGORY_ICON = "/images/customer/packages-pics.png";
+const FALLBACK_AVATAR = "/images/customer/packages-pics.png";
 
-function formatEventTags(eventTypes: string[]) {
-  const visible = eventTypes.slice(0, 2);
-  const remaining = eventTypes.length - visible.length;
-  const label = visible.join(" • ");
-  return remaining > 0 ? `${label} • +${remaining} more` : label;
+/**
+ * Where the card goes when clicked.
+ *
+ * "vendor" (the default) opens the vendor profile — the card is
+ * vendor-shaped, so that is what a click promises. "package" is for the
+ * vendor profile's own Event Packages grid, where linking back to the
+ * vendor would just reload the page the customer is already on.
+ */
+type VendorCardLinkTarget = "vendor" | "package";
+
+
+/** One stat: outlined circular icon chip, then value over label. */
+function Stat({
+  icon: Icon,
+  value,
+  label,
+}: {
+  icon: typeof Calendar;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#e4e4e7]">
+        <Icon className="size-5 text-[#030303]" strokeWidth={1.6} />
+      </span>
+      <div className="flex flex-col items-start whitespace-nowrap">
+        <span className="font-figtree text-[16px] leading-[24px] font-bold text-[#030303]">
+          {value}
+        </span>
+        <span className="font-figtree text-[11px] leading-[16px] font-medium text-[#71717b]">
+          {label}
+        </span>
+      </div>
+    </div>
+  );
 }
 
+/**
+ * The Figma "Vendor Listing" list row (node 1418:12903) — 988x246 in the
+ * design, fluid here.
+ *
+ * Same vendor-centric content as the grid card plus a description, a wider
+ * stat row and Wishlist/Share actions. Like the grid card, a click opens
+ * the vendor profile — see VendorCardLinkTarget.
+ */
 export default function VendorListCard({
   vendor,
   isBookmarked,
   onToggleBookmark,
-  badge,
+  linkTo = "vendor",
 }: {
   vendor: Vendor;
   isBookmarked: boolean;
   onToggleBookmark: (id: string) => void;
-  badge?: string;
+  linkTo?: VendorCardLinkTarget;
 }) {
+  const [justCopied, setJustCopied] = useState(false);
+  const href =
+    linkTo === "vendor" && vendor.vendorProfileId
+      ? `/vendors/${vendor.vendorProfileId}`
+      : `/packages/${vendor.id}`;
+
+  const bookingsPerYear = formatRangeStat(vendor.bookingsPerYear);
+  const wishlistCount = formatWishlistCount(vendor.wishlistCount);
+  const experience = formatRangeStat(vendor.experience);
+
+  async function handleShare(event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    // Shares whatever the card itself opens, so a shared link lands the
+    // recipient on the page the sender was looking at.
+    const url = `${window.location.origin}${href}`;
+    // Same approach as the PDP's ShareModal — the native sheet where the
+    // browser offers one, clipboard otherwise. Not reusing ShareModal
+    // itself: it is built around a PDP ShareTarget and a "create
+    // quotation" action that have no meaning in a listing row.
+    if (navigator.share) {
+      navigator.share({ title: vendor.name, url }).catch(() => {});
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setJustCopied(true);
+      setTimeout(() => setJustCopied(false), 1500);
+    } catch {
+      // Best-effort — clipboard access can be denied by the browser.
+    }
+  }
+
   return (
     <Link
-      href={`/packages/${vendor.id}`}
-      className="group flex h-full flex-col overflow-hidden rounded-[20px] border border-black/10 bg-white transition-colors hover:border-brand-primary md:h-[260px] md:flex-row"
+      href={href}
+      className="group flex flex-col overflow-hidden rounded-[20px] border border-[#e4e4e7] bg-white transition-colors hover:border-brand-primary"
     >
-      <div className="relative h-[200px] w-full shrink-0 md:h-full md:w-[34%]">
-        <Image
-          src={vendor.images[0]}
-          alt={vendor.packageName}
-          fill
-          sizes="(min-width: 768px) 34vw, 100vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
-        {badge && (
-          <span className="absolute top-3 left-3 z-10 rounded-full bg-brand-primary px-2.5 py-1 font-figtree text-[10px] font-bold tracking-wide text-white uppercase shadow-sm">
-            {badge}
-          </span>
-        )}
-        <button
-          type="button"
-          aria-label={isBookmarked ? `Remove ${vendor.name} from saved` : `Save ${vendor.name}`}
-          aria-pressed={isBookmarked}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onToggleBookmark(vendor.id);
-          }}
-          className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 backdrop-blur-sm transition-colors hover:bg-white"
-        >
-          <Bookmark
-            className={`h-[18px] w-[18px] ${isBookmarked ? "fill-brand-primary text-brand-primary" : "text-brand-primary"}`}
-          />
-        </button>
-      </div>
-
-      {/*
-        This wraps the padded content AND the location strip together (not
-        just the padded content) so the strip can be full-bleed within this
-        column's own width — on desktop this column sits beside the image
-        (flex-row), so a plain sibling of the image would sit beside it too,
-        not span beneath both.
-      */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="flex flex-1 flex-col gap-3 p-5 md:p-6">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2">
-              <div
-                className="flex w-fit shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
-                style={{
-                  background: `linear-gradient(to left, ${vendor.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
-                }}
-              >
-                <Image
-                  src={vendor.categoryIcon ?? FALLBACK_CATEGORY_ICON}
-                  alt={vendor.categoryLabel}
-                  width={16}
-                  height={16}
-                  className="h-4 w-4 rounded-full object-contain"
-                />
-                <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap">
-                  {vendor.categoryLabel}
-                </span>
-              </div>
-              <span className="h-4 w-px shrink-0 bg-black/10" />
-              <span className="truncate font-figtree text-[11px] font-medium text-error-700">
-                {formatEventTags(vendor.eventTypes)}
-              </span>
+      <div className="flex flex-col gap-3 px-4 pt-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 gap-5">
+            <div className="relative size-[84px] shrink-0 overflow-hidden rounded-full bg-neutral-subtle">
+              <Image
+                src={vendor.avatar || vendor.categoryIcon || FALLBACK_AVATAR}
+                alt=""
+                fill
+                sizes="84px"
+                className="object-cover"
+              />
             </div>
-            <div className="text-right">
-              <p className="mb-0.5 font-figtree text-[11px] font-bold tracking-wider text-neutral-tertiary uppercase">
-                Starting From
-              </p>
-              <p className="font-figtree text-[22px] leading-none font-bold text-neutral-primary sm:text-[24px]">
-                {formatPrice(vendor.startingPrice)}
-                <span className="ml-1 font-figtree text-[13px] font-bold text-neutral-secondary">
-                  /event
-                </span>
-              </p>
+
+            <div className="flex min-w-0 flex-col gap-1">
+              <VendorNameHeader vendor={vendor} />
+              <VendorRatingLine vendor={vendor} />
+              {vendor.description && (
+                <p className="mt-2 line-clamp-2 max-w-[532px] font-figtree text-[12px] leading-[18px] font-medium text-[#3f3f47]">
+                  {vendor.description}
+                </p>
+              )}
             </div>
           </div>
 
-          <h3 className="font-figtree text-[18px] font-bold text-neutral-primary sm:text-[20px]">
-            {vendor.packageName}
-          </h3>
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              aria-label={isBookmarked ? `Remove ${vendor.name} from saved` : `Save ${vendor.name}`}
+              aria-pressed={isBookmarked}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onToggleBookmark(vendor.id);
+              }}
+              className="flex items-center gap-1.5 font-figtree text-[12px] leading-[18px] font-medium text-[#3f3f47] transition-colors hover:text-brand-primary"
+            >
+              <Bookmark
+                className="size-4 shrink-0"
+                strokeWidth={1.6}
+                fill={isBookmarked ? "currentColor" : "none"}
+              />
+              Wishlist
+            </button>
 
-          {vendor.reviewCount > 0 && <VendorRating rating={vendor.rating} reviewCount={vendor.reviewCount} size="md" />}
+            <span className="h-3 w-px bg-[#e4e4e7]" />
 
-          {vendor.highlightTags.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              {vendor.highlightTags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full bg-black/5 px-3 py-1.5 font-figtree text-[13px] font-medium text-neutral-primary"
-                >
-                  {tag}
-                </span>
-              ))}
-              {vendor.highlightTags.length > 3 && (
-                <span className="rounded-full bg-black/5 px-3 py-1.5 font-figtree text-[13px] font-medium text-neutral-tertiary">
-                  +{vendor.highlightTags.length - 3}
-                </span>
+            <button
+              type="button"
+              aria-label={`Share ${vendor.name}`}
+              onClick={handleShare}
+              className="flex items-center gap-1.5 font-figtree text-[12px] leading-[18px] font-medium text-[#3f3f47] transition-colors hover:text-brand-primary"
+            >
+              {justCopied ? (
+                <Check className="size-4 shrink-0" strokeWidth={1.6} />
+              ) : (
+                <Share2 className="size-4 shrink-0" strokeWidth={1.6} />
               )}
-            </div>
-          )}
-
-          <p className="line-clamp-2 max-w-2xl font-figtree text-[14px] text-neutral-secondary">
-            {vendor.description}
-          </p>
+              {justCopied ? "Copied!" : "Share"}
+            </button>
+          </div>
         </div>
 
-        {/* Location — full-bleed footer strip within this column's own
-            width, its own top border separate from the padded content
-            above. Only the first 2 locations, "..." appended when there
-            are more. */}
-        <div className="mt-auto flex h-8 items-center gap-2 border-t border-[#F0F0F0] px-4 py-1.5">
-          <Map className="h-4 w-4 shrink-0 text-error-700" />
-          <p className="truncate font-figtree text-[14px] font-medium text-error-700">
-            Available in {vendor.locations.slice(0, 2).join(", ")}
-            {vendor.locations.length > 2 ? "..." : ""}
-          </p>
+        <div className="h-px w-full bg-[#e4e4e7]" />
+
+        <div className="flex flex-wrap items-center justify-between gap-4 pb-4">
+          {/*
+            The design shows four stats. "Profile Views" is omitted: nothing
+            records it — there is no view counter on Vendor and no
+            ViewedItem collection on this backend — so there is no number to
+            put there. Add a Stat with a TrendingUp icon once one exists.
+
+            Wishlisted always shows, including "0". The other two are
+            skipped when the vendor never entered them — neither has a
+            sensible zero.
+          */}
+          <div className="flex flex-wrap items-center gap-8">
+            {bookingsPerYear && (
+              <Stat icon={Calendar} value={bookingsPerYear} label="Bookings/ Year" />
+            )}
+            <Stat icon={Bookmark} value={wishlistCount} label="Wishlisted" />
+            {experience && <Stat icon={Award} value={experience} label="Experience" />}
+          </div>
+
+          {/* Design stacks up to three chips; a Vendor has one vendorType. */}
+          <VendorCategoryChip vendor={vendor} />
         </div>
       </div>
+
+      <VendorLocationStrip vendor={vendor} />
     </Link>
   );
 }

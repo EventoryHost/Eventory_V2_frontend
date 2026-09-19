@@ -32,16 +32,18 @@ export default function SortMenu({
         onClick={() => setIsOpen((open) => !open)}
         aria-haspopup="listbox"
         aria-expanded={isOpen}
-        className="flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 transition-all hover:border-brand-primary"
+        className="flex items-center gap-2 rounded-[10px] border border-[#ebebeb] bg-white px-3 py-[7px] transition-colors hover:border-brand-primary"
       >
-        <ArrowUpDown className="h-[18px] w-[18px] text-neutral-secondary" />
-        <span className="font-figtree text-[13px] font-bold text-neutral-primary">{activeLabel}</span>
+        <ArrowUpDown className="size-4 text-[#333333]" strokeWidth={1.33} />
+        <span className="font-figtree text-[14px] leading-[18px] font-medium tracking-[-0.14px] text-[#333333]">
+          {activeLabel}
+        </span>
       </button>
 
       {isOpen && (
         <ul
           role="listbox"
-          className="absolute top-[calc(100%+8px)] right-0 z-20 w-[200px] overflow-hidden rounded-xl border border-black/10 bg-white py-1 shadow-lg"
+          className="absolute top-[calc(100%+8px)] right-0 z-20 w-[200px] overflow-hidden rounded-xl border border-[#e4e4e7] bg-white py-1 shadow-lg"
         >
           {SORT_OPTIONS.map((option) => {
             const isActive = option.id === value;
@@ -58,7 +60,7 @@ export default function SortMenu({
                   }`}
                 >
                   {option.label}
-                  {isActive && <Check className="h-4 w-4" />}
+                  {isActive && <Check className="size-4" />}
                 </button>
               </li>
             );

@@ -1,67 +1,64 @@
-import type { Vendor, VendorFilters } from "../types";
-import { PRICE_RANGE_OPTIONS } from "../data/filterConfig";
+import type { SelectedFilters, Vendor } from "../types";
+import { GUEST_RANGE_OPTIONS, PRICE_RANGE_OPTIONS, RATING_OPTIONS } from "../data/filterConfig";
 
-function priceInRange(price: number, rangeId: string) {
-  if (rangeId === "50000-plus") return price >= 50000;
-  const [minStr, maxStr] = rangeId.split("-");
-  const min = Number(minStr);
-  const max = Number(maxStr);
-  return price >= min && price <= max;
+function ratingMatches(rating: number, optionId: string) {
+  if (optionId === "all") return true;
+  return rating >= Number(optionId);
 }
 
 /**
- * Client-side refinement applied on top of the server-filtered/paginated
- * page from GET /customer/packages — the API only takes one `eventCategory`
- * and a continuous `minPrice`/`maxPrice`, so multi-select event-type chips
- * and price buckets stay a client-side pass over whatever page is loaded.
+ * Client-side refinement on top of the page already fetched from
+ * GET /customer/vendors.
+ *
+ * Search, category and sort are NOT handled here any more — the vendors
+ * endpoint does all three server-side, so re-applying them client-side
+ * would only ever narrow the current page and fight the real result count.
+ * What's left are the multi-select sidebar sections, which the endpoint has
+ * no equivalent for: they stay an OR-within-section, AND-across-section
+ * pass over whatever page is loaded.
+ *
+ * THREE SECTIONS ARE DELIBERATELY INERT, because a vendor row carries no
+ * data to test them against:
+ *
+ *   offer   — "Customisable Packages" / "Packages with Add-ons" have no
+ *             corresponding field anywhere in the backend.
+ *   pricing — price is a PACKAGE attribute; a vendor has no price. Filtering
+ *             vendors by it needs a join through their packages, which the
+ *             vendors endpoint does not do.
+ *   guests  — likewise capacity, and no Live package records one anyway.
+ *
+ * They render (the design calls for all six) and their checkboxes tick, but
+ * narrowing on them would mean inventing a signal and dropping every result.
  */
-export function filterVendors(vendors: Vendor[], filters: VendorFilters): Vendor[] {
-  const query = filters.search.trim().toLowerCase();
+export function filterVendors(vendors: Vendor[], selected: SelectedFilters): Vendor[] {
+  const { eventType, locality, rating } = selected;
 
-  const filtered = vendors.filter((vendor) => {
-    if (filters.category !== "all" && vendor.category !== filters.category) return false;
-
-    if (query) {
-      const haystack = `${vendor.name} ${vendor.packageName} ${vendor.location} ${vendor.categoryLabel}`.toLowerCase();
-      if (!haystack.includes(query)) return false;
-    }
-
-    if (
-      filters.eventTypes.length > 0 &&
-      !filters.eventTypes.some((id) => vendor.eventTypes.includes(id))
-    ) {
+  return vendors.filter((vendor) => {
+    if (eventType.length > 0 && !eventType.some((id) => vendor.eventTypes.includes(id))) {
       return false;
     }
 
-    if (
-      filters.priceRanges.length > 0 &&
-      !filters.priceRanges.some((rangeId) => priceInRange(vendor.startingPrice, rangeId))
-    ) {
+    // Matched against city AND service areas — the same list the card's
+    // location strip shows, so a vendor is findable by anywhere they serve,
+    // not only where they are registered.
+    if (locality.length > 0 && !locality.some((id) => vendor.locations.includes(id))) {
+      return false;
+    }
+
+    if (rating.length > 0 && !rating.some((id) => ratingMatches(vendor.rating, id))) {
       return false;
     }
 
     return true;
   });
-
-  const sorted = [...filtered];
-  switch (filters.sort) {
-    case "price-asc":
-      sorted.sort((a, b) => a.startingPrice - b.startingPrice);
-      break;
-    case "price-desc":
-      sorted.sort((a, b) => b.startingPrice - a.startingPrice);
-      break;
-    case "top-rated":
-      sorted.sort((a, b) => b.rating - a.rating);
-      break;
-    case "newest":
-    default:
-      break;
-  }
-
-  return sorted;
 }
 
-export function priceRangeLabel(rangeId: string) {
-  return PRICE_RANGE_OPTIONS.find((option) => option.id === rangeId)?.label ?? rangeId;
+/** Human-readable label for an active filter chip, whichever section it came from. */
+export function filterOptionLabel(sectionId: string, optionId: string) {
+  const lookup = {
+    pricing: PRICE_RANGE_OPTIONS,
+    guests: GUEST_RANGE_OPTIONS,
+    rating: RATING_OPTIONS,
+  }[sectionId];
+  return lookup?.find((option) => option.id === optionId)?.label ?? optionId;
 }
