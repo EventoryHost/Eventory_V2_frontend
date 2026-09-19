@@ -1,5 +1,5 @@
 import { apiFetch } from "./apiClient";
-import type { DiscoverySortOption } from "./vendorType";
+import type { DiscoverySortOption, VendorSortOption } from "./vendorType";
 import { formatMinutesLabel, formatMinutesRangeLabel } from "./formatMinutes";
 
 // Raw shapes returned by GET /api/customer/packages and /api/customer/packages/filters,
@@ -19,9 +19,14 @@ export interface RawVendorPublic {
   city?: string;
   state?: string;
   serviceAreas?: string[];
-  teamSize?: number;
-  bookingsPerYear?: number;
-  experience?: number;
+  // STRINGS, not numbers — the Vendor model declares all three as String
+  // and the real values are bucketed ranges the vendor picks during
+  // onboarding ("8 - 12 years", "0 - 2 years", "1-5"). Typed as number here
+  // originally; nothing read them until the vendor listing card did, at
+  // which point `${experience}+` rendered "8 - 12 years+".
+  teamSize?: string;
+  bookingsPerYear?: string;
+  experience?: string;
   profilePicture?: string;
   description?: string;
   businessPhotos?: string[];
@@ -29,6 +34,18 @@ export interface RawVendorPublic {
   isVerified?: boolean;
   rating?: number;
   reviewsCount?: number;
+  /**
+   * How many customers have this vendor wishlisted — the "N+ Wishlisted"
+   * stat on the vendor listing card. A denormalized counter on the Vendor
+   * document (Eventory_V2_backend/src/models/Vendor.js), maintained by
+   * $inc in customerWishlistController.js and projected through
+   * PUBLIC_VENDOR_FIELDS, so it arrives on the already-populated vendorId
+   * of every browse row at no extra request cost.
+   *
+   * Optional because a backend older than that change omits it entirely —
+   * treat a missing value as "unknown", not as zero.
+   */
+  wishlistCount?: number;
   createdAt?: string;
 }
 
@@ -98,6 +115,8 @@ export interface BrowsePackagesParams {
   q?: string;
   eventCategory?: string;
   vendorType?: string;
+  /** Every Live package belonging to one vendor — backs the vendor profile page's "Event Packages". Accepts a Mongo _id or the business-facing "VEN..." id. */
+  vendorId?: string;
   city?: string;
   guests?: number;
   date?: string;
@@ -158,6 +177,57 @@ export interface FeaturedReviewsResponse {
  */
 export async function getFeaturedReviews(params: { limit?: number; minRating?: number } = {}) {
   return apiFetch<FeaturedReviewsResponse>(`/customer/reviews/featured${toQueryString(params)}`, { auth: false });
+}
+
+export interface BrowseVendorsParams {
+  q?: string;
+  vendorType?: string;
+  eventCategory?: string;
+  city?: string;
+  sort?: VendorSortOption;
+  page?: number;
+  limit?: number;
+}
+
+export interface BrowseVendorsResponse {
+  status: "SUCCESS";
+  count: number;
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  vendors: RawVendorPublic[];
+}
+
+export interface VendorFiltersResponse {
+  status: "SUCCESS";
+  filters: {
+    vendorTypes: string[];
+    eventCategories: string[];
+    cities: string[];
+    sortOptions: string[];
+  };
+}
+
+/**
+ * One row per VENDOR — the vendor listing page.
+ *
+ * Deliberately not browsePackages: that returns one row per package, so a
+ * vendor with six packages appeared six times. This is the same data the
+ * cards already show (they are vendor-shaped), sourced from the vendor
+ * collection directly, which also makes `total` and the page count
+ * accurate rather than counting packages.
+ *
+ * Note the narrower sort set: a vendor has no price, so only rating and
+ * recency are orderable here.
+ */
+export async function browseVendors(params: BrowseVendorsParams = {}) {
+  return apiFetch<BrowseVendorsResponse>(`/customer/vendors${toQueryString(params)}`, { auth: false });
+}
+
+/** Vendor-derived facets (types/event categories/cities) — the listing sidebar. */
+export async function getVendorFilters() {
+  return apiFetch<VendorFiltersResponse>("/customer/vendors/filters", { auth: false });
 }
 
 export async function getPackagesFilters() {

@@ -17,47 +17,51 @@ export default function FilterSection({
 }) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
+  if (section.options.length === 0) return null;
+
   return (
-    <div>
+    <div className="flex flex-col gap-5">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
-        className="group mb-4 flex w-full items-center justify-between"
+        className="group flex w-full items-center justify-between"
       >
-        <span className="font-figtree text-[15px] font-semibold text-neutral-primary">
+        <span className="font-figtree text-[16px] leading-[18px] font-medium tracking-[-0.32px] text-black">
           {section.title}
         </span>
         {isOpen ? (
-          <ChevronUp className="h-[18px] w-[18px] text-neutral-tertiary transition-colors group-hover:text-brand-primary" />
+          <ChevronUp className="size-5 text-[#272727]" strokeWidth={1.67} />
         ) : (
-          <ChevronDown className="h-[18px] w-[18px] text-neutral-tertiary transition-colors group-hover:text-brand-primary" />
+          <ChevronDown className="size-5 text-[#272727]" strokeWidth={1.67} />
         )}
       </button>
+
       {isOpen && (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-3">
           {section.options.map((option) => {
             const checkboxId = `${section.id}-${option.id}`;
+            const isChecked = selectedIds.includes(option.id);
             return (
               <label
                 key={option.id}
                 htmlFor={checkboxId}
-                className="group flex cursor-pointer items-center gap-3"
+                className="group flex cursor-pointer items-center gap-2"
               >
                 <input
                   id={checkboxId}
                   type="checkbox"
-                  checked={selectedIds.includes(option.id)}
+                  checked={isChecked}
                   onChange={() => onToggle(option.id)}
                   // text-* doesn't control a checkbox's checked-state color —
-                  // that's accent-color, a separate CSS property — which is
-                  // why this was rendering the browser's default blue instead.
-                  // No border/focus-ring classes here — with accent-color set,
-                  // those rendered as a visible dark edge around the already
-                  // black-filled box instead of a clean fill.
-                  className="h-4 w-4 rounded accent-black outline-none"
+                  // that's accent-color, a separate CSS property.
+                  className="size-[14px] shrink-0 rounded-[3.733px] border-[1.4px] border-[#808080] accent-brand-primary outline-none"
                 />
-                <span className="font-figtree text-[14px] text-neutral-secondary transition-colors group-hover:text-brand-primary">
+                <span
+                  className={`font-figtree text-[14px] leading-[18px] font-medium tracking-[-0.28px] transition-colors ${
+                    isChecked ? "text-neutral-primary" : "text-[#808080] group-hover:text-neutral-primary"
+                  }`}
+                >
                   {option.label}
                 </span>
               </label>

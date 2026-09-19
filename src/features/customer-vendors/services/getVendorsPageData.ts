@@ -1,30 +1,34 @@
 import type { VendorsPageData } from "../types";
 import { VENDOR_CATEGORIES, VENDORS_PAGE_SIZE } from "../data/filterConfig";
-import { mapPackageToVendor } from "../mappers";
-import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
+import { mapVendorToCard } from "../mappers";
+import { browseVendors, getVendorFilters } from "@/lib/customerDiscoveryApi";
 
 /**
- * Initial data source for the Vendor Listing page (server-fetched once for
- * the "all categories" tab). Category/sort/pagination changes after that are
- * fetched client-side directly via `browsePackages` — see
+ * Initial data for the Vendor Listing page — one row per VENDOR, server
+ * fetched once for the "all categories" tab. Category/sort/search/paging
+ * after that go straight back to `browseVendors` client-side, see
  * VendorsPageContent.tsx.
+ *
+ * Both reads are vendor-derived on purpose: the facets come from
+ * /customer/vendors/filters rather than the packages equivalent, so the
+ * sidebar only ever offers event categories and cities that some VENDOR
+ * actually has — matching what the rows can match on.
  */
 export async function getVendorsPageData(): Promise<VendorsPageData> {
-  const [packagesResponse, filtersResponse] = await Promise.all([
-    browsePackages({ sort: "newest", page: 1, limit: VENDORS_PAGE_SIZE }),
-    getPackagesFilters(),
+  const [vendorsResponse, filtersResponse] = await Promise.all([
+    browseVendors({ sort: "newest", page: 1, limit: VENDORS_PAGE_SIZE }),
+    getVendorFilters(),
   ]);
-
-  const vendors = packagesResponse.packages.map(mapPackageToVendor);
 
   return {
     categories: VENDOR_CATEGORIES,
-    vendors,
-    total: packagesResponse.total,
-    totalPages: packagesResponse.totalPages,
+    vendors: vendorsResponse.vendors.map(mapVendorToCard),
+    total: vendorsResponse.total,
+    totalPages: vendorsResponse.totalPages,
     eventCategoryOptions: filtersResponse.filters.eventCategories.map((category) => ({
       id: category,
       label: category,
     })),
+    cityOptions: filtersResponse.filters.cities.map((city) => ({ id: city, label: city })),
   };
 }
