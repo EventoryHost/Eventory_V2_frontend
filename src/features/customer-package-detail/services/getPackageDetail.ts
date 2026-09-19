@@ -34,6 +34,12 @@ import { formatPrice } from "../utils/formatPrice";
 
 export class PackageNotFoundError extends Error {}
 
+// The backend flag is Indoor | Outdoor | Both — "Both" reads oddly on its
+// own, so it's shown as "Indoor/Outdoor" everywhere setup type is displayed.
+function setupTypeLabel(value: string): string {
+  return value === "Both" ? "Indoor/Outdoor" : value;
+}
+
 function vendorOf(pkg: RawFullPackage): RawVendorPublic | null {
   return typeof pkg.vendorId === "object" ? pkg.vendorId : null;
 }
@@ -304,7 +310,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
     // field comment) — a previous pass here assumed no such field existed
     // at all and dropped this row entirely.
     if (setup.referenceStyle) {
-      details.push({ label: "Setup type", value: setup.referenceStyle });
+      details.push({ label: "Setup type", value: setupTypeLabel(setup.referenceStyle) });
     }
     const structuresDetail = buildListDetail("Structures Included", structures);
     if (structuresDetail) details.push(structuresDetail);
@@ -527,7 +533,7 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
     // Every row here is only added when the vendor actually set that field —
     // no "—" placeholders standing in for missing data.
     const details: IncludedItemDetail[] = [];
-    if (addon.productUsage) details.push({ label: "Setup type", value: addon.productUsage });
+    if (addon.productUsage) details.push({ label: "Setup type", value: setupTypeLabel(addon.productUsage) });
     if (addon.quantity != null) details.push({ label: "Quantity", value: String(addon.quantity) });
     const dimensions = formatDimensions(addon.physicalSpec?.dimensions);
     if (dimensions) details.push({ label: "Dimensions", value: dimensions });

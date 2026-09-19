@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem, getCart, updateCartItem, type RawCartEventDetails, type RawCustomizeRequest } from "@/lib/customerCartApi";
-import { getConvenienceFeePreview, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
+import { getConvenienceFeePreview, getPackageSlots, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
 import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
@@ -18,20 +18,7 @@ import VendorNotePromptModal from "./VendorNotePromptModal";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 
-// Half-hour slots, stored as 24h "HH:MM" (same shape the native time input
-// produced, so buildCartPayload's `${startTime} - ${endTime}` join and any
-// backend expectations elsewhere don't change) but labeled in 12h format to
-// match the search bar's themed dropdown styling.
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const totalMinutes = index * 30;
-  const hours24 = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const value = `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
-  const period = hours24 < 12 ? "AM" : "PM";
-  const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
-  const label = `${hours12}:${String(minutes).padStart(2, "0")} ${period}`;
-  return { value, label };
-});
+import EventTimingSlots, { type SlotsState } from "./EventTimingSlots";
 
 export default function StickyBookingCard({
   packageId,
@@ -90,6 +77,11 @@ export default function StickyBookingCard({
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [slotsState, setSlotsState] = useState<SlotsState>({ status: "idle" });
+  // Latest selected slot, readable from the slots-fetch effect without
+  // making that effect re-run on every selection.
+  const selectedSlotRef = useRef("");
+  selectedSlotRef.current = startTime && endTime ? `${startTime} - ${endTime}` : "";
   const [location, setLocation] = useState("");
   // True while `location` still holds the auto-detected value untouched —
   // clicking into the field then clears it outright (rather than leaving
@@ -229,6 +221,37 @@ export default function StickyBookingCard({
     };
   }, [packageId, validEventDate]);
 
+  // The vendor's slots for the picked date. Re-fetched whenever the date
+  // changes; a previously selected slot that the new date doesn't offer
+  // (or offers as unavailable) is cleared, while a still-valid one — e.g.
+  // the one prefilled when editing a cart item — is kept.
+  useEffect(() => {
+    if (!validEventDate) {
+      setSlotsState({ status: "idle" });
+      return;
+    }
+    let cancelled = false;
+    setSlotsState({ status: "loading" });
+    getPackageSlots(packageId, validEventDate)
+      .then((data) => {
+        if (cancelled) return;
+        setSlotsState({ status: "ready", data });
+        const stillOffered = data.slots.some(
+          (slot) => slot.available && slot.value === selectedSlotRef.current
+        );
+        if (!stillOffered) {
+          setStartTime("");
+          setEndTime("");
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSlotsState({ status: "error" });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [packageId, validEventDate]);
+
   const convenienceFee =
     conveniencePreview?.configured && validEventDate ? conveniencePreview.fee : 0;
   const estimatedTotal = packageTotal + gstAmount + convenienceFee;
@@ -241,12 +264,23 @@ export default function StickyBookingCard({
   // removal in CartPageContent.tsx. Decorator / DJ / Photographer opt out
   // entirely (requiresGuestCount false) — the field is hidden and not required.
   const guestCountComplete = requiresGuestCount ? Boolean(validGuestCount) : true;
+  // Timing comes from the vendor's own slots for the picked date. FULL_DAY
+  // packages have none to pick; TIME_SLOTS packages need one chosen; and
+  // nothing is bookable until the slot lookup has actually answered (or if
+  // that date is unavailable), so the button can't be used on a guess.
+  const timingComplete =
+    slotsState.status === "ready" &&
+    slotsState.data.dayAvailable &&
+    (slotsState.data.workMode === "FULL_DAY" || Boolean(startTime && endTime));
   const detailsComplete = Boolean(
-    eventType && validEventDate && startTime && endTime && location.trim() && guestCountComplete
+    eventType && validEventDate && timingComplete && location.trim() && guestCountComplete
   );
 
   function buildCartPayload(noteOverride?: string) {
-    const timeSlot = [startTime, endTime].filter(Boolean).join(" - ") || undefined;
+    const timeSlot =
+      slotsState.status === "ready" && slotsState.data.workMode === "TIME_SLOTS"
+        ? [startTime, endTime].filter(Boolean).join(" - ") || undefined
+        : undefined;
     const note = noteOverride ?? vendorNote;
     return {
       packageId,
@@ -391,11 +425,11 @@ export default function StickyBookingCard({
             <h2 className="font-figtree text-[24px] font-bold text-brand-950">
               from {formatPrice(estimatedTotal)}
             </h2>
-            <span className="mb-1 font-figtree text-[11px] text-neutral-tertiary">estimated total</span>
+            {gstPercent > 0 && (
+              <span className="mb-1 font-figtree text-[11px] text-neutral-tertiary">incl. {gstPercent}% GST</span>
+            )}
           </div>
-          <p className="font-figtree text-[12px] text-neutral-tertiary">
-            {gstPercent > 0 ? `incl. ${gstPercent}% GST · ` : ""}tap the price for the full breakdown
-          </p>
+          <p className="font-figtree text-[12px] text-neutral-tertiary">tap the price for the full breakdown</p>
         </button>
 
         <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
@@ -406,37 +440,12 @@ export default function StickyBookingCard({
             placeholder="Choose Event Type"
             options={eventTypeOptions}
             triggerId="event-type-select"
+            variant="outlined"
           />
-
-          <SearchDatePicker
-            label="Event Date"
-            value={eventDate}
-            onChange={setEventDate}
-            placeholder="Choose Event Date"
-          />
-
-          <div className="grid grid-cols-2 gap-3">
-            <SearchDropdown
-              label="Time In"
-              value={startTime}
-              onChange={setStartTime}
-              placeholder="Start time"
-              options={TIME_OPTIONS}
-              matchTriggerWidth
-            />
-            <SearchDropdown
-              label="Time Out"
-              value={endTime}
-              onChange={setEndTime}
-              placeholder="End time"
-              options={TIME_OPTIONS}
-              matchTriggerWidth
-            />
-          </div>
 
           <label className="block">
-            <span className="mb-1.5 block font-figtree text-[11px] font-semibold tracking-wide text-neutral-tertiary uppercase">
-              Event Location
+            <span className="mb-1.5 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]">
+              Event location
             </span>
             <div className="relative">
               <input
@@ -456,20 +465,20 @@ export default function StickyBookingCard({
                     setIsLocationAutoFilled(false);
                   }
                 }}
-                placeholder="Enter event location"
-                className="w-full rounded-lg border border-black/15 py-2 pr-10 pl-3 font-figtree text-[13px] text-brand-950 outline-none focus:border-brand-primary"
+                placeholder="Enter your pincode or city"
+                className="h-11 w-full rounded-2xl border border-[#E4E4E7] bg-white pr-11 pl-4 font-figtree text-[14px] text-[#3F3F47] outline-none placeholder:text-[#9F9FA9] focus:border-brand-primary"
               />
               <button
                 type="button"
                 onClick={() => detectAndFillLocation(true)}
                 disabled={isDetectingLocation}
                 aria-label="Use my current location"
-                className="absolute top-1/2 right-3 -translate-y-1/2 text-neutral-tertiary transition-colors hover:text-brand-primary disabled:cursor-not-allowed"
+                className="absolute top-1/2 right-4 -translate-y-1/2 text-[#71717B] transition-colors hover:text-brand-primary disabled:cursor-not-allowed"
               >
                 {isDetectingLocation ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-5 w-5" />
                 )}
               </button>
             </div>
@@ -477,6 +486,24 @@ export default function StickyBookingCard({
               <p className="mt-1.5 font-figtree text-[11px] font-medium text-error-700">{locationDetectError}</p>
             )}
           </label>
+
+          <SearchDatePicker
+            label="Event date"
+            value={eventDate}
+            onChange={setEventDate}
+            placeholder="Choose Event Date"
+            variant="quick"
+          />
+
+          <EventTimingSlots
+            state={slotsState}
+            selectedValue={startTime && endTime ? `${startTime} - ${endTime}` : ""}
+            onSelect={(value) => {
+              const [start, end] = value.split(" - ");
+              setStartTime(start.trim());
+              setEndTime(end.trim());
+            }}
+          />
 
           {requiresGuestCount && (
             <label className="block">

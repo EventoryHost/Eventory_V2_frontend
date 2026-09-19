@@ -303,6 +303,39 @@ export async function getConvenienceFeePreview(
   }
 }
 
+export type RawSlotUnavailableReason =
+  | "BLOCKED_BY_VENDOR"
+  | "NOT_A_WORKING_DAY"
+  | "OUTSIDE_AVAILABLE_RANGE"
+  | "FULLY_BOOKED"
+  | "ALL_SLOTS_BOOKED";
+
+export interface RawPackageSlot {
+  startTime: string;
+  endTime: string;
+  label: string;
+  /** "HH:MM - HH:MM" 24h — sent as-is as the cart's timeSlot. */
+  value: string;
+  available: boolean;
+}
+
+/** GET /customer/packages/:id/slots?date= — the package's vendor-defined slot list minus whatever that date rules out. slots is empty for FULL_DAY packages. */
+export interface RawPackageSlotsResponse {
+  status: "SUCCESS";
+  packageId: string;
+  date: string;
+  workMode: "FULL_DAY" | "TIME_SLOTS";
+  dayAvailable: boolean;
+  reason: RawSlotUnavailableReason | null;
+  slots: RawPackageSlot[];
+}
+
+export async function getPackageSlots(packageId: string, date: string) {
+  return apiFetch<RawPackageSlotsResponse>(`/customer/packages/${packageId}/slots${toQueryString({ date })}`, {
+    auth: false,
+  });
+}
+
 export interface RawReviewAggregate {
   averageRating: number | null;
   count: number;

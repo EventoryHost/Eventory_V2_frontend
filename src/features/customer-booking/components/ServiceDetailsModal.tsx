@@ -115,6 +115,8 @@ export type ServiceDetailsModalProps = {
   packageId?: string;
   sessionId?: string;
   lineId?: string;
+  /** Original CartItem._id — what the PDP's editItemId prefill needs (lineId is a different, checkout-session-only id). */
+  cartItemId?: string | null;
   vendorName: string;
   serviceName: string;
   packageTier: string;
@@ -135,6 +137,7 @@ export default function ServiceDetailsModal({
   packageId,
   sessionId,
   lineId,
+  cartItemId,
   vendorName,
   serviceName,
   packageTier,
@@ -258,7 +261,7 @@ export default function ServiceDetailsModal({
             </span>
 
             <Link
-              href="/cart"
+              href={packageId && cartItemId ? `/packages/${packageId}?editItemId=${cartItemId}` : "/cart"}
               className="flex items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#F0596F]"
             >
               <Pencil size={14} />
