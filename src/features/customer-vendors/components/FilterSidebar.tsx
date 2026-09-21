@@ -1,6 +1,6 @@
 "use client";
 
-import type { FilterSectionConfig, FilterSectionId, SelectedFilters } from "../types";
+import type { FilterSectionConfig, SelectedFilters } from "../types";
 import FilterPanelContent from "./FilterPanelContent";
 
 export default function FilterSidebar({
@@ -11,7 +11,7 @@ export default function FilterSidebar({
 }: {
   sections: FilterSectionConfig[];
   selected: SelectedFilters;
-  onToggleOption: (sectionId: FilterSectionId, optionId: string) => void;
+  onToggleOption: (sectionId: string, optionId: string) => void;
   onClear: () => void;
 }) {
   return (

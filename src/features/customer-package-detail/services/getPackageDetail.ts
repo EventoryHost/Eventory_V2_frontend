@@ -589,7 +589,6 @@ function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
 function mapVendor(pkg: RawFullPackage): VendorInfo {
   const vendor = vendorOf(pkg);
   const name = vendor?.pocName ?? "Vendor";
-  const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   return {
     id: vendor?.id ?? "",
     initials: initialsOf(name),
@@ -597,9 +596,17 @@ function mapVendor(pkg: RawFullPackage): VendorInfo {
     businessName: name,
     rating: vendor?.rating ?? 0,
     verified: vendor?.isVerified ?? false,
-    eventsCount: Number(vendor?.bookingsPerYear) || vendor?.reviewsCount || 0,
-    yearsExperience: Number(vendor?.experience) || 0,
-    href: `/vendors${slug ? `?category=${slug}` : ""}`,
+    // parseInt, not Number: these are bucketed RANGE strings ("100 - 140",
+    // "8 - 12 years"), so Number() returned NaN and both values silently
+    // collapsed — "Years of Experience" never rendered at all. parseInt
+    // takes the lower bound, which is what "N+ Years" means.
+    eventsCount: parseInt(vendor?.bookingsPerYear ?? "", 10) || vendor?.reviewsCount || 0,
+    yearsExperience: parseInt(vendor?.experience ?? "", 10) || 0,
+    // The vendor's own profile. This used to point at the vendor LISTING
+    // filtered by category, because no per-vendor page existed when it was
+    // written — "Vendor info" dropped you on a grid of every vendor in that
+    // category instead of this one.
+    href: vendor?.id ? `/vendors/${vendor.id}` : "/vendors",
   };
 }
 

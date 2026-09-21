@@ -46,8 +46,8 @@ const FESTIVE_OFFER: FestiveOffer = {
   discountLabel: "Up to 30%",
   discountCaption: "DISCOUNT",
   ctaLabel: "Get started - It's Free",
-  // Not tied to a single category — routes to the general vendor listing.
-  ctaHref: "/vendors",
+  // Not tied to a single category — routes to the full package listing.
+  ctaHref: "/packages/browse",
 };
 
 const FESTIVE_OFFER_SECOND: FestiveOffer = {
@@ -75,24 +75,24 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
       categoryId: "decorator",
       categoryLabel: "Decorator",
       suggestions: [
-        { id: "budget-dec-1", vendorLabel: "Decorator", description: "Entrance decoration + other variations", priceFrom: 2500, image: pickImage("decorator", 0, 0), href: "/packages/budget-dec-1" },
-        { id: "budget-dec-2", vendorLabel: "Decorator", description: "Balloon arch + backdrop combo", priceFrom: 3000, image: pickImage("decorator", 1, 0), href: "/packages/budget-dec-2" },
-        { id: "budget-dec-3", vendorLabel: "Decorator", description: "Floral mandap + stage setup", priceFrom: 4500, image: pickImage("decorator", 2, 0), href: "/packages/budget-dec-3" },
-        { id: "budget-dec-4", vendorLabel: "Decorator", description: "Fairy-light ceiling decor", priceFrom: 2800, image: pickImage("decorator", 3, 0), href: "/packages/budget-dec-4" },
-        { id: "budget-dec-5", vendorLabel: "Decorator", description: "Theme decor + table styling", priceFrom: 3200, image: pickImage("decorator", 4, 0), href: "/packages/budget-dec-5" },
-        { id: "budget-dec-6", vendorLabel: "Decorator", description: "Welcome setup + signage", priceFrom: 2500, image: pickImage("decorator", 5, 0), href: "/packages/budget-dec-6" },
+        { id: "budget-dec-1", title: "Decorator", description: "Entrance decoration + other variations", priceFrom: 2500, image: pickImage("decorator", 0, 0), href: "/packages/budget-dec-1" },
+        { id: "budget-dec-2", title: "Decorator", description: "Balloon arch + backdrop combo", priceFrom: 3000, image: pickImage("decorator", 1, 0), href: "/packages/budget-dec-2" },
+        { id: "budget-dec-3", title: "Decorator", description: "Floral mandap + stage setup", priceFrom: 4500, image: pickImage("decorator", 2, 0), href: "/packages/budget-dec-3" },
+        { id: "budget-dec-4", title: "Decorator", description: "Fairy-light ceiling decor", priceFrom: 2800, image: pickImage("decorator", 3, 0), href: "/packages/budget-dec-4" },
+        { id: "budget-dec-5", title: "Decorator", description: "Theme decor + table styling", priceFrom: 3200, image: pickImage("decorator", 4, 0), href: "/packages/budget-dec-5" },
+        { id: "budget-dec-6", title: "Decorator", description: "Welcome setup + signage", priceFrom: 2500, image: pickImage("decorator", 5, 0), href: "/packages/budget-dec-6" },
       ],
     },
     {
       categoryId: "caterer",
       categoryLabel: "Caterer",
       suggestions: [
-        { id: "budget-cat-1", vendorLabel: "Caterer", description: "Veg buffet + dessert counter", priceFrom: 499, image: pickImage("caterer", 0, 0), href: "/packages/budget-cat-1" },
-        { id: "budget-cat-2", vendorLabel: "Caterer", description: "Live pasta + chaat counter", priceFrom: 349, image: pickImage("caterer", 1, 0), href: "/packages/budget-cat-2" },
-        { id: "budget-cat-3", vendorLabel: "Caterer", description: "Premium non-veg spread", priceFrom: 799, image: pickImage("caterer", 2, 0), href: "/packages/budget-cat-3" },
-        { id: "budget-cat-4", vendorLabel: "Caterer", description: "South Indian special thali", priceFrom: 549, image: pickImage("caterer", 3, 0), href: "/packages/budget-cat-4" },
-        { id: "budget-cat-5", vendorLabel: "Caterer", description: "BBQ live grill station", priceFrom: 649, image: pickImage("caterer", 4, 0), href: "/packages/budget-cat-5" },
-        { id: "budget-cat-6", vendorLabel: "Caterer", description: "Tea & coffee station", priceFrom: 199, image: pickImage("caterer", 5, 0), href: "/packages/budget-cat-6" },
+        { id: "budget-cat-1", title: "Caterer", description: "Veg buffet + dessert counter", priceFrom: 499, image: pickImage("caterer", 0, 0), href: "/packages/budget-cat-1" },
+        { id: "budget-cat-2", title: "Caterer", description: "Live pasta + chaat counter", priceFrom: 349, image: pickImage("caterer", 1, 0), href: "/packages/budget-cat-2" },
+        { id: "budget-cat-3", title: "Caterer", description: "Premium non-veg spread", priceFrom: 799, image: pickImage("caterer", 2, 0), href: "/packages/budget-cat-3" },
+        { id: "budget-cat-4", title: "Caterer", description: "South Indian special thali", priceFrom: 549, image: pickImage("caterer", 3, 0), href: "/packages/budget-cat-4" },
+        { id: "budget-cat-5", title: "Caterer", description: "BBQ live grill station", priceFrom: 649, image: pickImage("caterer", 4, 0), href: "/packages/budget-cat-5" },
+        { id: "budget-cat-6", title: "Caterer", description: "Tea & coffee station", priceFrom: 199, image: pickImage("caterer", 5, 0), href: "/packages/budget-cat-6" },
       ],
     },
   ],
@@ -130,7 +130,11 @@ function buildCategoryBlocks(
           id: `${categoryId}-sub-${i}`,
           title,
           image: pickImage(categoryId, i, 0),
-          href: `/vendors?category=${categoryId}`,
+          // The filterable package listing, this category preselected.
+          // These are package SUBCATEGORIES ("Balloons", "Table Decoration")
+          // with no backend facet of their own, so the category is as
+          // narrow as the destination can honestly get.
+          href: `/packages/browse?category=${categoryId}`,
         })),
       },
     },
@@ -181,7 +185,7 @@ export const mockPackagesPageData: PackagesPageData = {
       title: "Birthday Aesthetics,\nDelivered Flawlessly.",
       subtitle: "Book top-tier decorators & curated party packages",
       ctaLabel: "Explore Packages",
-      ctaHref: "/vendors?category=decorator",
+      ctaHref: "/packages/browse?category=decorator",
     },
     {
       id: "hero-dj",
@@ -189,7 +193,7 @@ export const mockPackagesPageData: PackagesPageData = {
       title: "Every Beat,\nPerfectly Curated.",
       subtitle: "Book professional DJs & live sound artists",
       ctaLabel: "Explore Packages",
-      ctaHref: "/vendors?category=dj-artist",
+      ctaHref: "/packages/browse?category=dj-artist",
     },
     {
       id: "hero-anniversary",
@@ -197,7 +201,7 @@ export const mockPackagesPageData: PackagesPageData = {
       title: "Marriage Anniversary,\nDelivered Flawlessly.",
       subtitle: "Book top-tier decorators & curated celebration packages",
       ctaLabel: "Explore Packages",
-      ctaHref: "/vendors?category=decorator",
+      ctaHref: "/packages/browse?category=decorator",
     },
   ],
 

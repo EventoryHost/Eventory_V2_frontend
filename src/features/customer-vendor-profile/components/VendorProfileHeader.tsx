@@ -48,6 +48,9 @@ export default function VendorProfileHeader({
     <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
       <div className="flex min-w-0 flex-col gap-2 lg:max-w-[755px]">
         <div className="flex flex-col gap-3">
+          {/* No chip at all for a vendor who never picked a trade — better
+              than one reading "ALL". */}
+          {vendor.categoryLabel && (
           <div
             className="flex w-fit items-center gap-2 rounded-[52px] py-0.5 pr-2 pl-1"
             style={{
@@ -65,6 +68,7 @@ export default function VendorProfileHeader({
               {vendor.categoryLabel}
             </span>
           </div>
+          )}
 
           <div className="flex items-center gap-1.5">
             <h1 className="truncate font-figtree text-[20px] leading-[28px] font-semibold text-[#030303]">
