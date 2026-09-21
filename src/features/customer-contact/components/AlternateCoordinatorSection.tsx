@@ -52,13 +52,21 @@ export default function AlternateCoordinatorSection() {
               <label className="text-left font-figtree text-[12px] font-normal text-[#3F3F47]">
                 Alternative Coordinate Number
               </label>
-              <input
-                type="tel"
-                value={altNumber}
-                onChange={(e) => setAltNumber(e.target.value)}
-                placeholder="+91 XXXXX XXXXX"
-                className="h-12 w-full rounded-[8px] border border-[#D4D4D8] bg-white px-4 py-3 font-figtree text-[15px] text-[#101828] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
-              />
+              <div className="flex gap-2">
+                <div
+                  aria-label="India"
+                  className="flex h-12 w-14 shrink-0 items-center justify-center rounded-[8px] border border-[#D4D4D8] bg-white"
+                >
+                  <span className="text-[22px] leading-none">🇮🇳</span>
+                </div>
+                <input
+                  type="tel"
+                  value={altNumber}
+                  onChange={(e) => setAltNumber(e.target.value)}
+                  placeholder="XXXXX XXXXX"
+                  className="h-12 w-full rounded-[8px] border border-[#D4D4D8] bg-white px-4 py-3 font-figtree text-[15px] text-[#101828] placeholder:text-[#9CA3AF] outline-none transition-colors focus:border-[#0F172A]"
+                />
+              </div>
             </div>
           </div>
         </>
