@@ -15,6 +15,20 @@ export const VENDOR_TYPE_TO_CATEGORY: Record<string, string> = Object.fromEntrie
   Object.entries(CATEGORY_TO_VENDOR_TYPE).map(([slug, vendorType]) => [vendorType, slug])
 );
 
+/**
+ * Customer-facing label per category slug. Kept here rather than imported
+ * from the vendors feature so this module stays dependency-free — it is
+ * used by the vendor listing, the vendor profile and the package listing.
+ */
+const CATEGORY_LABELS: Record<string, string> = {
+  "makeup-artist": "Makeup Artist",
+  caterer: "Caterer",
+  "venue-provider": "Venue Provider",
+  "dj-artist": "Dj Artist",
+  decorator: "Decorator",
+  photographer: "Photographer",
+};
+
 /** Letters only, lowercased — "DJ Artist", "DJArtist" and "dj artist" all collapse to the same key. */
 function normalizeVendorType(value: string) {
   return value.toLowerCase().replace(/[^a-z]/g, "");
@@ -52,7 +66,11 @@ export function resolveVendorCategory(
   // Unrecognized but non-empty: show what the vendor actually wrote rather
   // than mislabel them.
   if (!category) return { category: "all", label: primary };
-  return { category, label: primary };
+
+  // Known type -> the canonical customer-facing label. Without this the raw
+  // stored value is shown, which for Photographer is the enum "PAV" — an
+  // internal code that meant nothing to a customer reading the chip.
+  return { category, label: CATEGORY_LABELS[category] ?? primary };
 }
 
 export type DiscoverySortOption = "newest" | "price_asc" | "price_desc" | "rating";

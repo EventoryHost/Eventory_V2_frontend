@@ -67,7 +67,13 @@ export interface MagicalMomentsBlock {
 
 export interface BudgetEstimatorSuggestion {
   id: string;
-  vendorLabel: string;
+  /**
+   * The PACKAGE's name. Was `vendorLabel` and held the vendor type, so every
+   * suggestion in a group rendered the identical title ("Decorator",
+   * "Decorator", "Decorator"...) — a vendor-shaped row where a package
+   * belongs. Populated from real packages in getPackagesPageData.
+   */
+  title: string;
   /** e.g. "Entrance decoration + other variations". */
   description: string;
   priceFrom: number;

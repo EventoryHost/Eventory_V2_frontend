@@ -106,13 +106,20 @@ export interface FilterOption {
  */
 export type FilterSectionId = "eventType" | "offer" | "locality" | "pricing" | "guests" | "rating";
 
+/**
+ * `id` is a plain string, not the vendor union: the same sidebar chrome
+ * (FilterSidebar / FilterPanelContent / FilterSection / MobileFilterDrawer)
+ * is reused by the package listing, which has its own section set. Each
+ * feature keeps its own stricter union for its own state and narrows at the
+ * callback boundary.
+ */
 export interface FilterSectionConfig {
-  id: FilterSectionId;
+  id: string;
   title: string;
   options: FilterOption[];
 }
 
-export type SelectedFilters = Record<FilterSectionId, string[]>;
+export type SelectedFilters = Record<string, string[]>;
 
 export const EMPTY_SELECTED_FILTERS: SelectedFilters = {
   eventType: [],

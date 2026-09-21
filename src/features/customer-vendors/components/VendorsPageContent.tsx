@@ -246,7 +246,8 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     setSort(nextSort);
   }
 
-  function toggleOption(sectionId: FilterSectionId, optionId: string) {
+  function toggleOption(sectionIdRaw: string, optionId: string) {
+    const sectionId = sectionIdRaw as FilterSectionId;
     setSelected((prev) => {
       const current = prev[sectionId];
       const next = current.includes(optionId)

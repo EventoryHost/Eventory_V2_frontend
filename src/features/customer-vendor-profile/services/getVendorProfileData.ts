@@ -2,8 +2,7 @@ import { notFound } from "next/navigation";
 import { getVendorPublic, getVendorReviews } from "@/lib/vendorPublicApi";
 import { browsePackages } from "@/lib/customerDiscoveryApi";
 import { mapPackageToVendor } from "@/features/customer-vendors/mappers";
-import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
-import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
+import { resolveVendorCategory } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import type { VendorProfileData } from "../types";
 
@@ -32,9 +31,13 @@ export async function getVendorProfileData(vendorId: string): Promise<VendorProf
   if (!vendorResponse?.vendor) notFound();
 
   const raw = vendorResponse.vendor;
-  const category = VENDOR_TYPE_TO_CATEGORY[raw.vendorType ?? ""] ?? "all";
-  const categoryLabel =
-    VENDOR_CATEGORIES.find((item) => item.id === category)?.label ?? raw.vendorType ?? "Vendor";
+  // Defensive, same as the listing cards: vendorType is stored as the
+  // spaced spelling ("DJ Artist"), a comma-joined list, an empty string or
+  // not at all. A plain lookup dropped all of those into the "all" bucket,
+  // which rendered as a category chip literally reading "ALL" — including
+  // on the profiles of vendors who DO have a trade.
+  const resolved = resolveVendorCategory(raw.vendorType);
+  const category = resolved?.category ?? "all";
   const meta = CATEGORY_META[category];
 
   // City first, then the areas they additionally serve — same composition as
@@ -54,7 +57,9 @@ export async function getVendorProfileData(vendorId: string): Promise<VendorProf
       rating: raw.rating ?? 0,
       reviewCount: raw.reviewsCount ?? 0,
       category,
-      categoryLabel,
+      // Empty when the vendor never set a type — the header drops the chip
+      // rather than labelling them "All".
+      categoryLabel: resolved?.label ?? "",
       categoryIcon: meta?.icon,
       categoryGradientFrom: meta?.gradientFrom,
       // Deduped: a vendor whose city is also listed among their service

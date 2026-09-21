@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import type { FilterSectionConfig, FilterSectionId, SelectedFilters } from "../types";
+import type { FilterSectionConfig, SelectedFilters } from "../types";
 import FilterSection from "./FilterSection";
 
 export type { SelectedFilters };
@@ -14,7 +14,7 @@ export default function FilterPanelContent({
 }: {
   sections: FilterSectionConfig[];
   selected: SelectedFilters;
-  onToggleOption: (sectionId: FilterSectionId, optionId: string) => void;
+  onToggleOption: (sectionId: string, optionId: string) => void;
   onClear: () => void;
 }) {
   const visibleSections = sections.filter((section) => section.options.length > 0);
