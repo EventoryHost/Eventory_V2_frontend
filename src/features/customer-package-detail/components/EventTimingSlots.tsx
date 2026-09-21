@@ -39,7 +39,6 @@ export default function EventTimingSlots({
   }
 
   const { data } = state;
-  if (data.workMode === "FULL_DAY") return null;
   if (!data.dayAvailable) {
     return (
       <p className="font-figtree text-[12px] leading-[16.5px] font-medium text-error-700">
@@ -47,6 +46,9 @@ export default function EventTimingSlots({
       </p>
     );
   }
+
+  // Nothing to choose from (e.g. a package with no price to derive slots from).
+  if (data.slots.length === 0) return null;
 
   return (
     <div className="border-l-[3px] border-[#F0596F] pl-4">

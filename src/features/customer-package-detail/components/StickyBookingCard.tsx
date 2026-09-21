@@ -6,7 +6,7 @@ import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-rea
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { addCartItem, getCart, updateCartItem, type RawCartEventDetails, type RawCustomizeRequest } from "@/lib/customerCartApi";
-import { getConvenienceFeePreview, getPackageSlots, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
+import { getConvenienceFeePreview, getPackageServiceability, getPackageSlots, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
 import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
@@ -19,6 +19,7 @@ import SearchDropdown from "@/features/customer-landing/components/SearchDropdow
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 
 import EventTimingSlots, { type SlotsState } from "./EventTimingSlots";
+import LocationServiceability, { type ServiceabilityState } from "./LocationServiceability";
 
 export default function StickyBookingCard({
   packageId,
@@ -78,6 +79,7 @@ export default function StickyBookingCard({
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [slotsState, setSlotsState] = useState<SlotsState>({ status: "idle" });
+  const [serviceability, setServiceability] = useState<ServiceabilityState>({ status: "idle" });
   // Latest selected slot, readable from the slots-fetch effect without
   // making that effect re-run on every selection.
   const selectedSlotRef = useRef("");
@@ -221,6 +223,39 @@ export default function StickyBookingCard({
     };
   }, [packageId, validEventDate]);
 
+  // Is this vendor available at the customer's event location? Runs once the
+  // location text (typed, auto-detected, or prefilled) contains a 6-digit
+  // pincode — the endpoint 400s without one, so no pincode just shows a
+  // prompt to add one. Debounced so typing doesn't fire a request per key.
+  // Informational only: booking isn't blocked on the result.
+  useEffect(() => {
+    const trimmed = location.trim();
+    if (!trimmed) {
+      setServiceability({ status: "idle" });
+      return;
+    }
+    const pincode = trimmed.match(/\b\d{6}\b/)?.[0];
+    if (!pincode) {
+      setServiceability({ status: "no-pincode" });
+      return;
+    }
+    let cancelled = false;
+    setServiceability({ status: "loading" });
+    const timer = setTimeout(() => {
+      getPackageServiceability(packageId, pincode)
+        .then((data) => {
+          if (!cancelled) setServiceability({ status: "ready", data });
+        })
+        .catch(() => {
+          if (!cancelled) setServiceability({ status: "error" });
+        });
+    }, 500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [packageId, location]);
+
   // The vendor's slots for the picked date. Re-fetched whenever the date
   // changes; a previously selected slot that the new date doesn't offer
   // (or offers as unavailable) is cleared, while a still-valid one — e.g.
@@ -271,15 +306,19 @@ export default function StickyBookingCard({
   const timingComplete =
     slotsState.status === "ready" &&
     slotsState.data.dayAvailable &&
-    (slotsState.data.workMode === "FULL_DAY" || Boolean(startTime && endTime));
+    // Full-day packages now get generated slots too, so a slot is needed
+    // whenever any are offered.
+    (slotsState.data.slots.length === 0 || Boolean(startTime && endTime));
   const detailsComplete = Boolean(
     eventType && validEventDate && timingComplete && location.trim() && guestCountComplete
   );
 
   function buildCartPayload(noteOverride?: string) {
     const timeSlot =
-      slotsState.status === "ready" && slotsState.data.workMode === "TIME_SLOTS"
-        ? [startTime, endTime].filter(Boolean).join(" - ") || undefined
+      // The offered slot's value, rebuilt from the same "HH:MM - HH:MM" pair
+      // it was split from — the server compares it against its own slots.
+      slotsState.status === "ready" && slotsState.data.slots.length > 0 && startTime && endTime
+        ? `${startTime} - ${endTime}`
         : undefined;
     const note = noteOverride ?? vendorNote;
     return {
@@ -328,6 +367,25 @@ export default function StickyBookingCard({
     };
   }
 
+  // A 400 from add/update usually means the chosen slot was taken or no
+  // longer offered since it was picked — refresh the slots, drop the
+  // selection, and ask the customer to pick again.
+  async function handleCartError(error: unknown, fallback: string) {
+    if (error instanceof ApiError && error.status === 400 && validEventDate && slotsState.status === "ready") {
+      try {
+        const data = await getPackageSlots(packageId, validEventDate);
+        setSlotsState({ status: "ready", data });
+      } catch {
+        // Keep the current chips; the message below still applies.
+      }
+      setStartTime("");
+      setEndTime("");
+      setCartError("That time slot is no longer available. Please pick a slot again.");
+      return;
+    }
+    setCartError(error instanceof ApiError ? error.message : fallback);
+  }
+
   async function performAddToCart(noteOverride?: string) {
     setCartError(null);
     setIsSubmitting(true);
@@ -342,7 +400,7 @@ export default function StickyBookingCard({
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 2000);
     } catch (error) {
-      setCartError(error instanceof ApiError ? error.message : "Couldn't add to cart. Please try again.");
+      await handleCartError(error, "Couldn't add to cart. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -359,7 +417,7 @@ export default function StickyBookingCard({
       }
       router.push("/cart");
     } catch (error) {
-      setCartError(error instanceof ApiError ? error.message : "Couldn't start booking. Please try again.");
+      await handleCartError(error, "Couldn't start booking. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -485,6 +543,7 @@ export default function StickyBookingCard({
             {locationDetectError && (
               <p className="mt-1.5 font-figtree text-[11px] font-medium text-error-700">{locationDetectError}</p>
             )}
+            <LocationServiceability state={serviceability} />
           </label>
 
           <SearchDatePicker
