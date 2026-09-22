@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Star } from "lucide-react";
 import type { CartVendor, RecommendedAddon } from "../types";
 import { formatPrice } from "../utils/currency";
+import { isValidImageSrc } from "@/lib/isValidImageSrc";
 import CartItemRow from "./CartItemRow";
 
 /**
@@ -77,7 +78,7 @@ export default function VendorGroupCard({
               className="mt-1 h-4 w-4 shrink-0 rounded accent-black outline-none"
             />
 
-            {avatar ? (
+            {isValidImageSrc(avatar) ? (
               <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
                 <Image src={avatar} alt={vendorName} fill className="object-cover" />
               </span>

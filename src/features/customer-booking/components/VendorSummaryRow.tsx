@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { Star } from "lucide-react";
+import { isValidImageSrc } from "@/lib/isValidImageSrc";
 
 export type VendorSummaryRowProps = {
   avatar?: string;
@@ -29,7 +30,7 @@ export default function VendorSummaryRow({
     <div className="flex w-full max-w-[799px] flex-col gap-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          {avatar ? (
+          {isValidImageSrc(avatar) ? (
             <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
               <Image src={avatar} alt={vendorName} fill className="object-cover" />
             </span>
