@@ -102,7 +102,7 @@ export default function BookingSummaryCard({ bookingId, services, onDownloadRece
           <ClipboardList size={24} className="shrink-0 text-[#030303]" />
           <div className="flex flex-col gap-1">
             <h2 className="font-figtree text-[18px] font-semibold leading-[28px] text-[#09090B] sm:text-[20px]">
-              Booking Summary
+              Booking Details
             </h2>
             <div className="flex items-center gap-1.5">
               <span className="font-figtree text-[14px] font-medium text-[#3F3F47]">Booking ID:</span>

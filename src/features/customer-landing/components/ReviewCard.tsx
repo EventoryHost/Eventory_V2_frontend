@@ -5,10 +5,23 @@ export type ReviewCardProps = {
   rating: number;
   quote: string;
   name: string;
-  timeAgo: string;
-  avatar: string;
+  timeAgo?: string;
+  /** Photo URL; when omitted the reviewer's initials are shown on the coloured circle instead. */
+  avatar?: string;
   avatarBg?: string;
 };
+
+function initialsOf(name: string): string {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0]?.toUpperCase() ?? "")
+      .join("") || "?"
+  );
+}
 
 export default function ReviewCard({
   rating,
@@ -42,18 +55,20 @@ export default function ReviewCard({
 
       <div className="flex items-center gap-3">
         <span
-          className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full"
+          className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full font-figtree text-[16px] font-bold text-white"
           style={{ backgroundColor: avatarBg }}
         >
-          <Image src={avatar} alt={name} fill className="object-cover" />
+          {avatar ? <Image src={avatar} alt={name} fill className="object-cover" /> : initialsOf(name)}
         </span>
         <div>
           <p className="font-figtree text-[16px] font-bold text-brand-950">
             {name}
           </p>
-          <p className="font-figtree text-[14px] font-normal text-body-secondary">
-            {timeAgo}
-          </p>
+          {timeAgo && (
+            <p className="font-figtree text-[14px] font-normal text-body-secondary">
+              {timeAgo}
+            </p>
+          )}
         </div>
       </div>
     </div>

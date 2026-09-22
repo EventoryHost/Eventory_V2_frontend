@@ -6,6 +6,8 @@ import ContactPageHeader from "./ContactPageHeader";
 import ContactDetailsForm from "./ContactDetailsForm";
 import AlternateCoordinatorSection from "./AlternateCoordinatorSection";
 import BookingNotesSection from "./BookingNotesSection";
+import EventVenueSection from "./EventVenueSection";
+import EventTimingSection from "./EventTimingSection";
 import GstinToggleSection from "./GstinToggleSection";
 import PaymentSummary from "@/features/customer-booking/components/PaymentSummary";
 import PaymentScheduleDialog from "@/features/customer-booking/components/PaymentScheduleDialog";
@@ -81,7 +83,10 @@ export default function ContactPage() {
 
   return (
     <CheckoutLoginGate>
-      <div className="mx-auto w-full max-w-[1320px] px-4 pt-8 pb-16 sm:px-6 lg:px-16">
+      {/* The checkout layout's background is off-white; this page wants pure
+          white edge to edge, so the box-shadow/clip-path pair extends white
+          past this max-width container to the full viewport width. */}
+      <div className="mx-auto w-full max-w-[1320px] bg-white px-4 pt-8 pb-16 shadow-[0_0_0_100vmax_white] [clip-path:inset(0_-100vmax)] sm:px-6 lg:px-16">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
           <div className="flex w-full flex-col gap-6 lg:flex-1">
             <ContactPageHeader />
@@ -115,6 +120,13 @@ export default function ContactPage() {
               initialPhone={data?.contact.phone ?? ""}
               initialEmail={data?.contact.email ?? ""}
               phoneVerified={data?.contact.phoneVerified ?? false}
+              onSaved={refresh}
+            />
+            <EventVenueSection />
+            <EventTimingSection
+              sessionId={data?.sessionId ?? ""}
+              initialStartTime={data?.eventTiming.startTime ?? ""}
+              initialEndTime={data?.eventTiming.endTime ?? ""}
               onSaved={refresh}
             />
             <AlternateCoordinatorSection />

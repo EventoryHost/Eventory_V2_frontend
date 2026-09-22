@@ -303,6 +303,65 @@ export async function getConvenienceFeePreview(
   }
 }
 
+export type RawSlotUnavailableReason =
+  | "BLOCKED_BY_VENDOR"
+  | "NOT_A_WORKING_DAY"
+  | "OUTSIDE_AVAILABLE_RANGE"
+  | "FULLY_BOOKED"
+  | "ALL_SLOTS_BOOKED";
+
+export interface RawPackageSlot {
+  startTime: string;
+  endTime: string;
+  label: string;
+  /** "HH:MM - HH:MM" 24h — sent as-is as the cart's timeSlot. */
+  value: string;
+  available: boolean;
+}
+
+/** GET /customer/packages/:id/slots?date= — the package's vendor-defined slot list minus whatever that date rules out. slots is empty for FULL_DAY packages. */
+export interface RawPackageSlotsResponse {
+  status: "SUCCESS";
+  packageId: string;
+  date: string;
+  workMode: "FULL_DAY" | "TIME_SLOTS";
+  /** VENDOR: the vendor's own slots. AUTO: generated from the package price (3/4/5-hour slots by price tier). */
+  slotSource?: "VENDOR" | "AUTO";
+  slotLengthHours?: number;
+  priceBasis?: number;
+  dayAvailable: boolean;
+  reason: RawSlotUnavailableReason | null;
+  slots: RawPackageSlot[];
+}
+
+export async function getPackageSlots(packageId: string, date: string) {
+  return apiFetch<RawPackageSlotsResponse>(`/customer/packages/${packageId}/slots${toQueryString({ date })}`, {
+    auth: false,
+  });
+}
+
+/** GET /customer/packages/:id/serviceability — platform region list first, then the vendor's own service areas. Informational only: add-to-cart/checkout don't block on it. */
+export interface RawPackageServiceability {
+  status: "SUCCESS";
+  serviceable: boolean;
+  platformServiceable: boolean;
+  vendorServiceable: boolean;
+  reason: "OUTSIDE_SERVICE_REGION" | "VENDOR_DOES_NOT_SERVE_AREA" | null;
+  /** CITY_LEVEL_FALLBACK (match is broader than the vendor intended) and NO_AREAS_DECLARED (vendor never set any) are serviceable but not confirmed local matches. */
+  basis: "SERVICE_AREA_MATCH" | "CITY_LEVEL_FALLBACK" | "NO_AREAS_DECLARED" | null;
+  location?: { city?: string; district?: string; state?: string; areas?: string[] };
+  vendorServiceAreas?: { all?: boolean; cities?: string[]; localities?: string[] };
+  vendorAreasDeclared?: boolean;
+}
+
+/** Sends the 6-digit pincode when there is one (more reliable); 400s with no pincode, so callers should check first. */
+export async function getPackageServiceability(packageId: string, pincode: string) {
+  return apiFetch<RawPackageServiceability>(
+    `/customer/packages/${packageId}/serviceability${toQueryString({ pincode })}`,
+    { auth: false }
+  );
+}
+
 export interface RawReviewAggregate {
   averageRating: number | null;
   count: number;

@@ -64,7 +64,9 @@ export default function AuthForm({
           >
             {intent === "register" && (
               <label className="flex flex-col gap-1.5">
-                <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Your name</span>
+                <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                  What&apos;s your Name?
+                </span>
                 <input
                   type="text"
                   autoFocus
@@ -72,15 +74,17 @@ export default function AuthForm({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Full name"
                   autoComplete="name"
-                  className="rounded-xl border border-black/15 bg-white px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
+                  className="h-12 w-full rounded-full border border-[#E4E4E7] bg-white px-4 py-3.5 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
                 />
               </label>
             )}
 
             <label className="flex flex-col gap-1.5">
-              <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Mobile number</span>
-              <div className="flex items-center rounded-xl border border-black/15 bg-white focus-within:border-brand-primary">
-                <span className="border-r border-black/10 px-4 py-3 font-figtree text-[14px] font-medium text-neutral-secondary">
+              <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                Phone
+              </span>
+              <div className="flex h-12 items-center rounded-full border border-[#E4E4E7] bg-white focus-within:border-brand-primary">
+                <span className="border-r border-black/10 px-4 font-figtree text-[14px] font-medium text-neutral-secondary">
                   +91
                 </span>
                 <input
@@ -91,22 +95,26 @@ export default function AuthForm({
                   value={phone}
                   onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
                   placeholder="Mobile number"
-                  className="w-full rounded-r-xl bg-transparent px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none"
+                  className="h-full w-full rounded-r-full bg-transparent px-4 font-figtree text-[14px] text-brand-950 outline-none"
                 />
               </div>
             </label>
 
-            <p className="font-figtree text-[13px] text-neutral-secondary">
-              We&apos;ll text you a one-time code. New here? We&apos;ll set up your account automatically.
-            </p>
+            {intent !== "register" && (
+              <>
+                <p className="font-figtree text-[13px] text-neutral-secondary">
+                  We&apos;ll text you a one-time code. New here? We&apos;ll set up your account automatically.
+                </p>
 
-            <button
-              type="button"
-              onClick={switchToPasswordLogin}
-              className="self-start font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
-            >
-              Already set a password? Log in instead
-            </button>
+                <button
+                  type="button"
+                  onClick={switchToPasswordLogin}
+                  className="self-start font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
+                >
+                  Already set a password? Log in instead
+                </button>
+              </>
+            )}
           </motion.div>
         )}
 
@@ -261,7 +269,7 @@ export default function AuthForm({
         type="button"
         onClick={handleContinue}
         disabled={!canContinue || loading}
-        className="mt-1 flex w-full items-center justify-center rounded-xl bg-brand-primary py-3 font-figtree text-[15px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-1 flex h-12 w-full items-center justify-center rounded-full bg-brand-primary py-3 font-figtree text-[15px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : CONTINUE_LABEL[step]}
       </button>

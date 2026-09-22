@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTH_LABELS = [
@@ -40,11 +40,18 @@ export default function SearchDatePicker({
   value,
   onChange,
   placeholder,
+  variant = "filled",
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   placeholder: string;
+  /**
+   * "filled" is the hero search bar's grey pill. "quick" is the PDP booking
+   * card's row of three day boxes (starting tomorrow, or centred on the
+   * picked date) plus a "Pick date" box that opens the same calendar popup.
+   */
+  variant?: "filled" | "quick";
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +60,12 @@ export default function SearchDatePicker({
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
+  const isQuick = variant === "quick";
+  // The quick variant only offers dates from tomorrow on.
+  const minDate = useMemo(
+    () => (isQuick ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) : today),
+    [isQuick, today]
+  );
 
   const selectedDate = parseLocalISODate(value);
   const [visibleMonth, setVisibleMonth] = useState(() => selectedDate ?? today);
@@ -89,20 +102,85 @@ export default function SearchDatePicker({
   }, [visibleMonth]);
 
   const isPastMonth =
-    visibleMonth.getFullYear() === today.getFullYear() && visibleMonth.getMonth() === today.getMonth();
+    visibleMonth.getFullYear() === minDate.getFullYear() && visibleMonth.getMonth() === minDate.getMonth();
+
+  // Three consecutive days: starting tomorrow when nothing is picked, else
+  // the day before / the picked day / the day after.
+  const quickDates = useMemo(() => {
+    const start = selectedDate
+      ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() - 1)
+      : minDate;
+    return [0, 1, 2].map((offset) => new Date(start.getFullYear(), start.getMonth(), start.getDate() + offset));
+  }, [selectedDate, minDate]);
 
   return (
     <div ref={containerRef} className="relative flex-1">
-      <label className="mb-2 block text-[14px] font-semibold text-brand-950">{label}</label>
-      <button
-        type="button"
-        onClick={() => setIsOpen((open) => !open)}
-        aria-expanded={isOpen}
-        className="flex w-full items-center justify-between rounded-full bg-[#F4F4F5] px-5 py-3 text-left text-[14px] text-[#71717B] outline-none"
+      <label
+        className={
+          isQuick
+            ? "mb-1.5 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]"
+            : "mb-2 block text-[14px] font-semibold text-brand-950"
+        }
       >
-        <span className="truncate">{value ? formatDisplayDate(value) : placeholder}</span>
-        <ChevronDown size={16} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-      </button>
+        {label}
+      </label>
+      {isQuick ? (
+        <div className="flex items-center justify-between gap-2">
+          {quickDates.map((date) => {
+            const iso = toLocalISODate(date);
+            const isSelected = value === iso;
+            const isDisabled = date < minDate;
+            return (
+              <button
+                key={iso}
+                type="button"
+                disabled={isDisabled}
+                onClick={() => onChange(iso)}
+                aria-pressed={isSelected}
+                className={`flex h-[68px] w-[81px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  isSelected
+                    ? "border-[#B4112A] bg-[#FDEEF0]"
+                    : "border-[0.5px] border-[#E4E4E7] bg-white hover:bg-[#F4F4F5]"
+                }`}
+              >
+                <span
+                  className={`font-figtree text-[13px] leading-[16.5px] font-medium tracking-[-0.01em] ${
+                    isSelected ? "text-[#B4112A]" : "text-[#71717B]"
+                  }`}
+                >
+                  {date.toLocaleDateString("en-US", { weekday: "short" })}
+                </span>
+                <span
+                  className={`font-figtree text-[20px] leading-[16.5px] font-semibold tracking-[-0.01em] ${
+                    isSelected ? "text-[#B4112A]" : "text-[#3F3F47]"
+                  }`}
+                >
+                  {date.getDate()}
+                </span>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setIsOpen((open) => !open)}
+            aria-expanded={isOpen}
+            className="flex h-[68px] w-[81px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#9F9FA9] bg-white text-[#3F3F47] transition-colors hover:bg-[#F4F4F5]"
+          >
+            <CalendarDays size={20} />
+            <span className="font-figtree text-[13px] leading-[16.5px] font-semibold tracking-[-0.01em]">Pick date</span>
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setIsOpen((open) => !open)}
+          aria-expanded={isOpen}
+          className="flex w-full items-center justify-between rounded-full bg-[#F4F4F5] px-5 py-3 text-left text-[14px] text-[#71717B] outline-none"
+        >
+          <span className="truncate">{value ? formatDisplayDate(value) : placeholder}</span>
+          <ChevronDown size={16} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+        </button>
+      )}
 
       {isOpen && (
         <div className="absolute top-full left-0 z-20 mt-2 w-[314px] rounded-2xl bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
@@ -142,7 +220,7 @@ export default function SearchDatePicker({
             {weeks.flatMap((week, weekIndex) =>
               week.map((cellDate, dayIndex) => {
                 if (!cellDate) return <div key={`${weekIndex}-${dayIndex}`} />;
-                const isPast = cellDate < today;
+                const isPast = cellDate < minDate;
                 const isSelected = value === toLocalISODate(cellDate);
                 return (
                   <button

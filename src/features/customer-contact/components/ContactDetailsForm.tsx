@@ -196,7 +196,7 @@ export default function ContactDetailsForm({
 
       <div className="flex flex-col gap-1">
         <label className="font-figtree text-[15px] font-semibold text-[#030303]">
-          Phone number
+          Whatsapp number
         </label>
         <p className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]">
           Your vendor&apos;s team will call this on event day.
@@ -205,9 +205,7 @@ export default function ContactDetailsForm({
         <div className="mt-2 flex gap-2">
           <div className="flex h-12 w-[72px] shrink-0 items-center justify-center gap-1 rounded-[16px] border border-[#E4E4E7] bg-[#F4F4F5] pt-[11px] pr-3 pb-[11px] pl-3">
             <span>🇮🇳</span>
-            <span className="font-figtree text-[14px] font-medium text-[#030303]">
-              +91
-            </span>
+            <span className="font-figtree text-[14px] font-medium text-[#030303]">+91</span>
           </div>
           <input
             type="tel"

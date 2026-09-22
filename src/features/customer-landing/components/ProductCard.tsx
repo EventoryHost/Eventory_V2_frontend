@@ -93,7 +93,7 @@ export default function ProductCard({
         {/* Category badge + tags */}
         <div className="flex items-center gap-3">
           <div
-            className="flex w-[132px] shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
+            className="flex w-fit shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
             style={{
               background: `linear-gradient(to left, ${categoryGradientFrom}, ${categoryGradientTo})`,
             }}
@@ -105,7 +105,7 @@ export default function ProductCard({
               height={16}
               className="h-4 w-4 rounded-full object-contain"
             />
-            <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap">
+            <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap uppercase">
               {categoryLabel}
             </span>
           </div>

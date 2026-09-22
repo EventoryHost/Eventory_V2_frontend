@@ -55,6 +55,14 @@ export interface RawCheckoutSession {
   status: "Active" | "Expired" | "Completed" | "Cancelled";
   expiresAt: string;
   contactDetails: { name?: string; phone?: string; email?: string };
+  /**
+   * "HH:MM" 24h, one value for the whole order (not per vendor line) — when
+   * the event itself actually runs, as the customer tells the vendor.
+   * Distinct from each line's own booked slot (eventDetails.timeSlot) —
+   * a decorator's booked slot is when they work, not when the event runs,
+   * so the two are allowed to differ and are never merged.
+   */
+  eventTiming?: { startTime?: string; endTime?: string };
   bookingNote: string;
   lines: RawCheckoutSessionLine[];
   lockedQuote: RawCartQuote | null;
@@ -117,6 +125,21 @@ export interface PatchCheckoutContactParams {
 /** At least one field is required — the backend 400s otherwise. */
 export async function patchCheckoutSessionContact(sessionId: string, params: PatchCheckoutContactParams) {
   return apiFetch<RawCheckoutSessionResponse>(`/customer/checkout/session/${sessionId}/contact`, {
+    method: "PATCH",
+    auth: true,
+    body: params,
+  });
+}
+
+export interface PatchCheckoutEventTimingParams {
+  /** "HH:MM" 24h. Send only the field that changed — this is a partial update, same as contact. */
+  startTime?: string;
+  endTime?: string;
+}
+
+/** 400s if the resulting end isn't after start (checked against whatever's already saved too, not just this request). */
+export async function patchCheckoutSessionEventTiming(sessionId: string, params: PatchCheckoutEventTimingParams) {
+  return apiFetch<RawCheckoutSessionResponse>(`/customer/checkout/session/${sessionId}/event-timing`, {
     method: "PATCH",
     auth: true,
     body: params,

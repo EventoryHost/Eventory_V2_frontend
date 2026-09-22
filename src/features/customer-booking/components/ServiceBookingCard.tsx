@@ -212,6 +212,7 @@ export default function ServiceBookingCard({
         packageId={packageId}
         sessionId={sessionId}
         lineId={lineId}
+        cartItemId={cartItemId}
         vendorName={vendorName}
         serviceName={serviceName}
         packageTier={packageTier}
