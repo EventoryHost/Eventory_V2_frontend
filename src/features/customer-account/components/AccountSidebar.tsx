@@ -31,7 +31,7 @@ const MENU_ITEMS: MenuItem[] = [
   { label: "Profile Information", icon: UserRound, href: "/account/profile" },
   { label: "Saved Address", icon: MapPin, href: "/account/addresses" },
   { label: "Payment Details", icon: CreditCard, href: "/account/payments" },
-  { label: "Bookings", icon: CalendarCheck, href: "/account/bookings" },
+  { label: "My Bookings", icon: CalendarCheck, href: "/account/bookings" },
   { label: "Wishlist", icon: Bookmark, href: "/account/wishlist" },
   { label: "Viewed Items", icon: Eye, href: "/account/viewed" },
   { label: "Messages", icon: MessageSquare },

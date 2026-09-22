@@ -1,5 +1,5 @@
 import type { Vendor } from "../types";
-import VendorGridCard from "./VendorGridCard";
+import VendorCard from "./VendorCard";
 
 export default function VendorGrid({
   vendors,
@@ -7,13 +7,13 @@ export default function VendorGrid({
   onToggleBookmark,
 }: {
   vendors: Vendor[];
-  bookmarkedIds: Set<string>;
+  bookmarkedIds: ReadonlySet<string>;
   onToggleBookmark: (id: string) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
       {vendors.map((vendor) => (
-        <VendorGridCard
+        <VendorCard
           key={vendor.id}
           vendor={vendor}
           isBookmarked={bookmarkedIds.has(vendor.id)}

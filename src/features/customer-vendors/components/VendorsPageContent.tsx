@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
-import type { FilterSectionConfig, SortOption, VendorFilters, VendorsPageData, ViewMode } from "../types";
-import { getFilterSectionsForCategory, VENDORS_PAGE_SIZE } from "../data/filterConfig";
-import { filterVendors, priceRangeLabel } from "../utils/filterVendors";
-import { mapPackageToVendor } from "../mappers";
-import { browsePackages } from "@/lib/customerDiscoveryApi";
+import type { FilterSectionId, SelectedFilters, SortOption, VendorsPageData, ViewMode } from "../types";
+import { EMPTY_SELECTED_FILTERS } from "../types";
+import { getFilterSections, VENDORS_PAGE_SIZE } from "../data/filterConfig";
+import { filterVendors, filterOptionLabel } from "../utils/filterVendors";
+import { mapVendorToCard } from "../mappers";
+import { browseVendors } from "@/lib/customerDiscoveryApi";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
-import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
+import { CATEGORY_TO_VENDOR_TYPE, VENDOR_SORT_UI_TO_API } from "@/lib/vendorType";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import SearchBar from "./SearchBar";
@@ -25,12 +26,9 @@ import VendorList from "./VendorList";
 import VendorCardSkeletonGroup from "./VendorCardSkeleton";
 import VendorEmptyState from "./VendorEmptyState";
 import LoadMoreButton from "./LoadMoreButton";
-import type { SelectedFilters } from "./FilterPanelContent";
 import NoPackagesFound from "@/features/customer-packages/components/NoPackagesFound";
 
-const DEFAULT_CITY = "Ghaziabad";
-
-const EMPTY_SELECTED: SelectedFilters = { eventType: [], pricing: [] };
+const EMPTY_SELECTED: SelectedFilters = EMPTY_SELECTED_FILTERS;
 
 export default function VendorsPageContent({ data }: { data: VendorsPageData }) {
   const router = useRouter();
@@ -51,7 +49,9 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const initialDate = useRef(searchParams.get("date") ?? undefined);
 
   const [selected, setSelected] = useState<SelectedFilters>(() =>
-    initialEventCategory.current ? { eventType: [initialEventCategory.current], pricing: [] } : EMPTY_SELECTED
+    initialEventCategory.current
+      ? { ...EMPTY_SELECTED, eventType: [initialEventCategory.current] }
+      : EMPTY_SELECTED
   );
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const { isLoggedIn } = useCustomerSession();
@@ -76,12 +76,24 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
         if (cancelled) return;
         const ids = new Set<string>();
         wishlistItemIdsRef.current.clear();
+        // A saved Vendor comes back POPULATED, carrying both its Mongo
+        // _id and its business-facing "VEN..." id — and addWishlistItem
+        // stored whichever form the caller sent. The cards key off the
+        // "VEN..." id, so registering both means a save matches on reload
+        // regardless of which one was written.
+        const register = (item: (typeof response.items)[number], ...keys: (string | undefined)[]) => {
+          keys.filter(Boolean).forEach((key) => {
+            ids.add(key as string);
+            wishlistItemIdsRef.current.set(key as string, item._id);
+          });
+        };
+
         response.items.forEach((item) => {
-          // Populated object on read (see RawWishlistItem) — key off its _id,
-          // which is what addWishlistItem was given and what the cards match on.
           if (item.itemType === "Package" && item.packageId) {
-            ids.add(item.packageId._id);
-            wishlistItemIdsRef.current.set(item.packageId._id, item._id);
+            register(item, item.packageId._id);
+          }
+          if (item.itemType === "Vendor" && item.vendorId) {
+            register(item, item.vendorId._id, item.vendorId.id);
           }
         });
         setBookmarkedIds(ids);
@@ -143,18 +155,17 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     }
     let cancelled = false;
     setIsLoading(true);
-    browsePackages({
+    browseVendors({
       q: debouncedSearch || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
       eventCategory: initialEventCategory.current,
-      date: initialDate.current,
-      sort: SORT_UI_TO_API[sort],
+      sort: VENDOR_SORT_UI_TO_API[sort],
       page: 1,
       limit: VENDORS_PAGE_SIZE,
     })
       .then((response) => {
         if (cancelled) return;
-        setVendors(response.packages.map(mapPackageToVendor));
+        setVendors(response.vendors.map(mapVendorToCard));
         setPage(1);
         setTotalPages(response.totalPages);
       })
@@ -174,16 +185,15 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     setIsLoadingMore(true);
     try {
       const nextPage = page + 1;
-      const response = await browsePackages({
+      const response = await browseVendors({
         q: debouncedSearch || undefined,
         vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
         eventCategory: initialEventCategory.current,
-        date: initialDate.current,
-        sort: SORT_UI_TO_API[sort],
+        sort: VENDOR_SORT_UI_TO_API[sort],
         page: nextPage,
         limit: VENDORS_PAGE_SIZE,
       });
-      setVendors((prev) => [...prev, ...response.packages.map(mapPackageToVendor)]);
+      setVendors((prev) => [...prev, ...response.vendors.map(mapVendorToCard)]);
       setPage(nextPage);
       setTotalPages(response.totalPages);
     } catch {
@@ -193,20 +203,18 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     }
   }
 
-  const filterSections = useMemo(() => getFilterSectionsForCategory(data.eventCategoryOptions), [data.eventCategoryOptions]);
-
-  const filters: VendorFilters = useMemo(
-    () => ({
-      search,
-      category,
-      eventTypes: selected.eventType,
-      priceRanges: selected.pricing,
-      sort,
-    }),
-    [search, category, selected, sort]
+  const filterSections = useMemo(
+    () =>
+      getFilterSections({
+        eventCategoryOptions: data.eventCategoryOptions,
+        cityOptions: data.cityOptions,
+      }),
+    [data.eventCategoryOptions, data.cityOptions]
   );
 
-  const filteredVendors = useMemo(() => filterVendors(vendors, filters), [vendors, filters]);
+  // Search, category and sort are applied by the endpoint; only the
+  // sidebar's multi-selects are refined here. See filterVendors.
+  const filteredVendors = useMemo(() => filterVendors(vendors, selected), [vendors, selected]);
   const hasMore = page < totalPages;
 
   // "This category has no packages at all yet" (the Packages page's
@@ -220,8 +228,11 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     category !== "all" && vendors.length === 0 && !debouncedSearch;
 
   const activeCategoryLabel = data.categories.find((item) => item.id === category)?.label ?? "All";
-  const heading =
-    category === "all" ? `Vendors In ${DEFAULT_CITY}` : `${activeCategoryLabel} In ${DEFAULT_CITY}`;
+  // No city in the heading: nothing here filters by location. browsePackages
+  // is called without `city`, so these really are all the vendors in the
+  // catalogue (VENDORS_PAGE_SIZE at a time), and naming one city implied a
+  // narrowing that was never applied.
+  const heading = category === "all" ? "All Vendors" : activeCategoryLabel;
 
   function handleSearchChange(value: string) {
     setSearch(value);
@@ -235,7 +246,8 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     setSort(nextSort);
   }
 
-  function toggleOption(sectionId: FilterSectionConfig["id"], optionId: string) {
+  function toggleOption(sectionIdRaw: string, optionId: string) {
+    const sectionId = sectionIdRaw as FilterSectionId;
     setSelected((prev) => {
       const current = prev[sectionId];
       const next = current.includes(optionId)
@@ -274,7 +286,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
           return next;
         });
       } else {
-        const result = await addWishlistItem({ itemType: "Package", packageId: vendorId });
+        const result = await addWishlistItem({ itemType: "Vendor", vendorId });
         wishlistItemIdsRef.current.set(vendorId, result.item._id);
         setBookmarkedIds((prev) => new Set(prev).add(vendorId));
       }
@@ -283,21 +295,19 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     }
   }
 
-  const chips: ActiveChip[] = [
-    ...selected.eventType.map((id) => ({
-      key: `eventType-${id}`,
-      label: id,
-      onRemove: () => toggleOption("eventType", id),
-    })),
-    ...selected.pricing.map((id) => ({
-      key: `pricing-${id}`,
-      label: priceRangeLabel(id),
-      onRemove: () => toggleOption("pricing", id),
-    })),
-  ];
+  // One chip per selected option across every section, in the sidebar's
+  // own order so the chip row reads the same way the panel does.
+  const chips: ActiveChip[] = filterSections.flatMap((section) =>
+    selected[section.id].map((id) => ({
+      key: `${section.id}-${id}`,
+      label: filterOptionLabel(section.id, id),
+      onRemove: () => toggleOption(section.id, id),
+    }))
+  );
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-8">
+    // 1440 canvas: 64px gutters, 292px sidebar, 32px gap, 988px results column.
+    <div className="mx-auto flex w-full max-w-[1440px] gap-8 px-4 pt-8 pb-16 sm:px-6 lg:px-16">
       <FilterSidebar
         sections={filterSections}
         selected={selected}
@@ -317,20 +327,19 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-col gap-6">
-          {/* Search + view controls */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* Search. The view toggle lives down in the results header row
+              with the sort control, per the design — only the mobile-only
+              filter trigger sits beside the field. */}
+          <div className="flex items-center gap-3">
             <SearchBar value={search} onChange={handleSearchChange} />
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setIsMobileFilterOpen(true)}
-                className="flex h-[48px] items-center gap-2 rounded-xl border border-black/10 bg-white px-4 font-figtree text-[14px] font-semibold text-neutral-primary lg:hidden"
-              >
-                <SlidersHorizontal className="h-[18px] w-[18px]" />
-                Filters
-              </button>
-              <ViewToggle value={view} onChange={setView} />
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsMobileFilterOpen(true)}
+              className="flex h-[48px] shrink-0 items-center gap-2 rounded-[14px] border border-[#f1f1f1] bg-white px-4 font-figtree text-[14px] font-semibold text-neutral-primary lg:hidden"
+            >
+              <SlidersHorizontal className="size-[18px]" />
+              Filters
+            </button>
           </div>
 
           <CategoryTabs
@@ -341,12 +350,16 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
 
           {!categoryHasNoPackages && (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <ActiveFilterChips chips={chips} onClearAll={clearAll} />
-                <SortMenu value={sort} onChange={handleSortChange} />
-              </div>
+              {chips.length > 0 && <ActiveFilterChips chips={chips} onClearAll={clearAll} />}
 
-              <ResultsHeader heading={heading} resultCount={filteredVendors.length} />
+              {/* Heading on the left, sort + view toggle on the right — one row. */}
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <ResultsHeader heading={heading} resultCount={filteredVendors.length} />
+                <div className="flex items-center gap-5">
+                  <SortMenu value={sort} onChange={handleSortChange} />
+                  <ViewToggle value={view} onChange={setView} />
+                </div>
+              </div>
             </>
           )}
         </div>

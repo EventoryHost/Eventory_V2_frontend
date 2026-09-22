@@ -1,12 +1,10 @@
 "use client";
 
-import type { FilterSectionConfig } from "../types";
+import { Fragment } from "react";
+import type { FilterSectionConfig, SelectedFilters } from "../types";
 import FilterSection from "./FilterSection";
 
-export interface SelectedFilters {
-  eventType: string[];
-  pricing: string[];
-}
+export type { SelectedFilters };
 
 export default function FilterPanelContent({
   sections,
@@ -16,33 +14,40 @@ export default function FilterPanelContent({
 }: {
   sections: FilterSectionConfig[];
   selected: SelectedFilters;
-  onToggleOption: (sectionId: FilterSectionConfig["id"], optionId: string) => void;
+  onToggleOption: (sectionId: string, optionId: string) => void;
   onClear: () => void;
 }) {
+  const visibleSections = sections.filter((section) => section.options.length > 0);
+
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="font-figtree text-[15px] font-semibold text-brand-primary">Filters</h2>
-          <p className="font-figtree text-[12px] text-neutral-tertiary">Refine your search</p>
-        </div>
+        <span className="font-figtree text-[14px] leading-[18px] font-semibold tracking-[-0.28px] text-[#808080]">
+          FILTER
+        </span>
         <button
           type="button"
           onClick={onClear}
-          className="font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
+          className="font-figtree text-[14px] leading-[18px] text-[#ea1d3b] hover:underline"
         >
           Clear
         </button>
       </div>
 
-      <div className="space-y-6">
-        {sections.map((section) => (
-          <FilterSection
-            key={section.id}
-            section={section}
-            selectedIds={selected[section.id]}
-            onToggle={(optionId) => onToggleOption(section.id, optionId)}
-          />
+      <div className="h-px w-full bg-[#e4e4e7]" />
+
+      <div className="flex flex-col gap-6">
+        {visibleSections.map((section, index) => (
+          <Fragment key={section.id}>
+            <FilterSection
+              section={section}
+              selectedIds={selected[section.id]}
+              onToggle={(optionId) => onToggleOption(section.id, optionId)}
+            />
+            {/* Divider after every section, including the last — the design
+                closes the panel with a rule (Line 131). */}
+            <div className="h-px w-full bg-[#e4e4e7]" aria-hidden={index === visibleSections.length - 1} />
+          </Fragment>
         ))}
       </div>
     </div>

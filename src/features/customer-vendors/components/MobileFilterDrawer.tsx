@@ -3,8 +3,8 @@
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
-import type { FilterSectionConfig } from "../types";
-import FilterPanelContent, { type SelectedFilters } from "./FilterPanelContent";
+import type { FilterSectionConfig, SelectedFilters } from "../types";
+import FilterPanelContent from "./FilterPanelContent";
 
 export default function MobileFilterDrawer({
   isOpen,
@@ -19,7 +19,7 @@ export default function MobileFilterDrawer({
   onClose: () => void;
   sections: FilterSectionConfig[];
   selected: SelectedFilters;
-  onToggleOption: (sectionId: FilterSectionConfig["id"], optionId: string) => void;
+  onToggleOption: (sectionId: string, optionId: string) => void;
   onClear: () => void;
   resultCount: number;
 }) {
