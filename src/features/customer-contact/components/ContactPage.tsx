@@ -123,7 +123,12 @@ export default function ContactPage() {
               onSaved={refresh}
             />
             <EventVenueSection />
-            <EventTimingSection />
+            <EventTimingSection
+              sessionId={data?.sessionId ?? ""}
+              initialStartTime={data?.eventTiming.startTime ?? ""}
+              initialEndTime={data?.eventTiming.endTime ?? ""}
+              onSaved={refresh}
+            />
             <AlternateCoordinatorSection />
             <BookingNotesSection />
             <GstinToggleSection />

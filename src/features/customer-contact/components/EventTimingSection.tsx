@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Clock } from "lucide-react";
+import { ApiError } from "@/lib/apiClient";
+import { patchCheckoutSessionEventTiming } from "@/lib/customerCheckoutApi";
 
 // Half-hour steps, "HH:MM" 24h values shown as 12h labels.
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
@@ -76,14 +78,59 @@ function TimeField({
   );
 }
 
+export type EventTimingSectionProps = {
+  /** "" until the checkout session has loaded — fields save silently once it's set. */
+  sessionId: string;
+  initialStartTime: string;
+  initialEndTime: string;
+  /** Called after a successful save so the caller can re-fetch validation/canContinue. */
+  onSaved?: () => void;
+};
+
 /**
- * "When's the event?" — when the event itself starts and ends, so vendors can
- * plan arrival and setup. Held in local state for now; nothing persists it
- * against the booking yet.
+ * "When's the event?" — when the event itself starts and ends, for the
+ * vendor's own planning. Distinct from any line's booked slot (a vendor's
+ * booked hours, set on the PDP) — the two are allowed to differ and are
+ * saved separately (CheckoutSession.eventTiming, one value for the whole
+ * order, not per line).
  */
-export default function EventTimingSection() {
-  const [start, setStart] = useState("");
-  const [end, setEnd] = useState("");
+export default function EventTimingSection({
+  sessionId,
+  initialStartTime,
+  initialEndTime,
+  onSaved,
+}: EventTimingSectionProps) {
+  const [start, setStart] = useState(initialStartTime);
+  const [end, setEnd] = useState(initialEndTime);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  // Same "hydrate once" pattern as ContactDetailsForm — the session's
+  // eventTiming loads asynchronously after this mounts, but shouldn't
+  // clobber a value the customer is already editing on a later refresh.
+  const [hydrated, setHydrated] = useState(false);
+  if (!hydrated && (initialStartTime || initialEndTime)) {
+    setStart(initialStartTime);
+    setEnd(initialEndTime);
+    setHydrated(true);
+  }
+
+  async function save(patch: { startTime?: string; endTime?: string }) {
+    if (!sessionId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await patchCheckoutSessionEventTiming(sessionId, patch);
+      onSaved?.();
+    } catch (err) {
+      // A 400 here means the resulting end isn't after start (checked
+      // against whatever's already saved too) — shown under the fields
+      // rather than silently failing, per the backend's own note.
+      setError(err instanceof ApiError ? err.message : "Couldn't save the event timing. Try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <section className="flex w-full max-w-[868px] flex-col gap-4">
@@ -97,9 +144,30 @@ export default function EventTimingSection() {
       </div>
 
       <div className="flex flex-col gap-4 rounded-3xl border border-[#E4E4E7] bg-white p-8 sm:flex-row">
-        <TimeField label="Event starts" placeholder="Select start time" value={start} onChange={setStart} />
-        <TimeField label="Event ends" placeholder="Select end time" value={end} onChange={setEnd} />
+        <TimeField
+          label="Event starts"
+          placeholder="Select start time"
+          value={start}
+          onChange={(value) => {
+            setStart(value);
+            void save({ startTime: value });
+          }}
+        />
+        <TimeField
+          label="Event ends"
+          placeholder="Select end time"
+          value={end}
+          onChange={(value) => {
+            setEnd(value);
+            void save({ endTime: value });
+          }}
+        />
       </div>
+      {(error || saving) && (
+        <p className={`font-figtree text-[12px] ${error ? "text-[#E7000B]" : "text-[#71717B]"}`}>
+          {error ?? "Saving…"}
+        </p>
+      )}
     </section>
   );
 }

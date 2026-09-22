@@ -51,8 +51,8 @@ export default function BookingSuccessPage() {
         whatsappNumber={data.whatsappNumber}
       />
 
-      <div className="mx-auto flex w-full max-w-[1320px] flex-col gap-8 px-4 pt-8 pb-16 sm:px-6 lg:flex-row lg:items-start lg:gap-10 lg:px-16">
-        <div className="flex w-full flex-col gap-6 lg:max-w-[832px]">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1320px] -mt-4 flex-col gap-8 px-4 pb-16 sm:px-6 lg:flex-row lg:items-start lg:gap-10 lg:px-16">
+        <div className="flex w-full flex-col gap-6 lg:w-[832px]">
           <BookingSummaryCard bookingId={data.bookingIdLabel} services={data.services} />
 
           <YourPaymentsCard

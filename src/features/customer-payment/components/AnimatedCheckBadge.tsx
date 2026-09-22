@@ -8,23 +8,12 @@ export default function AnimatedCheckBadge() {
       initial={{ scale: 0, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 18 }}
-      className="flex h-16 w-16 items-center justify-center rounded-full bg-[#00A63E]/10"
+      className="flex h-16 w-16 items-center justify-center rounded-full bg-[#00A63E]"
     >
       <motion.svg width={32} height={32} viewBox="0 0 24 24" fill="none">
-        <motion.circle
-          cx={12}
-          cy={12}
-          r={11}
-          stroke="#00A63E"
-          strokeWidth={1.5}
-          fill="transparent"
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 0.3 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-        />
         <motion.path
           d="M6 12.5l4 4L18 8"
-          stroke="#00A63E"
+          stroke="white"
           strokeWidth={2.5}
           strokeLinecap="round"
           strokeLinejoin="round"

@@ -153,6 +153,13 @@ export interface BookingSummaryData {
   /** readyForPayment from the session response — every line's package is still Live and available. Safe to gate the Review step's own Continue button on, unlike canContinue. */
   readyForPayment: boolean;
   contact: BookingContactDetails;
+  /**
+   * When the event itself actually runs, as the customer tells the vendor —
+   * not any line's own booked slot (which can genuinely differ, e.g. a
+   * decorator's booked slot is when they work, not the event's own hours).
+   * "" until the customer sets it on the Contact page.
+   */
+  eventTiming: { startTime: string; endTime: string };
   vendorGroups: BookingVendorGroup[];
   paymentSummary: BookingPaymentSummary;
   /**

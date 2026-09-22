@@ -188,6 +188,7 @@ function emptyBookingSummaryData(): BookingSummaryData {
     canContinue: false,
     readyForPayment: false,
     contact: { name: "", phone: "", email: "", phoneVerified: false, errors: [] },
+    eventTiming: { startTime: "", endTime: "" },
     vendorGroups: [],
     lineErrors: [],
     paymentSummary: {
@@ -340,6 +341,10 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       email: session.contactDetails.email ?? "",
       phoneVerified: validation.contact.phoneVerified,
       errors: validation.contact.errors ?? [],
+    },
+    eventTiming: {
+      startTime: session.eventTiming?.startTime ?? "",
+      endTime: session.eventTiming?.endTime ?? "",
     },
     vendorGroups,
     lineErrors,
