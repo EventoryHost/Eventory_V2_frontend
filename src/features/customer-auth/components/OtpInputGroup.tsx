@@ -45,7 +45,7 @@ export default function OtpInputGroup({
   }
 
   return (
-    <div className="grid grid-cols-6 gap-2">
+    <div className="flex w-full items-center justify-between">
       {Array.from({ length: 6 }).map((_, index) => (
         <input
           key={index}
@@ -61,10 +61,10 @@ export default function OtpInputGroup({
           onChange={(event) => updateDigit(index, event.target.value)}
           onKeyDown={(event) => handleKeyDown(index, event)}
           onPaste={handlePaste}
-          className={`h-11 w-full rounded-lg border bg-white text-center font-figtree text-[16px] font-semibold text-brand-950 outline-none transition-colors ${
+          className={`h-14 w-14 shrink-0 rounded-[15px] border bg-white text-center font-figtree text-[18px] font-semibold text-brand-950 outline-none transition-colors ${
             hasError
               ? "border-error-700"
-              : "border-black/15 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
+              : "border-[#E4E4E7] focus:border-brand-primary focus:ring-1 focus:ring-brand-primary"
           }`}
         />
       ))}

@@ -1,8 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { LocateFixed, Loader2, MapPin, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Contact, LocateFixed, Loader2, MapPin, X } from "lucide-react";
 import { detectCurrentLocation, searchIndianLocations, type LocationSuggestion } from "@/lib/geocoding";
+import { getServiceableCities } from "@/lib/customerDiscoveryApi";
+import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
+import type { CustomerAddress } from "@/lib/customerSession";
+
+function addressLine(address: CustomerAddress) {
+  return [address.line1, address.line2, address.pincode, address.city, address.state].filter(Boolean).join(", ");
+}
 
 const DETECT_ERROR_MESSAGES: Record<string, string> = {
   imprecise: "Couldn't get a precise enough fix — try searching instead.",
@@ -18,13 +25,40 @@ export default function LocationPickerModal({
   onClose: () => void;
   onSelect: (label: string) => void;
 }) {
+  const { session } = useCustomerSession();
+  const savedAddresses = session?.addresses ?? [];
+
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<LocationSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [detectError, setDetectError] = useState<string | null>(null);
+  const [isSavedOpen, setIsSavedOpen] = useState(savedAddresses.length > 0);
+  const [cities, setCities] = useState<string[]>([]);
+  const [cityQuery, setCityQuery] = useState("");
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
+  const [isCityOpen, setIsCityOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cityRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getServiceableCities()
+      .then(setCities)
+      .catch(() => {
+        // No fallback list — an empty dropdown is honest; a hardcoded one
+        // would silently drift from the real serviceable region.
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!isCityOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (cityRef.current && !cityRef.current.contains(event.target as Node)) setIsCityOpen(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isCityOpen]);
 
   async function handleAutoDetect() {
     setIsDetecting(true);
@@ -80,46 +114,157 @@ export default function LocationPickerModal({
   }
 
   return (
-    <div className="absolute left-0 top-full z-30 mt-2 w-[360px] max-w-[calc(100vw-2rem)] rounded-2xl border border-black/5 bg-white p-5 shadow-xl">
+    <div className="absolute left-0 top-full z-30 mt-2 w-[460px] max-w-[calc(100vw-2rem)] rounded-2xl border border-black/5 bg-white p-5 shadow-xl">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-2">
-          <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-950" />
-          <h3 className="font-figtree text-[15px] leading-[20px] font-bold text-brand-950">
-            Let&apos;s Personalize Your Experience!
+        <div>
+          <h3 className="font-figtree text-[16px] leading-none font-semibold text-[#030303]">
+            Where are you located
           </h3>
+          <p className="mt-1 font-figtree text-[12px] leading-none font-normal text-[#71717B]">
+            Helps us to find packages in your location
+          </p>
         </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-black/10 text-neutral-tertiary transition-colors hover:text-brand-950"
+          className="flex h-6 w-6 shrink-0 items-center justify-center text-[#030303]"
         >
-          <X className="h-3.5 w-3.5" />
+          <X className="h-4 w-4" />
         </button>
       </div>
-      <button
-        type="button"
-        onClick={handleAutoDetect}
-        disabled={isDetecting}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full border border-brand-primary px-4 py-3 font-figtree text-[14px] font-semibold text-brand-primary transition-colors hover:bg-brand-subtle disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isDetecting ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <LocateFixed className="h-4 w-4" />
-        )}
-        {isDetecting ? "Detecting your location…" : "Auto-detect my location"}
-      </button>
-      {detectError && (
-        <p className="mt-2 font-figtree text-[12px] text-error-700">{detectError}</p>
+
+      {savedAddresses.length > 0 && (
+        <div className="mt-4 rounded-xl border border-[#E4E4E7] pt-3 pr-1.5 pb-3 pl-3">
+          <button
+            type="button"
+            onClick={() => setIsSavedOpen((open) => !open)}
+            aria-expanded={isSavedOpen}
+            className="flex w-full items-center justify-between pr-1.5"
+          >
+            <span className="flex items-center gap-2 font-figtree text-[16px] font-semibold text-[#030303]">
+              <Contact className="h-5 w-5 shrink-0" />
+              Saved addresses
+            </span>
+            {isSavedOpen ? (
+              <ChevronUp className="h-5 w-5 shrink-0 text-[#030303]" />
+            ) : (
+              <ChevronDown className="h-5 w-5 shrink-0 text-[#030303]" />
+            )}
+          </button>
+
+          {isSavedOpen && (
+            <div className="mt-3 max-h-[190px] overflow-y-auto pr-1.5">
+              {savedAddresses.map((address, index) => {
+                const line = addressLine(address);
+                if (!line) return null;
+                const isSelected = selected === line;
+                return (
+                  <button
+                    key={address._id ?? index}
+                    type="button"
+                    onClick={() => setSelected(line)}
+                    className="flex w-full items-start gap-3 border-t border-black/10 py-4 text-left transition-colors first:border-t-0 first:pt-0 hover:bg-black/[0.02]"
+                  >
+                    <div className="flex-1">
+                      <p className="font-figtree text-[16px] font-semibold text-[#030303]">
+                        {address.label || "Address"}
+                      </p>
+                      <p
+                        className="mt-1 font-figtree font-normal text-[#71717B]"
+                        style={{
+                          fontSize: "var(--S-Font-size, 14px)",
+                          lineHeight: "var(--S-Line-height, 20px)",
+                          letterSpacing: "var(--S-Letter-spacing, 0)",
+                        }}
+                      >
+                        {line}
+                      </p>
+                    </div>
+                    <span
+                      aria-hidden="true"
+                      className={`mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
+                        isSelected ? "border-brand-primary" : "border-[#9F9FA9]"
+                      }`}
+                    >
+                      {isSelected && <span className="h-2.5 w-2.5 rounded-full bg-brand-primary" />}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
       )}
+
+      <div ref={cityRef} className="relative mt-4">
+        <div className="flex w-full items-center rounded-xl border border-black/10 focus-within:border-brand-primary">
+          <input
+            value={isCityOpen ? cityQuery : (selectedCity ?? cityQuery)}
+            onChange={(event) => {
+              setCityQuery(event.target.value);
+              setSelectedCity(null);
+              setIsCityOpen(true);
+            }}
+            onFocus={() => setIsCityOpen(true)}
+            placeholder="Select district"
+            className="w-full rounded-l-xl bg-transparent px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none placeholder:text-neutral-tertiary"
+          />
+          <button
+            type="button"
+            onClick={() => setIsCityOpen((open) => !open)}
+            aria-expanded={isCityOpen}
+            aria-label="Toggle district list"
+            className="flex h-full shrink-0 items-center px-4"
+          >
+            {isCityOpen ? (
+              <ChevronUp className="h-4 w-4 shrink-0 text-[#9F9FA9]" />
+            ) : (
+              <ChevronDown className="h-4 w-4 shrink-0 text-[#9F9FA9]" />
+            )}
+          </button>
+        </div>
+
+        {isCityOpen && (
+          <div className="absolute left-0 top-full z-10 mt-1 max-h-[220px] w-full overflow-y-auto rounded-2xl border border-black/5 bg-white shadow-lg">
+            {(() => {
+              const matches = cities.filter((cityOption) =>
+                cityOption.toLowerCase().includes(cityQuery.trim().toLowerCase())
+              );
+              if (cities.length === 0) {
+                return <p className="px-4 py-3 font-figtree text-[13px] text-neutral-tertiary">Loading…</p>;
+              }
+              if (matches.length === 0) {
+                return <p className="px-4 py-3 font-figtree text-[13px] text-neutral-tertiary">No matches found</p>;
+              }
+              return matches.map((cityOption) => (
+                <button
+                  key={cityOption}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCity(cityOption);
+                    setCityQuery("");
+                    setSelected(cityOption);
+                    setIsCityOpen(false);
+                  }}
+                  className={`flex w-full items-center border-b border-black/5 px-4 py-3 text-left font-figtree text-[14px] transition-colors last:border-b-0 ${
+                    selectedCity === cityOption ? "bg-brand-subtle text-brand-950" : "text-brand-950 hover:bg-black/[0.03]"
+                  }`}
+                >
+                  {cityOption}
+                </button>
+              ));
+            })()}
+          </div>
+        )}
+      </div>
 
       <input
         ref={inputRef}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        placeholder="Enter pincode, locality, etc"
-        className="mt-3 w-full rounded-full border border-black/10 px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
+        placeholder="Search pincode, area, locality, or colony.."
+        className="mt-3 w-full rounded-xl border border-black/10 px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
       />
 
       {query.trim().length >= 1 && (
@@ -146,6 +291,29 @@ export default function LocationPickerModal({
             ))
           )}
         </div>
+      )}
+
+      <div className="mt-4 flex items-center gap-3">
+        <span className="h-px flex-1 bg-black/10" />
+        <span className="font-figtree text-[12px] font-medium text-neutral-tertiary">or</span>
+        <span className="h-px flex-1 bg-black/10" />
+      </div>
+
+      <button
+        type="button"
+        onClick={handleAutoDetect}
+        disabled={isDetecting}
+        className="mt-4 flex w-full items-center justify-center gap-2 font-figtree text-[14px] font-semibold text-brand-primary disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {isDetecting ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <LocateFixed className="h-4 w-4" />
+        )}
+        {isDetecting ? "Detecting your location…" : "Detect my location"}
+      </button>
+      {detectError && (
+        <p className="mt-2 text-center font-figtree text-[12px] text-error-700">{detectError}</p>
       )}
 
       <button

@@ -15,17 +15,24 @@ export interface CashfreeInstance {
 }
 
 /**
- * Must match whatever the BACKEND's own IS_DEV env var currently resolves
- * to (it picks sandbox vs production off that, independently of anything
- * here) — per pay-integrate.txt Step 4, this is an "ask the backend team
- * which environment is live" question, not something this app can derive
- * with certainty. NEXT_PUBLIC_IS_LOCAL is already set in .env for local dev
- * against the same backend, so it's reused as the best available proxy;
- * confirm with the backend team before relying on this for anything
- * customer-facing in a deployed environment.
+ * Must match whatever the BACKEND's own IS_DEV env var currently resolves to
+ * for THIS deployment — Cashfree's SDK rejects a sandbox paymentSessionId
+ * when initialized in production mode (and vice versa), so a mismatch here
+ * is a hard payment failure, not a cosmetic issue. This used to be derived
+ * from NEXT_PUBLIC_IS_LOCAL, which only happened to agree with the backend
+ * on localhost — on v2dev.eventory.in, NEXT_PUBLIC_IS_LOCAL was unset while
+ * the backend's IS_DEV=true, so the SDK loaded in "production" against a
+ * sandbox session id, producing exactly "payment_session_id_invalid"
+ * (2026-09-23 incident). Fixed by making this its own explicit,
+ * per-deployment variable instead of reusing one meant for something else —
+ * set NEXT_PUBLIC_CASHFREE_MODE=sandbox|production directly in each
+ * deployment's env, matching that deployment's backend IS_DEV value exactly.
+ * Defaults to "sandbox" (fails safe — a wrongly-sandboxed prod deploy is a
+ * blocked payment, not a real charge going through in the wrong mode) if the
+ * var is missing entirely.
  */
 function resolveCashfreeMode(): "sandbox" | "production" {
-  return process.env.NEXT_PUBLIC_IS_LOCAL === "true" ? "sandbox" : "production";
+  return process.env.NEXT_PUBLIC_CASHFREE_MODE === "production" ? "production" : "sandbox";
 }
 
 let cashfreePromise: Promise<CashfreeInstance> | null = null;
