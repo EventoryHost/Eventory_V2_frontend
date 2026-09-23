@@ -43,6 +43,9 @@ export interface RawBookingPackageSnapshot {
   variantType?: string;
 }
 
+/** Pending until the vendor decides; the timeline gates on this. */
+export type RawRequestStatus = "Pending" | "Accepted" | "Rejected";
+
 export interface RawCustomizeRequest {
   setupId: string;
   itemId: string;
@@ -52,6 +55,22 @@ export interface RawCustomizeRequest {
   type: string | null;
   colours: string[];
   volume: string | null;
+  /** The vendor's decision on this one item. Absent on bookings made before the field existed. */
+  status?: RawRequestStatus;
+}
+
+/**
+ * The older "customer asks to add/remove an item, vendor decides" list. A
+ * different shape from customizeRequests and kept separate backend-side,
+ * but it carries the same Pending/Accepted/Rejected decision, so the
+ * timeline has to honour both.
+ */
+export interface RawChangeRequest {
+  _id?: string;
+  changeType?: "Add" | "Remove";
+  category?: string;
+  item?: string;
+  status?: RawRequestStatus;
 }
 
 /**
@@ -199,6 +218,11 @@ export interface RawBookingListItem {
   totalReceived: number;
   amountDue: number;
   createdAt: string;
+  /** Only set once the vendor confirms — the one status timestamp the model keeps. */
+  confirmedAt?: string | null;
+  /** Both request lists, so the timeline can require "vendor accepted everything". */
+  changeRequests?: RawChangeRequest[];
+  customizeRequests?: RawCustomizeRequest[];
 }
 
 export interface RawBookingsResponse {

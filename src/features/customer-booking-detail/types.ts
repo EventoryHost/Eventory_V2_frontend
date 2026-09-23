@@ -1,10 +1,27 @@
 import type { RawBookingMilestone } from "@/lib/customerBookingApi";
 
+/** A vendor row nested under a journey step (the confirmation and event-ready states). */
+export interface BookingJourneyVendor {
+  id: string;
+  vendorName: string;
+  packageName: string;
+  variantLabel?: string;
+  image?: string;
+  timeLabel?: string;
+  /** Right-hand slot: a status pill, or a call to action. */
+  badge?: { label: string; tone: "pending" | "confirmed" | "declined" };
+  action?: { label: string; href: string };
+}
+
 /** One step of the event journey down the left of the page (node 1629:6665). */
 export interface BookingJourneyStep {
   id: string;
   title: string;
   description: string;
+  /** Rendered inside the step, as in the vendor-confirmation state. */
+  vendors?: BookingJourneyVendor[];
+  /** Right-aligned link on the step row ("Leave a review", "Pay advance 1"). */
+  action?: { label: string; href: string };
   /**
    * Only set where the API actually has a timestamp for the step — the
    * booking's creation and the event date. The steps in between change

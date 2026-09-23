@@ -6,7 +6,12 @@ import {
   type RawPolicySlot,
 } from "@/lib/customerBookingApi";
 import { formatAmount } from "@/features/customer-account/utils/groupBookings";
-import type { BookingDetailView, BookingJourneyStep, BookingPackageRow } from "../types";
+import type {
+  BookingDetailView,
+  BookingJourneyStep,
+  BookingJourneyVendor,
+  BookingPackageRow,
+} from "../types";
 
 /** Statuses the vendor hasn't acted on yet — the backend's PRE_ACCEPTANCE set. */
 const AWAITING_STATUSES: RawBookingListItem["status"][] = ["NewBooking", "Viewed", "InDiscussion"];
@@ -53,6 +58,61 @@ function policyOf(slot: RawPolicySlot | null) {
  * a date only where one really exists: createdAt, confirmedAt, and the event
  * date. The rest show none rather than an invented one.
  */
+/**
+ * True only when the vendor has settled EVERY request on this booking.
+ *
+ * A booking can sit at status "Confirmed" while the customer's
+ * add/remove/customise requests are still undecided — the vendor said yes
+ * to the booking but hasn't said yes to the changes. The confirmation step
+ * must not read as complete in that case, so both request lists are checked
+ * for a Pending entry. No requests (or an older booking that predates the
+ * fields) counts as settled.
+ */
+function vendorAcceptedEverything(row: RawBookingListItem): boolean {
+  const confirmed = row.status === "Confirmed" || row.status === "Completed";
+  if (!confirmed) return false;
+
+  return ![...(row.changeRequests ?? []), ...(row.customizeRequests ?? [])].some(
+    (request) => request.status === "Pending"
+  );
+}
+
+/** The per-vendor rows nested under the confirmation step. */
+function journeyVendors(group: RawBookingListItem[]): BookingJourneyVendor[] {
+  return group.map((row) => {
+    const settled = vendorAcceptedEverything(row);
+    const awaitingRequests = (row.status === "Confirmed" || row.status === "Completed") && !settled;
+    const declined = row.status === "Declined" || row.status === "Cancelled";
+
+    return {
+      id: row._id,
+      vendorName: vendorNameOf(row) ?? "Vendor",
+      packageName: row.packageSnapshot?.name ?? "Package",
+      variantLabel: row.packageSnapshot?.variantType ?? undefined,
+      image: row.packageSnapshot?.image ?? undefined,
+      // A vendor who confirmed but left requests undecided gets the call to
+      // action rather than a "confirmed" pill — that is the one case the
+      // customer can actually act on.
+      badge: settled
+        ? { label: "CONFIRMED", tone: "confirmed" as const }
+        : declined
+          ? { label: row.status.toUpperCase(), tone: "declined" as const }
+          : { label: "PENDING", tone: "pending" as const },
+      action: awaitingRequests
+        ? { label: "Review Proposal", href: `/bookings/${row.bookingId}` }
+        : undefined,
+    };
+  });
+}
+
+/**
+ * Builds the journey down the left of the page across the design's four
+ * states: booking started, vendor confirmation, event-ready/payments, and
+ * completion.
+ *
+ * The only status timestamps the model keeps are createdAt, confirmedAt and
+ * the event date, so a step carries a date only where one really exists.
+ */
 function buildJourney(
   group: RawBookingListItem[],
   bookedOn: string,
@@ -60,10 +120,14 @@ function buildJourney(
   confirmedAt: string | null
 ): BookingJourneyStep[] {
   const total = group.length;
-  const confirmed = group.filter((row) => row.status === "Confirmed" || row.status === "Completed").length;
+  const settled = group.filter(vendorAcceptedEverything).length;
   const tokenPaid = group.reduce((sum, row) => sum + (row.totalReceived || 0), 0);
-  const allConfirmed = total > 0 && confirmed === total;
+  const amountDue = group.reduce((sum, row) => sum + (row.amountDue || 0), 0);
+
+  // "Accepted everything", not merely "status is Confirmed".
+  const allSettled = total > 0 && settled === total;
   const eventPassed = new Date(eventDate).getTime() < Date.now();
+  const allCompleted = total > 0 && group.every((row) => row.status === "Completed");
 
   const steps: Omit<BookingJourneyStep, "state">[] = [
     {
@@ -76,19 +140,31 @@ function buildJourney(
     },
     {
       id: "confirmed",
-      title: "All vendors confirmed",
-      // Booking.confirmedAt is the one status timestamp the model keeps, and
-      // only for the booking this page was opened with — so it dates this
-      // step when the whole event is confirmed, and nothing else does.
-      date: allConfirmed && confirmedAt ? confirmedAt : undefined,
-      description: allConfirmed
-        ? `All ${total} ${total === 1 ? "vendor is" : "vendors are"} locked in for your event.`
-        : `${confirmed} of ${total} ${total === 1 ? "vendor has" : "vendors have"} confirmed so far.`,
+      // Titled by progress while in flight, by outcome once every request
+      // has been accepted — as the design does.
+      title: allSettled
+        ? "Event locked in, All requests accepted"
+        : `${settled} of ${total} ${total === 1 ? "Vendor" : "Vendors"} confirmed`,
+      date: allSettled && confirmedAt ? confirmedAt : undefined,
+      description: allSettled
+        ? "All the requests made to the vendor were accepted."
+        : `${settled} of ${total} confirmed. Waiting on the rest to accept every request.`,
+      // Expanded per-vendor list, as in the vendor-confirmation state.
+      vendors: allSettled ? undefined : journeyVendors(group),
+    },
+    {
+      id: "payments",
+      title: "Payments & schedule",
+      description: allSettled
+        ? "Your payment timeline is live."
+        : "Payment timeline will be decided once every request is accepted.",
+      action:
+        allSettled && amountDue > 0 ? { label: "Pay now", href: "#payment-timeline" } : undefined,
     },
     {
       id: "ready",
       title: "Getting event-ready",
-      description: "Tastings, trials and final coordination with each vendor.",
+      description: "Each vendor is preparing. Tastings, trials and final coordination.",
     },
     {
       id: "event-day",
@@ -98,7 +174,21 @@ function buildJourney(
     },
   ];
 
-  const doneCount = 1 + (allConfirmed ? 1 : 0) + (eventPassed ? 2 : 0);
+  if (allCompleted || (eventPassed && allSettled)) {
+    steps.push({
+      id: "completed",
+      title: "Event completed",
+      description: "Your event completed successfully.",
+      action: { label: "Leave a review", href: "#reviews" },
+    });
+  }
+
+  // Each stage gates the next: nothing past confirmation can be "done"
+  // until every vendor has accepted everything.
+  let doneCount = 1;
+  if (allSettled) doneCount += 2; // confirmation + payments unlock together
+  if (allSettled && eventPassed) doneCount += 2; // event-ready + event day
+  if (allCompleted) doneCount = steps.length;
 
   return steps.map((step, index) => ({
     ...step,
