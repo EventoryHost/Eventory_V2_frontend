@@ -179,6 +179,17 @@ export async function getFeaturedReviews(params: { limit?: number; minRating?: n
   return apiFetch<FeaturedReviewsResponse>(`/customer/reviews/featured${toQueryString(params)}`, { auth: false });
 }
 
+/**
+ * GET /customer/location/cities — the distinct city/district labels
+ * Eventory operates in, sourced from the same serviceablePincodes.json the
+ * PDP's location-serviceability check reads. Feeds the navbar location
+ * modal's district picker.
+ */
+export async function getServiceableCities() {
+  const response = await apiFetch<{ success: true; data: string[] }>("/customer/location/cities", { auth: false });
+  return response.data;
+}
+
 export interface BrowseVendorsParams {
   q?: string;
   vendorType?: string;
