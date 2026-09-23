@@ -77,7 +77,14 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "images.unsplash.com",
-      }
+      },
+      {
+        // Seen in real backend test/seed data (e.g. a promo card's image
+        // field set to a picsum.photos placeholder) — allowlisted so those
+        // real records render instead of crashing next/image.
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
     ],
   },
   env: {

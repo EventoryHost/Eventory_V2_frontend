@@ -61,8 +61,15 @@ export interface RawDecoratorAddOn {
     color?: string;
     dimensions?: { length?: number; breadth?: number; height?: number; unit?: string };
   };
-  /** Real structured field, parallel to Decorator setup items' `colors: string[]` — but confirmed always [] on every live add-on. Likely the intended fix for real per-addon color options once vendors populate it (flagged to backend). */
-  materialOptions?: string[];
+  /**
+   * Real structured field, parallel to Decorator setup items' `colors:
+   * string[]` — but its actual shape is `{material, price}[]` (a material
+   * variant with its own price), not plain strings like `colors`, confirmed
+   * against real backend data 2026-09-23. Previously always `[]` on every
+   * live add-on, which is why this was mistyped as `string[]` before any
+   * populated example existed.
+   */
+  materialOptions?: { material: string; price?: number }[];
   /** Per-addon caution/handling note the vendor can write (e.g. "Do not Damage") — confirmed present on at least one live add-on. */
   policy?: { writtenText?: string; files?: string[] };
 }

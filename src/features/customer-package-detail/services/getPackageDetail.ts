@@ -543,9 +543,12 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
     // every package, identical ("White, Red, Green") on every populated
     // add-on: an unedited form default, not real per-addon data. Shown as a
     // plain "Color" detail row instead until backend confirms it's real.
-    // materialOptions itself is confirmed always [] on live data today, so
-    // this is currently inert — wired ahead of the data actually landing.
-    const colourOptions = addon.materialOptions?.length ? mapColourOptions(addon.materialOptions) : undefined;
+    // materialOptions is `{material, price}[]`, not plain strings — pull out
+    // the material names before reusing the same name->swatch mapper as
+    // setup items' plain `colors: string[]`.
+    const colourOptions = addon.materialOptions?.length
+      ? mapColourOptions(addon.materialOptions.map((option) => option.material))
+      : undefined;
     if (!colourOptions && addon.physicalSpec?.color) {
       details.push({ label: "Color", value: addon.physicalSpec.color });
     }
