@@ -24,5 +24,11 @@ export default async function PackageDetail({
     throw error;
   }
 
-  return <PackageDetailPage data={data} editItemId={editItemId} />;
+  // key={packageId} forces React to unmount/remount PackageDetailPage on a
+  // client-side navigation between two packages, resetting its local state
+  // (vendorNote, workshop customizations, etc.) — without it, React reuses
+  // the same component instance since it's the same component type, so
+  // leftover state like a typed note silently carries over to the next
+  // package viewed in the same session.
+  return <PackageDetailPage key={packageId} data={data} editItemId={editItemId} />;
 }
