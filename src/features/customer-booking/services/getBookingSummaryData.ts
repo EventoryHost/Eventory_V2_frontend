@@ -129,6 +129,7 @@ function mapLine(
       image: addon.image,
     })),
     note: line.specialRequest,
+    noteAttachments: line.noteAttachments ?? [],
   };
 }
 

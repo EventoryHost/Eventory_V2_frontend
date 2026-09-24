@@ -65,6 +65,8 @@ export interface BookingServiceItem {
   addons: BookingAddon[];
   /** Raw cart item `specialRequest` text — editable via the "Vendor Notes" section. */
   note: string;
+  /** Image URLs attached to the note (RawCheckoutSessionLine.noteAttachments) — uploaded on the PDP and/or added here. */
+  noteAttachments: string[];
 }
 
 export interface BookingVendorGroup {

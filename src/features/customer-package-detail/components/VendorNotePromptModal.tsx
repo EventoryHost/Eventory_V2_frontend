@@ -3,7 +3,17 @@
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { Paperclip, X } from "lucide-react";
+import { Loader2, Paperclip, X } from "lucide-react";
+
+/** Uploads one file to the same S3 upload route the rest of the app uses (e.g. profile pictures) and returns its public URL. */
+async function uploadNoteAttachment(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch("/api/upload", { method: "POST", body: formData });
+  const data = await response.json();
+  if (!response.ok || !data.url) throw new Error(data.details || data.error || "Upload failed");
+  return data.url as string;
+}
 
 // Gate shown right before add-to-cart/booking when the customer hasn't left
 // a vendor note yet — lets them jot one down here (or attach a photo) without
@@ -17,7 +27,8 @@ export default function VendorNotePromptModal({
   isOpen: boolean;
   onClose: () => void;
   onSkip: () => void;
-  onSave: (note: string) => void;
+  /** attachments are already-uploaded S3 URLs, ready to send straight to the cart API's noteAttachments field. */
+  onSave: (note: string, attachments: string[]) => void;
 }) {
   if (typeof document === "undefined") return null;
 
@@ -58,16 +69,37 @@ function NotePromptForm({
   onSave,
 }: {
   onSkip: () => void;
-  onSave: (note: string) => void;
+  onSave: (note: string, attachments: string[]) => void;
 }) {
   const [note, setNote] = useState("");
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const canSave = note.trim().length > 0 && !isUploading;
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (file) setAttachedFiles((prev) => [...prev, file]);
     event.target.value = "";
+  }
+
+  async function handleSave() {
+    if (!canSave) return;
+    setUploadError(null);
+    if (attachedFiles.length === 0) {
+      onSave(note, []);
+      return;
+    }
+    setIsUploading(true);
+    try {
+      const urls = await Promise.all(attachedFiles.map(uploadNoteAttachment));
+      onSave(note, urls);
+    } catch {
+      setUploadError("Couldn't upload one or more images. Please try again.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   return (
@@ -111,6 +143,12 @@ function NotePromptForm({
             <div className="flex flex-wrap items-center gap-3">
               {attachedFiles.map((file, index) => (
                 <div key={`${file.name}-${index}`} className="relative h-[72px] w-[72px] overflow-hidden rounded-lg bg-neutral-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local File object preview, not a remote/optimizable src */}
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="h-full w-full object-cover"
+                  />
                   <button
                     type="button"
                     onClick={() => setAttachedFiles((prev) => prev.filter((_, i) => i !== index))}
@@ -124,6 +162,10 @@ function NotePromptForm({
             </div>
           </div>
         )}
+
+        {uploadError && (
+          <p className="font-figtree text-[12px] font-medium text-error-700">{uploadError}</p>
+        )}
       </div>
 
       <div className="flex items-center justify-end gap-4 border-t border-black/10 pt-4">
@@ -136,10 +178,12 @@ function NotePromptForm({
         </button>
         <button
           type="button"
-          onClick={() => onSave(note)}
-          className="rounded-full bg-brand-primary px-6 py-2.5 font-figtree text-[15px] font-semibold text-white transition hover:bg-rose-600"
+          onClick={handleSave}
+          disabled={!canSave}
+          className="flex items-center gap-2 rounded-full bg-brand-primary px-6 py-2.5 font-figtree text-[15px] font-semibold text-white transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:bg-black/10 disabled:text-white/70"
         >
-          Add now
+          {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {isUploading ? "Uploading…" : "Add now"}
         </button>
       </div>
     </div>

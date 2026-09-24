@@ -102,6 +102,7 @@ export default function StickyBookingCard({
   const [inCartItemId, setInCartItemId] = useState<string | null>(null);
   const [isNotePromptOpen, setIsNotePromptOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"cart" | "book" | null>(null);
+  const [vendorNoteAttachments, setVendorNoteAttachments] = useState<string[]>([]);
   const [conveniencePreview, setConveniencePreview] = useState<RawPdpConvenienceFee | null>(null);
   const router = useRouter();
   const { isLoggedIn } = useCustomerSession();
@@ -313,7 +314,7 @@ export default function StickyBookingCard({
     eventType && validEventDate && timingComplete && location.trim() && guestCountComplete
   );
 
-  function buildCartPayload(noteOverride?: string) {
+  function buildCartPayload(noteOverride?: string, noteAttachmentsOverride?: string[]) {
     const timeSlot =
       // The offered slot's value, rebuilt from the same "HH:MM - HH:MM" pair
       // it was split from — the server compares it against its own slots.
@@ -321,6 +322,7 @@ export default function StickyBookingCard({
         ? `${startTime} - ${endTime}`
         : undefined;
     const note = noteOverride ?? vendorNote;
+    const noteAttachments = noteAttachmentsOverride ?? vendorNoteAttachments;
     return {
       packageId,
       date: validEventDate ?? undefined,
@@ -329,6 +331,7 @@ export default function StickyBookingCard({
       eventType: eventType || undefined,
       guests: requiresGuestCount && validGuestCount ? parsedGuestCount : undefined,
       specialRequest: note || undefined,
+      noteAttachments: noteAttachments.length > 0 ? noteAttachments : undefined,
       selectedAddOns: selectedAddons.map((addon) => ({
         addOnId: addon.id,
         name: addon.title,
@@ -386,15 +389,15 @@ export default function StickyBookingCard({
     setCartError(error instanceof ApiError ? error.message : fallback);
   }
 
-  async function performAddToCart(noteOverride?: string) {
+  async function performAddToCart(noteOverride?: string, noteAttachmentsOverride?: string[]) {
     setCartError(null);
     setIsSubmitting(true);
     try {
       if (editItemId) {
-        await updateCartItem(editItemId, buildCartPayload(noteOverride));
+        await updateCartItem(editItemId, buildCartPayload(noteOverride, noteAttachmentsOverride));
         setInCartItemId(editItemId);
       } else {
-        const result = await addCartItem(buildCartPayload(noteOverride));
+        const result = await addCartItem(buildCartPayload(noteOverride, noteAttachmentsOverride));
         setInCartItemId(result.itemId);
       }
       setJustAdded(true);
@@ -406,14 +409,14 @@ export default function StickyBookingCard({
     }
   }
 
-  async function performBookClick(noteOverride?: string) {
+  async function performBookClick(noteOverride?: string, noteAttachmentsOverride?: string[]) {
     setCartError(null);
     setIsSubmitting(true);
     try {
       if (editItemId) {
-        await updateCartItem(editItemId, buildCartPayload(noteOverride));
+        await updateCartItem(editItemId, buildCartPayload(noteOverride, noteAttachmentsOverride));
       } else {
-        await addCartItem(buildCartPayload(noteOverride));
+        await addCartItem(buildCartPayload(noteOverride, noteAttachmentsOverride));
       }
       router.push("/cart");
     } catch (error) {
@@ -455,10 +458,10 @@ export default function StickyBookingCard({
     void performBookClick();
   }
 
-  function resolvePendingAction(noteOverride?: string) {
+  function resolvePendingAction(noteOverride?: string, noteAttachmentsOverride?: string[]) {
     setIsNotePromptOpen(false);
-    if (pendingAction === "cart") void performAddToCart(noteOverride);
-    if (pendingAction === "book") void performBookClick(noteOverride);
+    if (pendingAction === "cart") void performAddToCart(noteOverride, noteAttachmentsOverride);
+    if (pendingAction === "book") void performBookClick(noteOverride, noteAttachmentsOverride);
     setPendingAction(null);
   }
 
@@ -466,14 +469,19 @@ export default function StickyBookingCard({
     resolvePendingAction();
   }
 
-  function handleNotePromptSave(note: string) {
+  function handleNotePromptSave(note: string, attachments: string[]) {
     onVendorNoteChange(note);
-    resolvePendingAction(note);
+    setVendorNoteAttachments(attachments);
+    resolvePendingAction(note, attachments);
   }
 
   return (
     <div id="booking-card" className="relative">
-      <div className="sticky top-24 rounded-2xl border border-black/10 bg-white p-6 shadow-lg shadow-black/[0.04]">
+      {/* top-0 lets this card scroll all the way up under the fixed navbar
+          (z-50, 71.6px tall) instead of stopping below it — trades a slice
+          of the card's own top being covered for noticeably more of its
+          bottom (the Book Now button) staying inside the viewport. */}
+      <div className="sticky top-0 z-10 rounded-2xl border border-black/10 bg-white p-6 shadow-lg shadow-black/[0.04]">
         <button
           type="button"
           onClick={() => setIsBreakdownOpen(true)}
