@@ -65,6 +65,10 @@ export interface RawCheckoutSession {
    * so the two are allowed to differ and are never merged.
    */
   eventTiming?: { startTime?: string; endTime?: string };
+  /** "Add Alternate Coordinator" — one set for the whole order, day-of backup contact. Both null until the customer fills this in on the Contact page. */
+  alternateCoordinator?: { name?: string | null; phone?: string | null };
+  /** "Add GSTIN details for tax invoice" — optional, one set for the whole order. `number` is stored/validated uppercase. */
+  gstin?: { businessName?: string | null; number?: string | null };
   bookingNote: string;
   lines: RawCheckoutSessionLine[];
   lockedQuote: RawCartQuote | null;
@@ -145,6 +149,60 @@ export async function patchCheckoutSessionEventTiming(sessionId: string, params:
     method: "PATCH",
     auth: true,
     body: params,
+  });
+}
+
+export interface PatchAlternateCoordinatorParams {
+  /** Send only the field that changed — partial update, same as contact/event-timing. At least one of name/phone is required by the backend. */
+  name?: string;
+  /** 10-digit Indian mobile, no +91 prefix. */
+  phone?: string;
+}
+
+/** One alternate coordinator for the whole order (not per line) — Booking.alternateCoordinator on every Booking this session produces. */
+export async function patchCheckoutSessionAlternateCoordinator(
+  sessionId: string,
+  params: PatchAlternateCoordinatorParams
+) {
+  return apiFetch<RawCheckoutSessionResponse>(`/customer/checkout/session/${sessionId}/alternate-coordinator`, {
+    method: "PATCH",
+    auth: true,
+    body: params,
+  });
+}
+
+export interface PatchGstinParams {
+  /** Send only the field that changed. At least one of businessName/number is required by the backend. */
+  businessName?: string;
+  /** 15-character GSTIN — 400s if it doesn't match the real GSTIN shape (2-digit state code, 10-char PAN, entity code, "Z", checksum). */
+  number?: string;
+}
+
+/** Optional GSTIN for the tax invoice, one set for the whole order — Booking.gstin on every Booking this session produces. */
+export async function patchCheckoutSessionGstin(sessionId: string, params: PatchGstinParams) {
+  return apiFetch<RawCheckoutSessionResponse>(`/customer/checkout/session/${sessionId}/gstin`, {
+    method: "PATCH",
+    auth: true,
+    body: params,
+  });
+}
+
+/**
+ * Session-scoped "Booking Notes" write (Contact page's BookingNotesSection.tsx)
+ * — does NOT touch the cart, unlike customerCartApi.ts's setBookingNote,
+ * which this component previously (wrongly) called. That cart endpoint
+ * invalidates/cancels the customer's current checkout session as a side
+ * effect (every cart-mutating endpoint does — an edit there can no longer
+ * be reflected in an already-locked quote), which meant saving a note on
+ * the Contact page was cancelling the very session that page was working
+ * inside of — the real cause of "This checkout session is cancelled —
+ * start a new one" showing up repeatedly during checkout (found 2026-09-25).
+ */
+export async function patchCheckoutSessionBookingNote(sessionId: string, bookingNote: string) {
+  return apiFetch<RawCheckoutSessionResponse>(`/customer/checkout/session/${sessionId}/booking-note`, {
+    method: "PATCH",
+    auth: true,
+    body: { bookingNote },
   });
 }
 

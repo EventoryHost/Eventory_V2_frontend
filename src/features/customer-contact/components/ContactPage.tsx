@@ -129,9 +129,23 @@ export default function ContactPage() {
               initialEndTime={data?.eventTiming.endTime ?? ""}
               onSaved={refresh}
             />
-            <AlternateCoordinatorSection />
-            <BookingNotesSection />
-            <GstinToggleSection />
+            <AlternateCoordinatorSection
+              sessionId={data?.sessionId ?? ""}
+              initialName={data?.alternateCoordinator.name ?? ""}
+              initialPhone={data?.alternateCoordinator.phone ?? ""}
+              onSaved={refresh}
+            />
+            <BookingNotesSection
+              sessionId={data?.sessionId ?? ""}
+              initialNote={data?.bookingNote ?? ""}
+              onSaved={refresh}
+            />
+            <GstinToggleSection
+              sessionId={data?.sessionId ?? ""}
+              initialBusinessName={data?.gstin.businessName ?? ""}
+              initialGstin={data?.gstin.number ?? ""}
+              onSaved={refresh}
+            />
           </div>
 
           <div className="w-full lg:w-[424px] lg:shrink-0">

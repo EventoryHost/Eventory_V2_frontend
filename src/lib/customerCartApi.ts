@@ -179,7 +179,17 @@ export interface RawConvenienceFeeBreakdown {
 }
 
 export interface RawCartQuoteLine {
-  cartItemId: string;
+  /**
+   * Despite the name, the backend (cartPricingService.js) always calls this
+   * field `lineId`, never `cartItemId` — confirmed directly against the
+   * source. For a cart-sourced quote it happens to hold the CartItem._id;
+   * for a checkout session's lockedQuote (same shared type) it holds the
+   * CheckoutSessionLine._id instead. Was mistyped as `cartItemId` here,
+   * which made every `.cartItemId` lookup silently fail (real bug — see
+   * getBookingSummaryData.ts's mapMilestones/quoteLineByLineId, fixed
+   * 2026-09-24).
+   */
+  lineId: string;
   vendorId: string;
   packageId: string;
   available: boolean;

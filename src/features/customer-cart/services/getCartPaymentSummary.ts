@@ -61,7 +61,7 @@ export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: Car
   }
 
   const milestones: BookingPaymentMilestone[] = (quote?.lines ?? []).flatMap((quoteLine) => {
-    const serviceName = vendors.find((v) => v.id === quoteLine.cartItemId)?.package.title ?? "Package";
+    const serviceName = vendors.find((v) => v.id === quoteLine.lineId)?.package.title ?? "Package";
     return (quoteLine.milestones ?? []).map((milestone) => ({
       serviceName,
       title: milestone.title,
