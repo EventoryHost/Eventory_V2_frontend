@@ -16,8 +16,8 @@ export default function BookingSuccessSidebar({
     <div className="flex w-full flex-col gap-8 rounded-[16px] border border-[#E4E4E7] bg-white p-5 sm:p-6">
       <div className="flex flex-col gap-3">
         <Link
-          href="/dashboard/bookings"
-          className="flex w-full items-center justify-center rounded-full bg-[#F0596F] px-7 py-3 font-figtree text-[16px] font-semibold text-white"
+          href="/account/bookings"
+          className="flex w-full max-w-[441px] items-center justify-center rounded-full bg-[#F0596F] px-7 py-3 font-figtree text-[16px] font-semibold text-white"
         >
           Go to My Bookings
         </Link>

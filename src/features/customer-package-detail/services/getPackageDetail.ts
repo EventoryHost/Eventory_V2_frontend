@@ -34,6 +34,12 @@ import { formatPrice } from "../utils/formatPrice";
 
 export class PackageNotFoundError extends Error {}
 
+// The backend flag is Indoor | Outdoor | Both — "Both" reads oddly on its
+// own, so it's shown as "Indoor/Outdoor" everywhere setup type is displayed.
+function setupTypeLabel(value: string): string {
+  return value === "Both" ? "Indoor/Outdoor" : value;
+}
+
 function vendorOf(pkg: RawFullPackage): RawVendorPublic | null {
   return typeof pkg.vendorId === "object" ? pkg.vendorId : null;
 }
@@ -304,7 +310,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
     // field comment) — a previous pass here assumed no such field existed
     // at all and dropped this row entirely.
     if (setup.referenceStyle) {
-      details.push({ label: "Setup type", value: setup.referenceStyle });
+      details.push({ label: "Setup type", value: setupTypeLabel(setup.referenceStyle) });
     }
     const structuresDetail = buildListDetail("Structures Included", structures);
     if (structuresDetail) details.push(structuresDetail);
@@ -514,13 +520,20 @@ function formatDimensions(dimensions?: { length?: number; breadth?: number; heig
   return `${parts.join("×")}${unit ? ` ${unit}` : ""}`;
 }
 
+// Confirmed live on a real add-on's policy.writtenText — a generic,
+// package-wide delivery/payment boilerplate paragraph, not a real per-addon
+// caution (unlike genuine short notes like "Do not Damage", which stay).
+// Filtered out by exact match rather than dropping every policy.writtenText.
+const GENERIC_ADDON_POLICY_TEXT =
+  "We are committed to delivering the decoration setup and services as mentioned in the package, within the agreed timeline. Our team will ensure timely arrival and professional execution at the event venue. We request customers to provide timely access to the venue and complete payments as per the agreed payment schedule to ensure smooth and timely service execution.";
+
 function mapAddons(pkg: RawFullPackage): AddonItem[] {
   const addOns = pkg.step2_productsAndPricing?.addOns ?? [];
   return addOns.map((addon, i) => {
     // Every row here is only added when the vendor actually set that field —
     // no "—" placeholders standing in for missing data.
     const details: IncludedItemDetail[] = [];
-    if (addon.productUsage) details.push({ label: "Setup type", value: addon.productUsage });
+    if (addon.productUsage) details.push({ label: "Setup type", value: setupTypeLabel(addon.productUsage) });
     if (addon.quantity != null) details.push({ label: "Quantity", value: String(addon.quantity) });
     const dimensions = formatDimensions(addon.physicalSpec?.dimensions);
     if (dimensions) details.push({ label: "Dimensions", value: dimensions });
@@ -530,9 +543,12 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
     // every package, identical ("White, Red, Green") on every populated
     // add-on: an unedited form default, not real per-addon data. Shown as a
     // plain "Color" detail row instead until backend confirms it's real.
-    // materialOptions itself is confirmed always [] on live data today, so
-    // this is currently inert — wired ahead of the data actually landing.
-    const colourOptions = addon.materialOptions?.length ? mapColourOptions(addon.materialOptions) : undefined;
+    // materialOptions is `{material, price}[]`, not plain strings — pull out
+    // the material names before reusing the same name->swatch mapper as
+    // setup items' plain `colors: string[]`.
+    const colourOptions = addon.materialOptions?.length
+      ? mapColourOptions(addon.materialOptions.map((option) => option.material))
+      : undefined;
     if (!colourOptions && addon.physicalSpec?.color) {
       details.push({ label: "Color", value: addon.physicalSpec.color });
     }
@@ -547,7 +563,8 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
       price: addon.price ?? 0,
       unitLabel: addon.billingUnit ? `/${addon.billingUnit}` : "",
       description: addon.description,
-      warning: addon.policy?.writtenText,
+      warning:
+        addon.policy?.writtenText?.trim() === GENERIC_ADDON_POLICY_TEXT ? undefined : addon.policy?.writtenText,
       details,
       colourOptions,
     };
@@ -581,7 +598,6 @@ function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
 function mapVendor(pkg: RawFullPackage): VendorInfo {
   const vendor = vendorOf(pkg);
   const name = vendor?.pocName ?? "Vendor";
-  const slug = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType] ?? "";
   return {
     id: vendor?.id ?? "",
     initials: initialsOf(name),
@@ -589,9 +605,17 @@ function mapVendor(pkg: RawFullPackage): VendorInfo {
     businessName: name,
     rating: vendor?.rating ?? 0,
     verified: vendor?.isVerified ?? false,
-    eventsCount: Number(vendor?.bookingsPerYear) || vendor?.reviewsCount || 0,
-    yearsExperience: Number(vendor?.experience) || 0,
-    href: `/vendors${slug ? `?category=${slug}` : ""}`,
+    // parseInt, not Number: these are bucketed RANGE strings ("100 - 140",
+    // "8 - 12 years"), so Number() returned NaN and both values silently
+    // collapsed — "Years of Experience" never rendered at all. parseInt
+    // takes the lower bound, which is what "N+ Years" means.
+    eventsCount: parseInt(vendor?.bookingsPerYear ?? "", 10) || vendor?.reviewsCount || 0,
+    yearsExperience: parseInt(vendor?.experience ?? "", 10) || 0,
+    // The vendor's own profile. This used to point at the vendor LISTING
+    // filtered by category, because no per-vendor page existed when it was
+    // written — "Vendor info" dropped you on a grid of every vendor in that
+    // category instead of this one.
+    href: vendor?.id ? `/vendors/${vendor.id}` : "/vendors",
   };
 }
 
@@ -705,6 +729,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   return {
     id: pkg._id,
     categoryLabel: VENDOR_CATEGORIES.find((c) => c.id === slug)?.label ?? pkg.vendorType,
+    categorySlug: slug,
     categoryIcon: categoryMeta?.icon,
     categoryGradientFrom: categoryMeta?.gradientFrom,
     eventTags: eventCategories.slice(0, 3),
@@ -776,9 +801,13 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       // rounds to 614), disagreeing with what cart later asked for on the
       // exact same package.
       const gstAmount = Math.round((preGstTotal * gstPercent) / 100);
+      const tokenSettings =
+        pkg.bookingSettings?.paymentType === "Token" ? pkg.bookingSettings.token : undefined;
       return {
         gstPercent,
         tokenAmount: tokenAmountFor(pkg, preGstTotal + gstAmount),
+        tokenType: tokenSettings?.tokenType ?? null,
+        tokenValue: tokenSettings?.value ?? null,
         teamAndEquipmentCharge,
         teamAndEquipmentBillingUnit: pkg.step3_policiesAndCharges?.teamAndEquipment?.billingUnit,
         overtimeChargeRate: pkg.step3_policiesAndCharges?.overtimeCharges?.price ?? 0,

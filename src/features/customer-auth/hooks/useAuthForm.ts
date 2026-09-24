@@ -29,7 +29,7 @@ function hasLocalPassword(customer: Customer) {
 export function useAuthForm(onSuccess: (customer: Customer) => void, intent: "login" | "register" = "login") {
   const { login: storeSession, session: currentCustomer } = useCustomerSession();
 
-  const [step, setStep] = useState<AuthStep>("phone");
+  const [step, setStep] = useState<AuthStep>(intent === "login" ? "phone-password" : "phone");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");

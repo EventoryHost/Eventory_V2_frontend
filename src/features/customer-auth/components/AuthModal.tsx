@@ -1,13 +1,11 @@
 "use client";
 
 import { createPortal } from "react-dom";
-import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import type { AuthSuccessPayload } from "../types";
 import { useAuthForm } from "../hooks/useAuthForm";
 import AuthLogo from "./AuthLogo";
-import GoogleButton from "./GoogleButton";
 import AuthForm from "./AuthForm";
 
 export default function AuthModal({
@@ -19,7 +17,6 @@ export default function AuthModal({
   onClose: () => void;
   onAuthenticated?: (payload: AuthSuccessPayload) => void;
 }) {
-  const pathname = usePathname();
   const form = useAuthForm((payload) => {
     onAuthenticated?.(payload);
     onClose();
@@ -72,18 +69,6 @@ export default function AuthModal({
             </div>
 
             <div className="flex flex-col gap-5">
-              {(form.step === "phone" || form.step === "phone-password") && (
-                <>
-                  <GoogleButton onClick={() => form.handleGoogleLogin(pathname)} loading={form.loading} variant="primary" />
-
-                  <div className="flex items-center gap-3">
-                    <span className="h-px flex-1 bg-black/10" />
-                    <span className="font-figtree text-[12px] font-medium text-neutral-tertiary">or</span>
-                    <span className="h-px flex-1 bg-black/10" />
-                  </div>
-                </>
-              )}
-
               <AuthForm form={form} />
             </div>
           </motion.div>

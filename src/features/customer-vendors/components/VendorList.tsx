@@ -11,7 +11,7 @@ export default function VendorList({
   onToggleBookmark: (id: string) => void;
 }) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {vendors.map((vendor) => (
         <VendorListCard
           key={vendor.id}

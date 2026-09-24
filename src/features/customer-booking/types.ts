@@ -4,6 +4,8 @@
 // src/app/(checkout)/ share this one shape so the payment summary numbers
 // never drift between steps.
 
+import type { RawCustomizeRequest } from "@/lib/customerCheckoutApi";
+
 export interface BookingLineRow {
   label: string;
   value: string;
@@ -18,11 +20,20 @@ export interface BookingAddon {
   price: string;
   /** Raw per-unit price (pre-formatting) — used to compute the Price breakdown total. */
   amount: number;
+  /** Not yet persisted by the cart backend once an add-on is added to cart — see RawCartAddOn's doc comment in lib/customerCartApi.ts. Undefined today; wired ahead of that field landing. */
+  category?: string;
+  subCategory?: string;
+  color?: string;
+  image?: string;
 }
 
 export interface BookingServiceItem {
-  /** The checkout session's line _id (see services/getBookingSummaryData.ts) — the identifier for note edits (PATCH .../lines/:lineId). */
+  /** The checkout session's line _id (see services/getBookingSummaryData.ts) — the identifier for note edits (PATCH .../lines/:lineId). NOT the same id as the CartItem this line came from — see cartItemId below. */
   lineId: string;
+  /** The original CartItem._id this line was created from (RawCheckoutSessionLine.sourceCartItemId) — what "Edit Package" needs to reopen the PDP prefilled, same editItemId cart's own Edit Package link uses. Null if this session wasn't created from the cart. */
+  cartItemId: string | null;
+  /** Real, persisted PDP customize-item requests for this line — see RawCustomizeRequest's doc comment for why this is always [] today. */
+  customizeRequests: RawCustomizeRequest[];
   packageId: string;
   vendorId: string;
   image: string;
@@ -37,6 +48,8 @@ export interface BookingServiceItem {
   location: string;
   eventType?: string;
   cancellationNote: string;
+  /** Which refund tier cancellationNote's text reflects — same three-tier window used in cart's PackageInfo.tsx — or null when the note is actually an availability/bookability warning instead (already its own red text). */
+  cancellationTierStatus: "full" | "half" | "none" | null;
   price: string;
   packageStillAvailable: boolean;
   /**
@@ -52,6 +65,8 @@ export interface BookingServiceItem {
   addons: BookingAddon[];
   /** Raw cart item `specialRequest` text — editable via the "Vendor Notes" section. */
   note: string;
+  /** Image URLs attached to the note (RawCheckoutSessionLine.noteAttachments) — uploaded on the PDP and/or added here. */
+  noteAttachments: string[];
 }
 
 export interface BookingVendorGroup {
@@ -140,6 +155,13 @@ export interface BookingSummaryData {
   /** readyForPayment from the session response — every line's package is still Live and available. Safe to gate the Review step's own Continue button on, unlike canContinue. */
   readyForPayment: boolean;
   contact: BookingContactDetails;
+  /**
+   * When the event itself actually runs, as the customer tells the vendor —
+   * not any line's own booked slot (which can genuinely differ, e.g. a
+   * decorator's booked slot is when they work, not the event's own hours).
+   * "" until the customer sets it on the Contact page.
+   */
+  eventTiming: { startTime: string; endTime: string };
   vendorGroups: BookingVendorGroup[];
   paymentSummary: BookingPaymentSummary;
   /**

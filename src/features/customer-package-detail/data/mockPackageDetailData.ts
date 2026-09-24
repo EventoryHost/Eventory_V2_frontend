@@ -7,6 +7,7 @@ import { COLOUR_PALETTE, VOLUME_OPTIONS } from "./workshopCategories";
 export const mockPackageDetail: PackageDetail = {
   id: "marigold-stage-mandap",
   categoryLabel: "Decorator",
+  categorySlug: "decorator",
   categoryIcon: "/images/customer/decorator.png",
   vendorUnitName: "Welcome Decorators",
   eventTags: ["Wedding", "Anniversary", "Social Gathering"],
@@ -529,6 +530,8 @@ export const mockPackageDetail: PackageDetail = {
   pricing: {
     gstPercent: 18,
     tokenAmount: 5000,
+    tokenType: "Percentage",
+    tokenValue: 20,
     teamAndEquipmentCharge: 0,
     overtimeChargeRate: 0,
   },

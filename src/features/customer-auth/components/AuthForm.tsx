@@ -51,7 +51,7 @@ export default function AuthForm({
   } = form;
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       <AnimatePresence mode="wait">
         {step === "phone" && (
           <motion.div
@@ -64,7 +64,9 @@ export default function AuthForm({
           >
             {intent === "register" && (
               <label className="flex flex-col gap-1.5">
-                <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Your name</span>
+                <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                  What&apos;s your Name?
+                </span>
                 <input
                   type="text"
                   autoFocus
@@ -72,15 +74,17 @@ export default function AuthForm({
                   onChange={(event) => setName(event.target.value)}
                   placeholder="Full name"
                   autoComplete="name"
-                  className="rounded-xl border border-black/15 bg-white px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
+                  className="h-12 w-full rounded-full border border-[#E4E4E7] bg-white px-4 py-3.5 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
                 />
               </label>
             )}
 
             <label className="flex flex-col gap-1.5">
-              <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Mobile number</span>
-              <div className="flex items-center rounded-xl border border-black/15 bg-white focus-within:border-brand-primary">
-                <span className="border-r border-black/10 px-4 py-3 font-figtree text-[14px] font-medium text-neutral-secondary">
+              <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                Phone
+              </span>
+              <div className="flex h-12 items-center rounded-full border border-[#E4E4E7] bg-white focus-within:border-brand-primary">
+                <span className="border-r border-black/10 px-4 font-figtree text-[14px] font-medium text-neutral-secondary">
                   +91
                 </span>
                 <input
@@ -91,22 +95,26 @@ export default function AuthForm({
                   value={phone}
                   onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
                   placeholder="Mobile number"
-                  className="w-full rounded-r-xl bg-transparent px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none"
+                  className="h-full w-full rounded-r-full bg-transparent px-4 font-figtree text-[14px] text-brand-950 outline-none"
                 />
               </div>
             </label>
 
-            <p className="font-figtree text-[13px] text-neutral-secondary">
-              We&apos;ll text you a one-time code. New here? We&apos;ll set up your account automatically.
-            </p>
+            {intent !== "register" && (
+              <>
+                <p className="font-figtree text-[13px] text-neutral-secondary">
+                  We&apos;ll text you a one-time code. New here? We&apos;ll set up your account automatically.
+                </p>
 
-            <button
-              type="button"
-              onClick={switchToPasswordLogin}
-              className="self-start font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
-            >
-              Already set a password? Log in instead
-            </button>
+                <button
+                  type="button"
+                  onClick={switchToPasswordLogin}
+                  className="self-start font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
+                >
+                  Already set a password? Log in instead
+                </button>
+              </>
+            )}
           </motion.div>
         )}
 
@@ -117,38 +125,22 @@ export default function AuthForm({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 12 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col gap-3"
+            className="flex flex-col gap-8"
           >
-            <div className="flex items-center justify-between">
-              <p className="font-figtree text-[13px] text-neutral-secondary">
-                OTP sent to <span className="font-semibold text-brand-950">+91 {phone}</span>
-              </p>
-              <button
-                type="button"
-                onClick={switchToPhoneEntry}
-                className="font-figtree text-[12px] font-semibold text-brand-primary hover:underline"
-              >
-                Change
-              </button>
-            </div>
-
             <OtpInputGroup value={otp} onChange={setOtp} hasError={Boolean(error)} />
 
-            <div>
-              {resendTimer > 0 ? (
-                <span className="font-figtree text-[12px] text-neutral-tertiary">
-                  Resend OTP in {resendTimer}s
-                </span>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResendOtp}
-                  disabled={loading}
-                  className="font-figtree text-[12px] font-semibold text-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Resend OTP
-                </button>
-              )}
+            <div className="flex items-center justify-between">
+              <span className="font-figtree text-[14px] text-neutral-tertiary">
+                {resendTimer > 0 ? `Resend in ${resendTimer} s` : "Didn't get it?"}
+              </span>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={loading || resendTimer > 0}
+                className="font-figtree text-[14px] font-semibold text-brand-primary hover:underline disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Resend
+              </button>
             </div>
           </motion.div>
         )}
@@ -160,47 +152,45 @@ export default function AuthForm({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 12 }}
             transition={{ duration: 0.2 }}
-            className="flex flex-col gap-4"
+            className="flex flex-col gap-8"
           >
-            <p className="font-figtree text-[13px] text-neutral-secondary">
-              Set a password so you can log in faster next time — optional, you can always use OTP instead.
+            <p className="font-figtree text-[14px] leading-[20px] text-[#9F9FA9]">
+              Set a password so you can log in faster next time without the need for OTP.
             </p>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-                autoFocus
-                className="rounded-xl border border-black/15 bg-white px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
-              />
-            </label>
+            <div className="flex flex-col gap-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                  Password
+                </span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                  autoFocus
+                  className="h-12 w-full rounded-full border border-[#E4E4E7] bg-white px-4 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
+                />
+              </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Confirm password</span>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-                placeholder="Re-enter your password"
-                autoComplete="new-password"
-                className="rounded-xl border border-black/15 bg-white px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
-              />
-            </label>
-            {passwordMismatch && (
-              <p className="-mt-2 font-figtree text-[12px] text-error-700">Passwords don&apos;t match.</p>
-            )}
-
-            <button
-              type="button"
-              onClick={handleSkipSetPassword}
-              className="self-start font-figtree text-[12px] font-semibold text-neutral-tertiary hover:underline"
-            >
-              Skip for now
-            </button>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                  Confirm password
+                </span>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Re-enter your password"
+                  autoComplete="new-password"
+                  className="h-12 w-full rounded-full border border-[#E4E4E7] bg-white px-4 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
+                />
+              </label>
+              {passwordMismatch && (
+                <p className="font-figtree text-[12px] text-error-700">Passwords don&apos;t match.</p>
+              )}
+            </div>
           </motion.div>
         )}
 
@@ -214,9 +204,11 @@ export default function AuthForm({
             className="flex flex-col gap-4"
           >
             <label className="flex flex-col gap-1.5">
-              <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Mobile number</span>
-              <div className="flex items-center rounded-xl border border-black/15 bg-white focus-within:border-brand-primary">
-                <span className="border-r border-black/10 px-4 py-3 font-figtree text-[14px] font-medium text-neutral-secondary">
+              <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                Phone
+              </span>
+              <div className="flex h-12 items-center rounded-full border border-[#E4E4E7] bg-white focus-within:border-brand-primary">
+                <span className="border-r border-black/10 px-4 font-figtree text-[14px] font-medium text-neutral-secondary">
                   +91
                 </span>
                 <input
@@ -227,44 +219,70 @@ export default function AuthForm({
                   value={phone}
                   onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0, 10))}
                   placeholder="Mobile number"
-                  className="w-full rounded-r-xl bg-transparent px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none"
+                  className="h-full w-full rounded-r-full bg-transparent px-4 font-figtree text-[14px] text-brand-950 outline-none"
                 />
               </div>
             </label>
 
-            <label className="flex flex-col gap-1.5">
-              <span className="font-figtree text-[13px] font-semibold text-neutral-secondary">Password</span>
-              <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                className="rounded-xl border border-black/15 bg-white px-4 py-3 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
-              />
-            </label>
+            <div className="flex flex-col gap-1.5">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-figtree text-[14px] leading-[20px] font-medium tracking-[-0.02em] text-[#71717B]">
+                  Password
+                </span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  placeholder="Enter your password"
+                  autoComplete="current-password"
+                  className="h-12 w-full rounded-full border border-[#E4E4E7] bg-white px-4 font-figtree text-[14px] text-brand-950 outline-none focus:border-brand-primary"
+                />
+              </label>
 
-            <button
-              type="button"
-              onClick={switchToPhoneEntry}
-              className="self-start font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
-            >
-              Forgot password? Log in with OTP instead
-            </button>
+              <button
+                type="button"
+                onClick={switchToPhoneEntry}
+                className="self-end font-figtree text-[13px] font-semibold text-brand-primary hover:underline"
+              >
+                Forgot your password ?
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {error && <p className="font-figtree text-[12px] font-medium text-error-700">{error}</p>}
+      {error && <p className="mt-4 font-figtree text-[12px] font-medium text-error-700">{error}</p>}
 
       <button
         type="button"
         onClick={handleContinue}
         disabled={!canContinue || loading}
-        className="mt-1 flex w-full items-center justify-center rounded-xl bg-brand-primary py-3 font-figtree text-[15px] font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        className={`flex h-12 w-full items-center justify-center rounded-full bg-brand-primary py-3 font-figtree text-[15px] font-bold text-white transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:bg-[#F4F4F5] disabled:text-[#9F9FA9] ${
+          step === "phone-password" ? "mt-6" : "mt-10"
+        }`}
       >
         {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : CONTINUE_LABEL[step]}
       </button>
+
+      {step === "phone-password" && (
+        <button
+          type="button"
+          onClick={switchToPhoneEntry}
+          className="mt-3 flex h-12 w-full items-center justify-center rounded-full border border-brand-primary font-figtree text-[15px] font-bold text-brand-primary transition-colors hover:bg-brand-subtle"
+        >
+          Log In with OTP
+        </button>
+      )}
+
+      {step === "set-password" && (
+        <button
+          type="button"
+          onClick={handleSkipSetPassword}
+          className="mt-4 self-center font-figtree text-[14px] font-semibold text-brand-primary hover:underline"
+        >
+          Skip
+        </button>
+      )}
     </div>
   );
 }

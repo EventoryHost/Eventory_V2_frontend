@@ -30,6 +30,19 @@ export function getCancellationTiers(eventDateIso: string): CancellationTiers | 
   };
 }
 
+export type CancellationTierStatus = "full" | "half" | "none";
+
+// Which tier "now" actually falls into — the tiers themselves are fixed cutoff
+// dates computed once off the event date, but which one applies changes as
+// time passes. Callers must check this instead of always showing
+// fullRefundCutoff, which goes stale (and misleadingly still reads as "free
+// cancellation" in green) the moment that date is in the past.
+export function getCancellationTierStatus(tiers: CancellationTiers, now: Date = new Date()): CancellationTierStatus {
+  if (now < tiers.fullRefundCutoff) return "full";
+  if (now < tiers.halfRefundCutoff) return "half";
+  return "none";
+}
+
 export function formatShortDate(date: Date): string {
   return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }

@@ -18,6 +18,19 @@ export type ProductCardProps = {
   categoryGradientFrom?: string;
   categoryGradientTo?: string;
   href?: string;
+  /**
+   * Carousels give this card a fixed 316px slot; a responsive grid (the
+   * vendor profile's package section) sizes it from the outside instead.
+   * Defaults to the fixed width so every existing caller is unchanged.
+   */
+  fullWidth?: boolean;
+  /**
+   * Bookmark wiring. The button renders either way — without a handler it
+   * stays the inert placeholder it has always been, so callers that don't
+   * manage wishlist state keep their current behaviour.
+   */
+  isBookmarked?: boolean;
+  onToggleBookmark?: () => void;
 };
 
 function formatTags(tags: string[]) {
@@ -43,34 +56,44 @@ export default function ProductCard({
   categoryGradientFrom = "#FFE5E9",
   categoryGradientTo = "#ffffff",
   href = "/packages",
+  fullWidth = false,
+  isBookmarked = false,
+  onToggleBookmark,
 }: ProductCardProps) {
   return (
     <Link
       href={href}
-      className="block w-[316px] overflow-hidden rounded-2xl border border-black/5 bg-white"
+      className={`block overflow-hidden rounded-2xl border border-black/5 bg-white ${
+        fullWidth ? "w-full" : "w-[316px]"
+      }`}
     >
       {/* Image */}
-      <div className="relative h-[191px] w-[316px]">
+      <div className="relative h-[191px] w-full">
         <Image src={image} alt={title} fill className="object-cover" />
         <button
           type="button"
-          aria-label="Save"
+          aria-label={isBookmarked ? `Remove ${title} from saved` : `Save ${title}`}
+          aria-pressed={isBookmarked}
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
+            onToggleBookmark?.();
           }}
           className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/20 backdrop-blur-md"
         >
-          <Bookmark className="h-4 w-4 text-white backdrop-blur-sm" />
+          <Bookmark
+            className="h-4 w-4 text-white backdrop-blur-sm"
+            fill={isBookmarked ? "currentColor" : "none"}
+          />
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex w-[316px] flex-col gap-5 p-4">
+      <div className="flex w-full flex-col gap-5 p-4">
         {/* Category badge + tags */}
         <div className="flex items-center gap-3">
           <div
-            className="flex w-[132px] shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
+            className="flex w-fit shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
             style={{
               background: `linear-gradient(to left, ${categoryGradientFrom}, ${categoryGradientTo})`,
             }}
@@ -82,7 +105,7 @@ export default function ProductCard({
               height={16}
               className="h-4 w-4 rounded-full object-contain"
             />
-            <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap">
+            <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap uppercase">
               {categoryLabel}
             </span>
           </div>
@@ -111,14 +134,17 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* Duration / guests */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-[#71717B]" />
-            <span className="font-figtree text-[14px] font-medium text-[#71717B]">
-              {duration}
-            </span>
-          </div>
+        {/* Duration / guests — each hidden when the vendor left it unset,
+            rather than rendering an icon next to a bare em dash. */}
+        <div className="flex items-center gap-6 empty:hidden">
+          {duration !== "—" && (
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#71717B]" />
+              <span className="font-figtree text-[14px] font-medium text-[#71717B]">
+                {duration}
+              </span>
+            </div>
+          )}
           {guestCapacity !== "—" && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-[#71717B]" />

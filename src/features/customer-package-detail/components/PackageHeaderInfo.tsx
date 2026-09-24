@@ -31,6 +31,7 @@ export default function PackageHeaderInfo({
     | "categoryGradientFrom"
     | "eventTags"
     | "moreEventTagsCount"
+    | "eventCategories"
     | "title"
     | "instantBooking"
     | "vendorName"
@@ -48,6 +49,7 @@ export default function PackageHeaderInfo({
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
   const [isLocationExpanded, setIsLocationExpanded] = useState(false);
+  const [isEventTagsExpanded, setIsEventTagsExpanded] = useState(false);
   const hasMoreLocation = data.fullLocationSummary !== data.locationSummary;
   const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -58,7 +60,11 @@ export default function PackageHeaderInfo({
     let cancelled = false;
     getWishlist()
       .then((res) => {
-        if (!cancelled) setSavedItemId(res.items.find((item) => item.packageId === data.id)?._id ?? null);
+        // packageId comes back POPULATED from GET /customer/wishlist, so this
+        // has to compare its _id — comparing the object to a string id was
+        // always false, leaving the Save button permanently "not saved".
+        if (!cancelled)
+          setSavedItemId(res.items.find((item) => item.packageId?._id === data.id)?._id ?? null);
       })
       .catch(() => {
         // Best-effort — the Save button just falls back to its "not saved" state.
@@ -113,12 +119,21 @@ export default function PackageHeaderInfo({
         </div>
         <span className="h-4 w-px shrink-0 bg-black/10" />
         <span className="font-figtree text-[13px] font-medium text-[#B4112A]">
-          {data.eventTags.map(dotSeparated).join(" • ")}
+          {(isEventTagsExpanded ? data.eventCategories : data.eventTags).map(dotSeparated).join(" • ")}
           {data.moreEventTagsCount > 0 && (
             <>
-              {" "}and{" "}
-              <button type="button" className="underline">
-                {data.moreEventTagsCount} more events
+              {!isEventTagsExpanded && (
+                <>
+                  {" "}and{" "}
+                </>
+              )}
+              {" "}
+              <button
+                type="button"
+                onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
+                className="underline"
+              >
+                {isEventTagsExpanded ? "Show less" : `${data.moreEventTagsCount} more events`}
               </button>
             </>
           )}

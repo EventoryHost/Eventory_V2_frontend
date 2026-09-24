@@ -1,6 +1,18 @@
 import { apiFetch } from "./apiClient";
-import type { RawCartAddOn, RawCartAvailability, RawCartEventDetails, RawCartQuote, RawCartSelectedItem } from "./customerCartApi";
+import type {
+  RawCartAddOn,
+  RawCartAvailability,
+  RawCartEventDetails,
+  RawCartQuote,
+  RawCartSelectedItem,
+  RawCustomizeRequest,
+} from "./customerCartApi";
 import { clearCheckoutSessionId, getCheckoutSessionId } from "./checkoutSession";
+
+// Re-exported so existing importers of RawCustomizeRequest from this module
+// don't need to change — the type itself now lives in customerCartApi.ts
+// since checkout/booking shapes reuse the cart's own raw types.
+export type { RawCustomizeRequest };
 
 // Raw shapes returned by /api/customer/checkout/session/* — see book-api.pdf
 // ("Booking Flow — API Handoff"). session.lockedQuote and the line
@@ -9,6 +21,17 @@ import { clearCheckoutSessionId, getCheckoutSessionId } from "./checkoutSession"
 
 export interface RawCheckoutSessionLine {
   _id: string;
+  customizeRequests?: RawCustomizeRequest[];
+  /**
+   * The CartItem._id this line was created from (source:"cart" sessions) —
+   * distinct from this line's own _id, which is a fresh id the checkout
+   * session generates for itself (confirmed against
+   * Eventory_V2_backend/src/controllers/customerCheckoutController.js's
+   * createCheckoutSession). "Edit Package" from booking summary needs THIS
+   * id (the same one cart's own PDP editItemId link uses) — lineId is the
+   * wrong id for that and silently produced a no-op prefill fetch.
+   */
+  sourceCartItemId?: string | null;
   vendorId: string;
   packageId: string;
   packageGroupId?: string;
@@ -24,6 +47,8 @@ export interface RawCheckoutSessionLine {
   selectedAddOns: RawCartAddOn[];
   selectedItems: RawCartSelectedItem[];
   specialRequest: string;
+  /** Image URLs attached to this line's "Notes for vendor" — same field carried over from the CartItem this line was created from (CheckoutSessionLineSchema.noteAttachments). */
+  noteAttachments?: string[];
   quantity: number;
 }
 
@@ -32,6 +57,14 @@ export interface RawCheckoutSession {
   status: "Active" | "Expired" | "Completed" | "Cancelled";
   expiresAt: string;
   contactDetails: { name?: string; phone?: string; email?: string };
+  /**
+   * "HH:MM" 24h, one value for the whole order (not per vendor line) — when
+   * the event itself actually runs, as the customer tells the vendor.
+   * Distinct from each line's own booked slot (eventDetails.timeSlot) —
+   * a decorator's booked slot is when they work, not when the event runs,
+   * so the two are allowed to differ and are never merged.
+   */
+  eventTiming?: { startTime?: string; endTime?: string };
   bookingNote: string;
   lines: RawCheckoutSessionLine[];
   lockedQuote: RawCartQuote | null;
@@ -100,8 +133,24 @@ export async function patchCheckoutSessionContact(sessionId: string, params: Pat
   });
 }
 
+export interface PatchCheckoutEventTimingParams {
+  /** "HH:MM" 24h. Send only the field that changed — this is a partial update, same as contact. */
+  startTime?: string;
+  endTime?: string;
+}
+
+/** 400s if the resulting end isn't after start (checked against whatever's already saved too, not just this request). */
+export async function patchCheckoutSessionEventTiming(sessionId: string, params: PatchCheckoutEventTimingParams) {
+  return apiFetch<RawCheckoutSessionResponse>(`/customer/checkout/session/${sessionId}/event-timing`, {
+    method: "PATCH",
+    auth: true,
+    body: params,
+  });
+}
+
 export interface PatchCheckoutLineParams {
   specialRequest?: string;
+  noteAttachments?: string[];
 }
 
 export async function patchCheckoutSessionLine(sessionId: string, lineId: string, params: PatchCheckoutLineParams) {

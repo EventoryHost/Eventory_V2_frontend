@@ -14,10 +14,10 @@ export default function BookingHeroBanner({
 }: BookingHeroBannerProps) {
   return (
     <section
-      className="relative w-full overflow-hidden rounded-b-[32px] sm:rounded-b-[48px]"
+      className="relative flex w-full items-center overflow-hidden rounded-b-[32px] sm:rounded-b-[48px] lg:min-h-[435px]"
       style={{ background: "linear-gradient(180deg, white 0%, #FDEEF0 100%)" }}
     >
-      <div className="mx-auto flex w-full max-w-[1320px] flex-col items-start gap-10 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-16 lg:py-20">
+      <div className="mx-auto flex w-full max-w-[1320px] flex-col items-start gap-10 px-4 py-12 sm:px-6 lg:flex-row lg:items-center lg:gap-8 lg:px-16 lg:py-10">
         <div className="flex w-full flex-col items-start gap-5 lg:max-w-[692px]">
           <AnimatedCheckBadge />
 
@@ -41,7 +41,7 @@ export default function BookingHeroBanner({
 
         <div className="relative aspect-square w-full max-w-[420px] shrink-0 self-center lg:max-w-[420px]">
           <Image
-            src="/images/customer/ready-1.png"
+            src="/images/customer/success.png"
             alt="Excited customers celebrating"
             fill
             className="rounded-[32px] object-cover"

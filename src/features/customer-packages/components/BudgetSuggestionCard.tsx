@@ -26,7 +26,7 @@ export default function BudgetSuggestionCard({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="font-figtree text-[13px] font-bold text-brand-950">{suggestion.vendorLabel}</p>
+        <p className="font-figtree text-[13px] font-bold text-brand-950">{suggestion.title}</p>
         <p className="truncate font-figtree text-[11px] text-neutral-tertiary">{suggestion.description}</p>
         <p className="font-figtree text-[12px] font-medium text-brand-950/70">
           {formatStartingPackagePrice(suggestion.priceFrom)}

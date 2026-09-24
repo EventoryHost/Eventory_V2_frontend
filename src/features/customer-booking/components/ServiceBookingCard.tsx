@@ -15,6 +15,7 @@ import {
 import ServiceDetailsModal from "./ServiceDetailsModal";
 import AddOnRow from "./AddOnRow";
 import type { BookingAddon } from "../types";
+import type { RawCustomizeRequest } from "@/lib/customerCheckoutApi";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
@@ -22,6 +23,8 @@ export type ServiceBookingCardProps = {
   packageId?: string;
   sessionId?: string;
   lineId?: string;
+  /** The CartItem._id this line came from — what "Edit Package" needs (lineId is a different, checkout-session-only id). Null/undefined if this session wasn't created from the cart. */
+  cartItemId?: string | null;
   image: string;
   categoryLabel: string;
   categoryIcon: string;
@@ -34,10 +37,14 @@ export type ServiceBookingCardProps = {
   location: string;
   eventType?: string;
   cancellationNote: string;
+  /** Which refund tier cancellationNote reflects — same three-tier color coding as cart's PackageInfo.tsx. Null when the note is an availability/bookability warning instead (already red via isBookable). */
+  cancellationTierStatus?: "full" | "half" | "none" | null;
   isBookable?: boolean;
   price: string;
   addons?: BookingAddon[];
   note?: string;
+  noteAttachments?: string[];
+  customizeRequests?: RawCustomizeRequest[];
   onUpdated?: () => void;
 };
 
@@ -45,6 +52,7 @@ export default function ServiceBookingCard({
   packageId,
   sessionId,
   lineId,
+  cartItemId,
   image,
   categoryLabel,
   categoryIcon,
@@ -57,10 +65,13 @@ export default function ServiceBookingCard({
   location,
   eventType,
   cancellationNote,
+  cancellationTierStatus = null,
   isBookable = true,
   price,
   addons = [],
   note = "",
+  noteAttachments = [],
+  customizeRequests = [],
   onUpdated,
 }: ServiceBookingCardProps) {
   const [isAddonsOpen, setIsAddonsOpen] = useState(false);
@@ -94,7 +105,11 @@ export default function ServiceBookingCard({
             </div>
 
             <Link
-              href="/cart"
+              // Same editItemId pattern cart's own "Edit Package" uses
+              // (getCartPageData.ts's href) — reopens the PDP prefilled from
+              // this exact line instead of just dumping the customer on
+              // /cart with nothing pre-selected.
+              href={packageId && cartItemId ? `/packages/${packageId}?editItemId=${cartItemId}` : "/cart"}
               className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#3F3F47]"
             >
               <Pencil size={14} />
@@ -135,7 +150,13 @@ export default function ServiceBookingCard({
 
           <p
             className={`font-figtree text-[14px] font-medium leading-[22px] ${
-              isBookable ? "text-[#008236]" : "text-[#B91C1C]"
+              !isBookable
+                ? "text-[#B91C1C]"
+                : cancellationTierStatus === "half"
+                  ? "text-amber-600"
+                  : cancellationTierStatus === "none"
+                    ? "text-red-600"
+                    : "text-[#008236]"
             }`}
           >
             {cancellationNote}
@@ -178,10 +199,12 @@ export default function ServiceBookingCard({
           {addons.map((addon) => (
             <AddOnRow
               key={addon.id}
-              image={FALLBACK_IMAGE}
+              image={addon.image || FALLBACK_IMAGE}
               name={addon.name}
               quantity={addon.quantity}
               price={addon.price}
+              category={[addon.category, addon.subCategory].filter(Boolean).join(" · ") || undefined}
+              attributes={addon.color ? [{ label: "Color", value: addon.color }] : undefined}
             />
           ))}
         </div>
@@ -191,6 +214,7 @@ export default function ServiceBookingCard({
         packageId={packageId}
         sessionId={sessionId}
         lineId={lineId}
+        cartItemId={cartItemId}
         vendorName={vendorName}
         serviceName={serviceName}
         packageTier={packageTier}
@@ -201,6 +225,8 @@ export default function ServiceBookingCard({
         price={price}
         addons={addons}
         note={note}
+        noteAttachments={noteAttachments}
+        customizeRequests={customizeRequests}
         onNoteSaved={onUpdated}
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}

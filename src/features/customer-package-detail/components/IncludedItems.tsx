@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
-import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
+import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import PlaceholderMedia from "./PlaceholderMedia";
 import SectionHeading from "./SectionHeading";
 import CustomizeWorkshopModal from "./CustomizeWorkshopModal";
@@ -13,12 +13,14 @@ import IncludedItemImageModal from "./IncludedItemImageModal";
 export default function IncludedItems({
   items,
   notIncluded = [],
+  workshop,
 }: {
   items: IncludedItemEntry[];
   /** Real, vendor-authored exclusions (step2_productsAndPricing.notIncluded) — the footer bar only renders when there's something real to reveal. */
   notIncluded?: string[];
+  /** Lifted to PackageDetailPage so StickyBookingCard's add-to-cart call can also read workshop.requests — this used to be owned entirely inside this component, which meant the customize-items requests never reached the cart payload at all. */
+  workshop: UseCustomizeWorkshopResult;
 }) {
-  const workshop = useCustomizeWorkshop(items);
   const [activeSetupId, setActiveSetupId] = useState<string | null>(null);
   const activeSetup = items.find((setup) => setup.id === activeSetupId) ?? null;
   const [isExclusionsOpen, setIsExclusionsOpen] = useState(false);
@@ -51,11 +53,11 @@ export default function IncludedItems({
             // the customer customizes, rather than a fixed count baked in
             // at load.
             const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
-            // The checklist below (unlike the modal's per-item attribute
-            // cards) is meant to reflect what's actually in the setup right
-            // now — added/removed items and quantity changes — so it reads
-            // the workshop's live items, not the original setup.items.
-            const liveItems = workshop.itemsBySetup[setup.id] ?? setup.items;
+            // The checklist stays exactly as the vendor listed it — customer
+            // edits made in "Customize items" are requests, shown only in the
+            // modal's "Your requests" list and the customisations chip below,
+            // never applied to this list.
+            const liveItems = setup.items;
             return (
             <div
               key={setup.id}
@@ -131,12 +133,19 @@ export default function IncludedItems({
                 <button
                   type="button"
                   onClick={() => setActiveSetupId(setup.id)}
-                  className="flex shrink-0 items-center gap-1.5 self-start rounded-full border border-black/15 px-3.5 py-2 font-figtree text-[13px] font-medium text-brand-950 transition hover:bg-black/5"
+                  className="flex shrink-0 items-center gap-1.5 self-start rounded-full border border-[#F0596F] px-3.5 py-2 font-figtree text-[13px] font-medium text-[#F0596F] transition hover:bg-black/5"
                 >
-                  {/* next/image blocks local SVGs without dangerouslyAllowSVG
-                      set (not set in this project) — plain img sidesteps
-                      that, same as hero-bg.svg/nav-logo.svg elsewhere. */}
-                  <img src="/images/customer/viewsetup.svg" alt="" className="h-3.5 w-3.5" />
+                  {/* The icon file has a hard-coded dark fill, so it's used
+                      as a CSS mask over currentColor to pick up the button's
+                      pink — same 14px size as before. */}
+                  <span
+                    aria-hidden
+                    className="h-3.5 w-3.5 bg-current"
+                    style={{
+                      WebkitMask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                      mask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                    }}
+                  />
                   View setup
                 </button>
               </div>

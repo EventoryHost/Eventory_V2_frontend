@@ -23,6 +23,7 @@ export default function SearchDropdown({
   placeholder,
   matchTriggerWidth = false,
   triggerId,
+  variant = "filled",
 }: {
   label: string;
   value: string;
@@ -38,6 +39,8 @@ export default function SearchDropdown({
   matchTriggerWidth?: boolean;
   /** Passed to the trigger button — lets callers `getElementById(...).focus()` it, e.g. to draw attention after a "fill this in" CTA. */
   triggerId?: string;
+  /** "filled" is the hero search bar's grey pill; "outlined" is the PDP booking card's 44px bordered field with a 14px medium label above it. */
+  variant?: "filled" | "outlined";
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,17 +56,33 @@ export default function SearchDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
+  const hasSelection = options.some((option) => option.value === value);
   const selectedLabel = options.find((option) => option.value === value)?.label ?? placeholder;
+  const isOutlined = variant === "outlined";
 
   return (
     <div ref={containerRef} className="relative flex-1">
-      <label className="mb-2 block text-[14px] font-semibold text-brand-950">{label}</label>
+      <label
+        className={
+          isOutlined
+            ? "mb-1.5 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]"
+            : "mb-2 block text-[14px] font-semibold text-brand-950"
+        }
+      >
+        {label}
+      </label>
       <button
         id={triggerId}
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
-        className="flex w-full items-center justify-between rounded-full bg-[#F4F4F5] px-5 py-3 text-left text-[14px] text-[#71717B] outline-none"
+        className={
+          isOutlined
+            ? `flex h-11 w-full items-center justify-between rounded-2xl border border-[#E4E4E7] bg-white px-4 text-left text-[14px] outline-none ${
+                hasSelection ? "text-[#3F3F47]" : "text-[#9F9FA9]"
+              }`
+            : "flex w-full items-center justify-between rounded-full bg-[#F4F4F5] px-5 py-3 text-left text-[14px] text-[#71717B] outline-none"
+        }
       >
         <span className="truncate">{selectedLabel}</span>
         <ChevronDown size={16} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />

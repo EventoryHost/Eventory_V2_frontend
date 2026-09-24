@@ -11,12 +11,13 @@ import AddonDetailsModal from "./AddonDetailsModal";
 export default function AddonCard({
   addon,
   quantity,
-  onIncrement,
+  onAdd,
   seed = 0,
 }: {
   addon: AddonItem;
   quantity: number;
-  onIncrement: () => void;
+  /** colourId is the color the customer picked in the details modal (undefined when this addon has no color options) — needs to reach the cart payload, see PackageDetailPage.tsx's addonColours state. */
+  onAdd: (colourId?: string) => void;
   seed?: number;
 }) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
@@ -75,7 +76,7 @@ export default function AddonCard({
         addon={addon}
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
-        onAdd={onIncrement}
+        onAdd={onAdd}
         seed={seed}
       />
     </>

@@ -14,6 +14,38 @@ export interface RawCartAddOn {
   name: string;
   price: number;
   quantity: number;
+  /**
+   * NOT YET PERSISTED — the cart's own SelectedAddOnSchema currently only
+   * stores addOnId/name/price/quantity; once an add-on is added to cart,
+   * its category/subCategory/color/image are gone (confirmed against
+   * Eventory_V2_backend's schema). Typed here ahead of that backend change
+   * so the cart/booking-summary add-on rows light up automatically the
+   * moment these fields start coming through, with zero further frontend
+   * work — until then they're always undefined and those rows just show
+   * name/qty/price as before.
+   */
+  category?: string;
+  subCategory?: string;
+  color?: string;
+  image?: string;
+}
+
+// Real, persisted backend field (CartItem.js/CheckoutSession.js/Booking.js's
+// customizeRequestSchema) for the PDP's "Customize items" workshop.
+// Write: POST /customer/cart/items and PATCH .../:itemId both already accept
+// and persist this. Read: GET /customer/cart, checkout session lines, and
+// GET /customer/bookings/:id all already return it (plain .lean() reads, no
+// field-stripping). Defined here (not customerCheckoutApi.ts) since the
+// checkout/booking shapes reuse the cart's own raw types.
+export interface RawCustomizeRequest {
+  setupId: string;
+  itemId: string;
+  requestType: "change" | "add" | "remove";
+  label: string;
+  quantity?: number;
+  type?: string;
+  colours?: string[];
+  volume?: string;
 }
 
 export interface RawCartSelectedItem {
@@ -62,7 +94,10 @@ export interface RawCartItem {
   eventDetails: RawCartEventDetails;
   selectedAddOns: RawCartAddOn[];
   selectedItems: RawCartSelectedItem[];
+  customizeRequests?: RawCustomizeRequest[];
   specialRequest: string;
+  /** Image URLs attached to the "Notes for vendor" prompt — already uploaded to S3 client-side before being sent here (see VendorNotePromptModal.tsx). */
+  noteAttachments?: string[];
   quantity: number;
   selectedForCheckout: boolean;
   createdAt: string;
@@ -200,7 +235,9 @@ export interface AddCartItemParams {
   location?: string;
   selectedAddOns?: RawCartAddOn[];
   selectedItems?: RawCartSelectedItem[];
+  customizeRequests?: RawCustomizeRequest[];
   specialRequest?: string;
+  noteAttachments?: string[];
   quantity?: number;
 }
 
@@ -212,7 +249,9 @@ export interface UpdateCartItemParams {
   location?: string;
   selectedAddOns?: RawCartAddOn[];
   selectedItems?: RawCartSelectedItem[];
+  customizeRequests?: RawCustomizeRequest[];
   specialRequest?: string;
+  noteAttachments?: string[];
   quantity?: number;
   selectedForCheckout?: boolean;
 }

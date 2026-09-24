@@ -12,7 +12,7 @@ export default async function VendorsPage() {
   const data = await getVendorsPageData();
 
   return (
-    <div className="bg-white">
+    <div className="min-h-screen bg-[#fafafa]">
       <Suspense fallback={null}>
         <VendorsPageContent data={data} />
       </Suspense>

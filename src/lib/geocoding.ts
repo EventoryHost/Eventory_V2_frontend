@@ -8,27 +8,10 @@ export interface LocationSuggestion {
   label: string;
 }
 
-interface NominatimAddress {
-  suburb?: string;
-  neighbourhood?: string;
-  city_district?: string;
-  town?: string;
-  village?: string;
-  city?: string;
-  county?: string;
-  state_district?: string;
-  state?: string;
-  postcode?: string;
-}
-
-const SIX_DIGIT_PINCODE = /^\d{6}$/;
-
 /**
  * Nominatim's `display_name` is comma-separated, most-specific first, with
  * the country last for a country-scoped search — dropping it keeps rows
- * compact ("110001, New Delhi, Delhi" instead of "...Delhi, India").
- * Only used as a last-resort fallback when the structured address object
- * doesn't have enough fields to build the "District, City - Pincode" format.
+ * compact ("Connaught Place, New Delhi, Delhi" instead of "...Delhi, India").
  */
 function simplifyDisplayName(displayName: string): string {
   const parts = displayName.split(",").map((part) => part.trim());
@@ -36,67 +19,35 @@ function simplifyDisplayName(displayName: string): string {
   return parts.join(", ");
 }
 
-/**
- * Formats a Nominatim address into the app-wide "District, City - Pincode"
- * shape (country is always India here, so it's dropped rather than shown).
- * `state_district` is Nominatim's actual administrative-district field for
- * India (e.g. "Udupi"); city_district/suburb are sub-city localities used
- * as a district stand-in for places (mostly big metros) that don't carry
- * one. The pincode segment is only appended when it's a genuine 6-digit
- * Indian PIN — anything else (missing, or a malformed OSM entry) is
- * dropped rather than shown as if valid.
- */
-function formatIndianAddress(address: NominatimAddress): string | null {
-  const district = address.state_district || address.county || address.city_district;
-  const city = address.city || address.town || address.village || address.suburb || address.neighbourhood;
-
-  const parts = [district, city !== district ? city : null].filter(
-    (part): part is string => Boolean(part)
-  );
-  if (parts.length === 0) return null;
-
-  const base = parts.join(", ");
-  return address.postcode && SIX_DIGIT_PINCODE.test(address.postcode)
-    ? `${base} - ${address.postcode}`
-    : base;
-}
-
 export async function searchIndianLocations(
   query: string,
   signal: AbortSignal
 ): Promise<LocationSuggestion[]> {
-  // addressdetails=1 costs nothing extra request-wise (same single call)
-  // but is what makes the structured District/City/Pincode formatting
-  // possible for every one of the returned results.
-  const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&addressdetails=1&limit=7&q=${encodeURIComponent(query)}`;
+  const url = `https://nominatim.openstreetmap.org/search?format=json&countrycodes=in&limit=7&q=${encodeURIComponent(query)}`;
   const response = await fetch(url, { signal, headers: { Accept: "application/json" } });
   if (!response.ok) return [];
-  const data: Array<{ place_id: number; display_name: string; address?: NominatimAddress }> =
-    await response.json();
+  const data: Array<{ place_id: number; display_name: string }> = await response.json();
   return data.map((item) => ({
     id: String(item.place_id),
-    label: (item.address && formatIndianAddress(item.address)) || simplifyDisplayName(item.display_name),
+    label: simplifyDisplayName(item.display_name),
   }));
 }
 
 /**
- * Reverse-geocodes coordinates to the same "District, City - Pincode" shape
- * as searchIndianLocations, reading Nominatim's structured address
- * breakdown instead of its generic "name of the nearest point" result.
- * zoom=14 asks Nominatim to resolve at suburb precision; the address object
- * it returns still carries every administrative level regardless.
+ * Reverse-geocodes coordinates to a plain, simplified place label — the
+ * navbar's passive auto-detect and the location picker's "Auto-detect my
+ * location" button share this.
  */
 async function reverseGeocodeToDistrict(
   latitude: number,
   longitude: number,
   signal?: AbortSignal
 ): Promise<string | null> {
-  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1&zoom=14`;
+  const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&zoom=14`;
   const response = await fetch(url, { signal, headers: { Accept: "application/json" } });
   if (!response.ok) return null;
-  const data: { address?: NominatimAddress; display_name?: string } = await response.json();
-  const address = data.address ?? {};
-  return formatIndianAddress(address) ?? (data.display_name ? simplifyDisplayName(data.display_name) : null);
+  const data: { display_name?: string } = await response.json();
+  return data.display_name ? simplifyDisplayName(data.display_name) : null;
 }
 
 // A district/locality-precision label is only honest if the underlying fix

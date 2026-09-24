@@ -15,7 +15,7 @@ export default function GoogleButton({
       type="button"
       onClick={onClick}
       disabled={loading}
-      className={`flex w-full items-center justify-center gap-3 rounded-xl border border-black/15 bg-white font-figtree font-semibold text-brand-950 transition-colors hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-60 ${
+      className={`flex w-full items-center justify-center gap-3 rounded-full border border-black/15 bg-white font-figtree font-semibold text-brand-950 transition-colors hover:bg-black/[0.03] disabled:cursor-not-allowed disabled:opacity-60 ${
         variant === "primary" ? "py-3 text-[15px]" : "py-2.5 text-[14px]"
       }`}
     >

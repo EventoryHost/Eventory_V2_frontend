@@ -11,6 +11,7 @@ export default function CartItemRow({
   onMoveToWishlist,
   onIncrementAddon,
   onDecrementAddon,
+  onSetAddonQuantity,
   onRemoveAddon,
   onAddRecommendedAddon,
 }: {
@@ -21,6 +22,7 @@ export default function CartItemRow({
   onMoveToWishlist: (id: string) => void;
   onIncrementAddon: (itemId: string, addonId: string) => void;
   onDecrementAddon: (itemId: string, addonId: string) => void;
+  onSetAddonQuantity: (itemId: string, addonId: string, qty: number) => void;
   onRemoveAddon: (itemId: string, addonId: string) => void;
   onAddRecommendedAddon: (addon: RecommendedAddon) => void;
 }) {
@@ -75,6 +77,7 @@ export default function CartItemRow({
                 addons={item.addons}
                 onIncrement={(addonId) => onIncrementAddon(item.id, addonId)}
                 onDecrement={(addonId) => onDecrementAddon(item.id, addonId)}
+                onSetQuantity={(addonId, qty) => onSetAddonQuantity(item.id, addonId, qty)}
                 onRemove={(addonId) => onRemoveAddon(item.id, addonId)}
               />
             )}
