@@ -132,6 +132,7 @@ export default function BookingSummaryPage() {
                       price={service.price}
                       addons={service.addons}
                       note={service.note}
+                      noteAttachments={service.noteAttachments}
                       customizeRequests={service.customizeRequests}
                       onUpdated={refresh}
                     />

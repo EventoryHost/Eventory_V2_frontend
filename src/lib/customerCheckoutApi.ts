@@ -47,6 +47,8 @@ export interface RawCheckoutSessionLine {
   selectedAddOns: RawCartAddOn[];
   selectedItems: RawCartSelectedItem[];
   specialRequest: string;
+  /** Image URLs attached to this line's "Notes for vendor" — same field carried over from the CartItem this line was created from (CheckoutSessionLineSchema.noteAttachments). */
+  noteAttachments?: string[];
   quantity: number;
 }
 
@@ -148,6 +150,7 @@ export async function patchCheckoutSessionEventTiming(sessionId: string, params:
 
 export interface PatchCheckoutLineParams {
   specialRequest?: string;
+  noteAttachments?: string[];
 }
 
 export async function patchCheckoutSessionLine(sessionId: string, lineId: string, params: PatchCheckoutLineParams) {

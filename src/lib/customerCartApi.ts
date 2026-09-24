@@ -96,6 +96,8 @@ export interface RawCartItem {
   selectedItems: RawCartSelectedItem[];
   customizeRequests?: RawCustomizeRequest[];
   specialRequest: string;
+  /** Image URLs attached to the "Notes for vendor" prompt — already uploaded to S3 client-side before being sent here (see VendorNotePromptModal.tsx). */
+  noteAttachments?: string[];
   quantity: number;
   selectedForCheckout: boolean;
   createdAt: string;
@@ -235,6 +237,7 @@ export interface AddCartItemParams {
   selectedItems?: RawCartSelectedItem[];
   customizeRequests?: RawCustomizeRequest[];
   specialRequest?: string;
+  noteAttachments?: string[];
   quantity?: number;
 }
 
@@ -248,6 +251,7 @@ export interface UpdateCartItemParams {
   selectedItems?: RawCartSelectedItem[];
   customizeRequests?: RawCustomizeRequest[];
   specialRequest?: string;
+  noteAttachments?: string[];
   quantity?: number;
   selectedForCheckout?: boolean;
 }

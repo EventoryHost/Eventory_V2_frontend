@@ -127,6 +127,7 @@ export type ServiceDetailsModalProps = {
   price: string;
   addons?: BookingAddon[];
   note?: string;
+  noteAttachments?: string[];
   customizeRequests?: RawCustomizeRequest[];
   onNoteSaved?: () => void;
 };
@@ -148,6 +149,7 @@ export default function ServiceDetailsModal({
   price,
   addons = [],
   note = "",
+  noteAttachments = [],
   customizeRequests = [],
   onNoteSaved,
 }: ServiceDetailsModalProps) {
@@ -317,7 +319,13 @@ export default function ServiceDetailsModal({
 
               {sessionId && lineId && (
                 <CollapsibleSection label="Vendor Notes">
-                  <VendorNoteSection sessionId={sessionId} lineId={lineId} initialNote={note} onSaved={onNoteSaved} />
+                  <VendorNoteSection
+                    sessionId={sessionId}
+                    lineId={lineId}
+                    initialNote={note}
+                    initialAttachments={noteAttachments}
+                    onSaved={onNoteSaved}
+                  />
                 </CollapsibleSection>
               )}
 

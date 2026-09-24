@@ -43,6 +43,7 @@ export type ServiceBookingCardProps = {
   price: string;
   addons?: BookingAddon[];
   note?: string;
+  noteAttachments?: string[];
   customizeRequests?: RawCustomizeRequest[];
   onUpdated?: () => void;
 };
@@ -69,6 +70,7 @@ export default function ServiceBookingCard({
   price,
   addons = [],
   note = "",
+  noteAttachments = [],
   customizeRequests = [],
   onUpdated,
 }: ServiceBookingCardProps) {
@@ -223,6 +225,7 @@ export default function ServiceBookingCard({
         price={price}
         addons={addons}
         note={note}
+        noteAttachments={noteAttachments}
         customizeRequests={customizeRequests}
         onNoteSaved={onUpdated}
         isOpen={isDetailsOpen}
