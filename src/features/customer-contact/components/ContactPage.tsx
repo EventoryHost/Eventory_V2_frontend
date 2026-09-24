@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ContactPageHeader from "./ContactPageHeader";
 import ContactDetailsForm from "./ContactDetailsForm";
+import ContactDetailsFormSkeleton from "./ContactDetailsFormSkeleton";
 import AlternateCoordinatorSection from "./AlternateCoordinatorSection";
 import BookingNotesSection from "./BookingNotesSection";
 import EventVenueSection from "./EventVenueSection";
 import EventTimingSection from "./EventTimingSection";
 import GstinToggleSection from "./GstinToggleSection";
 import PaymentSummary from "@/features/customer-booking/components/PaymentSummary";
+import PaymentSummarySkeleton from "@/features/customer-booking/components/PaymentSummarySkeleton";
 import PaymentScheduleDialog from "@/features/customer-booking/components/PaymentScheduleDialog";
 import { useBookingSummaryData } from "@/features/customer-booking/hooks/useBookingSummaryData";
 import { useCheckoutStepGuard } from "@/features/customer-checkout/hooks/useCheckoutStepGuard";
@@ -114,14 +116,18 @@ export default function ContactPage() {
               </div>
             )}
 
-            <ContactDetailsForm
-              sessionId={data?.sessionId ?? ""}
-              initialName={data?.contact.name ?? ""}
-              initialPhone={data?.contact.phone ?? ""}
-              initialEmail={data?.contact.email ?? ""}
-              phoneVerified={data?.contact.phoneVerified ?? false}
-              onSaved={refresh}
-            />
+            {loading ? (
+              <ContactDetailsFormSkeleton />
+            ) : (
+              <ContactDetailsForm
+                sessionId={data?.sessionId ?? ""}
+                initialName={data?.contact.name ?? ""}
+                initialPhone={data?.contact.phone ?? ""}
+                initialEmail={data?.contact.email ?? ""}
+                phoneVerified={data?.contact.phoneVerified ?? false}
+                onSaved={refresh}
+              />
+            )}
             <EventVenueSection />
             <EventTimingSection
               sessionId={data?.sessionId ?? ""}
@@ -135,9 +141,7 @@ export default function ContactPage() {
           </div>
 
           <div className="w-full lg:w-[424px] lg:shrink-0">
-            {loading && (
-              <p className="text-center font-figtree text-[13px] text-[#71717B]">Loading summary…</p>
-            )}
+            {loading && <PaymentSummarySkeleton />}
             {!loading && error && (
               <p className="text-center font-figtree text-[13px] text-[#B91C1C]">{error}</p>
             )}

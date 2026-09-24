@@ -31,9 +31,12 @@ export function useBookingSummaryData() {
 
   const refresh = useCallback(async () => {
     if (!isLoggedIn) {
+      // loading stays as-is: CheckoutLoginGate hides it while logged out, and
+      // useCustomerSession reports logged out for the hydration render even
+      // with a stored session — clearing it here would leave the page blank
+      // (no loading state) for the real fetch that follows a moment later.
       setData(null);
       setError(null);
-      setLoading(false);
       return;
     }
     setError(null);
