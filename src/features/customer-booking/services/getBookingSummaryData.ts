@@ -154,7 +154,7 @@ function mapMilestones(
 ): BookingPaymentMilestone[] {
   if (!quote) return [];
   return quote.lines.flatMap((quoteLine) => {
-    const serviceName = lineById.get(quoteLine.cartItemId)?.packageSnapshot.name ?? "Package";
+    const serviceName = lineById.get(quoteLine.lineId)?.packageSnapshot.name ?? "Package";
     return (quoteLine.milestones ?? []).map((milestone) => ({
       serviceName,
       title: milestone.title,
@@ -190,6 +190,9 @@ function emptyBookingSummaryData(): BookingSummaryData {
     readyForPayment: false,
     contact: { name: "", phone: "", email: "", phoneVerified: false, errors: [] },
     eventTiming: { startTime: "", endTime: "" },
+    bookingNote: "",
+    alternateCoordinator: { name: "", phone: "" },
+    gstin: { businessName: "", number: "" },
     vendorGroups: [],
     lineErrors: [],
     paymentSummary: {
@@ -254,7 +257,7 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
   const vendorIds = [...new Set(session.lines.map((line) => line.vendorId))];
   const vendorMap = await resolveVendors(vendorIds);
   const availabilityByLineId = new Map(availability.map((entry) => [entry.lineId, entry]));
-  const quoteLineByLineId = new Map((quote?.lines ?? []).map((line) => [line.cartItemId, line]));
+  const quoteLineByLineId = new Map((quote?.lines ?? []).map((line) => [line.lineId, line]));
 
   const linesByVendor = new Map<string, RawCheckoutSessionLine[]>();
   for (const line of session.lines) {
@@ -346,6 +349,15 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
     eventTiming: {
       startTime: session.eventTiming?.startTime ?? "",
       endTime: session.eventTiming?.endTime ?? "",
+    },
+    bookingNote: session.bookingNote ?? "",
+    alternateCoordinator: {
+      name: session.alternateCoordinator?.name ?? "",
+      phone: session.alternateCoordinator?.phone ?? "",
+    },
+    gstin: {
+      businessName: session.gstin?.businessName ?? "",
+      number: session.gstin?.number ?? "",
     },
     vendorGroups,
     lineErrors,

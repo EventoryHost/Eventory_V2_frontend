@@ -162,6 +162,12 @@ export interface BookingSummaryData {
    * "" until the customer sets it on the Contact page.
    */
   eventTiming: { startTime: string; endTime: string };
+  /** CheckoutSession.bookingNote — session-scoped, not the cart's own note. "" until set. */
+  bookingNote: string;
+  /** "" until the customer fills this in on the Contact page — one set for the whole order. */
+  alternateCoordinator: { name: string; phone: string };
+  /** "" until the customer fills this in on the Contact page — one set for the whole order. */
+  gstin: { businessName: string; number: string };
   vendorGroups: BookingVendorGroup[];
   paymentSummary: BookingPaymentSummary;
   /**
