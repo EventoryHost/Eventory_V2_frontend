@@ -25,6 +25,7 @@ import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
 import { getRecommendedAddons } from "../services/getRecommendedAddons";
 import { startCheckout } from "../services/startCheckout";
 import VendorGroupCard from "./VendorGroupCard";
+import CartPageSkeleton from "./CartPageSkeleton";
 import PaymentSummary from "./PaymentSummary";
 import LoggedInPaymentSummary from "@/features/customer-booking/components/PaymentSummary";
 import PaymentScheduleDialog from "@/features/customer-booking/components/PaymentScheduleDialog";
@@ -400,14 +401,6 @@ export default function CartPageContent() {
     void proceedToCheckout();
   }
 
-  if (loading) {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6">
-        <p className="font-figtree text-[14px] text-neutral-secondary">Loading your cart…</p>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-7xl px-4 pt-2 pb-10 sm:px-6 sm:pb-12">
       <div className="mb-8">
@@ -461,6 +454,9 @@ export default function CartPageContent() {
         </div>
       )}
 
+      {loading ? (
+        <CartPageSkeleton />
+      ) : (
       <div className="flex flex-col items-start gap-8 lg:flex-row">
         <div className="flex w-full flex-grow flex-col gap-10 lg:w-2/3">
           {vendorGroups.map((group, index) => (
@@ -541,6 +537,7 @@ export default function CartPageContent() {
           )}
         </div>
       </div>
+      )}
 
       <PaymentScheduleDialog
         isOpen={isScheduleOpen}
