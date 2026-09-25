@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, ShieldAlert, ChevronLeft, MapPin, CheckCircle2, Clock, Users, User, Music, Disc, MinusCircle, Minus, Plus, Map } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
+import { formatHoursRangeLabel } from '@/lib/formatHours';
 import { useRouter } from 'next/navigation';
 import { EditableTotal } from '../components/EditableTotal';
 
@@ -205,7 +206,7 @@ export default function DjPublishSummary({ packageId, packageData: initialPackag
                                 {(minHours || maxHours) && (
                                     <div className="flex items-center gap-2 text-[#71717B]">
                                         <Clock size={14} />
-                                        <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{minHours}-{maxHours}hrs performance</span>
+                                        <span className="text-[13px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{formatHoursRangeLabel(minHours, maxHours)} performance</span>
                                     </div>
                                 )}
                                 {(minGuests || maxGuests) && (

@@ -502,8 +502,8 @@ export default function MakeupFlow({ onExitFlow }: { onExitFlow?: () => void }) 
                         ].join(', ')
                     },
                     // Makeup Artist specific fields
-                    durationPerPerson: parseInt(teamDurationPerPerson) || 0,
-                    durationOfSetup: parseInt(teamDurationOfSetup) || 0,
+                    durationPerPerson: parseFloat(teamDurationPerPerson) || 0,
+                    durationOfSetup: parseFloat(teamDurationOfSetup) || 0,
                     trialOffered: trialOffered === 'Yes',
                     parallelServicingPossible: parallelServicing === 'Yes',
                     crewSize: {

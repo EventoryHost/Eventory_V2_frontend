@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
 import type { DiscoverySortOption, VendorSortOption } from "./vendorType";
-import { formatMinutesLabel, formatMinutesRangeLabel } from "./formatMinutes";
+import { formatHoursRangeLabel } from "./formatHours";
 
 // Raw shapes returned by GET /api/customer/packages and /api/customer/packages/filters,
 // verified against the backend models directly (Eventory_V2_backend/src/models/Package.js,
@@ -286,16 +286,10 @@ export function extractHighlightTags(pkg: RawPackage): string[] {
     .filter((line) => line.length > 0 && line.length <= MAX_TAG_LENGTH);
 }
 
-// TEMPORARY: treating minHours/maxHours as MINUTES for display, same as the
-// PDP's setup-time formatting — see getPackageDetail.ts's formatSetupTime
-// comment for the reasoning/caveat behind that.
+// minHours/maxHours are stored as raw hours (decimals allowed, e.g. 1.5).
 export function getPackageDurationLabel(pkg: RawPackage): string {
   const { minHours, maxHours } = pkg.step1_eventAndCrew?.duration ?? {};
-  if (minHours && maxHours && minHours !== maxHours) {
-    return formatMinutesRangeLabel(minHours, maxHours);
-  }
-  if (minHours || maxHours) return formatMinutesLabel(minHours ?? maxHours!);
-  return "—";
+  return formatHoursRangeLabel(minHours, maxHours) || "—";
 }
 
 export function getPackageCapacityLabel(pkg: RawPackage): string {

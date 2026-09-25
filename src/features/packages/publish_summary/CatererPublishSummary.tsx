@@ -1,5 +1,6 @@
 'use client';
 import { apiUrl } from '@/lib/api';
+import { formatHoursLabel, formatHoursRangeLabel } from '@/lib/formatHours';
 import { useRouter } from 'next/navigation';
 import { EditableTotal } from '../components/EditableTotal';
 import React, { useState } from 'react';
@@ -116,7 +117,7 @@ export default function CatererPublishSummary({ packageId, packageData: initialP
     // Duration
     const minH = packageData.step1_eventAndCrew?.duration?.minHours || 0;
     const maxH = packageData.step1_eventAndCrew?.duration?.maxHours || 0;
-    const durationStr = minH === maxH ? `${minH}hrs` : `${minH}-${maxH}hrs`;
+    const durationStr = formatHoursRangeLabel(minH, maxH) || formatHoursLabel(0);
 
     // Plate count (capacity)
     const minGuests = packageData.step1_eventAndCrew?.capacity?.minGuests || 0;
