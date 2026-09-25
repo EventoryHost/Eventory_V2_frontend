@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Info, ExternalLink, Image as ImageIcon, MapPin, Clock, Users, ShieldAlert, Sparkles, Plus, Check, Map, Camera, Video, BookOpen, MinusCircle } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
+import { formatHoursRangeLabel } from '@/lib/formatHours';
 import { useRouter } from 'next/navigation';
 import { EditableTotal } from '../components/EditableTotal';
 
@@ -37,7 +38,7 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
     const pkgName = packageData.step1_eventAndCrew?.packageName || '';
     const categories = packageData.step1_eventAndCrew?.eventCategories || [];
     const durationObj = packageData.step1_eventAndCrew?.duration;
-    const duration = durationObj ? (durationObj.minHours === durationObj.maxHours ? durationObj.maxHours : `${durationObj.minHours}-${durationObj.maxHours}`) : '';
+    const duration = formatHoursRangeLabel(durationObj?.minHours, durationObj?.maxHours) || '—';
     const crewSizeObj = packageData.step1_eventAndCrew?.crewSize;
     const teamSize = crewSizeObj?.maxPeople || '';
     
@@ -235,7 +236,7 @@ export default function PavPublishSummary({ packageId, packageData: initialPacka
                             <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5">
                                 <div className="flex items-center gap-1.5 text-[#71717B]">
                                     <Clock size={14} />
-                                    <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{duration}hrs</span>
+                                    <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{duration}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[#71717B]">
                                     <Clock size={14} />

@@ -85,6 +85,21 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "picsum.photos",
       },
+      {
+        // The raw production S3 bucket URL — some real records (e.g. a
+        // Decorator package's uploaded image) resolve to this instead of
+        // going through the CloudFront distributions above. Same bucket
+        // name as APP_AWS_S3_BUCKET_NAME's "prod" variant.
+        protocol: "https",
+        hostname: "eventory-bucket-prod.s3.ap-south-1.amazonaws.com",
+      },
+      {
+        // Non-prod counterpart of the bucket above (matches AWS_S3_BUCKET_NAME
+        // used elsewhere in this repo/backend, "eventory-bucket") — allowlisted
+        // preemptively so a dev/test-seeded image doesn't hit the same crash.
+        protocol: "https",
+        hostname: "eventory-bucket.s3.ap-south-1.amazonaws.com",
+      },
     ],
   },
   env: {

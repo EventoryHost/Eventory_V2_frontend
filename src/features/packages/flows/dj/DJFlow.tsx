@@ -554,8 +554,8 @@ export default function DJFlow({ onExitFlow }: Props) {
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Wedding'],
                     poc: pocName,
                     duration: {
-                        minHours: parseInt(minDuration) || 0,
-                        maxHours: parseInt(maxDuration) || 0,
+                        minHours: parseFloat(minDuration) || 0,
+                        maxHours: parseFloat(maxDuration) || 0,
                     },
                     capacity: {
                         minGuests: parseInt(minGuestCount) || 0,
