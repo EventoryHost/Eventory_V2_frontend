@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, AlertCircle, Info, ExternalLink, Image as ImageIcon, MapPin, Clock, Users, ShieldAlert, Sparkles, Plus, Check, Map } from 'lucide-react';
 import { apiUrl } from '@/lib/api';
+import { formatHoursLabel } from '@/lib/formatHours';
 import { useRouter } from 'next/navigation';
 import { EditableTotal } from '../components/EditableTotal';
 
@@ -41,7 +42,8 @@ export default function MakeupPublishSummary({ packageId, packageData: initialPa
     
     const pkgName = packageData.step1_eventAndCrew?.packageName || '';
     const categories = packageData.step1_eventAndCrew?.eventCategories || [];
-    const duration = packageData.step1_eventAndCrew?.durationPerPerson || '';
+    const durationPerPerson = Number(packageData.step1_eventAndCrew?.durationPerPerson) || 0; // hours
+    const duration = durationPerPerson > 0 ? `${formatHoursLabel(durationPerPerson)}/person` : '—';
     const minPpl = packageData.step1_eventAndCrew?.minPeople || '';
     const maxPpl = packageData.step1_eventAndCrew?.maxPeople || '';
     const teamSize = packageData.step1_eventAndCrew?.teamSize || '';
@@ -249,7 +251,7 @@ export default function MakeupPublishSummary({ packageId, packageData: initialPa
                             <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5">
                                 <div className="flex items-center gap-1.5 text-[#71717B]">
                                     <Clock size={14} />
-                                    <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{duration}hrs/person</span>
+                                    <span className="text-[12px] font-medium" style={{ fontFamily: 'Figtree, sans-serif' }}>{duration}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 text-[#71717B]">
                                     <Users size={14} />

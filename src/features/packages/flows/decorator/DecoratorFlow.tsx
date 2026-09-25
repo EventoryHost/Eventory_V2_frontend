@@ -501,10 +501,10 @@ export default function DecoratorFlow({ onExitFlow }: { onExitFlow?: () => void 
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Decoration'],
                     poc: poc || '',
                     duration: {
-                        minHours: parseInt(eventMinDuration) || 0,
-                        maxHours: parseInt(eventMaxDuration) || 0
+                        minHours: parseFloat(eventMinDuration) || 0,
+                        maxHours: parseFloat(eventMaxDuration) || 0
                     },
-                    durationOfSetup: parseInt(setupDuration.replace(/\D/g, '')) || 0,
+                    durationOfSetup: parseFloat(setupDuration.match(/\d+(?:\.\d+)?/)?.[0] ?? '') || 0,
                     crewSize: {
                         // Map supervisors and workers to minPeople & maxPeople as defined in the Mongoose schema (Package.js)
                         minPeople: parseInt(supervisors) || 0,

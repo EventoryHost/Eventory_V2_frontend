@@ -583,10 +583,10 @@ export default function CatererFlow({ onExitFlow }: { onExitFlow?: () => void })
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Catering'],
                     poc: pocName,
                     duration: {
-                        minHours: parseInt(minDuration) || 0,
-                        maxHours: parseInt(maxDuration) || 0
+                        minHours: parseFloat(minDuration) || 0,
+                        maxHours: parseFloat(maxDuration) || 0
                     },
-                    durationOfSetup: parseInt(setupDuration) || 0,
+                    durationOfSetup: parseFloat(setupDuration) || 0,
                     crewSize: {
                         minPeople: parseInt(minCrewSize) || 0,
                         maxPeople: parseInt(maxCrewSize) || 0,
