@@ -21,6 +21,16 @@ interface ApiFetchOptions extends Omit<RequestInit, "body"> {
   auth?: boolean;
   /** Internal — prevents the refresh-and-retry loop from recursing through the refresh call itself. */
   skipRefresh?: boolean;
+  /**
+   * Defaults to "include" (send the httpOnly accessToken/refreshToken
+   * cookies). Pass "omit" for a call that must be treated as genuinely
+   * anonymous even when the browser still carries a valid cookie —
+   * `auth: false` alone only suppresses the Authorization header; the
+   * backend's identifyOptionalCustomer middleware (customerAuth.js) falls
+   * back to the cookie when the header is absent, so without this a stale
+   * cookie can still silently authenticate a call meant to be anonymous.
+   */
+  credentials?: RequestCredentials;
 }
 
 async function parseErrorMessage(response: Response): Promise<ApiError> {
@@ -40,7 +50,7 @@ async function parseErrorMessage(response: Response): Promise<ApiError> {
 }
 
 export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
-  const { body, auth = true, skipRefresh = false, headers, ...init } = options;
+  const { body, auth = true, skipRefresh = false, credentials = "include", headers, ...init } = options;
 
   const requestHeaders = new Headers(headers);
   let requestBody: BodyInit | undefined;
@@ -57,7 +67,7 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
     ...init,
     headers: requestHeaders,
     body: requestBody,
-    credentials: "include",
+    credentials,
   });
 
   if (response.status === 401 && auth && !skipRefresh) {
