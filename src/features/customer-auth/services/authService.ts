@@ -28,7 +28,15 @@ export async function sendPhoneOtp(mobile: string) {
  * accessToken directly in the body.
  */
 export async function verifyPhoneOtp(input: { mobile: string; code: string; session: string; name?: string }) {
-  return apiFetch<AuthResponse>("/customer/phone/verify-otp", { method: "POST", body: input });
+  // auth: false — this is the anonymous login/signup path (the OTP screen
+  // on /auth or /register). Without it, apiFetch attaches any token still
+  // sitting in storage (a leftover/expired session, or a different
+  // account's), and the backend runs its "attach this phone to whichever
+  // account that token belongs to" branch instead of a fresh login — so
+  // typing a different number here silently left the customer on their old
+  // session instead of logging them into the number they just verified.
+  // See verifyPhoneOtpForAccount below for the (correct) authenticated case.
+  return apiFetch<AuthResponse>("/customer/phone/verify-otp", { method: "POST", body: input, auth: false });
 }
 
 /**
