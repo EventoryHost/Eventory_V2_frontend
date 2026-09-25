@@ -3,16 +3,34 @@
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Receipt } from "lucide-react";
-import type { BookingPaymentMilestone } from "../types";
+import type { BookingLineRow, BookingPaymentMilestone } from "../types";
 
 export default function PaymentScheduleDialog({
   isOpen,
   onClose,
   milestones,
+  rows,
+  grandTotal,
 }: {
   isOpen: boolean;
   onClose: () => void;
   milestones: BookingPaymentMilestone[];
+  /**
+   * The SAME rows/grandTotal already shown in Payment Summary behind this
+   * modal (Total booking amount, convenience fee, discount, GST, …) — not
+   * re-derived here. Needed because `milestones` only ever sums to each
+   * line's tax-inclusive package price (cartPricingService.js's
+   * computeLineMilestones comment: "milestones sum to 100% of the... amount
+   * owed" — for that ONE line's package+GST only). The convenience fee and
+   * any discount are order-level, computed once across the whole quote, and
+   * were never folded into any per-line milestone — so the milestone list
+   * alone under-totals whenever either applies. Real bug: the modal used to
+   * show a schedule that didn't add up to the "Grand total" the customer
+   * sees on the page behind it. Showing the same rows/grandTotal here
+   * (rather than a second computation) guarantees they can never drift.
+   */
+  rows: BookingLineRow[];
+  grandTotal: string;
 }) {
   if (typeof document === "undefined") return null;
 
@@ -80,6 +98,24 @@ export default function PaymentScheduleDialog({
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {rows.length > 0 && (
+              <div className="mt-6 flex flex-col gap-2">
+                <p className="font-figtree text-[11px] font-semibold tracking-[0.03em] text-neutral-tertiary uppercase">
+                  How this adds up
+                </p>
+                {rows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between gap-3">
+                    <span className="font-figtree text-[13px] text-neutral-secondary">{row.label}</span>
+                    <span className="shrink-0 font-figtree text-[13px] text-brand-950">{row.value}</span>
+                  </div>
+                ))}
+                <div className="mt-1 flex items-center justify-between gap-3 border-t border-black/10 pt-2">
+                  <span className="font-figtree text-[14px] font-semibold text-brand-950">Grand total</span>
+                  <span className="shrink-0 font-figtree text-[14px] font-bold text-brand-950">{grandTotal}</span>
+                </div>
               </div>
             )}
           </motion.div>

@@ -170,6 +170,8 @@ export default function BookingSummaryPage() {
           isOpen={isScheduleOpen}
           onClose={() => setIsScheduleOpen(false)}
           milestones={data?.paymentSummary.milestones ?? []}
+          rows={data?.paymentSummary.rows ?? []}
+          grandTotal={data?.paymentSummary.grandTotal ?? ""}
         />
       </div>
     </CheckoutLoginGate>

@@ -543,6 +543,8 @@ export default function CartPageContent() {
         isOpen={isScheduleOpen}
         onClose={() => setIsScheduleOpen(false)}
         milestones={cartPaymentSummary.milestones}
+        rows={cartPaymentSummary.rows}
+        grandTotal={cartPaymentSummary.grandTotal}
       />
 
       <AuthModal
