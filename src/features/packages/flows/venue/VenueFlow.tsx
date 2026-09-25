@@ -395,8 +395,8 @@ export default function VenueFlow({ onExitFlow }: { onExitFlow?: () => void }) {
                     eventCategories: eventCategories ? eventCategories.split(',').map(s => s.trim()) : ['Wedding'],
                     poc: poc,
                     duration: {
-                        minHours: parseInt(minDuration) || 0,
-                        maxHours: parseInt(maxDuration) || 0,
+                        minHours: parseFloat(minDuration) || 0,
+                        maxHours: parseFloat(maxDuration) || 0,
                     },
                     crewSize: {
                         minPeople: parseInt(crewSize) || 0,

@@ -5,6 +5,7 @@ import { AddonModal } from '../components/AddonModal';
 import { EditableTotal } from '../components/EditableTotal';
 import { CollapsibleSection } from '../components/CollapsibleSection';
 import { apiUrl } from '@/lib/api';
+import { formatHoursLabel } from '@/lib/formatHours';
 
 interface Props {
     packageId: string | null;
@@ -42,7 +43,7 @@ export default function DecoratorPublishSummary({ packageId, packageData: initia
     // Dynamic stats from Step 1
     const poc = packageData.step1_eventAndCrew?.poc || '';
     const durationOfSetup = packageData.step1_eventAndCrew?.durationOfSetup || 0; // hours
-    const setupDurationLabel = durationOfSetup > 0 ? `Upto ${durationOfSetup}hr${durationOfSetup > 1 ? 's' : ''} Setup Duration` : '';
+    const setupDurationLabel = durationOfSetup > 0 ? `Upto ${formatHoursLabel(durationOfSetup)} Setup Duration` : '';
     const crewMin = packageData.step1_eventAndCrew?.crewSize?.minPeople;
     const crewMax = packageData.step1_eventAndCrew?.crewSize?.maxPeople;
     const teamSizeLabel = (crewMin || crewMax)

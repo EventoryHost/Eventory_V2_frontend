@@ -3,6 +3,7 @@ import { ArrowLeft, Check, ShieldAlert, BadgeCheck, MapPin, Users, Clock, MinusC
 import { AddonModal } from '../components/AddonModal';
 import { EditableTotal } from '../components/EditableTotal';
 import { apiUrl } from '@/lib/api';
+import { formatHoursRangeLabel } from '@/lib/formatHours';
 
 interface Props {
     packageId: string | null;
@@ -288,7 +289,7 @@ export default function VenuePublishSummary({ packageId, packageData: initialPac
                                         <div className="flex items-center gap-1.5 text-[#71717B]">
                                             <Clock size={14} />
                                             <span style={FF} className="text-[12px] font-medium">
-                                                {packageData.step1_eventAndCrew.duration.minHours}-{packageData.step1_eventAndCrew.duration.maxHours}hrs Event Duration
+                                                {formatHoursRangeLabel(packageData.step1_eventAndCrew.duration.minHours, packageData.step1_eventAndCrew.duration.maxHours)} Event Duration
                                             </span>
                                         </div>
                                     )}
