@@ -42,6 +42,7 @@ export default function PackageDetailPage({
   // plain label backend now persists on selectedAddOns[].color).
   const [addonColours, setAddonColours] = useState<Record<string, string>>({});
   const [vendorNote, setVendorNote] = useState("");
+  const [vendorNoteAttachments, setVendorNoteAttachments] = useState<string[]>([]);
   const [editCartItem, setEditCartItem] = useState<RawCartItem | null>(null);
   // Lifted up from IncludedItems so buildCartPayload (StickyBookingCard) can
   // also read workshop.requests — this used to live entirely inside
@@ -64,6 +65,7 @@ export default function PackageDetailPage({
         if (!match) return;
         setEditCartItem(match);
         setVendorNote(match.specialRequest || "");
+        setVendorNoteAttachments(match.noteAttachments || []);
         const quantities: Record<string, number> = {};
         const colours: Record<string, string> = {};
         match.selectedAddOns.forEach((addon) => {
@@ -169,7 +171,12 @@ export default function PackageDetailPage({
           {data.includedItems.length > 0 && (
             <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} workshop={workshop} />
           )}
-          <NotesForVendor value={vendorNote} onChange={setVendorNote} />
+          <NotesForVendor
+            value={vendorNote}
+            onChange={setVendorNote}
+            attachments={vendorNoteAttachments}
+            onAttachmentsChange={setVendorNoteAttachments}
+          />
           <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
             <AddonsCarousel
@@ -204,6 +211,8 @@ export default function PackageDetailPage({
           customizeRequests={workshop.requests}
           vendorNote={vendorNote}
           onVendorNoteChange={setVendorNote}
+          vendorNoteAttachments={vendorNoteAttachments}
+          onVendorNoteAttachmentsChange={setVendorNoteAttachments}
           editItemId={editCartItem?._id}
           prefillEventDetails={editCartItem?.eventDetails}
           cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}

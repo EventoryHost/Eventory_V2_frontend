@@ -39,6 +39,8 @@ export default function StickyBookingCard({
   customizeRequests,
   vendorNote,
   onVendorNoteChange,
+  vendorNoteAttachments,
+  onVendorNoteAttachmentsChange,
   cancellationPolicyText,
   editItemId,
   prefillEventDetails,
@@ -64,6 +66,9 @@ export default function StickyBookingCard({
   customizeRequests: CustomizeRequest[];
   vendorNote: string;
   onVendorNoteChange: (note: string) => void;
+  /** Uploaded S3 URLs for the "Notes for vendor" section's image attachments — lifted up to PackageDetailPage alongside vendorNote so both the inline PDP section and this card's own prompt modal write to the same list. */
+  vendorNoteAttachments: string[];
+  onVendorNoteAttachmentsChange: (attachments: string[]) => void;
   cancellationPolicyText?: string;
   /** Set when editing an existing cart line (see PackageDetailPage) — routes saves to updateCartItem instead of creating a new cart item. */
   editItemId?: string;
@@ -102,7 +107,6 @@ export default function StickyBookingCard({
   const [inCartItemId, setInCartItemId] = useState<string | null>(null);
   const [isNotePromptOpen, setIsNotePromptOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<"cart" | "book" | null>(null);
-  const [vendorNoteAttachments, setVendorNoteAttachments] = useState<string[]>([]);
   const [conveniencePreview, setConveniencePreview] = useState<RawPdpConvenienceFee | null>(null);
   const router = useRouter();
   const { isLoggedIn } = useCustomerSession();
@@ -471,7 +475,7 @@ export default function StickyBookingCard({
 
   function handleNotePromptSave(note: string, attachments: string[]) {
     onVendorNoteChange(note);
-    setVendorNoteAttachments(attachments);
+    onVendorNoteAttachmentsChange(attachments);
     resolvePendingAction(note, attachments);
   }
 
