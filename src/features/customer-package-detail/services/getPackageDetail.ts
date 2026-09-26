@@ -26,7 +26,7 @@ import { VOLUME_OPTIONS } from "../data/workshopCategories";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
-import { formatHoursLabel } from "@/lib/formatHours";
+import { formatHoursLabel, packageDurationsInHours } from "@/lib/formatHours";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
@@ -87,7 +87,8 @@ function originalPriceOf(pkg: RawFullPackage): number | undefined {
   return charges?.packagePricing?.originalPrice ?? charges?.overallPriceOfPackage?.originalPrice ?? undefined;
 }
 
-// durationOfSetup is stored as raw hours (decimals allowed, e.g. 1.5).
+// durationOfSetup in hours (decimals allowed, e.g. 1.5) — callers normalise
+// legacy minute values first via packageDurationsInHours.
 function formatSetupTime(durationOfSetupHours: number): string {
   return `${formatHoursLabel(durationOfSetupHours)} before start`;
 }
@@ -701,7 +702,9 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
 
   const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
-  const durationOfSetup = pkg.step1_eventAndCrew?.durationOfSetup;
+  // Unit decided on all of the package's duration fields together, the same
+  // rule the card and the backend migration use.
+  const { durationOfSetup } = packageDurationsInHours(pkg.step1_eventAndCrew);
   // pricingPreview.subtotal is the backend's own authoritative price for
   // THIS package (same fallback chain cart/checkout use server-side) —
   // preferred over re-deriving it client-side via priceOf(), which can only
@@ -755,8 +758,8 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       serviceAreaList: vendor?.serviceAreas?.length ? vendor.serviceAreas : vendor?.city ? [vendor.city] : undefined,
       // durationOfSetup is lead time needed before the event starts — a
       // single number, not a range (step1_eventAndCrew.duration is a
-      // different field entirely: how long the EVENT itself runs). Stored
-      // as raw hours.
+      // different field entirely: how long the EVENT itself runs). Hours,
+      // after packageDurationsInHours above.
       setupTime: durationOfSetup ? formatSetupTime(durationOfSetup) : "—",
       crewSize:
         crew?.minPeople || crew?.maxPeople
