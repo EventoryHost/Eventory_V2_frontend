@@ -786,7 +786,21 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     reviews,
     pricing: (() => {
       const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
-      const gstPercent = pkg.step3_policiesAndCharges?.gstRatePercent ?? 0;
+      // REAL BUG FOUND 2026-09-26 (product-manager-reported: an
+      // inclusive-GST package still showed and added GST on the PDP,
+      // inflating the estimated total): this read gstRatePercent
+      // unconditionally, never checking gstInclusive at all. The backend's
+      // own pricing engine (cartPricingService.js's computeGst) already
+      // has the correct rule — GST is only ever a separate, added charge
+      // when the vendor marked the price NOT inclusive of GST; when
+      // gstInclusive is true, the rate is already baked into `price` and
+      // must never be shown or added again. This PDP-only mapper had
+      // silently drifted from that rule since it computes its own
+      // estimate independently rather than calling the shared quote
+      // engine (StickyBookingCard/Cart/Checkout all agree via that
+      // engine; only this initial page-load estimate didn't).
+      const gstInclusive = !!pkg.step3_policiesAndCharges?.gstInclusive;
+      const gstPercent = gstInclusive ? 0 : (pkg.step3_policiesAndCharges?.gstRatePercent ?? 0);
       const preGstTotal = price + teamAndEquipmentCharge;
       // The token/advance amount ("Book & pay X") is a percentage of the
       // full upfront cost the customer actually owes — package price + team

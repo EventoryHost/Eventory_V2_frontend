@@ -17,6 +17,7 @@ import CancellationPolicyDialog from "./CancellationPolicyDialog";
 import VendorNotePromptModal from "./VendorNotePromptModal";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
+import { useSelectedCity, setSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
 
 import EventTimingSlots, { type SlotsState } from "./EventTimingSlots";
 import LocationServiceability, { type ServiceabilityState } from "./LocationServiceability";
@@ -110,6 +111,13 @@ export default function StickyBookingCard({
   const [conveniencePreview, setConveniencePreview] = useState<RawPdpConvenienceFee | null>(null);
   const router = useRouter();
   const { isLoggedIn } = useCustomerSession();
+  // Shared with the navbar's own location picker (useSelectedCity.ts) —
+  // module-scoped, so mounting this hook here doesn't fire a second browser
+  // geolocation request; it just reads the navbar's own in-flight/already-
+  // resolved result (or triggers the ONE shared request if neither has run
+  // yet). See the mount effect below for why this replaced this card's own
+  // independent detectCurrentLocation() call.
+  const { city: navbarCity } = useSelectedCity();
 
   // Reflects whether this exact package is already sitting in the cart, so
   // navigating back to its PDP doesn't invite adding a duplicate row —
@@ -173,6 +181,12 @@ export default function StickyBookingCard({
     if (outcome.status === "success") {
       setLocation(outcome.label);
       setIsLocationAutoFilled(true);
+      // Keep the navbar's shared value in sync too — otherwise a manual
+      // re-detect here (a fresher/more precise fix than whatever the
+      // navbar has) would silently drift the two apart again, the exact
+      // "different address than the navbar" bug this card's mount effect
+      // was rewritten to avoid.
+      setSelectedCity(outcome.label);
       return;
     }
     if (!showErrors) return;
@@ -187,11 +201,32 @@ export default function StickyBookingCard({
     );
   }
 
+  // REAL BUG FIXED (2026-09-26, product-manager-reported): this used to run
+  // its own independent detectCurrentLocation() call on every PDP mount —
+  // a second, separate browser geolocation request alongside the navbar's
+  // own auto-detect (useSelectedCity.ts). Two independent fixes for the
+  // same "where is the customer" question don't always agree (different
+  // GPS/network fix at a slightly different moment), so the field here
+  // could silently show a different place than the navbar, and could fail
+  // with "imprecise" even when the navbar's own attempt had already
+  // succeeded moments earlier. Reading the navbar's shared value instead —
+  // rather than asking the browser twice — makes both the mismatch and
+  // most of the spurious "imprecise" failures structurally impossible: at
+  // most one browser geolocation request ever fires per page load,
+  // deduped by useSelectedCity's own module-level guard, and this field
+  // always shows exactly what the navbar shows.
   useEffect(() => {
     if (editItemId) return;
-    void detectAndFillLocation(false);
+    if (!navbarCity) return;
+    // Only auto-fill while the field is still blank or still holding a
+    // previous auto-fill — never stomp something the customer typed
+    // themselves (see the onFocus handler below, which is the only other
+    // place isLocationAutoFilled goes back to false).
+    if (location && !isLocationAutoFilled) return;
+    setLocation(navbarCity);
+    setIsLocationAutoFilled(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editItemId]);
+  }, [editItemId, navbarCity]);
 
   const gstAmount = Math.round((packageTotal * gstPercent) / 100);
   // Recomputed live off the current packageTotal (which already reacts to

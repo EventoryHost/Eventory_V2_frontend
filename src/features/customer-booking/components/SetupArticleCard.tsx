@@ -114,43 +114,46 @@ export default function SetupArticleCard({
             </p>
 
             {item.requests.length > 0 && (
-              <div className="mt-1 flex flex-col gap-2 rounded-[12px] bg-[#F4F4F5] p-4">
-                <span className="font-figtree text-[14px] font-normal leading-[20px] text-[#1447E6]">
-                  Requests
-                </span>
+              // Same "Your requests" treatment as the PDP's Customize Items
+              // workshop (YourRequestsPanel.tsx) — amber panel, count badge,
+              // per-request white card with a top-right status pill — so a
+              // customer who saw these on the PDP recognizes them here.
+              <div className="mt-1 flex flex-col gap-2 rounded-[16px] bg-[#FFFBEB] p-4">
+                <div className="flex items-center gap-2">
+                  <span className="font-figtree text-[13px] font-semibold text-[#3F3F47]">Requests</span>
+                  <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#BB4D00] font-figtree text-[10px] font-bold text-white">
+                    {item.requests.length}
+                  </span>
+                </div>
 
                 {item.requests.map((request, j) => (
                   <div
                     key={j}
-                    className="flex items-start justify-between gap-3 rounded-[16px] border border-[#E4E4E7] bg-white p-4"
+                    className="flex items-start justify-between gap-3 rounded-[16px] bg-white p-4"
                   >
                     {request.status === "removal" ? (
                       <span className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B] line-through">
                         {request.label}
                       </span>
                     ) : (
-                      <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1">
                         {request.attributes.map((attribute) => (
                           <p
                             key={attribute.label}
-                            className="font-figtree text-[13px] font-normal leading-[18px] text-[#030303]"
+                            className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]"
                           >
                             {attribute.label}:{" "}
                             {attribute.oldValue && (
-                              <span className="text-[#71717B] line-through">
-                                {attribute.oldValue}
-                              </span>
+                              <span className="line-through">{attribute.oldValue}</span>
                             )}{" "}
-                            <span className="font-semibold text-[#030303]">
-                              {attribute.newValue}
-                            </span>
+                            <span className="font-semibold text-[#0F172A]">{attribute.newValue}</span>
                           </p>
                         ))}
                       </div>
                     )}
 
-                    <span className="flex h-[22px] w-[55px] shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] pt-0.5 pr-2 pb-0.5 pl-2 font-figtree text-[9px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
-                      {request.status}
+                    <span className="flex h-[22px] shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] px-2 font-figtree text-[12px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
+                      {request.status === "adding" ? "Adding" : request.status === "removal" ? "Removing" : "Change"}
                     </span>
                   </div>
                 ))}

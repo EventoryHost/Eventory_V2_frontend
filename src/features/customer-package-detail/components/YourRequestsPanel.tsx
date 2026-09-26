@@ -1,20 +1,21 @@
-import { Pencil, Plus, Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import type { CustomizeRequest } from "../types";
 
-const TYPE_META: Record<CustomizeRequest["requestType"], { label: string; icon: typeof Pencil }> = {
-  change: { label: "Change", icon: Pencil },
-  add: { label: "Adding", icon: Plus },
-  remove: { label: "Removing", icon: Trash2 },
+const TYPE_LABEL: Record<CustomizeRequest["requestType"], string> = {
+  change: "Change",
+  add: "Adding",
+  remove: "Removing",
 };
 
-interface ChangedField {
+interface FieldRow {
   label: string;
-  from: string;
+  from?: string;
   to: string;
 }
 
-function changedFields(item: CustomizeRequest["item"]): ChangedField[] {
-  const fields: ChangedField[] = [];
+// "Change" rows — diffs current vs. original attribute values.
+function changedFields(item: CustomizeRequest["item"]): FieldRow[] {
+  const fields: FieldRow[] = [];
   if (item.type !== undefined && item.type !== item.originalType) {
     fields.push({ label: item.typeLabel ?? "Type", from: item.originalType ?? "—", to: item.type });
   }
@@ -39,6 +40,18 @@ function changedFields(item: CustomizeRequest["item"]): ChangedField[] {
   return fields;
 }
 
+// "Add" rows — the new item's own attribute values, no "from" to diff against.
+function newItemFields(item: CustomizeRequest["item"]): FieldRow[] {
+  const fields: FieldRow[] = [];
+  if (item.type !== undefined) fields.push({ label: item.typeLabel ?? "Type", to: item.type });
+  if (item.volume !== undefined) fields.push({ label: "Volume", to: item.volume });
+  if (item.colours && item.colours.length > 0) {
+    const labelOf = (id: string) => item.colourOptions?.find((c) => c.id === id)?.label ?? id;
+    fields.push({ label: "Colour", to: item.colours.map(labelOf).join(", ") });
+  }
+  return fields;
+}
+
 export default function YourRequestsPanel({
   requests,
   onDismiss,
@@ -49,47 +62,54 @@ export default function YourRequestsPanel({
   if (requests.length === 0) return null;
 
   return (
-    <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-      <div className="mb-3 font-figtree text-[13px] font-semibold text-amber-800">
-        Your requests · {requests.length}
+    <div className="mt-6 rounded-2xl bg-[#FFFBEB] p-4">
+      <div className="flex items-center gap-2">
+        <span className="font-figtree text-[13px] font-semibold text-[#3F3F47]">Your requests</span>
+        <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#BB4D00] font-figtree text-[11px] font-bold text-white">
+          {requests.length}
+        </span>
       </div>
-      <ul className="space-y-2">
+      <p className="mt-1 mb-3 font-figtree text-[12px] leading-[18px] font-normal text-[#71717B]">
+        The vendor will see these requests and get back to you after booking.
+      </p>
+
+      <ul className="space-y-3">
         {requests.map((request) => {
-          const meta = TYPE_META[request.requestType];
-          const Icon = meta.icon;
+          const fields = request.requestType === "change" ? changedFields(request.item) : newItemFields(request.item);
           return (
-            <li key={request.key} className="flex items-start justify-between gap-3 rounded-xl bg-white px-3 py-2.5 font-figtree text-[13px]">
-              <div className="flex min-w-0 items-start gap-2.5">
-                <Icon className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
-                      {meta.label}
-                    </span>
-                    <span className={`font-medium text-brand-950 ${request.requestType === "remove" ? "line-through" : ""}`}>
-                      {request.item.label}
-                    </span>
+            <li key={request.key} className="flex items-start justify-between gap-3 rounded-2xl bg-white p-4">
+              <div className="min-w-0">
+                {request.requestType !== "add" && (
+                  <p className="font-figtree text-[14px] font-bold text-[#0F172A]">{request.setupTitle}</p>
+                )}
+                {request.requestType === "remove" ? (
+                  <p className="mt-1 font-figtree text-[13px] text-[#71717B] line-through">{request.item.label}</p>
+                ) : (
+                  <div className="mt-1 space-y-0.5">
+                    {fields.map((field) => (
+                      <p key={field.label} className="font-figtree text-[13px] text-[#71717B]">
+                        {field.label}:{" "}
+                        {field.from && <span className="line-through">{field.from}</span>}{" "}
+                        <span className="font-semibold text-[#0F172A]">{field.to}</span>
+                      </p>
+                    ))}
                   </div>
-                  {request.requestType === "change" && (
-                    <div className="mt-1 space-y-0.5 text-neutral-secondary">
-                      {changedFields(request.item).map((field) => (
-                        <div key={field.label}>
-                          {field.label}: <span className="line-through">{field.from}</span> →{" "}
-                          <span className="font-semibold text-brand-950">{field.to}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() => onDismiss(request)}
-                className="shrink-0 rounded-full p-1 text-neutral-tertiary hover:bg-black/5"
-                aria-label="Dismiss request"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                <span className="flex h-[22px] items-center justify-center rounded-full bg-[#F4F4F5] px-2 font-figtree text-[12px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
+                  {TYPE_LABEL[request.requestType]}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onDismiss(request)}
+                  aria-label="Dismiss request"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-black/10 bg-white text-[#3F3F47] transition-colors hover:bg-black/5"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </li>
           );
         })}
