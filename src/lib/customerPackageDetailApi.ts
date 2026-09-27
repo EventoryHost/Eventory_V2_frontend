@@ -166,6 +166,8 @@ export interface RawFullPackage {
     duration?: { minHours?: number; maxHours?: number };
     /** Hours of setup lead time needed before the event starts — a single number, not a range. */
     durationOfSetup?: number;
+    /** Makeup Artist only: hours per person. */
+    durationPerPerson?: number;
     crewSize?: { minPeople?: number; maxPeople?: number; roles?: string[] };
     capacity?: { minGuests?: number; maxGuests?: number };
     venueNeeds?: {

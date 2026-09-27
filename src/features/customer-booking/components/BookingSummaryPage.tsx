@@ -8,6 +8,7 @@ import ServiceBookingCard from "./ServiceBookingCard";
 import PaymentSummary from "./PaymentSummary";
 import PaymentScheduleDialog from "./PaymentScheduleDialog";
 import CheckoutLoginGate from "@/features/customer-checkout/components/CheckoutLoginGate";
+import BookingSummarySkeleton from "./BookingSummarySkeleton";
 import { useBookingSummaryData } from "../hooks/useBookingSummaryData";
 
 export default function BookingSummaryPage() {
@@ -34,11 +35,7 @@ export default function BookingSummaryPage() {
       <div className="mx-auto w-full max-w-[1320px] px-4  pb-16 sm:px-6 lg:px-16">
         <BookingSummaryHeader />
 
-        {loading && (
-          <p className="mt-10 text-center font-figtree text-[14px] text-[#71717B]">
-            Loading your booking…
-          </p>
-        )}
+        {loading && <BookingSummarySkeleton />}
 
         {!loading && error && (
           <div className="mt-6 rounded-2xl border border-[#FCA5A5]/60 bg-[#FEF2F2] px-5 py-4 font-figtree text-[13px] text-[#B91C1C]">
@@ -173,6 +170,8 @@ export default function BookingSummaryPage() {
           isOpen={isScheduleOpen}
           onClose={() => setIsScheduleOpen(false)}
           milestones={data?.paymentSummary.milestones ?? []}
+          rows={data?.paymentSummary.rows ?? []}
+          grandTotal={data?.paymentSummary.grandTotal ?? ""}
         />
       </div>
     </CheckoutLoginGate>

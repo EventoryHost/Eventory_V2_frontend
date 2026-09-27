@@ -14,6 +14,13 @@ export async function logout() {
 }
 
 export async function sendPhoneOtp(mobile: string) {
+  // Shared by the anonymous login/register flow AND the already-logged-in
+  // "Verify with OTP" flows (ContactDetailsForm, PhoneEditForm) — unlike
+  // verifyPhoneOtp/verifyPhoneOtpForAccount below, this one function serves
+  // both, so it must keep sending auth (header + cookie) by default; the
+  // backend's own req.customer check here (409 on a phone already linked to
+  // another account) only matters for, and only runs for, the
+  // already-logged-in callers.
   return apiFetch<{ success: true; message: string; session: string }>("/customer/phone/send-otp", {
     method: "POST",
     body: { mobile },
@@ -36,7 +43,31 @@ export async function verifyPhoneOtp(input: { mobile: string; code: string; sess
   // typing a different number here silently left the customer on their old
   // session instead of logging them into the number they just verified.
   // See verifyPhoneOtpForAccount below for the (correct) authenticated case.
-  return apiFetch<AuthResponse>("/customer/phone/verify-otp", { method: "POST", body: input, auth: false });
+  //
+  // credentials: "omit" — REAL BUG FOUND 2026-09-26: auth:false above only
+  // suppresses the Authorization HEADER. apiFetch still sends
+  // credentials:"include" by default, so a browser that still carries a
+  // valid httpOnly accessToken COOKIE (e.g. a previous logout() call whose
+  // fire-and-forget POST /customer/auth/logout silently failed, leaving the
+  // cookie uncleared while localStorage was cleared anyway) gets identified
+  // by the backend's identifyOptionalCustomer middleware via that cookie
+  // regardless. The backend then runs the SAME "already logged in, just
+  // attaching a phone" branch this comment already warns about — and that
+  // branch always returns accessToken:null (no new session issued for an
+  // already-logged-in customer). storeSession(customer, null) then leaves
+  // isLoggedIn false (customerSession.ts's persist()/isLoggedIn both
+  // require a truthy accessToken), so the navbar keeps showing
+  // Signup/Login even though the OTP itself verified successfully — the
+  // exact symptom reported. Omitting credentials here closes the gap
+  // between "intended anonymous" and "actually still authenticated via a
+  // stale cookie" for good, without touching verifyPhoneOtpForAccount's
+  // legitimate authenticated use below.
+  return apiFetch<AuthResponse>("/customer/phone/verify-otp", {
+    method: "POST",
+    body: input,
+    auth: false,
+    credentials: "omit",
+  });
 }
 
 /**

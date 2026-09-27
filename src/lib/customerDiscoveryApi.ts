@@ -1,6 +1,6 @@
 import { apiFetch } from "./apiClient";
 import type { DiscoverySortOption, VendorSortOption } from "./vendorType";
-import { formatHoursRangeLabel } from "./formatHours";
+import { formatHoursRangeLabel, packageDurationsInHours } from "./formatHours";
 
 // Raw shapes returned by GET /api/customer/packages and /api/customer/packages/filters,
 // verified against the backend models directly (Eventory_V2_backend/src/models/Package.js,
@@ -286,9 +286,12 @@ export function extractHighlightTags(pkg: RawPackage): string[] {
     .filter((line) => line.length > 0 && line.length <= MAX_TAG_LENGTH);
 }
 
-// minHours/maxHours are stored as raw hours (decimals allowed, e.g. 1.5).
+// minHours/maxHours are raw hours (decimals allowed, e.g. 1.5), except on
+// packages older app builds saved in minutes, which packageDurationsInHours
+// converts. The listing projection only returns `duration`, so the unit is
+// decided on minHours/maxHours alone here.
 export function getPackageDurationLabel(pkg: RawPackage): string {
-  const { minHours, maxHours } = pkg.step1_eventAndCrew?.duration ?? {};
+  const { minHours, maxHours } = packageDurationsInHours(pkg.step1_eventAndCrew);
   return formatHoursRangeLabel(minHours, maxHours) || "—";
 }
 
