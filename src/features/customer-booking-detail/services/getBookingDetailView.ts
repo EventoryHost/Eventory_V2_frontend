@@ -114,6 +114,7 @@ function journeyVendors(group: RawBookingListItem[]): BookingJourneyVendor[] {
  * the event date, so a step carries a date only where one really exists.
  */
 function buildJourney(
+  reference: string,
   group: RawBookingListItem[],
   bookedOn: string,
   eventDate: string,
@@ -179,7 +180,7 @@ function buildJourney(
       id: "completed",
       title: "Event completed",
       description: "Your event completed successfully.",
-      action: { label: "Leave a review", href: "#reviews" },
+      action: { label: "Leave a review", href: `/bookings/${reference}/review` },
     });
   }
 
@@ -246,6 +247,8 @@ export async function getBookingDetailView(bookingId: string): Promise<BookingDe
       variantLabel: row.packageSnapshot?.variantType,
       vendorName: vendorNameOf(row),
       image: row.packageSnapshot?.image,
+      packageId: row.packageId,
+      vendorType: row.packageSnapshot?.vendorType,
       statusLabel: status.label,
       statusTone: status.tone,
     };
@@ -271,7 +274,7 @@ export async function getBookingDetailView(bookingId: string): Promise<BookingDe
 
     packages,
     respondedCount: group.filter((row) => !AWAITING_STATUSES.includes(row.status)).length,
-    journey: buildJourney(group, bookedOn, booking.eventDate, booking.confirmedAt),
+    journey: buildJourney(booking.bookingId, group, bookedOn, booking.eventDate, booking.confirmedAt),
     paymentTimeline: detail.paymentTimeline,
     cancellationPolicy: {
       ...policyOf(detail.cancellationPolicy?.cancellationPolicy ?? null),
