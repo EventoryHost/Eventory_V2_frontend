@@ -12,6 +12,8 @@ export interface BookingBanner {
     disabledReason?: string;
     /** The milestone to charge, on the advance-due banner. */
     milestoneId?: string;
+    /** Navigates instead of calling onAction — the "Leave a review" CTA. */
+    href?: string;
   };
 }
 
@@ -39,13 +41,7 @@ export function buildBookingBanner(view: BookingDetailView): BookingBanner | nul
       variant: "complete",
       title: "Your event is complete",
       description: "Tell us how it went. Your review helps your vendors and guides the next host.",
-      action: {
-        label: "Leave a review",
-        style: "primary",
-        // The API only exposes review READS (per package / per vendor) — there
-        // is no customer review-writing endpoint to post this to yet.
-        disabledReason: "Writing a review isn't available yet",
-      },
+      action: { label: "Leave a review", style: "primary", href: `/bookings/${view.reference}/review` },
     };
   }
 
