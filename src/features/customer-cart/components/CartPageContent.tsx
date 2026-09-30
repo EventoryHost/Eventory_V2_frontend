@@ -41,14 +41,22 @@ function toRawAddOns(addons: CartVendor["addons"]): RawCartAddOn[] {
   // existing cart addon (e.g. bumping its quantity) — these are already on
   // the addon from GET /customer/cart (now that the backend persists them),
   // and dropping them here would silently erase them on the next save.
+  // subCategory/color must be coerced from null to undefined — real bug
+  // fixed 2026-10-01: the backend returns these as `null` (Mongoose's
+  // default for an unset String field), but the update validator's zod
+  // schema is `.optional()` (undefined-only, not `.nullable()`), so
+  // forwarding that `null` straight through failed EVERY re-save that
+  // touched a previously-added addon with no subCategory/color ("Validation
+  // failed": "expected string, received null") — including a second
+  // recommended-addon add, since that path resends every existing line too.
   return addons.map((addon) => ({
     addOnId: addon.id,
     name: addon.title,
     price: addon.price,
     quantity: addon.quantity,
     category: addon.category || undefined,
-    subCategory: addon.subCategory,
-    color: addon.color,
+    subCategory: addon.subCategory ?? undefined,
+    color: addon.color ?? undefined,
     image: addon.image,
   }));
 }

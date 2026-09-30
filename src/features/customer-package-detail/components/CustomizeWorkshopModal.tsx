@@ -160,7 +160,7 @@ export default function CustomizeWorkshopModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal>
       <div
         className={`relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ${
-          view === "detail" ? "h-[min(720px,90vh)] w-full max-w-[640px]" : "h-[min(640px,90vh)] w-full max-w-[880px]"
+          view === "detail" ? "h-[min(720px,90vh)] w-full max-w-[640px]" : "h-[min(90vh,720px)] w-full max-w-[880px] sm:h-[min(640px,90vh)]"
         }`}
       >
         {view === "detail" ? (
@@ -176,7 +176,7 @@ export default function CustomizeWorkshopModal({
           />
         ) : (
           <>
-            <div className="flex items-center gap-3 border-b border-black/10 px-6 py-4">
+            <div className="flex items-center gap-3 border-b border-black/10 px-4 py-3 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={() => setView("detail")}
@@ -191,13 +191,19 @@ export default function CustomizeWorkshopModal({
               </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex w-[260px] shrink-0 flex-col border-r border-black/10 bg-[#F4F4F5]">
-                <div className="border-b border-black/10 px-4 py-3 font-figtree text-[12px] leading-[18px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
+            {/* Mobile: the item picker collapses into a horizontal chip strip
+                above the editor (own row, capped height) instead of a fixed
+                260px vertical sidebar sharing the same row — that sidebar
+                left almost no width for the colour/quantity controls next to
+                it on a phone-sized screen (real bug fixed 2026-10-01). From
+                sm up, it reverts to the original vertical sidebar layout. */}
+            <div className="flex flex-1 flex-col overflow-hidden sm:flex-row">
+              <div className="flex max-h-[104px] w-full shrink-0 flex-col border-b border-black/10 bg-[#F4F4F5] sm:h-auto sm:max-h-none sm:w-[260px] sm:border-r sm:border-b-0">
+                <div className="hidden border-b border-black/10 px-4 py-3 font-figtree text-[12px] leading-[18px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase sm:block">
                   Choose an item
                 </div>
 
-                <div className="flex-1 overflow-y-auto py-2">
+                <div className="flex gap-2 overflow-x-auto px-3 py-2.5 sm:flex-1 sm:flex-col sm:gap-0 sm:overflow-x-hidden sm:overflow-y-auto sm:px-0 sm:py-2">
                   {items.map((item) => {
                     const request = setupRequests.find((r) => r.itemId === item.id);
                     const subtitle = [item.category, item.type, item.volume].filter(Boolean).join(" · ");
@@ -206,22 +212,22 @@ export default function CustomizeWorkshopModal({
                         key={item.id}
                         type="button"
                         onClick={() => setSelectedItemId(item.id)}
-                        className={`flex w-full items-center justify-between gap-2 border-l-4 py-3 pr-4 pl-3.5 text-left transition ${
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-left transition sm:w-full sm:shrink sm:justify-between sm:gap-2 sm:rounded-none sm:border-y-0 sm:border-r-0 sm:border-l-4 sm:px-4 sm:py-3 sm:pl-3.5 ${
                           item.id === selectedItemId
-                            ? "border-brand-950 bg-white"
-                            : "border-transparent hover:bg-white/60"
+                            ? "border-brand-950 bg-white sm:bg-white"
+                            : "border-black/15 bg-white/60 hover:border-black/30 sm:border-transparent sm:bg-transparent sm:hover:bg-white/60"
                         }`}
                       >
                         <span>
                           <span
-                            className={`block font-figtree text-[16px] leading-[24px] font-semibold ${
+                            className={`block font-figtree text-[13px] leading-[18px] font-semibold whitespace-nowrap sm:text-[16px] sm:leading-[24px] sm:whitespace-normal ${
                               request?.requestType === "remove" ? "text-neutral-tertiary line-through" : "text-[#030303]"
                             }`}
                           >
                             {item.label}
                           </span>
                           {subtitle && (
-                            <span className="mt-0.5 block font-figtree text-[12px] leading-[18px] font-normal text-[#71717B]">
+                            <span className="mt-0.5 hidden font-figtree text-[12px] leading-[18px] font-normal text-[#71717B] sm:block">
                               {subtitle}
                             </span>
                           )}
@@ -234,17 +240,17 @@ export default function CustomizeWorkshopModal({
                   <button
                     type="button"
                     onClick={() => setSelectedItemId(NEW_ITEM_SLOT)}
-                    className={`flex w-full items-center justify-center gap-2 px-4 py-3 text-center font-figtree text-[16px] leading-[24px] font-medium text-[#EA1D3B] transition ${
+                    className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-dashed border-[#EA1D3B]/40 px-3 py-1.5 text-center font-figtree text-[13px] leading-[18px] font-medium whitespace-nowrap text-[#EA1D3B] transition sm:w-full sm:rounded-none sm:border-none sm:px-4 sm:py-3 sm:text-[16px] sm:leading-[24px] sm:whitespace-normal ${
                       selectedItemId === NEW_ITEM_SLOT ? "bg-white" : "hover:bg-white/60"
                     }`}
                   >
-                    <Plus className="h-4 w-4" /> Add an item
+                    <Plus className="h-4 w-4 shrink-0" /> Add an item
                   </button>
                 </div>
               </div>
 
               <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
                   {selectedItem ? (
                     selectedItem.removalRequested ? (
                       <RemovalPanel item={selectedItem} onCancel={cancelRemoval} />
@@ -267,7 +273,7 @@ export default function CustomizeWorkshopModal({
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-black/10 px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 px-4 py-3 sm:px-6 sm:py-4">
               <div className="flex items-center gap-2 font-figtree text-[12px] leading-[16px] font-semibold">
                 {phase === "processing" ? (
                   <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
@@ -641,13 +647,13 @@ function CategoryGrid({ onPick }: { onPick: (category: WorkshopCategoryDef) => v
     <div>
       <h3 className="font-figtree text-[20px] font-bold text-brand-950">New item</h3>
       <p className="mt-1 font-figtree text-[13px] text-neutral-secondary">Choose an item of your choice in the setup</p>
-      <div className="mt-5 grid grid-cols-2 gap-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
         {WORKSHOP_CATEGORIES.map((category) => (
           <button
             key={category.id}
             type="button"
             onClick={() => onPick(category)}
-            className="relative flex h-[100px] w-[206px] items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5"
+            className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5 sm:w-[206px]"
           >
             <span className="font-figtree text-[14px] font-semibold text-brand-950">{category.label}</span>
             <img
