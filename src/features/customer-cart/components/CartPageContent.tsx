@@ -268,20 +268,27 @@ export default function CartPageContent() {
   async function handleAddRecommendedAddon(addon: RecommendedAddon) {
     const item = vendors.find((v) => v.id === addon.itemId);
     if (!item) return;
-    const nextAddOns = [
-      ...toRawAddOns(item.addons),
-      {
-        addOnId: addon.id,
-        name: addon.title,
-        price: addon.price,
-        quantity: 1,
-        category: addon.category || undefined,
-        subCategory: addon.subCategory || undefined,
-        image: addon.image,
-        // No colour picker on this one-click "recommended" add — nothing
-        // real to send, so left unset rather than guessed.
-      },
-    ];
+    const existingAddOns = toRawAddOns(item.addons);
+    // No colour picker on this one-click "recommended" add (RecommendedAddon
+    // has no colourOptions at all), so addOnId alone is enough to tell two
+    // adds of the same add-on apart — merge into that line's quantity
+    // instead of appending a duplicate array entry (real bug fixed
+    // 2026-10-01, same underlying issue as the PDP's colour-line bug).
+    const alreadyAdded = existingAddOns.some((a) => a.addOnId === addon.id);
+    const nextAddOns = alreadyAdded
+      ? existingAddOns.map((a) => (a.addOnId === addon.id ? { ...a, quantity: a.quantity + 1 } : a))
+      : [
+          ...existingAddOns,
+          {
+            addOnId: addon.id,
+            name: addon.title,
+            price: addon.price,
+            quantity: 1,
+            category: addon.category || undefined,
+            subCategory: addon.subCategory || undefined,
+            image: addon.image,
+          },
+        ];
     try {
       const payload = await updateCartItem(item.id, { selectedAddOns: nextAddOns });
       await applyPayload(payload);

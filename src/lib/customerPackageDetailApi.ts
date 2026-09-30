@@ -25,6 +25,12 @@ export interface RawDecoratorSetupItem {
   /** Color options offered for this item — an item with any colors listed is treated as customisable. */
   colors?: string[];
   subCategory?: string;
+  /** The real "Type" value for a Flowers item (e.g. "Rose", "Mixed") — itemType's own dedicated field per the vendor form (Step2SetupsAndPricing.tsx), distinct from subCategory. */
+  flowerType?: string;
+  /** Same idea as flowerType, for a Lighting item (e.g. "Fairy Lights", "Candles"). */
+  lightingType?: string;
+  /** Free-text size/dimensions, when the vendor entered one — rare in real data but real when present. */
+  dimensions?: string;
 }
 
 export interface RawDecoratorSetup {

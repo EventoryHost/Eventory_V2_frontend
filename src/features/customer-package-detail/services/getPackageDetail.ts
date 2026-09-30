@@ -329,11 +329,28 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
         // in the customize workshop (toggleColour), not a fabricated value.
         const colourOptions = line.colors?.length ? mapColourOptions(line.colors) : undefined;
         const colours = colourOptions ? [colourOptions[0].id] : undefined;
+        // REAL GAP FOUND 2026-10-01 (PM-reported: "some items have a type
+        // field too, not shown"): itemType-specific fields (flowerType for
+        // a Flowers item, lightingType for a Lighting item — confirmed
+        // against the vendor form's own item shape, Step2SetupsAndPricing.tsx)
+        // are each item's REAL "Type" value when set, distinct from and
+        // taking priority over subCategory below. Previously only
+        // subCategory was ever read, so any item whose type lived in one of
+        // these two fields instead showed no Type at all.
+        const specificType = line.flowerType || line.lightingType;
         // subCategory is only a meaningful extra fact when it says something
         // beyond the item's own name (e.g. name="Chrome Balloons",
         // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
         // Bouquet", subCategory="Rose" — real extra detail, kept).
-        const type = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
+        const subCategoryType = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
+        const type = specificType || subCategoryType;
+        const typeLabel = line.flowerType
+          ? "Flower type"
+          : line.lightingType
+            ? "Fixture type"
+            : type
+              ? `${line.itemType ?? "Sub"} Type`
+              : undefined;
         return {
           id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
           label: line.name ?? "Item",
@@ -343,7 +360,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           // itemType is the item's broad category (e.g. "Balloons", "Flower")
           // — real, already in the API response, previously dropped entirely.
           category: line.itemType || undefined,
-          typeLabel: type ? `${line.itemType ?? "Sub"} Type` : undefined,
+          typeLabel,
           type,
           originalType: type,
           volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
@@ -352,6 +369,11 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           colourOptions,
           colours,
           originalColours: colours,
+          // Also real, already in the API response, previously dropped
+          // entirely — see IncludedItemLine's own comment on each.
+          unit: line.unit || undefined,
+          dimensions: line.dimensions || undefined,
+          itemDescription: line.description || undefined,
         };
       }),
     };
@@ -529,6 +551,13 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
     // Every row here is only added when the vendor actually set that field —
     // no "—" placeholders standing in for missing data.
     const details: IncludedItemDetail[] = [];
+    // REAL GAP FOUND 2026-10-01 (PM-reported: "type field is not being
+    // shown" in the add-on modal): addOnType (Service/Product) is set on
+    // EVERY live add-on (59/59, confirmed against the real DB) but was
+    // only ever read as a fallback for `category` above — never shown as
+    // its own fact, so it was invisible whenever category was already set
+    // (the common case).
+    if (addon.addOnType) details.push({ label: "Type", value: addon.addOnType });
     if (addon.productUsage) details.push({ label: "Setup type", value: setupTypeLabel(addon.productUsage) });
     if (addon.quantity != null) details.push({ label: "Quantity", value: String(addon.quantity) });
     const dimensions = formatDimensions(addon.physicalSpec?.dimensions);

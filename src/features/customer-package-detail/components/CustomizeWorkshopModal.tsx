@@ -413,40 +413,46 @@ function AttributeEditor({
     );
   }
 
-  sections.push(
-    <div key="quantity">
-      <div className={`mb-2 ${SECTION_HEADING}`}>Quantity</div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => onSetQuantity(item.qty - 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
-        >
-          −
-        </button>
-        <QuantityInput
-          value={item.qty}
-          onChange={onSetQuantity}
-          min={1}
-          // Setup items are frequently measured in units like cm (e.g. a
-          // real Chrome Balloons line at 300cm) rather than "how many of
-          // this thing", so the add-ons' 99 cap silently clamped any real
-          // entry above that back down — 9999 covers real data without
-          // still being an effectively unbounded/unvalidated field.
-          max={9999}
-          aria-label={`Quantity for ${item.label}`}
-          className="w-10 rounded-md border border-transparent text-center font-figtree text-[15px] font-semibold text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => onSetQuantity(item.qty + 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
-        >
-          +
-        </button>
+  // Volume (Low/Medium/High density — e.g. flowers) replaces the concept of
+  // a countable quantity for that item, so no Quantity control is shown at
+  // all when Volume applies (2026-10-01, product-confirmed) — same rule as
+  // the read-only item-details view (SetupDetailPanel.tsx).
+  if (!item.volumeOptions || item.volumeOptions.length === 0) {
+    sections.push(
+      <div key="quantity">
+        <div className={`mb-2 ${SECTION_HEADING}`}>Quantity</div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onSetQuantity(item.qty - 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
+          >
+            −
+          </button>
+          <QuantityInput
+            value={item.qty}
+            onChange={onSetQuantity}
+            min={1}
+            // Setup items are frequently measured in units like cm (e.g. a
+            // real Chrome Balloons line at 300cm) rather than "how many of
+            // this thing", so the add-ons' 99 cap silently clamped any real
+            // entry above that back down — 9999 covers real data without
+            // still being an effectively unbounded/unvalidated field.
+            max={9999}
+            aria-label={`Quantity for ${item.label}`}
+            className="w-10 rounded-md border border-transparent text-center font-figtree text-[15px] font-semibold text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => onSetQuantity(item.qty + 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
+          >
+            +
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   // Colour, last. Brand-new item ("Add an item") — its own curated palette
   // (COLOUR_PALETTE), multi-select, unrelated to any vendor default (there

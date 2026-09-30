@@ -74,6 +74,12 @@ export interface IncludedItemLine {
   volumeOptions?: string[];
   volume?: string;
   originalVolume?: string;
+  /** Unit qty is measured in (e.g. "Feet", "Pcs", "Meters") — shown alongside qty, e.g. "50 Feet". Undefined when the vendor never set one (older/simpler items). */
+  unit?: string;
+  /** Free-text size/dimensions, when the vendor entered one — rare but real when present. */
+  dimensions?: string;
+  /** This specific item's own description, distinct from the setup-level one — rare but real when present. */
+  itemDescription?: string;
   /** Introduced via "Add an item" in the workshop — never shows a strikethrough. */
   isNew?: boolean;
   /** Flagged for removal via the workshop — locks the other attribute controls. */
@@ -156,6 +162,17 @@ export interface SelectedAddon extends AddonItem {
   quantity: number;
   /** The color label the customer picked in the details modal (colourOptions is the available choices; this is the one they actually chose) — undefined when this addon has no color options at all. */
   color?: string;
+  /**
+   * Unique per LINE, not per addon (`id` is the catalog addon id, which
+   * several lines can share) — `${id}::${color ?? ""}`. The same addon
+   * picked again in a different colour is a second, independent line with
+   * its own quantity, not a collision with the first; picking it again in
+   * the SAME colour increments that one line instead of creating a
+   * duplicate. Added 2026-10-01 (real bug: re-adding a colour-variant addon
+   * silently overwrote the first colour's selection entirely, and the "+"
+   * to add another disappeared the moment any quantity existed).
+   */
+  lineKey: string;
 }
 
 export type PolicyIcon = "shield" | "clock";

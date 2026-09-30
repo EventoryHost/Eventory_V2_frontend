@@ -51,8 +51,20 @@ function ItemDetailCard({
       <div className="mt-3 grid grid-cols-3 gap-4">
         {item.category && <Stat label="Item Type" value={item.category} />}
         {item.typeLabel && displayType && <Stat label={item.typeLabel} value={displayType} />}
-        {displayVolume ? <Stat label="Volume" value={displayVolume} /> : <Stat label="Quantity" value={String(item.originalQty)} />}
+        {/* Volume (Low/Medium/High density — e.g. flowers) replaces the
+            concept of a countable quantity for that item, so Quantity is
+            hidden whenever Volume is set (2026-10-01, product-confirmed) —
+            shown otherwise, with its unit ("50 Feet") when the vendor set one. */}
+        {displayVolume ? (
+          <Stat label="Volume" value={displayVolume} />
+        ) : (
+          <Stat label="Quantity" value={item.unit ? `${item.originalQty} ${item.unit}` : String(item.originalQty)} />
+        )}
+        {item.dimensions && <Stat label="Dimensions" value={item.dimensions} />}
       </div>
+      {item.itemDescription && (
+        <p className="mt-3 font-figtree text-[13px] leading-[19.5px] text-neutral-secondary">{item.itemDescription}</p>
+      )}
       {item.colourOptions && item.colourOptions.length > 0 && (
         <div className="mt-3">
           <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">

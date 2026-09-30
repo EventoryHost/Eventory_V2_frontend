@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
-import type { PackageDetail } from "../types";
+import type { PackageDetail, SelectedAddon } from "../types";
 import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
 import { formatPrice } from "../utils/formatPrice";
 import HeroGallery from "./HeroGallery";
@@ -35,12 +35,14 @@ export default function PackageDetailPage({
   editItemId?: string;
 }) {
   const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
-  const [addonQuantities, setAddonQuantities] = useState<Record<string, number>>({});
-  // The color label the customer picked per add-on (not a colourOptions id —
-  // that's just this component's own selection UI; what actually needs to
-  // reach the cart payload, and what a prefilled edit reads back, is the
-  // plain label backend now persists on selectedAddOns[].color).
-  const [addonColours, setAddonColours] = useState<Record<string, string>>({});
+  // One entry per LINE (addonId + colour combination), not one per addon —
+  // real bug fixed 2026-10-01: the old Record<addonId, qty>/Record<addonId,
+  // colour> shape could only ever hold ONE colour per addon at a time, so
+  // picking the same add-on again in a different colour silently overwrote
+  // the first colour's selection instead of adding a second line, and the
+  // card's own "+" (AddonCard.tsx) hid itself entirely once any quantity
+  // existed, making a second colour unreachable in the first place.
+  const [addonLines, setAddonLines] = useState<{ addonId: string; colourLabel?: string; quantity: number }[]>([]);
   const [vendorNote, setVendorNote] = useState("");
   const [vendorNoteAttachments, setVendorNoteAttachments] = useState<string[]>([]);
   const [editCartItem, setEditCartItem] = useState<RawCartItem | null>(null);
@@ -66,15 +68,16 @@ export default function PackageDetailPage({
         setEditCartItem(match);
         setVendorNote(match.specialRequest || "");
         setVendorNoteAttachments(match.noteAttachments || []);
-        const quantities: Record<string, number> = {};
-        const colours: Record<string, string> = {};
-        match.selectedAddOns.forEach((addon) => {
-          if (!addon.addOnId) return;
-          quantities[addon.addOnId] = addon.quantity;
-          if (addon.color) colours[addon.addOnId] = addon.color;
-        });
-        setAddonQuantities(quantities);
-        setAddonColours(colours);
+        // One line per real selectedAddOns entry — the backend array already
+        // supports several lines sharing the same addOnId in different
+        // colours (SelectedAddOnSchema has no uniqueness constraint); the
+        // old Record<addonId,...> collapse here silently discarded all but
+        // the last colour for a repeated addon on every edit reload.
+        setAddonLines(
+          match.selectedAddOns
+            .filter((addon) => addon.addOnId)
+            .map((addon) => ({ addonId: addon.addOnId!, colourLabel: addon.color || undefined, quantity: addon.quantity }))
+        );
         workshop.hydrateFromRequests(match.customizeRequests ?? [], match.colourPreferences ?? []);
       })
       .catch(() => {
@@ -111,13 +114,21 @@ export default function PackageDetailPage({
     });
   }, [data, selectedVariant]);
 
-  const selectedAddons = useMemo(
-    () =>
-      data.addons
-        .filter((addon) => (addonQuantities[addon.id] ?? 0) > 0)
-        .map((addon) => ({ ...addon, quantity: addonQuantities[addon.id], color: addonColours[addon.id] })),
-    [data.addons, addonQuantities, addonColours]
-  );
+  const selectedAddons: SelectedAddon[] = useMemo(() => {
+    const result: SelectedAddon[] = [];
+    for (const line of addonLines) {
+      if (line.quantity <= 0) continue;
+      const addon = data.addons.find((a) => a.id === line.addonId);
+      if (!addon) continue;
+      result.push({
+        ...addon,
+        quantity: line.quantity,
+        color: line.colourLabel,
+        lineKey: `${line.addonId}::${line.colourLabel ?? ""}`,
+      });
+    }
+    return result;
+  }, [data.addons, addonLines]);
 
   const addonsTotal = useMemo(
     () => selectedAddons.reduce((sum, addon) => sum + addon.price * addon.quantity, 0),
@@ -130,26 +141,45 @@ export default function PackageDetailPage({
   // actually runs over), so it's surfaced separately, not added here.
   const packageTotal = (selectedVariant?.price ?? 0) + data.pricing.teamAndEquipmentCharge + addonsTotal;
 
-  function changeAddonQuantity(addonId: string, delta: number) {
-    setAddonQuantities((prev) => {
-      const nextQty = Math.max(0, (prev[addonId] ?? 0) + delta);
-      return { ...prev, [addonId]: nextQty };
+  // The "+" on an add-on card (AddonCard.tsx) always calls this, whether or
+  // not that add-on already has a quantity — real bug fixed 2026-10-01: the
+  // card used to hide its own "+" once any quantity existed, which made a
+  // second colour of the same add-on unreachable. If a line with the exact
+  // same addon+colour already exists, its quantity is incremented instead
+  // of creating a duplicate; a genuinely different colour (or no colour
+  // options at all, picked twice) becomes its own independent line.
+  function addAddon(addonId: string, colourId?: string) {
+    const addon = data.addons.find((a) => a.id === addonId);
+    const colourLabel = colourId ? addon?.colourOptions?.find((c) => c.id === colourId)?.label : undefined;
+    setAddonLines((prev) => {
+      const existingIndex = prev.findIndex((line) => line.addonId === addonId && line.colourLabel === colourLabel);
+      if (existingIndex === -1) return [...prev, { addonId, colourLabel, quantity: 1 }];
+      return prev.map((line, i) => (i === existingIndex ? { ...line, quantity: line.quantity + 1 } : line));
     });
   }
 
-  // Absolute set, for the quantity input field — delta-based changeAddonQuantity
-  // can't express "type 12 directly". Same 0-floor as the +/- buttons.
-  function setAddonQuantity(addonId: string, qty: number) {
-    setAddonQuantities((prev) => ({ ...prev, [addonId]: Math.max(0, qty) }));
+  // lineKey-scoped (not addonId-scoped) — see SelectedAddon.lineKey's own
+  // comment for why: an addonId alone can no longer identify a single line.
+  function changeAddonLineQuantity(lineKey: string, delta: number) {
+    setAddonLines((prev) =>
+      prev
+        .map((line) =>
+          `${line.addonId}::${line.colourLabel ?? ""}` === lineKey
+            ? { ...line, quantity: Math.max(0, line.quantity + delta) }
+            : line
+        )
+        .filter((line) => line.quantity > 0)
+    );
   }
 
-  // colourId is one of that add-on's own colourOptions ids — resolved to the
-  // real label here (not sent as an internal id) since that's what backend
-  // persists on selectedAddOns[].color and what cart/booking summary render.
-  function setAddonColour(addonId: string, colourId: string) {
-    const label = data.addons.find((addon) => addon.id === addonId)?.colourOptions?.find((c) => c.id === colourId)?.label;
-    if (!label) return;
-    setAddonColours((prev) => ({ ...prev, [addonId]: label }));
+  // Absolute set, for the quantity input field — delta-based changeAddonLineQuantity
+  // can't express "type 12 directly". Same 0-floor as the +/- buttons.
+  function setAddonLineQuantity(lineKey: string, qty: number) {
+    setAddonLines((prev) =>
+      prev
+        .map((line) => (`${line.addonId}::${line.colourLabel ?? ""}` === lineKey ? { ...line, quantity: Math.max(0, qty) } : line))
+        .filter((line) => line.quantity > 0)
+    );
   }
 
   return (
@@ -181,10 +211,10 @@ export default function PackageDetailPage({
           {data.addons.length > 0 && (
             <AddonsCarousel
               addons={data.addons}
-              quantities={addonQuantities}
-              onChangeQuantity={changeAddonQuantity}
-              onSetQuantity={setAddonQuantity}
-              onSetColour={setAddonColour}
+              lines={selectedAddons}
+              onAdd={addAddon}
+              onChangeLineQuantity={changeAddonLineQuantity}
+              onSetLineQuantity={setAddonLineQuantity}
             />
           )}
           <PaymentProtection protection={data.paymentProtection} />

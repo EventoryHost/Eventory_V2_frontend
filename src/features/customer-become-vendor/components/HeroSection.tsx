@@ -9,8 +9,13 @@ const TOTAL_VENDORS = "4503";
 
 export default function HeroSection() {
   return (
-    <section className="mx-auto flex max-w-[1360px] flex-col items-center gap-10 px-4 pt-14 pb-16 sm:pl-16 lg:flex-row lg:items-center lg:justify-between lg:gap-16 lg:pt-20 lg:pb-24">
-      <div className="flex max-w-[620px] flex-col items-start gap-6 text-center lg:text-left">
+    // No bottom padding — the next section (Why Choose Eventory) starts
+    // flush against wherever the hero image ends, with zero gap. Top
+    // alignment is lg:items-start (not centered/bottom) specifically so the
+    // image's own top offset below can be set precisely, independent of
+    // the text column's height.
+    <section className="mx-auto flex max-w-[1360px] flex-col items-center gap-10 px-4 sm:pl-16 lg:flex-row lg:items-start lg:justify-between lg:gap-16">
+      <div className="flex max-w-[620px] flex-col items-start gap-6 pt-14 text-center lg:pt-20 lg:text-left">
         {/* Gradient border via a two-layer trick: the outer layer IS the
             gradient "border" (1px padding reveals it), the inner layer
             holds the actual pink→white background at radius-1. Plain
@@ -54,8 +59,13 @@ export default function HeroSection() {
 
       {/* Real file is 1145x1374 (portrait) — taller than the 418x384 box the
           design gave, so object-contain (not cover) is what shows the whole
-          image without cropping; the box just caps how large it renders. */}
-      <div className="relative w-full max-w-[418px] shrink-0">
+          image without cropping; the box just caps how large it renders.
+          lg:mt-[135px] = the navbar's own fixed height (71px) + the 64px
+          gap asked for, so the image's top edge sits exactly 64px below
+          the navbar on desktop (where it's beside the text, near the top
+          of the page) — mobile/tablet stack it below the text instead, so
+          this offset doesn't apply there. */}
+      <div className="relative w-full max-w-[418px] shrink-0 lg:mt-[20px]">
         <Image
           src="/images/customer/become.png"
           alt="Vendors on Eventory — chef, decorator, DJ, makeup artist and photographer"
