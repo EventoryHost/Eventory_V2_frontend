@@ -44,6 +44,16 @@ function getServerSnapshot() {
   return SERVER_SNAPSHOT;
 }
 
+// Hydration flag: false on the server AND during the client's hydration
+// render (React renders that pass with getServerSnapshot, i.e. logged out),
+// true on every render after. Without it, a page gating on
+// `isHydrated && !isLoggedIn` saw "hydrated, logged out" on a full reload
+// and redirected a signed-in customer to /register before the stored
+// session was ever read.
+const noopSubscribe = () => () => {};
+const getHydratedSnapshot = () => true;
+const getHydratedServerSnapshot = () => false;
+
 /**
  * Reactive read/write access to the customer session, backed by the module
  * store in src/lib/customerSession.ts so Navbar, StickyBookingCard, and
@@ -51,6 +61,7 @@ function getServerSnapshot() {
  */
 export function useCustomerSession() {
   const { accessToken, customer } = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const isHydrated = useSyncExternalStore(noopSubscribe, getHydratedSnapshot, getHydratedServerSnapshot);
 
   const customerId = customer?.id;
   useEffect(() => {
@@ -74,7 +85,7 @@ export function useCustomerSession() {
   return {
     session: customer,
     isLoggedIn: Boolean(accessToken && customer),
-    isHydrated: true,
+    isHydrated,
     login,
     logout,
   };

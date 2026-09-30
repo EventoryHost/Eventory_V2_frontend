@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import type { BookingBanner } from "../utils/bookingBanner";
 
 const ART: Record<BookingBanner["variant"], string> = {
@@ -62,6 +63,17 @@ export default function BookingStatusBanner({
           >
             {action.label}
           </span>
+        ) : action.href ? (
+          <Link
+            href={action.href}
+            className={`rounded-full text-[14px] font-medium leading-5 transition-colors ${
+              isPrimary
+                ? "bg-brand-primary px-3 py-2 text-white hover:bg-[#E14E64]"
+                : "border border-[#EA1D3B] px-5 py-2 text-[#EA1D3B] hover:bg-[#FEF2F3]"
+            }`}
+          >
+            {action.label}
+          </Link>
         ) : (
           <button
             type="button"
