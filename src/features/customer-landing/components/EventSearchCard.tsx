@@ -39,7 +39,7 @@ export default function EventSearchCard() {
     if (vendorService) params.set("category", vendorService);
     if (date) params.set("date", date);
     const query = params.toString();
-    router.push(query ? `/vendors?${query}` : "/vendors");
+    router.push(query ? `/packages/browse?${query}` : "/packages/browse");
   }
 
   return (

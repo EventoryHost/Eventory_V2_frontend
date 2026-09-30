@@ -106,7 +106,7 @@ function CartButton() {
   return (
     <Link
       href="/cart"
-      className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
+      className="flex items-center gap-1.5 rounded-full bg-customer-bg px-3 py-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
     >
       <ShoppingCart size={20} />
       <span className="hidden sm:inline">Cart</span>
