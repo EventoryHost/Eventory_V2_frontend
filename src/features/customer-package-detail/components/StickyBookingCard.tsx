@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { addCartItem, getCart, updateCartItem, type RawCartEventDetails, type RawCustomizeRequest } from "@/lib/customerCartApi";
+import { addCartItem, getCart, updateCartItem, type RawCartEventDetails, type RawCustomizeRequest, type RawColourPreference } from "@/lib/customerCartApi";
 import { getConvenienceFeePreview, getPackageServiceability, getPackageSlots, type RawPdpConvenienceFee } from "@/lib/customerPackageDetailApi";
 import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
+import { ALL_EXTENDED_COLOURS } from "../data/extendedColorPalette";
 import { formatPrice } from "../utils/formatPrice";
 import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
@@ -38,6 +39,7 @@ export default function StickyBookingCard({
   selectedAddons,
   includedItems,
   customizeRequests,
+  colourPreferences,
   vendorNote,
   onVendorNoteChange,
   vendorNoteAttachments,
@@ -65,6 +67,8 @@ export default function StickyBookingCard({
   includedItems: IncludedItemEntry[];
   /** The PDP "Customize items" workshop's live requests (useCustomizeWorkshop, lifted up in PackageDetailPage) — sent as customizeRequests in the add/update cart payload below so they're no longer silently discarded on navigation. */
   customizeRequests: CustomizeRequest[];
+  /** Same workshop's vendor-palette colour picks (item-details view) — never a request, but real data sent alongside customizeRequests, not mixed into it. */
+  colourPreferences: { setupId: string; itemId: string; itemLabel: string; colours: string[] }[];
   vendorNote: string;
   onVendorNoteChange: (note: string) => void;
   /** Uploaded S3 URLs for the "Notes for vendor" section's image attachments — lifted up to PackageDetailPage alongside vendorNote so both the inline PDP section and this card's own prompt modal write to the same list. */
@@ -400,12 +404,22 @@ export default function StickyBookingCard({
         type: request.item.type,
         // Real colour names, not the slugified ids useCustomizeWorkshop uses
         // internally — that's what the backend schema and vendor-facing
-        // display expect.
-        colours: request.item.colours?.map(
-          (id) => request.item.colourOptions?.find((c) => c.id === id)?.label ?? id
-        ),
+        // display expect. A brand-new item's colours come from its own
+        // COLOUR_PALETTE picks (colours/colourOptions, unrelated to any
+        // vendor default). An existing item's colour(s) are only ever sent
+        // here when they're a real request — the extended-palette
+        // customColours multi-select (design change 2026-09-30) — never the
+        // vendor's own colours, which are a free pick that's never a
+        // request in the first place.
+        colours: request.item.isNew
+          ? request.item.colours?.map((id) => request.item.colourOptions?.find((c) => c.id === id)?.label ?? id)
+          : request.item.customColours?.map((id) => ALL_EXTENDED_COLOURS.find((c) => c.id === id)?.label ?? id),
         volume: request.item.volume,
       })) satisfies RawCustomizeRequest[],
+      // Vendor-palette colour picks (item-details view) — see
+      // useCustomizeWorkshop's own comment on colourPreferences; already
+      // resolved to real colour names there, same as customizeRequests above.
+      colourPreferences: colourPreferences satisfies RawColourPreference[],
     };
   }
 

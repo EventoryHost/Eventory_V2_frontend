@@ -56,9 +56,20 @@ export interface IncludedItemLine {
   type?: string;
   originalType?: string;
   colourOptions?: ColourOption[];
-  /** Selected colour ids. */
+  /** Selected colour ids — the vendor's own palette (colourOptions). Multi-
+   * select, freely changeable (item-details section, SetupDetailPanel.tsx)
+   * and NEVER a request: "these are the options the vendor already provides." */
   colours?: string[];
   originalColours?: string[];
+  /**
+   * Colour ids picked from the extended palette (data/extendedColorPalette.ts)
+   * via the Customize items modal — the only way a colour choice becomes a
+   * real request. Multi-select. Empty/undefined until the customer picks at
+   * least one there; distinct from `colours` above, which the vendor's own
+   * swatches use and which never generates a request no matter what's selected.
+   */
+  customColours?: string[];
+  originalCustomColours?: string[];
   /** Decorator-only — how full/dense the item should look (Low/Medium/High). Undefined when the vendor never set one. */
   volumeOptions?: string[];
   volume?: string;

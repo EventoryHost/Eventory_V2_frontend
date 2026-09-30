@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2, Plus, Trash2 } from "lucide-react";
-import type { ColourOption, IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from "../types";
+import type { IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from "../types";
 import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_IMAGES } from "../data/workshopCategories";
+import { EXTENDED_COLOUR_PALETTE } from "../data/extendedColorPalette";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import SetupDetailPanel from "./SetupDetailPanel";
 import QuantityInput from "./QuantityInput";
@@ -12,11 +13,6 @@ type FooterPhase = "idle" | "processing" | "committed";
 type ModalView = "detail" | "customize";
 
 const NEW_ITEM_SLOT = "__new__";
-
-function colourLabel(ids: string[] | undefined, options: ColourOption[] | undefined) {
-  if (!ids || !ids.length || !options) return "None";
-  return ids.map((id) => options.find((o) => o.id === id)?.label ?? id).join(", ");
-}
 
 // The checkmark needs to stay legible on both dark swatches (Maroon, Navy)
 // and light ones (White, Cream) — a fixed white check would vanish on the
@@ -102,6 +98,26 @@ export default function CustomizeWorkshopModal({
     flash();
   }
 
+  // Extended-palette colour pick (existing items only, multi-select) — the
+  // only colour action here that counts as a real request.
+  function toggleCustomColour(colourId: string) {
+    if (!selectedItem) return;
+    workshop.toggleCustomColour(setup.id, selectedItem.id, colourId);
+    flash();
+  }
+
+  function clearCustomColours() {
+    if (!selectedItem) return;
+    workshop.clearCustomColours(setup.id, selectedItem.id);
+  }
+
+  // Vendor-palette pick from the item-details view (multi-select) — never a
+  // request, so no flash() (that's reserved for actions that add/change a
+  // pending request).
+  function selectVendorColour(itemId: string, colourId: string) {
+    workshop.toggleVendorColour(setup.id, itemId, colourId);
+  }
+
   function setQuantity(qty: number) {
     if (!selectedItem) return;
     workshop.setQuantity(setup.id, selectedItem.id, qty);
@@ -153,6 +169,7 @@ export default function CustomizeWorkshopModal({
             items={items}
             requests={setupRequests}
             onDismissRequest={workshop.dismissRequest}
+            onSelectVendorColour={selectVendorColour}
             onCustomize={() => setView("customize")}
             onCloseAttempt={requestClose}
             onSave={onClose}
@@ -237,6 +254,8 @@ export default function CustomizeWorkshopModal({
                         onRemove={handleRemoveClick}
                         onSetType={setType}
                         onToggleColour={toggleColour}
+                        onToggleCustomColour={toggleCustomColour}
+                        onClearCustomColours={clearCustomColours}
                         onSetVolume={setVolume}
                         onSetQuantity={setQuantity}
                       />
@@ -324,6 +343,8 @@ function AttributeEditor({
   onRemove,
   onSetType,
   onToggleColour,
+  onToggleCustomColour,
+  onClearCustomColours,
   onSetVolume,
   onSetQuantity,
 }: {
@@ -331,11 +352,17 @@ function AttributeEditor({
   onRemove: () => void;
   onSetType: (type: string) => void;
   onToggleColour: (colourId: string) => void;
+  onToggleCustomColour: (colourId: string) => void;
+  onClearCustomColours: () => void;
   onSetVolume: (volume: string) => void;
   onSetQuantity: (qty: number) => void;
 }) {
   const sections: React.ReactNode[] = [];
 
+  // Order: type, then volume, then quantity, then colour(s) last — colour
+  // is the section most likely to need scrolling (up to 89 extended-palette
+  // swatches), so it goes at the bottom rather than pushing the shorter,
+  // quicker fields below the fold.
   if (item.typeOptions && item.typeOptions.length > 0) {
     sections.push(
       <div key="type">
@@ -357,54 +384,6 @@ function AttributeEditor({
             </button>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (item.colourOptions && item.colourOptions.length > 0) {
-    sections.push(
-      <div key="colour">
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className={SECTION_HEADING}>Colours</span>
-          <span className="font-figtree text-[12px] leading-[18px] font-normal normal-case text-neutral-tertiary">
-            · Pick colors you would want in your setup
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-4">
-          {item.colourOptions.map((colour) => {
-            const selected = item.colours?.includes(colour.id);
-            return (
-              <button
-                key={colour.id}
-                type="button"
-                onClick={() => onToggleColour(colour.id)}
-                className="flex flex-col items-center gap-1.5"
-              >
-                <span
-                  className={`relative flex h-14 w-14 items-center justify-center rounded-full border transition ${
-                    selected
-                      ? "border-black/10 ring-[1.5px] ring-[#B4112A] ring-offset-2 ring-offset-white"
-                      : "border-black/10"
-                  }`}
-                  style={{ backgroundColor: colour.swatch }}
-                >
-                  {selected && (
-                    <Check
-                      className={`h-6 w-6 ${isLightSwatch(colour.swatch) ? "text-brand-950" : "text-white"}`}
-                      strokeWidth={3}
-                    />
-                  )}
-                </span>
-                <span className="font-figtree text-[12px] text-neutral-secondary">{colour.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        {item.originalColours && item.originalColours.length > 0 && (
-          <p className="mt-3 font-figtree text-[12px] text-neutral-tertiary">
-            Original: {colourLabel(item.originalColours, item.colourOptions)}
-          </p>
-        )}
       </div>
     );
   }
@@ -468,6 +447,130 @@ function AttributeEditor({
       </div>
     </div>
   );
+
+  // Colour, last. Brand-new item ("Add an item") — its own curated palette
+  // (COLOUR_PALETTE), multi-select, unrelated to any vendor default (there
+  // isn't one), so this stays exactly as it always has.
+  if (item.isNew && item.colourOptions && item.colourOptions.length > 0) {
+    sections.push(
+      <div key="colour">
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className={SECTION_HEADING}>Colours</span>
+          <span className="font-figtree text-[12px] leading-[18px] font-normal normal-case text-neutral-tertiary">
+            · Pick colors you would want in your setup
+          </span>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          {item.colourOptions.map((colour) => {
+            const selected = item.colours?.includes(colour.id);
+            return (
+              <button
+                key={colour.id}
+                type="button"
+                onClick={() => onToggleColour(colour.id)}
+                className="flex flex-col items-center gap-1.5"
+              >
+                <span
+                  className={`relative flex h-14 w-14 items-center justify-center rounded-full border transition ${
+                    selected
+                      ? "border-black/10 ring-[1.5px] ring-[#B4112A] ring-offset-2 ring-offset-white"
+                      : "border-black/10"
+                  }`}
+                  style={{ backgroundColor: colour.swatch }}
+                >
+                  {selected && (
+                    <Check
+                      className={`h-6 w-6 ${isLightSwatch(colour.swatch) ? "text-brand-950" : "text-white"}`}
+                      strokeWidth={3}
+                    />
+                  )}
+                </span>
+                <span className="font-figtree text-[12px] text-neutral-secondary">{colour.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Existing catalog item — the vendor's own colours are NOT shown here at
+  // all (design change 2026-09-30: picking among them is free, done from
+  // the item-details view instead, and never a request). This is the only
+  // place a colour choice becomes a real request: picking one or more from
+  // the full extended palette (data/extendedColorPalette.ts, sourced from
+  // the SVG_Balloon_Color_Palette.xlsx reference sheet) that isn't what the
+  // vendor already offers. Multi-select (2026-09-30) — a customer can
+  // request several alternate colours for the same item, same as the
+  // vendor's own multi-select above.
+  if (!item.isNew) {
+    const currentVendorColours = item.colours
+      ?.map((id) => item.colourOptions?.find((c) => c.id === id)?.label)
+      .filter((label): label is string => Boolean(label));
+    sections.push(
+      <div key="custom-colour">
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          <span className={SECTION_HEADING}>Request different colour(s)</span>
+        </div>
+        <p className="mb-3 font-figtree text-[12px] leading-[18px] font-normal text-neutral-tertiary">
+          {currentVendorColours && currentVendorColours.length > 0
+            ? `The vendor already offers ${currentVendorColours.join(", ")} for this item — pick from here only if you want something else. This counts as a request.`
+            : "Pick colour(s) the vendor doesn't already offer for this item. This counts as a request."}
+        </p>
+        <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
+          {EXTENDED_COLOUR_PALETTE.map((category) => (
+            <div key={category.id}>
+              <div className="mb-2 font-figtree text-[11px] leading-[16px] font-semibold text-neutral-tertiary">
+                {category.label}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {category.colours.map((colour) => {
+                  const selected = item.customColours?.includes(colour.id);
+                  return (
+                    <button
+                      key={colour.id}
+                      type="button"
+                      title={colour.label}
+                      onClick={() => onToggleCustomColour(colour.id)}
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <span
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition ${
+                          selected
+                            ? "border-black/10 ring-[1.5px] ring-[#B4112A] ring-offset-2 ring-offset-white"
+                            : "border-black/10"
+                        }`}
+                        style={{ backgroundColor: colour.swatch }}
+                      >
+                        {selected && (
+                          <Check
+                            className={`h-4 w-4 ${isLightSwatch(colour.swatch) ? "text-brand-950" : "text-white"}`}
+                            strokeWidth={3}
+                          />
+                        )}
+                      </span>
+                      <span className="w-14 truncate text-center font-figtree text-[10px] text-neutral-secondary">
+                        {colour.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        {item.customColours && item.customColours.length > 0 && (
+          <button
+            type="button"
+            onClick={onClearCustomColours}
+            className="mt-3 font-figtree text-[12px] font-semibold text-brand-primary hover:underline"
+          >
+            Remove this request — use the vendor's colour instead
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

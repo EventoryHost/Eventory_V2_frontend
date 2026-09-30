@@ -75,7 +75,7 @@ export default function PackageDetailPage({
         });
         setAddonQuantities(quantities);
         setAddonColours(colours);
-        workshop.hydrateFromRequests(match.customizeRequests ?? []);
+        workshop.hydrateFromRequests(match.customizeRequests ?? [], match.colourPreferences ?? []);
       })
       .catch(() => {
         // Best-effort — worst case the page just behaves like a fresh (non-edit) visit.
@@ -209,6 +209,7 @@ export default function PackageDetailPage({
           selectedAddons={selectedAddons}
           includedItems={data.includedItems}
           customizeRequests={workshop.requests}
+          colourPreferences={workshop.colourPreferences}
           vendorNote={vendorNote}
           onVendorNoteChange={setVendorNote}
           vendorNoteAttachments={vendorNoteAttachments}

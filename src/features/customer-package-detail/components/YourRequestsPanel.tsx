@@ -1,5 +1,6 @@
 import { Trash2 } from "lucide-react";
 import type { CustomizeRequest } from "../types";
+import { ALL_EXTENDED_COLOURS } from "../data/extendedColorPalette";
 
 const TYPE_LABEL: Record<CustomizeRequest["requestType"], string> = {
   change: "Change",
@@ -25,17 +26,19 @@ function changedFields(item: CustomizeRequest["item"]): FieldRow[] {
   if (item.volume !== undefined && item.volume !== item.originalVolume) {
     fields.push({ label: "Volume", from: item.originalVolume ?? "—", to: item.volume });
   }
-  if (item.colours && item.originalColours) {
-    const before = item.colours.slice().sort().join(",");
-    const after = item.originalColours.slice().sort().join(",");
-    if (before !== after) {
-      const labelOf = (id: string) => item.colourOptions?.find((c) => c.id === id)?.label ?? id;
-      fields.push({
-        label: "Colour",
-        from: item.originalColours.map(labelOf).join(", ") || "None",
-        to: item.colours.map(labelOf).join(", ") || "None",
-      });
-    }
+  // The vendor's own colour(s) are a free pick (item-details view) and
+  // never show up here — only customColours picks (extended palette,
+  // Customize items modal) do, since that's the only colour action that's
+  // a real request (design change 2026-09-30). Multi-select on both sides.
+  if (item.customColours && item.customColours.length > 0) {
+    const to = item.customColours
+      .map((id) => ALL_EXTENDED_COLOURS.find((c) => c.id === id)?.label ?? id)
+      .join(", ");
+    const currentVendorColours = item.colours
+      ?.map((id) => item.colourOptions?.find((c) => c.id === id)?.label)
+      .filter((label): label is string => Boolean(label))
+      .join(", ");
+    fields.push({ label: "Colour", from: currentVendorColours || undefined, to });
   }
   return fields;
 }

@@ -6,18 +6,22 @@ import type {
   IncludedItemLine,
   WorkshopCategoryDef,
 } from "../types";
-import type { RawCustomizeRequest } from "@/lib/customerCartApi";
+import type { RawCustomizeRequest, RawColourPreference } from "@/lib/customerCartApi";
 import { COLOUR_PALETTE, VOLUME_OPTIONS } from "../data/workshopCategories";
+import { ALL_EXTENDED_COLOURS } from "../data/extendedColorPalette";
 
+// colours/originalColours (the vendor's own palette) are deliberately NOT
+// compared here — freely picking among what the vendor already offers is
+// never a request (design change 2026-09-30: "these are the options the
+// vendor already provides"). Only a customColour pick (the extended
+// palette, Customize items modal only) counts.
 function hasChanged(item: IncludedItemLine): boolean {
   if (item.qty !== item.originalQty) return true;
   if (item.type !== undefined && item.type !== item.originalType) return true;
   if (item.volume !== undefined && item.volume !== item.originalVolume) return true;
-  if (item.colours && item.originalColours) {
-    const selected = [...item.colours].sort().join(",");
-    const original = [...item.originalColours].sort().join(",");
-    if (selected !== original) return true;
-  }
+  const custom = [...(item.customColours ?? [])].sort().join(",");
+  const originalCustom = [...(item.originalCustomColours ?? [])].sort().join(",");
+  if (custom !== originalCustom) return true;
   return false;
 }
 
@@ -48,6 +52,30 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     updateItem(setupId, itemId, { volume });
   }
 
+  // Multi-select toggle among the vendor's OWN colourOptions — the
+  // item-details section's clickable swatches (SetupDetailPanel.tsx).
+  // Deliberately not run through hasChanged's originalColours: this never
+  // generates a request, so there is nothing to diff against.
+  function toggleVendorColour(setupId: string, itemId: string, colourId: string) {
+    setItemsBySetup((prev) => ({
+      ...prev,
+      [setupId]: (prev[setupId] ?? []).map((item) => {
+        if (item.id !== itemId || item.removalRequested) return item;
+        const selected = item.colours ?? [];
+        const colours = selected.includes(colourId)
+          ? selected.filter((c) => c !== colourId)
+          : [...selected, colourId];
+        return { ...item, colours };
+      }),
+    }));
+  }
+
+  // Multi-select toggle over a brand-new item's own colourOptions
+  // (COLOUR_PALETTE, set by addItem() below) — unrelated to the vendor-
+  // colour/customColour split above: a new item has no vendor default to
+  // begin with, and the whole item is already a request regardless of
+  // which colours it's given, so this keeps its pre-existing behaviour
+  // unchanged.
   function toggleColour(setupId: string, itemId: string, colourId: string) {
     setItemsBySetup((prev) => ({
       ...prev,
@@ -60,6 +88,27 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
         return { ...item, colours };
       }),
     }));
+  }
+
+  // Multi-select toggle over the EXTENDED palette (data/extendedColorPalette.ts),
+  // picked only from the Customize items modal — this is what makes a
+  // colour choice a real request (see hasChanged above).
+  function toggleCustomColour(setupId: string, itemId: string, colourId: string) {
+    setItemsBySetup((prev) => ({
+      ...prev,
+      [setupId]: (prev[setupId] ?? []).map((item) => {
+        if (item.id !== itemId || item.removalRequested) return item;
+        const selected = item.customColours ?? [];
+        const customColours = selected.includes(colourId)
+          ? selected.filter((c) => c !== colourId)
+          : [...selected, colourId];
+        return { ...item, customColours };
+      }),
+    }));
+  }
+
+  function clearCustomColours(setupId: string, itemId: string) {
+    updateItem(setupId, itemId, { customColours: [] });
   }
 
   function setQuantity(setupId: string, itemId: string, qty: number) {
@@ -89,7 +138,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
               type: item.originalType,
               volume: item.originalVolume,
               qty: item.originalQty,
-              colours: item.originalColours ? [...item.originalColours] : item.colours,
+              customColours: item.originalCustomColours ? [...item.originalCustomColours] : [],
             }
           : item
       ),
@@ -135,12 +184,25 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
   // already saved. Replays onto the ORIGINAL catalog items (not whatever's
   // currently in state) so this is safe to call once, right after the
   // catalog-only initial state has already rendered.
-  function hydrateFromRequests(requests: RawCustomizeRequest[]) {
-    if (requests.length === 0) return;
+  function hydrateFromRequests(requests: RawCustomizeRequest[], colourPreferences: RawColourPreference[] = []) {
+    if (requests.length === 0 && colourPreferences.length === 0) return;
     setItemsBySetup(() => {
       const base: Record<string, IncludedItemLine[]> = Object.fromEntries(
         setups.map((setup) => [setup.id, setup.items])
       );
+      // Vendor-palette picks — replayed first so a "change" request below
+      // (which never touches `colours`) can't clobber it either way.
+      for (const preference of colourPreferences) {
+        const list = base[preference.setupId];
+        if (!list) continue;
+        base[preference.setupId] = list.map((item) => {
+          if (item.id !== preference.itemId) return item;
+          const colours = preference.colours?.map(
+            (label) => item.colourOptions?.find((c) => c.label === label)?.id ?? label
+          );
+          return { ...item, colours: colours ?? item.colours };
+        });
+      }
       for (const request of requests) {
         const list = base[request.setupId];
         if (!list) continue;
@@ -151,18 +213,19 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
         } else if (request.requestType === "change") {
           base[request.setupId] = list.map((item) => {
             if (item.id !== request.itemId) return item;
-            // colours came back from the backend as labels (see
-            // buildCartPayload) — resolve back to this item's own option
-            // ids, same ids toggleColour/colourOptions already use.
-            const colours = request.colours?.map(
-              (label) => item.colourOptions?.find((c) => c.label === label)?.id ?? label
-            );
+            // colours comes back from the backend as labels (see
+            // buildCartPayload) — a "change" request's colours are always
+            // customColours picks (extended palette), never the vendor's
+            // own, so resolve against that palette to get the ids back.
+            const customColours = request.colours?.length
+              ? request.colours.map((label) => ALL_EXTENDED_COLOURS.find((c) => c.label === label)?.id ?? label)
+              : item.customColours;
             return {
               ...item,
               qty: request.quantity ?? item.qty,
               type: request.type ?? item.type,
               volume: request.volume ?? item.volume,
-              colours: colours ?? item.colours,
+              customColours,
             };
           });
         } else if (request.requestType === "add" && !list.some((item) => item.id === request.itemId)) {
@@ -208,6 +271,24 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     return list;
   }, [itemsBySetup, setups]);
 
+  // Vendor-palette colour picks, one entry per item that actually has one —
+  // never a request (see hasChanged above), but real data the vendor should
+  // still see, sent alongside (not mixed into) customizeRequests. Resolved
+  // to real colour names here already, same "backend/vendor display expects
+  // names, not slugified ids" convention buildCartPayload already follows
+  // for customizeRequests.
+  const colourPreferences = useMemo(() => {
+    const list: { setupId: string; itemId: string; itemLabel: string; colours: string[] }[] = [];
+    for (const setup of setups) {
+      for (const item of itemsBySetup[setup.id] ?? []) {
+        if (item.removalRequested || !item.colours || item.colours.length === 0) continue;
+        const colours = item.colours.map((id) => item.colourOptions?.find((c) => c.id === id)?.label ?? id);
+        list.push({ setupId: setup.id, itemId: item.id, itemLabel: item.label, colours });
+      }
+    }
+    return list;
+  }, [itemsBySetup, setups]);
+
   function dismissRequest(request: CustomizeRequest) {
     if (request.requestType === "add") cancelAdd(request.setupId, request.itemId);
     else if (request.requestType === "remove") cancelRemoval(request.setupId, request.itemId);
@@ -217,9 +298,13 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
   return {
     itemsBySetup,
     requests,
+    colourPreferences,
     setType,
     setVolume,
     toggleColour,
+    toggleVendorColour,
+    toggleCustomColour,
+    clearCustomColours,
     setQuantity,
     requestRemoval,
     cancelRemoval,
