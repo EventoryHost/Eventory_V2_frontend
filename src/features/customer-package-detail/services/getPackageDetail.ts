@@ -329,11 +329,31 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
         // in the customize workshop (toggleColour), not a fabricated value.
         const colourOptions = line.colors?.length ? mapColourOptions(line.colors) : undefined;
         const colours = colourOptions ? [colourOptions[0].id] : undefined;
+        // REAL GAP FOUND 2026-10-01 (PM-reported: "some items have a type
+        // field too, not shown"): itemType-specific fields (flowerType for
+        // a Flowers item, lightingType for a Lighting item — confirmed
+        // against the vendor form's own item shape, Step2SetupsAndPricing.tsx)
+        // are each item's REAL "Type" value when set, distinct from and
+        // taking priority over subCategory below. Previously only
+        // subCategory was ever read, so any item whose type lived in one of
+        // these two fields instead showed no Type at all.
+        const specificType = line.flowerType || line.lightingType;
         // subCategory is only a meaningful extra fact when it says something
         // beyond the item's own name (e.g. name="Chrome Balloons",
         // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
-        // Bouquet", subCategory="Rose" — real extra detail, kept).
-        const type = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
+        // Bouquet", subCategory="Rose" — real extra detail, kept). Reverted
+        // 2026-10-02 per product decision — keep this filter even though it
+        // means an item whose subCategory happens to equal its name (common
+        // for Balloons) shows no Type.
+        const subCategoryType = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
+        const type = specificType || subCategoryType;
+        const typeLabel = line.flowerType
+          ? "Flower type"
+          : line.lightingType
+            ? "Fixture type"
+            : type
+              ? `${line.itemType ?? "Sub"} Type`
+              : undefined;
         return {
           id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
           label: line.name ?? "Item",
@@ -343,7 +363,7 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           // itemType is the item's broad category (e.g. "Balloons", "Flower")
           // — real, already in the API response, previously dropped entirely.
           category: line.itemType || undefined,
-          typeLabel: type ? `${line.itemType ?? "Sub"} Type` : undefined,
+          typeLabel,
           type,
           originalType: type,
           volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
@@ -352,6 +372,15 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           colourOptions,
           colours,
           originalColours: colours,
+          // Also real, already in the API response, previously dropped
+          // entirely — see IncludedItemLine's own comment on each.
+          unit: line.unit || undefined,
+          dimensions: line.dimensions || undefined,
+          itemDescription: line.description || undefined,
+          // Real schema field (e.g. balloon garland/string length), never
+          // read at all until now — same PM report as the type-field gap
+          // above.
+          length: line.length ?? undefined,
         };
       }),
     };
@@ -529,6 +558,13 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
     // Every row here is only added when the vendor actually set that field —
     // no "—" placeholders standing in for missing data.
     const details: IncludedItemDetail[] = [];
+    // REAL GAP FOUND 2026-10-01 (PM-reported: "type field is not being
+    // shown" in the add-on modal): addOnType (Service/Product) is set on
+    // EVERY live add-on (59/59, confirmed against the real DB) but was
+    // only ever read as a fallback for `category` above — never shown as
+    // its own fact, so it was invisible whenever category was already set
+    // (the common case).
+    if (addon.addOnType) details.push({ label: "Type", value: addon.addOnType });
     if (addon.productUsage) details.push({ label: "Setup type", value: setupTypeLabel(addon.productUsage) });
     if (addon.quantity != null) details.push({ label: "Quantity", value: String(addon.quantity) });
     const dimensions = formatDimensions(addon.physicalSpec?.dimensions);
@@ -789,7 +825,21 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     reviews,
     pricing: (() => {
       const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
-      const gstPercent = pkg.step3_policiesAndCharges?.gstRatePercent ?? 0;
+      // REAL BUG FOUND 2026-09-26 (product-manager-reported: an
+      // inclusive-GST package still showed and added GST on the PDP,
+      // inflating the estimated total): this read gstRatePercent
+      // unconditionally, never checking gstInclusive at all. The backend's
+      // own pricing engine (cartPricingService.js's computeGst) already
+      // has the correct rule — GST is only ever a separate, added charge
+      // when the vendor marked the price NOT inclusive of GST; when
+      // gstInclusive is true, the rate is already baked into `price` and
+      // must never be shown or added again. This PDP-only mapper had
+      // silently drifted from that rule since it computes its own
+      // estimate independently rather than calling the shared quote
+      // engine (StickyBookingCard/Cart/Checkout all agree via that
+      // engine; only this initial page-load estimate didn't).
+      const gstInclusive = !!pkg.step3_policiesAndCharges?.gstInclusive;
+      const gstPercent = gstInclusive ? 0 : (pkg.step3_policiesAndCharges?.gstRatePercent ?? 0);
       const preGstTotal = price + teamAndEquipmentCharge;
       // The token/advance amount ("Book & pay X") is a percentage of the
       // full upfront cost the customer actually owes — package price + team

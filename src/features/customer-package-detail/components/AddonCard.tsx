@@ -10,13 +10,11 @@ import AddonDetailsModal from "./AddonDetailsModal";
 
 export default function AddonCard({
   addon,
-  quantity,
   onAdd,
   seed = 0,
 }: {
   addon: AddonItem;
-  quantity: number;
-  /** colourId is the color the customer picked in the details modal (undefined when this addon has no color options) — needs to reach the cart payload, see PackageDetailPage.tsx's addonColours state. */
+  /** colourId is the color the customer picked in the details modal (undefined when this addon has no color options) — reaches PackageDetailPage.tsx's addAddon, which merges into an existing line of the same addon+colour or creates a new one. */
   onAdd: (colourId?: string) => void;
   seed?: number;
 }) {
@@ -36,20 +34,20 @@ export default function AddonCard({
             {addon.category}
           </span>
 
-          {/* Once added, quantity is only ever changed from the "Added
-              Add-ons" summary tab above (AddedAddonsSummary) — no
-              increment/decrement here, and the + to add it again only
-              reappears once it's removed from that tab (quantity back to 0). */}
-          {quantity === 0 && (
-            <button
-              type="button"
-              onClick={() => setIsDetailsOpen(true)}
-              aria-label={`Add ${addon.title}`}
-              className="absolute -bottom-4 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-brand-subtle text-brand-primary shadow-md transition hover:bg-brand-primary/15"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-          )}
+          {/* Always visible, even after this addon already has a line —
+              picking it again (same or different colour) merges into the
+              matching line's quantity or starts a new one, handled by
+              PackageDetailPage.tsx's addAddon. Quantity for an existing
+              line is otherwise only changed from the "Added Add-ons"
+              summary tab above (AddedAddonsSummary). */}
+          <button
+            type="button"
+            onClick={() => setIsDetailsOpen(true)}
+            aria-label={`Add ${addon.title}`}
+            className="absolute -bottom-4 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-brand-subtle text-brand-primary shadow-md transition hover:bg-brand-primary/15"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
 
         <div className="p-4 pt-6">

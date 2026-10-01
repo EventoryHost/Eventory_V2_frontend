@@ -18,10 +18,10 @@ export default function AddedAddonsSummary({
   onRemove,
 }: {
   addons: SelectedAddon[];
-  onIncrement: (id: string) => void;
-  onDecrement: (id: string) => void;
-  onSetQuantity: (id: string, qty: number) => void;
-  onRemove: (id: string) => void;
+  onIncrement: (lineKey: string) => void;
+  onDecrement: (lineKey: string) => void;
+  onSetQuantity: (lineKey: string, qty: number) => void;
+  onRemove: (lineKey: string) => void;
 }) {
   if (addons.length === 0) return null;
 
@@ -34,7 +34,7 @@ export default function AddedAddonsSummary({
       <div className="flex flex-col divide-y divide-black/5">
         {addons.map((addon, i) => {
           return (
-            <div key={addon.id} className="flex items-center gap-3 py-4 first:pt-0">
+            <div key={addon.lineKey} className="flex items-center gap-3 py-4 first:pt-0">
               <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl">
                 {addon.image ? (
                   <img src={addon.image} alt={addon.title} className="block h-full w-full object-cover" />
@@ -67,7 +67,7 @@ export default function AddedAddonsSummary({
                 <div className="flex h-[26px] w-[130px] items-center justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => onDecrement(addon.id)}
+                    onClick={() => onDecrement(addon.lineKey)}
                     aria-label={`Remove one ${addon.title}`}
                     className="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-black/15 text-brand-950 transition hover:bg-black/5"
                   >
@@ -75,7 +75,7 @@ export default function AddedAddonsSummary({
                   </button>
                   <QuantityInput
                     value={addon.quantity}
-                    onChange={(qty) => onSetQuantity(addon.id, qty)}
+                    onChange={(qty) => onSetQuantity(addon.lineKey, qty)}
                     min={1}
                     max={MAX_ADDON_QUANTITY}
                     aria-label={`Quantity for ${addon.title}`}
@@ -83,7 +83,7 @@ export default function AddedAddonsSummary({
                   />
                   <button
                     type="button"
-                    onClick={() => onIncrement(addon.id)}
+                    onClick={() => onIncrement(addon.lineKey)}
                     aria-label={`Add one more ${addon.title}`}
                     className="flex h-[26px] w-[26px] items-center justify-center rounded-full border border-black/15 text-brand-950 transition hover:bg-black/5"
                   >
@@ -92,7 +92,7 @@ export default function AddedAddonsSummary({
                   <span className="h-[18px] w-px bg-black/10" />
                   <button
                     type="button"
-                    onClick={() => onRemove(addon.id)}
+                    onClick={() => onRemove(addon.lineKey)}
                     aria-label={`Remove ${addon.title}`}
                     className="flex h-[26px] w-[26px] items-center justify-center rounded-full text-neutral-tertiary transition hover:bg-black/5 hover:text-error-700"
                   >

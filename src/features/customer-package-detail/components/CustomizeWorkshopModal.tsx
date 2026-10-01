@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Check, Loader2, Plus, Trash2 } from "lucide-react";
-import type { ColourOption, IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from "../types";
+import type { IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from "../types";
 import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_IMAGES } from "../data/workshopCategories";
+import { EXTENDED_COLOUR_PALETTE } from "../data/extendedColorPalette";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import SetupDetailPanel from "./SetupDetailPanel";
 import QuantityInput from "./QuantityInput";
@@ -12,11 +13,6 @@ type FooterPhase = "idle" | "processing" | "committed";
 type ModalView = "detail" | "customize";
 
 const NEW_ITEM_SLOT = "__new__";
-
-function colourLabel(ids: string[] | undefined, options: ColourOption[] | undefined) {
-  if (!ids || !ids.length || !options) return "None";
-  return ids.map((id) => options.find((o) => o.id === id)?.label ?? id).join(", ");
-}
 
 // The checkmark needs to stay legible on both dark swatches (Maroon, Navy)
 // and light ones (White, Cream) — a fixed white check would vanish on the
@@ -49,6 +45,13 @@ export default function CustomizeWorkshopModal({
   const [phase, setPhase] = useState<FooterPhase>("idle");
   const [isLeaveGuardOpen, setIsLeaveGuardOpen] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Captured once, on mount — this is already the committed/last-saved
+  // state (hydrateFromRequests runs before this modal can ever open), so
+  // "Don't save changes" has an exact baseline to restore instead of
+  // reverting every pending request all the way back to the package's
+  // pristine original (see restoreSetupItems's own comment for why that
+  // was wrong).
+  const openingSnapshot = useRef(items);
 
   const setupRequests = workshop.requests.filter((r) => r.setupId === setup.id);
   const requestCount = setupRequests.length;
@@ -68,7 +71,7 @@ export default function CustomizeWorkshopModal({
   }
 
   function discardAndClose() {
-    setupRequests.forEach((request) => workshop.dismissRequest(request));
+    workshop.restoreSetupItems(setup.id, openingSnapshot.current);
     setIsLeaveGuardOpen(false);
     onClose();
   }
@@ -100,6 +103,26 @@ export default function CustomizeWorkshopModal({
     if (!selectedItem) return;
     workshop.toggleColour(setup.id, selectedItem.id, colourId);
     flash();
+  }
+
+  // Extended-palette colour pick (existing items only, multi-select) — the
+  // only colour action here that counts as a real request.
+  function toggleCustomColour(colourId: string) {
+    if (!selectedItem) return;
+    workshop.toggleCustomColour(setup.id, selectedItem.id, colourId);
+    flash();
+  }
+
+  function clearCustomColours() {
+    if (!selectedItem) return;
+    workshop.clearCustomColours(setup.id, selectedItem.id);
+  }
+
+  // Vendor-palette pick from the item-details view (multi-select) — never a
+  // request, so no flash() (that's reserved for actions that add/change a
+  // pending request).
+  function selectVendorColour(itemId: string, colourId: string) {
+    workshop.toggleVendorColour(setup.id, itemId, colourId);
   }
 
   function setQuantity(qty: number) {
@@ -144,7 +167,7 @@ export default function CustomizeWorkshopModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" role="dialog" aria-modal>
       <div
         className={`relative flex flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ${
-          view === "detail" ? "h-[min(720px,90vh)] w-full max-w-[640px]" : "h-[min(640px,90vh)] w-full max-w-[880px]"
+          view === "detail" ? "h-[min(720px,90vh)] w-full max-w-[640px]" : "h-[min(90vh,720px)] w-full max-w-[880px] sm:h-[min(640px,90vh)]"
         }`}
       >
         {view === "detail" ? (
@@ -153,13 +176,14 @@ export default function CustomizeWorkshopModal({
             items={items}
             requests={setupRequests}
             onDismissRequest={workshop.dismissRequest}
+            onSelectVendorColour={selectVendorColour}
             onCustomize={() => setView("customize")}
             onCloseAttempt={requestClose}
             onSave={onClose}
           />
         ) : (
           <>
-            <div className="flex items-center gap-3 border-b border-black/10 px-6 py-4">
+            <div className="flex items-center gap-3 border-b border-black/10 px-4 py-3 sm:px-6 sm:py-4">
               <button
                 type="button"
                 onClick={() => setView("detail")}
@@ -174,13 +198,19 @@ export default function CustomizeWorkshopModal({
               </div>
             </div>
 
-            <div className="flex flex-1 overflow-hidden">
-              <div className="flex w-[260px] shrink-0 flex-col border-r border-black/10 bg-[#F4F4F5]">
-                <div className="border-b border-black/10 px-4 py-3 font-figtree text-[12px] leading-[18px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
+            {/* Mobile: the item picker collapses into a horizontal chip strip
+                above the editor (own row, capped height) instead of a fixed
+                260px vertical sidebar sharing the same row — that sidebar
+                left almost no width for the colour/quantity controls next to
+                it on a phone-sized screen (real bug fixed 2026-10-01). From
+                sm up, it reverts to the original vertical sidebar layout. */}
+            <div className="flex flex-1 flex-col overflow-hidden sm:flex-row">
+              <div className="flex max-h-[104px] w-full shrink-0 flex-col border-b border-black/10 bg-[#F4F4F5] sm:h-auto sm:max-h-none sm:w-[260px] sm:border-r sm:border-b-0">
+                <div className="hidden border-b border-black/10 px-4 py-3 font-figtree text-[12px] leading-[18px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase sm:block">
                   Choose an item
                 </div>
 
-                <div className="flex-1 overflow-y-auto py-2">
+                <div className="flex gap-2 overflow-x-auto px-3 py-2.5 sm:flex-1 sm:flex-col sm:gap-0 sm:overflow-x-hidden sm:overflow-y-auto sm:px-0 sm:py-2">
                   {items.map((item) => {
                     const request = setupRequests.find((r) => r.itemId === item.id);
                     const subtitle = [item.category, item.type, item.volume].filter(Boolean).join(" · ");
@@ -189,22 +219,22 @@ export default function CustomizeWorkshopModal({
                         key={item.id}
                         type="button"
                         onClick={() => setSelectedItemId(item.id)}
-                        className={`flex w-full items-center justify-between gap-2 border-l-4 py-3 pr-4 pl-3.5 text-left transition ${
+                        className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-left transition sm:w-full sm:shrink sm:justify-between sm:gap-2 sm:rounded-none sm:border-y-0 sm:border-r-0 sm:border-l-4 sm:px-4 sm:py-3 sm:pl-3.5 ${
                           item.id === selectedItemId
-                            ? "border-brand-950 bg-white"
-                            : "border-transparent hover:bg-white/60"
+                            ? "border-brand-950 bg-white sm:bg-white"
+                            : "border-black/15 bg-white/60 hover:border-black/30 sm:border-transparent sm:bg-transparent sm:hover:bg-white/60"
                         }`}
                       >
                         <span>
                           <span
-                            className={`block font-figtree text-[16px] leading-[24px] font-semibold ${
+                            className={`block font-figtree text-[13px] leading-[18px] font-semibold whitespace-nowrap sm:text-[16px] sm:leading-[24px] sm:whitespace-normal ${
                               request?.requestType === "remove" ? "text-neutral-tertiary line-through" : "text-[#030303]"
                             }`}
                           >
                             {item.label}
                           </span>
                           {subtitle && (
-                            <span className="mt-0.5 block font-figtree text-[12px] leading-[18px] font-normal text-[#71717B]">
+                            <span className="mt-0.5 hidden font-figtree text-[12px] leading-[18px] font-normal text-[#71717B] sm:block">
                               {subtitle}
                             </span>
                           )}
@@ -217,17 +247,17 @@ export default function CustomizeWorkshopModal({
                   <button
                     type="button"
                     onClick={() => setSelectedItemId(NEW_ITEM_SLOT)}
-                    className={`flex w-full items-center justify-center gap-2 px-4 py-3 text-center font-figtree text-[16px] leading-[24px] font-medium text-[#EA1D3B] transition ${
+                    className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-dashed border-[#EA1D3B]/40 px-3 py-1.5 text-center font-figtree text-[13px] leading-[18px] font-medium whitespace-nowrap text-[#EA1D3B] transition sm:w-full sm:rounded-none sm:border-none sm:px-4 sm:py-3 sm:text-[16px] sm:leading-[24px] sm:whitespace-normal ${
                       selectedItemId === NEW_ITEM_SLOT ? "bg-white" : "hover:bg-white/60"
                     }`}
                   >
-                    <Plus className="h-4 w-4" /> Add an item
+                    <Plus className="h-4 w-4 shrink-0" /> Add an item
                   </button>
                 </div>
               </div>
 
               <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
                   {selectedItem ? (
                     selectedItem.removalRequested ? (
                       <RemovalPanel item={selectedItem} onCancel={cancelRemoval} />
@@ -237,6 +267,8 @@ export default function CustomizeWorkshopModal({
                         onRemove={handleRemoveClick}
                         onSetType={setType}
                         onToggleColour={toggleColour}
+                        onToggleCustomColour={toggleCustomColour}
+                        onClearCustomColours={clearCustomColours}
                         onSetVolume={setVolume}
                         onSetQuantity={setQuantity}
                       />
@@ -248,7 +280,7 @@ export default function CustomizeWorkshopModal({
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-black/10 px-6 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-black/10 px-4 py-3 sm:px-6 sm:py-4">
               <div className="flex items-center gap-2 font-figtree text-[12px] leading-[16px] font-semibold">
                 {phase === "processing" ? (
                   <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
@@ -324,6 +356,8 @@ function AttributeEditor({
   onRemove,
   onSetType,
   onToggleColour,
+  onToggleCustomColour,
+  onClearCustomColours,
   onSetVolume,
   onSetQuantity,
 }: {
@@ -331,29 +365,81 @@ function AttributeEditor({
   onRemove: () => void;
   onSetType: (type: string) => void;
   onToggleColour: (colourId: string) => void;
+  onToggleCustomColour: (colourId: string) => void;
+  onClearCustomColours: () => void;
   onSetVolume: (volume: string) => void;
   onSetQuantity: (qty: number) => void;
 }) {
   const sections: React.ReactNode[] = [];
 
+  // Order: type, then volume, then quantity, then colour(s) last — colour
+  // is the section most likely to need scrolling (up to 89 extended-palette
+  // swatches), so it goes at the bottom rather than pushing the shorter,
+  // quicker fields below the fold.
   if (item.typeOptions && item.typeOptions.length > 0) {
+    // "Other" is a pill like any other, but its real purpose is "let the
+    // customer type what they actually want" rather than a fixed option —
+    // so once it (or any value typed into it) is the current selection, a
+    // text input appears for entering the real value. A custom value no
+    // longer literally equals the typeOptions string "Other" once typed, so
+    // this also catches "already has a typed-in custom type" on top of
+    // "Other" having just been clicked.
+    const isOtherSelected = item.type === "Other" || (item.type !== undefined && !item.typeOptions.includes(item.type));
     sections.push(
       <div key="type">
         <div className={`mb-2 ${SECTION_HEADING}`}>{item.typeLabel}</div>
         <div className="flex flex-wrap gap-2">
-          {item.typeOptions.map((option) => (
+          {item.typeOptions.map((option) => {
+            const selected = option === "Other" ? isOtherSelected : item.type === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onSetType(option)}
+                className={`rounded-full border px-3 py-1.5 font-figtree text-[13px] transition ${
+                  selected
+                    ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
+                    : "border-black/15 text-brand-950 hover:border-black/30"
+                }`}
+              >
+                {option}
+                {option === item.originalType && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
+              </button>
+            );
+          })}
+        </div>
+        {isOtherSelected && (
+          <input
+            type="text"
+            value={item.type === "Other" ? "" : (item.type ?? "")}
+            onChange={(e) => onSetType(e.target.value === "" ? "Other" : e.target.value)}
+            placeholder={`Enter ${item.typeLabel?.toLowerCase() ?? "type"}`}
+            autoFocus
+            className="mt-2 w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 placeholder:text-neutral-tertiary focus:border-brand-primary focus:outline-none"
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (item.volumeOptions && item.volumeOptions.length > 0) {
+    sections.push(
+      <div key="volume">
+        <div className={`mb-2 ${SECTION_HEADING}`}>Volume</div>
+        <div className="flex flex-wrap gap-2">
+          {item.volumeOptions.map((option) => (
             <button
               key={option}
               type="button"
-              onClick={() => onSetType(option)}
+              onClick={() => onSetVolume(option)}
               className={`rounded-full border px-3 py-1.5 font-figtree text-[13px] transition ${
-                item.type === option
+                item.volume === option
                   ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
                   : "border-black/15 text-brand-950 hover:border-black/30"
               }`}
             >
               {option}
-              {option === item.originalType && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
+              {option === item.originalVolume && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
             </button>
           ))}
         </div>
@@ -361,7 +447,51 @@ function AttributeEditor({
     );
   }
 
-  if (item.colourOptions && item.colourOptions.length > 0) {
+  // Volume (Low/Medium/High density — e.g. flowers) replaces the concept of
+  // a countable quantity for that item, so no Quantity control is shown at
+  // all when Volume applies (2026-10-01, product-confirmed) — same rule as
+  // the read-only item-details view (SetupDetailPanel.tsx).
+  if (!item.volumeOptions || item.volumeOptions.length === 0) {
+    sections.push(
+      <div key="quantity">
+        <div className={`mb-2 ${SECTION_HEADING}`}>Quantity</div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => onSetQuantity(item.qty - 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
+          >
+            −
+          </button>
+          <QuantityInput
+            value={item.qty}
+            onChange={onSetQuantity}
+            min={1}
+            // Setup items are frequently measured in units like cm (e.g. a
+            // real Chrome Balloons line at 300cm) rather than "how many of
+            // this thing", so the add-ons' 99 cap silently clamped any real
+            // entry above that back down — 9999 covers real data without
+            // still being an effectively unbounded/unvalidated field.
+            max={9999}
+            aria-label={`Quantity for ${item.label}`}
+            className="w-10 rounded-md border border-transparent text-center font-figtree text-[15px] font-semibold text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
+          />
+          <button
+            type="button"
+            onClick={() => onSetQuantity(item.qty + 1)}
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
+          >
+            +
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Colour, last. Brand-new item ("Add an item") — its own curated palette
+  // (COLOUR_PALETTE), multi-select, unrelated to any vendor default (there
+  // isn't one), so this stays exactly as it always has.
+  if (item.isNew && item.colourOptions && item.colourOptions.length > 0) {
     sections.push(
       <div key="colour">
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -400,74 +530,87 @@ function AttributeEditor({
             );
           })}
         </div>
-        {item.originalColours && item.originalColours.length > 0 && (
-          <p className="mt-3 font-figtree text-[12px] text-neutral-tertiary">
-            Original: {colourLabel(item.originalColours, item.colourOptions)}
-          </p>
+      </div>
+    );
+  }
+
+  // Existing catalog item — the vendor's own colours are NOT shown here at
+  // all (design change 2026-09-30: picking among them is free, done from
+  // the item-details view instead, and never a request). This is the only
+  // place a colour choice becomes a real request: picking one or more from
+  // the full extended palette (data/extendedColorPalette.ts, sourced from
+  // the SVG_Balloon_Color_Palette.xlsx reference sheet) that isn't what the
+  // vendor already offers. Multi-select (2026-09-30) — a customer can
+  // request several alternate colours for the same item, same as the
+  // vendor's own multi-select above.
+  if (!item.isNew) {
+    const currentVendorColours = item.colours
+      ?.map((id) => item.colourOptions?.find((c) => c.id === id)?.label)
+      .filter((label): label is string => Boolean(label));
+    sections.push(
+      <div key="custom-colour">
+        <div className="mb-1 flex flex-wrap items-center gap-1.5">
+          <span className={SECTION_HEADING}>Request different colour(s)</span>
+        </div>
+        <p className="mb-3 font-figtree text-[12px] leading-[18px] font-normal text-neutral-tertiary">
+          {currentVendorColours && currentVendorColours.length > 0
+            ? `The vendor already offers ${currentVendorColours.join(", ")} for this item — pick from here only if you want something else. This counts as a request.`
+            : "Pick colour(s) the vendor doesn't already offer for this item. This counts as a request."}
+        </p>
+        <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
+          {EXTENDED_COLOUR_PALETTE.map((category) => (
+            <div key={category.id}>
+              <div className="mb-2 font-figtree text-[11px] leading-[16px] font-semibold text-neutral-tertiary">
+                {category.label}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {category.colours.map((colour) => {
+                  const selected = item.customColours?.includes(colour.id);
+                  return (
+                    <button
+                      key={colour.id}
+                      type="button"
+                      title={colour.label}
+                      onClick={() => onToggleCustomColour(colour.id)}
+                      className="flex flex-col items-center gap-1"
+                    >
+                      <span
+                        className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition ${
+                          selected
+                            ? "border-black/10 ring-[1.5px] ring-[#B4112A] ring-offset-2 ring-offset-white"
+                            : "border-black/10"
+                        }`}
+                        style={{ backgroundColor: colour.swatch }}
+                      >
+                        {selected && (
+                          <Check
+                            className={`h-4 w-4 ${isLightSwatch(colour.swatch) ? "text-brand-950" : "text-white"}`}
+                            strokeWidth={3}
+                          />
+                        )}
+                      </span>
+                      <span className="w-14 truncate text-center font-figtree text-[10px] text-neutral-secondary">
+                        {colour.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        {item.customColours && item.customColours.length > 0 && (
+          <button
+            type="button"
+            onClick={onClearCustomColours}
+            className="mt-3 font-figtree text-[12px] font-semibold text-brand-primary hover:underline"
+          >
+            Remove this request — use the vendor's colour instead
+          </button>
         )}
       </div>
     );
   }
-
-  if (item.volumeOptions && item.volumeOptions.length > 0) {
-    sections.push(
-      <div key="volume">
-        <div className={`mb-2 ${SECTION_HEADING}`}>Volume</div>
-        <div className="flex flex-wrap gap-2">
-          {item.volumeOptions.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onSetVolume(option)}
-              className={`rounded-full border px-3 py-1.5 font-figtree text-[13px] transition ${
-                item.volume === option
-                  ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                  : "border-black/15 text-brand-950 hover:border-black/30"
-              }`}
-            >
-              {option}
-              {option === item.originalVolume && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  sections.push(
-    <div key="quantity">
-      <div className={`mb-2 ${SECTION_HEADING}`}>Quantity</div>
-      <div className="flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => onSetQuantity(item.qty - 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
-        >
-          −
-        </button>
-        <QuantityInput
-          value={item.qty}
-          onChange={onSetQuantity}
-          min={1}
-          // Setup items are frequently measured in units like cm (e.g. a
-          // real Chrome Balloons line at 300cm) rather than "how many of
-          // this thing", so the add-ons' 99 cap silently clamped any real
-          // entry above that back down — 9999 covers real data without
-          // still being an effectively unbounded/unvalidated field.
-          max={9999}
-          aria-label={`Quantity for ${item.label}`}
-          className="w-10 rounded-md border border-transparent text-center font-figtree text-[15px] font-semibold text-brand-950 hover:border-black/15 focus:border-black/20 focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={() => onSetQuantity(item.qty + 1)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-black/15 font-figtree text-[16px] text-brand-950 hover:border-black/30"
-        >
-          +
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -486,6 +629,41 @@ function AttributeEditor({
           <Trash2 className="h-3.5 w-3.5" /> Remove
         </button>
       </div>
+
+      {/* Read-only facts the vendor set (item type/category, its sub-type —
+          e.g. "Metallic Balloons" — and length) — shown whenever present but
+          NOT as an editable picker like the typeOptions section above: these
+          are free text on the schema (flowerType/lightingType/subCategory),
+          not a fixed option list, so there's nothing real to offer as
+          choices. REAL GAP FIXED 2026-10-02 (PM-reported: "balloon type and
+          all not displayed in customization modal") — previously shown only
+          in the read-only Item Details view, never here, since this section
+          only ever rendered when typeOptions (new-item categories only) was
+          set. */}
+      {!item.typeOptions?.length && (item.category || item.type || item.length != null) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-black/[0.03] px-4 py-3">
+          {item.category && (
+            <div>
+              <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">Item Type</div>
+              <div className="font-figtree text-[13px] font-semibold text-brand-950">{item.category}</div>
+            </div>
+          )}
+          {item.type && (
+            <div>
+              <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">{item.typeLabel ?? "Type"}</div>
+              <div className="font-figtree text-[13px] font-semibold text-brand-950">{item.type}</div>
+            </div>
+          )}
+          {item.length != null && (
+            <div>
+              <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">Length</div>
+              <div className="font-figtree text-[13px] font-semibold text-brand-950">
+                {item.unit ? `${item.length} ${item.unit}` : item.length}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {sections.map((section, i) => (
         <div key={i} className={i > 0 ? "border-t border-black/10 pt-6" : ""}>
@@ -532,20 +710,22 @@ function CategoryGrid({ onPick }: { onPick: (category: WorkshopCategoryDef) => v
     <div>
       <h3 className="font-figtree text-[20px] font-bold text-brand-950">New item</h3>
       <p className="mt-1 font-figtree text-[13px] text-neutral-secondary">Choose an item of your choice in the setup</p>
-      <div className="mt-5 grid grid-cols-2 gap-4">
+      <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
         {WORKSHOP_CATEGORIES.map((category) => (
           <button
             key={category.id}
             type="button"
             onClick={() => onPick(category)}
-            className="relative flex h-[100px] w-[206px] items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5"
+            className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5 sm:w-[206px]"
           >
             <span className="font-figtree text-[14px] font-semibold text-brand-950">{category.label}</span>
-            <img
-              src={WORKSHOP_CATEGORY_IMAGES[category.id]}
-              alt=""
-              className="pointer-events-none absolute right-1 bottom-1 h-[62px] w-[62px] object-contain"
-            />
+            {WORKSHOP_CATEGORY_IMAGES[category.id] && (
+              <img
+                src={WORKSHOP_CATEGORY_IMAGES[category.id]}
+                alt=""
+                className="pointer-events-none absolute right-1 bottom-1 h-[62px] w-[62px] object-contain"
+              />
+            )}
           </button>
         ))}
       </div>

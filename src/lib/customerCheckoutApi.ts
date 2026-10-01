@@ -6,13 +6,14 @@ import type {
   RawCartQuote,
   RawCartSelectedItem,
   RawCustomizeRequest,
+  RawColourPreference,
 } from "./customerCartApi";
 import { clearCheckoutSessionId, getCheckoutSessionId } from "./checkoutSession";
 
 // Re-exported so existing importers of RawCustomizeRequest from this module
 // don't need to change — the type itself now lives in customerCartApi.ts
 // since checkout/booking shapes reuse the cart's own raw types.
-export type { RawCustomizeRequest };
+export type { RawCustomizeRequest, RawColourPreference };
 
 // Raw shapes returned by /api/customer/checkout/session/* — see book-api.pdf
 // ("Booking Flow — API Handoff"). session.lockedQuote and the line
@@ -22,6 +23,7 @@ export type { RawCustomizeRequest };
 export interface RawCheckoutSessionLine {
   _id: string;
   customizeRequests?: RawCustomizeRequest[];
+  colourPreferences?: RawColourPreference[];
   /**
    * The CartItem._id this line was created from (source:"cart" sessions) —
    * distinct from this line's own _id, which is a fresh id the checkout

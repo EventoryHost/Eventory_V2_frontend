@@ -42,7 +42,21 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   const [sort, setSort] = useState<PackageSortOption>(
     (searchParams.get("sort") as PackageSortOption) ?? "newest"
   );
-  const [selected, setSelected] = useState<PackageSelectedFilters>(EMPTY_PACKAGE_FILTERS);
+  // Availability-aware date filter, forwarded straight to GET /customer/packages
+  // (customerDiscoveryApi.ts's BrowsePackagesParams.date already supports
+  // this server-side — it just had nothing on this page wiring a value into
+  // it). Landing's EventSearchCard is the first thing that actually sets
+  // this URL param.
+  const [date, setDate] = useState(searchParams.get("date") ?? "");
+  // Event type from the landing search reuses the sidebar's OWN existing
+  // "eventType" filter section/state (already wired to chips, clearFilters,
+  // filterPackages()) rather than a second, parallel mechanism — same ids
+  // (raw event-category strings), same PackagesFiltersResponse.eventCategories
+  // source EventSearchCard's own dropdown reads from.
+  const [selected, setSelected] = useState<PackageSelectedFilters>(() => {
+    const eventType = searchParams.get("eventType");
+    return eventType ? { ...EMPTY_PACKAGE_FILTERS, eventType: [eventType] } : EMPTY_PACKAGE_FILTERS;
+  });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
   const [packages, setPackages] = useState(data.packages);
@@ -70,10 +84,11 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     if (search) params.set("q", search);
     if (category !== "all") params.set("category", category);
     if (sort !== "newest") params.set("sort", sort);
+    if (date) params.set("date", date);
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, category, sort]);
+  }, [search, category, sort, date]);
 
   // Refetch page 1 when category, sort or the debounced search changes.
   // Skipped on the very first run when they all match what the server
@@ -82,7 +97,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (category === "all" && sort === "newest" && !debouncedSearch) return;
+      if (category === "all" && sort === "newest" && !debouncedSearch && !date) return;
     }
     let cancelled = false;
     setIsLoading(true);
@@ -90,6 +105,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
       q: debouncedSearch || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
       sort: SORT_UI_TO_API[sort],
+      date: date || undefined,
       page: 1,
       limit: PACKAGES_PAGE_SIZE,
     })
@@ -108,7 +124,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     return () => {
       cancelled = true;
     };
-  }, [category, sort, debouncedSearch]);
+  }, [category, sort, debouncedSearch, date]);
 
   // Wishlist is customer-only; packages are saved as itemType "Package".
   useEffect(() => {
@@ -208,6 +224,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
         q: debouncedSearch || undefined,
         vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
         sort: SORT_UI_TO_API[sort],
+        date: date || undefined,
         page: nextPage,
         limit: PACKAGES_PAGE_SIZE,
       });
