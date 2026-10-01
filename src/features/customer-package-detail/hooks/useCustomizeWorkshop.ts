@@ -170,6 +170,23 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     return id;
   }
 
+  // Restores one setup's items to an exact snapshot — used by the
+  // Customize-items modal's "Don't save changes" leave-guard. Real bug
+  // fixed 2026-10-02: that guard used to call dismissRequest on every
+  // currently-pending request, which reverts each one all the way back to
+  // the PACKAGE'S PRISTINE ORIGINAL (item.original*) — correct for an
+  // explicit single-request cancel (see dismissRequest below), but wrong
+  // here, since on a second visit the "pending requests" list already
+  // includes requests that were saved to the cart on a PREVIOUS visit
+  // (hydrateFromRequests replays them on load). Discarding blindly wiped
+  // those out too, not just the edits made in the current modal session.
+  // The modal now snapshots this setup's items the moment it opens (i.e.
+  // the already-saved state) and restores exactly that snapshot on
+  // discard, leaving previously-saved customizations untouched.
+  function restoreSetupItems(setupId: string, items: IncludedItemLine[]) {
+    setItemsBySetup((prev) => ({ ...prev, [setupId]: items }));
+  }
+
   function cancelAdd(setupId: string, itemId: string) {
     setItemsBySetup((prev) => ({
       ...prev,
@@ -313,6 +330,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     cancelAdd,
     dismissRequest,
     hydrateFromRequests,
+    restoreSetupItems,
   };
 }
 

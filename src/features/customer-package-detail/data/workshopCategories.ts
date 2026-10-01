@@ -3,16 +3,103 @@ import type { ColourOption, WorkshopCategoryDef } from "../types";
 // The platform-defined category set customers pick from when adding a new
 // item in the workshop (design doc §3, Screen 3 — "closed grid, not free
 // text": recognition beats recall, and it keeps requests machine-readable
-// for the vendor).
+// for the vendor). Categories/type lists given directly by product
+// 2026-10-02 (replaces the earlier placeholder set) — each list ends in
+// "Other", which CustomizeWorkshopModal's AttributeEditor handles specially
+// (free-text input instead of a fixed pill) rather than literally sending
+// the request with type "Other".
 export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
-  { id: "Flowers", label: "Flowers", typeLabel: "Flower type", typeOptions: ["Rose", "Jasmine", "Lily", "Marigold", "Orchid"] },
-  { id: "Lighting", label: "Lighting", typeLabel: "Fixture type", typeOptions: ["Fairy Lights", "Lanterns", "Chandelier", "Uplighting"] },
-  { id: "Carpet", label: "Carpet", typeLabel: "Carpet type", typeOptions: ["Red Runner", "Patterned", "Plain Beige", "Velvet"] },
-  { id: "Furniture", label: "Furniture", typeLabel: "Furniture type", typeOptions: ["Chair", "Table", "Sofa", "Bench"] },
-  { id: "Signage", label: "Signage", typeLabel: "Signage type", typeOptions: ["Welcome Board", "Table Numbers", "Directional Sign", "Neon Sign"] },
-  { id: "Fabric/Drapery", label: "Fabric/Drapery", typeLabel: "Fabric type", typeOptions: ["Lace", "Satin", "Linen", "Organza"] },
-  { id: "Balloon Decor", label: "Balloon Decor", typeLabel: "Balloon style", typeOptions: ["Arch", "Garland", "Cluster", "Column"] },
-  { id: "Rangoli", label: "Rangoli", typeLabel: "Rangoli style", typeOptions: ["Floral", "Geometric", "Traditional", "Colour Powder"] },
+  {
+    id: "Flowers",
+    label: "Flowers",
+    typeLabel: "Flower type",
+    typeOptions: [
+      "Marigold (Yellow/Orange)",
+      "Jasmine",
+      "Tuberose (Rajnigandha)",
+      "Rose",
+      "Carnation",
+      "Chrysanthemum",
+      "Gerbera",
+      "Seasonal Local Flowers",
+      "Gladiolus",
+      "Lily",
+      "Other",
+    ],
+  },
+  {
+    id: "Lighting",
+    label: "Lighting",
+    typeLabel: "Fixture type",
+    typeOptions: [
+      "Fairy Lights",
+      "Pixel Lights",
+      "LED Strip",
+      "Chandeliers (Crystal/Traditional)",
+      "Diyas (Oil lamps - traditional)",
+      "Candles (Pillar/Floating)",
+      "Lanterns (Paper/Metal)",
+      "Neon Signs",
+      "Spot Lights",
+      "Up-lighting",
+      "Par Cans",
+      "Moving Heads",
+      "Gobo Projection",
+      "Marquee Lights",
+      "Festoon Bulbs",
+      "Other",
+    ],
+  },
+  {
+    id: "Balloons",
+    label: "Balloons",
+    typeLabel: "Balloon type",
+    typeOptions: ["Metallic Balloons", "Chrome Balloons", "Confetti Balloons", "Balloon Arch", "Other"],
+  },
+  {
+    id: "Carpet/Flooring Decor",
+    label: "Carpet/Flooring Decor",
+    typeLabel: "Flooring type",
+    typeOptions: ["Red Carpet", "White Carpet", "Artificial Grass Turf", "Wooden Dance Floor", "Other"],
+  },
+  {
+    id: "Furnitures",
+    label: "Furnitures",
+    typeLabel: "Furniture type",
+    typeOptions: [
+      "Chiavari Chairs",
+      "Cushioned Chairs",
+      "Round Tables",
+      "Long Tables",
+      "Bar Stools",
+      "Lounge Sofas",
+      "Bean Bags",
+      "Carpets",
+      "Daris",
+      "Rugs",
+      "Sheesham Wooden Chairs (Traditional)",
+      "Carved Wooden Stools",
+      "Other",
+    ],
+  },
+  {
+    id: "Signage",
+    label: "Signage",
+    typeLabel: "Signage type",
+    typeOptions: ["Welcome Board", "Seating Chart", "Neon Sign", "Directional Arrow", "Other"],
+  },
+  {
+    id: "Fabric/Drapery",
+    label: "Fabric/Drapery",
+    typeLabel: "Fabric type",
+    typeOptions: ["Satin Drapes", "Chiffon Drapes", "Velvet Curtains", "Ceiling Draping", "Other"],
+  },
+  {
+    id: "Props",
+    label: "Props",
+    typeLabel: "Prop type",
+    typeOptions: ["Vintage Trunk", "Easel Stand", "Flower Vases", "Lanterns", "Other"],
+  },
 ];
 
 // How full/dense a decor item should look — backend stores this as a free
@@ -21,16 +108,17 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
 export const VOLUME_OPTIONS = ["Low", "Medium", "High"];
 
 // Illustration shown on each "Add an item" category card — saved as
-// /public/images/customize/<slug>.png.
+// /public/images/customize/<slug>.png. No "Props" entry exists yet (no
+// illustration asset for it) — CategoryGrid skips the <img> for any
+// category id with no mapping here rather than rendering a broken image.
 export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
   Flowers: "/images/customize/flowers.png",
   Lighting: "/images/customize/lighting.png",
-  Carpet: "/images/customize/carpet.png",
-  Furniture: "/images/customize/furniture.png",
+  "Carpet/Flooring Decor": "/images/customize/carpet.png",
+  Furnitures: "/images/customize/furniture.png",
   Signage: "/images/customize/signage.png",
   "Fabric/Drapery": "/images/customize/fabric.png",
-  "Balloon Decor": "/images/customize/balloon.png",
-  Rangoli: "/images/customize/rangoli.png",
+  Balloons: "/images/customize/balloon.png",
 };
 
 export const COLOUR_PALETTE: ColourOption[] = [

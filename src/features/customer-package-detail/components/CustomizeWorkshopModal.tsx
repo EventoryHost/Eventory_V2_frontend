@@ -45,6 +45,13 @@ export default function CustomizeWorkshopModal({
   const [phase, setPhase] = useState<FooterPhase>("idle");
   const [isLeaveGuardOpen, setIsLeaveGuardOpen] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  // Captured once, on mount — this is already the committed/last-saved
+  // state (hydrateFromRequests runs before this modal can ever open), so
+  // "Don't save changes" has an exact baseline to restore instead of
+  // reverting every pending request all the way back to the package's
+  // pristine original (see restoreSetupItems's own comment for why that
+  // was wrong).
+  const openingSnapshot = useRef(items);
 
   const setupRequests = workshop.requests.filter((r) => r.setupId === setup.id);
   const requestCount = setupRequests.length;
@@ -64,7 +71,7 @@ export default function CustomizeWorkshopModal({
   }
 
   function discardAndClose() {
-    setupRequests.forEach((request) => workshop.dismissRequest(request));
+    workshop.restoreSetupItems(setup.id, openingSnapshot.current);
     setIsLeaveGuardOpen(false);
     onClose();
   }
@@ -370,26 +377,47 @@ function AttributeEditor({
   // swatches), so it goes at the bottom rather than pushing the shorter,
   // quicker fields below the fold.
   if (item.typeOptions && item.typeOptions.length > 0) {
+    // "Other" is a pill like any other, but its real purpose is "let the
+    // customer type what they actually want" rather than a fixed option —
+    // so once it (or any value typed into it) is the current selection, a
+    // text input appears for entering the real value. A custom value no
+    // longer literally equals the typeOptions string "Other" once typed, so
+    // this also catches "already has a typed-in custom type" on top of
+    // "Other" having just been clicked.
+    const isOtherSelected = item.type === "Other" || (item.type !== undefined && !item.typeOptions.includes(item.type));
     sections.push(
       <div key="type">
         <div className={`mb-2 ${SECTION_HEADING}`}>{item.typeLabel}</div>
         <div className="flex flex-wrap gap-2">
-          {item.typeOptions.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onSetType(option)}
-              className={`rounded-full border px-3 py-1.5 font-figtree text-[13px] transition ${
-                item.type === option
-                  ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                  : "border-black/15 text-brand-950 hover:border-black/30"
-              }`}
-            >
-              {option}
-              {option === item.originalType && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
-            </button>
-          ))}
+          {item.typeOptions.map((option) => {
+            const selected = option === "Other" ? isOtherSelected : item.type === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => onSetType(option)}
+                className={`rounded-full border px-3 py-1.5 font-figtree text-[13px] transition ${
+                  selected
+                    ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
+                    : "border-black/15 text-brand-950 hover:border-black/30"
+                }`}
+              >
+                {option}
+                {option === item.originalType && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
+              </button>
+            );
+          })}
         </div>
+        {isOtherSelected && (
+          <input
+            type="text"
+            value={item.type === "Other" ? "" : (item.type ?? "")}
+            onChange={(e) => onSetType(e.target.value === "" ? "Other" : e.target.value)}
+            placeholder={`Enter ${item.typeLabel?.toLowerCase() ?? "type"}`}
+            autoFocus
+            className="mt-2 w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 placeholder:text-neutral-tertiary focus:border-brand-primary focus:outline-none"
+          />
+        )}
       </div>
     );
   }
@@ -602,6 +630,41 @@ function AttributeEditor({
         </button>
       </div>
 
+      {/* Read-only facts the vendor set (item type/category, its sub-type —
+          e.g. "Metallic Balloons" — and length) — shown whenever present but
+          NOT as an editable picker like the typeOptions section above: these
+          are free text on the schema (flowerType/lightingType/subCategory),
+          not a fixed option list, so there's nothing real to offer as
+          choices. REAL GAP FIXED 2026-10-02 (PM-reported: "balloon type and
+          all not displayed in customization modal") — previously shown only
+          in the read-only Item Details view, never here, since this section
+          only ever rendered when typeOptions (new-item categories only) was
+          set. */}
+      {!item.typeOptions?.length && (item.category || item.type || item.length != null) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-black/[0.03] px-4 py-3">
+          {item.category && (
+            <div>
+              <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">Item Type</div>
+              <div className="font-figtree text-[13px] font-semibold text-brand-950">{item.category}</div>
+            </div>
+          )}
+          {item.type && (
+            <div>
+              <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">{item.typeLabel ?? "Type"}</div>
+              <div className="font-figtree text-[13px] font-semibold text-brand-950">{item.type}</div>
+            </div>
+          )}
+          {item.length != null && (
+            <div>
+              <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">Length</div>
+              <div className="font-figtree text-[13px] font-semibold text-brand-950">
+                {item.unit ? `${item.length} ${item.unit}` : item.length}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {sections.map((section, i) => (
         <div key={i} className={i > 0 ? "border-t border-black/10 pt-6" : ""}>
           {section}
@@ -656,11 +719,13 @@ function CategoryGrid({ onPick }: { onPick: (category: WorkshopCategoryDef) => v
             className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5 sm:w-[206px]"
           >
             <span className="font-figtree text-[14px] font-semibold text-brand-950">{category.label}</span>
-            <img
-              src={WORKSHOP_CATEGORY_IMAGES[category.id]}
-              alt=""
-              className="pointer-events-none absolute right-1 bottom-1 h-[62px] w-[62px] object-contain"
-            />
+            {WORKSHOP_CATEGORY_IMAGES[category.id] && (
+              <img
+                src={WORKSHOP_CATEGORY_IMAGES[category.id]}
+                alt=""
+                className="pointer-events-none absolute right-1 bottom-1 h-[62px] w-[62px] object-contain"
+              />
+            )}
           </button>
         ))}
       </div>

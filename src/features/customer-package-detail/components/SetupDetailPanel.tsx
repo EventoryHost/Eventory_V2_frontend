@@ -61,6 +61,9 @@ function ItemDetailCard({
           <Stat label="Quantity" value={item.unit ? `${item.originalQty} ${item.unit}` : String(item.originalQty)} />
         )}
         {item.dimensions && <Stat label="Dimensions" value={item.dimensions} />}
+        {item.length != null && (
+          <Stat label="Length" value={item.unit ? `${item.length} ${item.unit}` : String(item.length)} />
+        )}
       </div>
       {item.itemDescription && (
         <p className="mt-3 font-figtree text-[13px] leading-[19.5px] text-neutral-secondary">{item.itemDescription}</p>

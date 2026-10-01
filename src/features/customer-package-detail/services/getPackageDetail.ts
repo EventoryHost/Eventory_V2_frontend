@@ -341,7 +341,10 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
         // subCategory is only a meaningful extra fact when it says something
         // beyond the item's own name (e.g. name="Chrome Balloons",
         // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
-        // Bouquet", subCategory="Rose" — real extra detail, kept).
+        // Bouquet", subCategory="Rose" — real extra detail, kept). Reverted
+        // 2026-10-02 per product decision — keep this filter even though it
+        // means an item whose subCategory happens to equal its name (common
+        // for Balloons) shows no Type.
         const subCategoryType = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
         const type = specificType || subCategoryType;
         const typeLabel = line.flowerType
@@ -374,6 +377,10 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           unit: line.unit || undefined,
           dimensions: line.dimensions || undefined,
           itemDescription: line.description || undefined,
+          // Real schema field (e.g. balloon garland/string length), never
+          // read at all until now — same PM report as the type-field gap
+          // above.
+          length: line.length ?? undefined,
         };
       }),
     };

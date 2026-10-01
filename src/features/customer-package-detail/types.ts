@@ -78,6 +78,8 @@ export interface IncludedItemLine {
   unit?: string;
   /** Free-text size/dimensions, when the vendor entered one — rare but real when present. */
   dimensions?: string;
+  /** Numeric length (paired with `unit`, e.g. 22 + "Feet") — Decorator-only, set on items like balloon garlands/strings. Distinct from `dimensions` (free text) and from `qty`'s own unit pairing; real schema field, previously never read at all. */
+  length?: number;
   /** This specific item's own description, distinct from the setup-level one — rare but real when present. */
   itemDescription?: string;
   /** Introduced via "Add an item" in the workshop — never shows a strikethrough. */
