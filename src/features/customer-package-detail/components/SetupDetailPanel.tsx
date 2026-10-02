@@ -15,14 +15,21 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-// Item Details always shows the setup's ORIGINAL configuration — edits made
-// in "Customize items" show up only in the "Your requests" list below, never
-// here. So every attribute here reads the original* value, not the
-// live-edited one (workshop.itemsBySetup keeps both on the same object).
-function ItemDetailCard({ item }: { item: IncludedItemLine }) {
+// Item Details shows the setup's ORIGINAL configuration for type/volume —
+// edits made in "Customize items" show up only in the "Your requests" list
+// below, never here. Colour is the one deliberate exception (design change
+// 2026-09-30): picking among the vendor's own colours is free, done right
+// here, and never a request — so it reads the LIVE `colours` value, not the
+// frozen original.
+function ItemDetailCard({
+  item,
+  onSelectColour,
+}: {
+  item: IncludedItemLine;
+  onSelectColour: (colourId: string) => void;
+}) {
   const displayType = item.originalType ?? item.type;
   const displayVolume = item.originalVolume ?? item.volume;
-  const displayColours = item.originalColours ?? item.colours;
 
   return (
     <div className={`rounded-2xl border border-black/10 p-4 ${item.removalRequested ? "opacity-50" : ""}`}>
@@ -44,19 +51,39 @@ function ItemDetailCard({ item }: { item: IncludedItemLine }) {
       <div className="mt-3 grid grid-cols-3 gap-4">
         {item.category && <Stat label="Item Type" value={item.category} />}
         {item.typeLabel && displayType && <Stat label={item.typeLabel} value={displayType} />}
-        {displayVolume ? <Stat label="Volume" value={displayVolume} /> : <Stat label="Quantity" value={String(item.originalQty)} />}
+        {/* Volume (Low/Medium/High density — e.g. flowers) replaces the
+            concept of a countable quantity for that item, so Quantity is
+            hidden whenever Volume is set (2026-10-01, product-confirmed) —
+            shown otherwise, with its unit ("50 Feet") when the vendor set one. */}
+        {displayVolume ? (
+          <Stat label="Volume" value={displayVolume} />
+        ) : (
+          <Stat label="Quantity" value={item.unit ? `${item.originalQty} ${item.unit}` : String(item.originalQty)} />
+        )}
+        {item.dimensions && <Stat label="Dimensions" value={item.dimensions} />}
+        {item.length != null && (
+          <Stat label="Length" value={item.unit ? `${item.length} ${item.unit}` : String(item.length)} />
+        )}
       </div>
+      {item.itemDescription && (
+        <p className="mt-3 font-figtree text-[13px] leading-[19.5px] text-neutral-secondary">{item.itemDescription}</p>
+      )}
       {item.colourOptions && item.colourOptions.length > 0 && (
         <div className="mt-3">
-          <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">Color</div>
+          <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">
+            Color <span className="text-neutral-tertiary/70">· pick the one you&apos;d like</span>
+          </div>
           <div className="flex flex-wrap gap-2">
             {item.colourOptions.map((colour) => {
-              const selected = displayColours?.includes(colour.id);
+              const selected = item.colours?.includes(colour.id);
               return (
-                <span
+                <button
                   key={colour.id}
-                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-figtree text-[13px] font-medium ${
-                    selected ? "border-[1.5px] border-[#B4112A] text-brand-950" : "border-black/15 text-neutral-secondary"
+                  type="button"
+                  disabled={item.removalRequested}
+                  onClick={() => onSelectColour(colour.id)}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-figtree text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                    selected ? "border-[1.5px] border-[#B4112A] text-brand-950" : "border-black/15 text-neutral-secondary hover:border-black/30"
                   }`}
                 >
                   <span
@@ -64,7 +91,7 @@ function ItemDetailCard({ item }: { item: IncludedItemLine }) {
                     style={{ backgroundColor: colour.swatch }}
                   />
                   {colour.label}
-                </span>
+                </button>
               );
             })}
           </div>
@@ -79,6 +106,7 @@ export default function SetupDetailPanel({
   items,
   requests,
   onDismissRequest,
+  onSelectVendorColour,
   onCustomize,
   onCloseAttempt,
   onSave,
@@ -87,6 +115,8 @@ export default function SetupDetailPanel({
   items: IncludedItemLine[];
   requests: CustomizeRequest[];
   onDismissRequest: (request: CustomizeRequest) => void;
+  /** Free pick among an item's own vendor-provided colours — never a request. */
+  onSelectVendorColour: (itemId: string, colourId: string) => void;
   onCustomize: () => void;
   /** The cross — routes through the leave-guard when there are pending requests. */
   onCloseAttempt: () => void;
@@ -175,7 +205,11 @@ export default function SetupDetailPanel({
 
         <div className="mt-4 space-y-3">
           {items.map((item) => (
-            <ItemDetailCard key={item.id} item={item} />
+            <ItemDetailCard
+              key={item.id}
+              item={item}
+              onSelectColour={(colourId) => onSelectVendorColour(item.id, colourId)}
+            />
           ))}
         </div>
 

@@ -3,6 +3,7 @@ import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig
 import { mapPackageToListItem } from "../mappers";
 import { PACKAGES_PAGE_SIZE, RECOMMENDED_LIMIT } from "../data/filterConfig";
 import type { PackageListingData } from "../types";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 
 /**
  * Initial data for the package listing (/packages/browse), server-fetched
@@ -25,7 +26,7 @@ export async function getPackageListingData(): Promise<PackageListingData> {
     packages: packagesResponse.packages.map(mapPackageToListItem),
     total: packagesResponse.total,
     totalPages: packagesResponse.totalPages,
-    eventCategoryOptions: filtersResponse.filters.eventCategories.map((category) => ({
+    eventCategoryOptions: filterHiddenEventCategories(filtersResponse.filters.eventCategories).map((category) => ({
       id: category,
       label: category,
     })),

@@ -14,6 +14,7 @@ import {
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { CATEGORY_META } from "@/lib/categoryMeta";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
@@ -33,7 +34,7 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
     image: getPackageImage(pkg) ?? FALLBACK_IMAGE,
     categoryLabel,
     categoryIcon: meta?.icon ?? FALLBACK_IMAGE,
-    tags: pkg.step1_eventAndCrew?.eventCategories ?? [],
+    tags: filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []),
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",
     rating: pkg.vendorId?.rating ?? 0,
     reviewCount: pkg.vendorId?.reviewsCount ?? 0,
@@ -52,8 +53,8 @@ const FALLBACK_PACKAGES: ProductCardProps[] = Array.from({ length: 6 }, () => ({
   image: "/images/customer/packages-pics.png",
   categoryLabel: "Makeup Artist",
   categoryIcon: "/images/customer/makeup.png",
-  tags: ["Wedding", "Anniversary", "Social Gathering", "Sangeet", "Reception"],
-  title: "Neon Pulse Club & Wedding - Gold Package",
+  tags: ["Celebration", "Anniversary", "Social Gathering", "Sangeet", "Reception"],
+  title: "Neon Pulse Club & Celebration - Gold Package",
   rating: 4.5,
   reviewCount: 13,
   duration: "Full day (8 hrs)",

@@ -6,20 +6,23 @@
 // app builds may still hold minutes: customer pages pass a package's values
 // through packageDurationsInHours (below) before formatting them.
 //
-// Format: 1.5 -> "1 hr 30 min", 12 -> "12 hrs", 1 -> "1 hr", 0.5 -> "30 min".
+// Format: under 1 hour -> "X mins" (e.g. 0.5 -> "30 mins"); a whole number
+// of hours -> "X hr"/"X hrs" (e.g. 12 -> "12 hrs", 1 -> "1 hr"); hours plus
+// a minute remainder -> compact "H.MM hr" (e.g. 1.5 -> "1.30 hr", 2.0833 ->
+// "2.05 hr") rather than "1 hr 30 min" — the format explicitly requested
+// (2026-09-30) for package listing/landing-carousel/PDP duration display.
 export function formatHoursLabel(hours: number): string {
   const value = Number(hours);
   if (!Number.isFinite(value) || value < 0) return "—";
   const totalMinutes = Math.round(value * 60);
   const wholeHours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
-  const hourPart = `${wholeHours} ${wholeHours === 1 ? "hr" : "hrs"}`;
-  if (minutes === 0) return hourPart;
-  if (wholeHours === 0) return `${minutes} min`;
-  return `${hourPart} ${minutes} min`;
+  if (wholeHours === 0) return `${minutes} min${minutes === 1 ? "" : "s"}`;
+  if (minutes === 0) return `${wholeHours} ${wholeHours === 1 ? "hr" : "hrs"}`;
+  return `${wholeHours}.${String(minutes).padStart(2, "0")} hr`;
 }
 
-// Range variant, e.g. (1.5, 12) -> "1 hr 30 min - 12 hrs". Collapses to a
+// Range variant, e.g. (1.5, 12) -> "1.30 hr - 12 hrs". Collapses to a
 // single label when only one end is set or both ends are equal. Returns ""
 // when neither end is a positive number, so callers pick their own fallback.
 export function formatHoursRangeLabel(minHours?: number | null, maxHours?: number | null): string {

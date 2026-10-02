@@ -48,6 +48,19 @@ export interface RawCustomizeRequest {
   volume?: string;
 }
 
+// Real, persisted backend field (CartItem.js/CheckoutSession.js/Booking.js's
+// colourPreferenceSchema, added 2026-09-30) — which of an item's OWN
+// vendor-offered colours the customer picked on the PDP's item-details view
+// (SetupDetailPanel.tsx). Free/multi-select, never a request (see
+// RawCustomizeRequest above for the actual request shape), but still real
+// data carried the same way: Cart -> CheckoutSession line -> Booking.
+export interface RawColourPreference {
+  setupId: string;
+  itemId: string;
+  itemLabel: string;
+  colours?: string[];
+}
+
 export interface RawCartSelectedItem {
   groupKey: string;
   itemId?: string;
@@ -95,6 +108,7 @@ export interface RawCartItem {
   selectedAddOns: RawCartAddOn[];
   selectedItems: RawCartSelectedItem[];
   customizeRequests?: RawCustomizeRequest[];
+  colourPreferences?: RawColourPreference[];
   specialRequest: string;
   /** Image URLs attached to the "Notes for vendor" prompt — already uploaded to S3 client-side before being sent here (see VendorNotePromptModal.tsx). */
   noteAttachments?: string[];
@@ -246,6 +260,7 @@ export interface AddCartItemParams {
   selectedAddOns?: RawCartAddOn[];
   selectedItems?: RawCartSelectedItem[];
   customizeRequests?: RawCustomizeRequest[];
+  colourPreferences?: RawColourPreference[];
   specialRequest?: string;
   noteAttachments?: string[];
   quantity?: number;
@@ -260,6 +275,7 @@ export interface UpdateCartItemParams {
   selectedAddOns?: RawCartAddOn[];
   selectedItems?: RawCartSelectedItem[];
   customizeRequests?: RawCustomizeRequest[];
+  colourPreferences?: RawColourPreference[];
   specialRequest?: string;
   noteAttachments?: string[];
   quantity?: number;

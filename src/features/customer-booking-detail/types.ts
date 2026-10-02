@@ -40,6 +40,9 @@ export interface BookingPackageRow {
   variantLabel?: string;
   vendorName?: string;
   image?: string;
+  packageId?: string;
+  /** Backend vendorType ("MakeupArtist", ...) — drives the category chip on the review screen. */
+  vendorType?: string;
   statusLabel: string;
   statusTone: "pending" | "confirmed" | "cancelled" | "completed";
 }

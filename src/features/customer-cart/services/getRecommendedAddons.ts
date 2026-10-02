@@ -5,8 +5,12 @@ import { getPackageDetail } from "@/lib/customerPackageDetailApi";
  * "People also buy this" — there is no shared add-on catalog endpoint, so
  * this is built from each in-cart package's own add-on list (Decorator
  * packages only; every other vendorType has none — see
- * DecoratorPackage/decoratorStep2Schema.js), skipping add-ons already added
- * to that specific cart item.
+ * DecoratorPackage/decoratorStep2Schema.js). Cards for add-ons already added
+ * to that cart item are kept (not filtered out) — real bug fixed
+ * 2026-10-01: filtering them out here made a card vanish as soon as it was
+ * added once, with no way to add it a second time. CartPageContent's
+ * handleAddRecommendedAddon already merges a repeat-add into the existing
+ * line's quantity rather than duplicating it.
  */
 export async function getRecommendedAddons(items: CartVendor[]): Promise<RecommendedAddon[]> {
   const uniquePackageIds = [...new Set(items.map((item) => item.package.id))];
@@ -39,9 +43,6 @@ export async function getRecommendedAddons(items: CartVendor[]): Promise<Recomme
 
   return items.flatMap((item) => {
     const catalog = byPackageId.get(item.package.id) ?? [];
-    const alreadyAdded = new Set(item.addons.map((a) => a.id));
-    return catalog
-      .filter((addon) => !alreadyAdded.has(addon.id))
-      .map((addon) => ({ ...addon, itemId: item.id }));
+    return catalog.map((addon) => ({ ...addon, itemId: item.id }));
   });
 }

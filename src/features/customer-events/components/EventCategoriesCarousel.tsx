@@ -16,8 +16,8 @@ const CATEGORIES: EventCategoryCardProps[] = [
   },
   {
     image: "/images/customer/events/explore-packages.png",
-    title: "Weddings Made Effortless, Every Detail.",
-    subtitle: "Book Top-Tier Vendors & Curated Wedding Packages",
+    title: "Celebrations Made Effortless, Every Detail.",
+    subtitle: "Book Top-Tier Vendors & Curated Celebration Packages",
     ctaLabel: "Explore Packages",
     accentFrom: "#BE185D",
     accentTo: "#EC4899",

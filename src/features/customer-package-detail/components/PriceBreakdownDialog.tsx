@@ -130,7 +130,7 @@ export default function PriceBreakdownDialog({
                   {addonsExpanded && (
                     <div className="mt-2 space-y-2 pl-[22px]">
                       {selectedAddons.map((addon) => (
-                        <div key={addon.id} className="flex items-start justify-between gap-3">
+                        <div key={addon.lineKey} className="flex items-start justify-between gap-3">
                           <div className="font-figtree text-[13px] text-neutral-secondary">
                             {addon.title}
                             {addon.quantity > 1 && ` × ${addon.quantity}`}

@@ -83,7 +83,6 @@ export default function EditEventDetailsModal({
                   className="rounded-xl border border-neutral-subtle bg-[#F9F9F9] px-4 py-2.5 font-figtree text-[14px] text-neutral-primary outline-none focus:border-brand-primary"
                 >
                   <option value="">Choose occasion</option>
-                  <option value="wedding">Wedding</option>
                   <option value="haldi">Haldi</option>
                   <option value="birthday">Birthday</option>
                   <option value="anniversary">Anniversary</option>

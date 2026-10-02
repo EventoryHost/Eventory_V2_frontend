@@ -61,10 +61,14 @@ export default function SearchDatePicker({
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }, []);
   const isQuick = variant === "quick";
-  // The quick variant only offers dates from tomorrow on.
+  // Event date selection starts tomorrow, never today — for both variants
+  // (the landing search's "filled" pill and the PDP booking card's "quick"
+  // day-row), so a customer can never pick an event date that's already
+  // today. The only two consumers of this component are those two, so this
+  // applies unconditionally rather than branching on variant.
   const minDate = useMemo(
-    () => (isQuick ? new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1) : today),
-    [isQuick, today]
+    () => new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1),
+    [today]
   );
 
   const selectedDate = parseLocalISODate(value);

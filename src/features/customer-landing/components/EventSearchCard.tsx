@@ -4,13 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPackagesFilters } from "@/lib/customerDiscoveryApi";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
+import { isHiddenEventCategory } from "@/lib/eventCategories";
 import SearchAutocomplete from "./SearchAutocomplete";
 import SearchDatePicker from "./SearchDatePicker";
-
-// "Birthday" is a redundant duplicate of "Birthday Party" in the backend's
-// event-category list — dropped from this dropdown specifically (an exact
-// match only, so "Birthday Party" itself is unaffected).
-const HIDDEN_EVENT_CATEGORIES = new Set(["birthday"]);
 
 export default function EventSearchCard() {
   const router = useRouter();
@@ -39,7 +35,7 @@ export default function EventSearchCard() {
     if (vendorService) params.set("category", vendorService);
     if (date) params.set("date", date);
     const query = params.toString();
-    router.push(query ? `/vendors?${query}` : "/vendors");
+    router.push(query ? `/packages/browse?${query}` : "/packages/browse");
   }
 
   return (
@@ -50,7 +46,7 @@ export default function EventSearchCard() {
         onChange={setEventType}
         placeholder="Type to search event type"
         options={eventCategories
-          .filter((category) => !HIDDEN_EVENT_CATEGORIES.has(category.trim().toLowerCase()))
+          .filter((category) => !isHiddenEventCategory(category))
           .map((category) => ({ value: category, label: category }))}
       />
 

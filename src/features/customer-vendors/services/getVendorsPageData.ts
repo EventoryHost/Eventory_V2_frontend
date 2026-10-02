@@ -2,6 +2,7 @@ import type { VendorsPageData } from "../types";
 import { VENDOR_CATEGORIES, VENDORS_PAGE_SIZE } from "../data/filterConfig";
 import { mapVendorToCard } from "../mappers";
 import { browseVendors, getVendorFilters } from "@/lib/customerDiscoveryApi";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 
 /**
  * Initial data for the Vendor Listing page — one row per VENDOR, server
@@ -25,7 +26,7 @@ export async function getVendorsPageData(): Promise<VendorsPageData> {
     vendors: vendorsResponse.vendors.map(mapVendorToCard),
     total: vendorsResponse.total,
     totalPages: vendorsResponse.totalPages,
-    eventCategoryOptions: filtersResponse.filters.eventCategories.map((category) => ({
+    eventCategoryOptions: filterHiddenEventCategories(filtersResponse.filters.eventCategories).map((category) => ({
       id: category,
       label: category,
     })),

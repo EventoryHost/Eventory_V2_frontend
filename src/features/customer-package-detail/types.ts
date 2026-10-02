@@ -56,13 +56,32 @@ export interface IncludedItemLine {
   type?: string;
   originalType?: string;
   colourOptions?: ColourOption[];
-  /** Selected colour ids. */
+  /** Selected colour ids — the vendor's own palette (colourOptions). Multi-
+   * select, freely changeable (item-details section, SetupDetailPanel.tsx)
+   * and NEVER a request: "these are the options the vendor already provides." */
   colours?: string[];
   originalColours?: string[];
+  /**
+   * Colour ids picked from the extended palette (data/extendedColorPalette.ts)
+   * via the Customize items modal — the only way a colour choice becomes a
+   * real request. Multi-select. Empty/undefined until the customer picks at
+   * least one there; distinct from `colours` above, which the vendor's own
+   * swatches use and which never generates a request no matter what's selected.
+   */
+  customColours?: string[];
+  originalCustomColours?: string[];
   /** Decorator-only — how full/dense the item should look (Low/Medium/High). Undefined when the vendor never set one. */
   volumeOptions?: string[];
   volume?: string;
   originalVolume?: string;
+  /** Unit qty is measured in (e.g. "Feet", "Pcs", "Meters") — shown alongside qty, e.g. "50 Feet". Undefined when the vendor never set one (older/simpler items). */
+  unit?: string;
+  /** Free-text size/dimensions, when the vendor entered one — rare but real when present. */
+  dimensions?: string;
+  /** Numeric length (paired with `unit`, e.g. 22 + "Feet") — Decorator-only, set on items like balloon garlands/strings. Distinct from `dimensions` (free text) and from `qty`'s own unit pairing; real schema field, previously never read at all. */
+  length?: number;
+  /** This specific item's own description, distinct from the setup-level one — rare but real when present. */
+  itemDescription?: string;
   /** Introduced via "Add an item" in the workshop — never shows a strikethrough. */
   isNew?: boolean;
   /** Flagged for removal via the workshop — locks the other attribute controls. */
@@ -145,6 +164,17 @@ export interface SelectedAddon extends AddonItem {
   quantity: number;
   /** The color label the customer picked in the details modal (colourOptions is the available choices; this is the one they actually chose) — undefined when this addon has no color options at all. */
   color?: string;
+  /**
+   * Unique per LINE, not per addon (`id` is the catalog addon id, which
+   * several lines can share) — `${id}::${color ?? ""}`. The same addon
+   * picked again in a different colour is a second, independent line with
+   * its own quantity, not a collision with the first; picking it again in
+   * the SAME colour increments that one line instead of creating a
+   * duplicate. Added 2026-10-01 (real bug: re-adding a colour-variant addon
+   * silently overwrote the first colour's selection entirely, and the "+"
+   * to add another disappeared the moment any quantity existed).
+   */
+  lineKey: string;
 }
 
 export type PolicyIcon = "shield" | "clock";

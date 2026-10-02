@@ -1,49 +1,38 @@
-import type { AddonItem } from "../types";
+import type { AddonItem, SelectedAddon } from "../types";
 import SectionHeading from "./SectionHeading";
 import AddonCard from "./AddonCard";
 import AddedAddonsSummary from "./AddedAddonsSummary";
 
 export default function AddonsCarousel({
   addons,
-  quantities,
-  onChangeQuantity,
-  onSetQuantity,
-  onSetColour,
+  lines,
+  onAdd,
+  onChangeLineQuantity,
+  onSetLineQuantity,
 }: {
   addons: AddonItem[];
-  quantities: Record<string, number>;
-  onChangeQuantity: (id: string, delta: number) => void;
-  onSetQuantity: (id: string, qty: number) => void;
-  /** The color the customer picked in the add-on details modal — needs to reach the cart payload (see PackageDetailPage.tsx). */
-  onSetColour: (id: string, colourId: string) => void;
+  lines: SelectedAddon[];
+  onAdd: (addonId: string, colourId?: string) => void;
+  onChangeLineQuantity: (lineKey: string, delta: number) => void;
+  onSetLineQuantity: (lineKey: string, qty: number) => void;
 }) {
-  const addedAddons = addons
-    .filter((addon) => (quantities[addon.id] ?? 0) > 0)
-    .map((addon) => ({ ...addon, quantity: quantities[addon.id] }));
-
   return (
     <section id="addons" className="border-t border-black/5 pt-8">
       <SectionHeading>Add-ons &amp; extras</SectionHeading>
-
       <AddedAddonsSummary
-        addons={addedAddons}
-        onIncrement={(id) => onChangeQuantity(id, 1)}
-        onDecrement={(id) => onChangeQuantity(id, -1)}
-        onSetQuantity={onSetQuantity}
-        onRemove={(id) => onChangeQuantity(id, -(quantities[id] ?? 0))}
+        addons={lines}
+        onIncrement={(lineKey) => onChangeLineQuantity(lineKey, 1)}
+        onDecrement={(lineKey) => onChangeLineQuantity(lineKey, -1)}
+        onSetQuantity={onSetLineQuantity}
+        onRemove={(lineKey) => onSetLineQuantity(lineKey, 0)}
       />
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {addons.map((addon, i) => (
           <AddonCard
             key={addon.id}
             addon={addon}
             seed={i}
-            quantity={quantities[addon.id] ?? 0}
-            onAdd={(colourId) => {
-              onChangeQuantity(addon.id, 1);
-              if (colourId) onSetColour(addon.id, colourId);
-            }}
+            onAdd={(colourId) => onAdd(addon.id, colourId)}
           />
         ))}
       </div>
