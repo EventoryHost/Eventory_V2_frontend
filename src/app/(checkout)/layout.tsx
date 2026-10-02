@@ -3,6 +3,7 @@ import { Lora } from "next/font/google";
 import CheckoutNavbar from "@/features/customer-checkout/components/CheckoutNavbar";
 import CheckoutStepper from "@/features/customer-checkout/components/CheckoutStepper";
 import Footer from "@/features/customer-landing/components/Footer";
+import SupportRoot from "@/features/customer-support/components/SupportRoot";
 import "../(customer)/customer-theme.css";
 
 const lora = Lora({
@@ -25,6 +26,8 @@ export default function CheckoutLayout({
       <CheckoutStepper />
       <main className="flex-1">{children}</main>
       <Footer />
+      {/* Checkout steps carry inline support entries instead of the floating launcher. */}
+      <SupportRoot launcher={false} />
     </div>
   );
 }

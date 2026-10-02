@@ -36,7 +36,7 @@ const MENU_ITEMS: MenuItem[] = [
   { label: "Viewed Items", icon: Eye, href: "/account/viewed" },
   { label: "Messages", icon: MessageSquare },
   { label: "Settings", icon: Settings },
-  { label: "Help Center", icon: Headphones },
+  { label: "Help Center", icon: Headphones, href: "/account/support" },
 ];
 
 /** Never fires — the client/server answer below is fixed for a given render pass. */

@@ -1,6 +1,7 @@
 // src/app/(customer)/packages/browse/page.tsx
 import { Suspense } from "react";
 import { getPackageListingData } from "@/features/customer-package-listing/services/getPackageListingData";
+import SupportPageContext from "@/features/customer-support/components/SupportPageContext";
 import PackageListingContent from "@/features/customer-package-listing/components/PackageListingContent";
 
 // Live inventory — rendered per request rather than baked into the static
@@ -12,6 +13,7 @@ export default async function PackageBrowsePage() {
 
   return (
     <Suspense fallback={null}>
+      <SupportPageContext pageName="Package search" suggestedType="event" />
       <PackageListingContent data={data} />
     </Suspense>
   );

@@ -8,11 +8,19 @@ import YourPaymentsCard from "./YourPaymentsCard";
 import WhatHappensNextCard from "./WhatHappensNextCard";
 import BookingSuccessSidebar from "./BookingSuccessSidebar";
 import { useBookingSuccessData } from "../hooks/useBookingSuccessData";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 
 export default function BookingSuccessPage() {
   const searchParams = useSearchParams();
   const bookingIds = (searchParams.get("bookingIds") ?? "").split(",").filter(Boolean);
   const { data, loading, error } = useBookingSuccessData(bookingIds);
+  // Just booked: Order support, with the booking attached.
+  useRegisterSupportContext({
+    pageName: "Booking confirmed",
+    phase: "booked",
+    suggestedType: "order",
+    bookingId: data?.bookingIdLabel ?? bookingIds[0],
+  });
 
   if (bookingIds.length === 0) {
     return (

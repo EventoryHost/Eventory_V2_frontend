@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 import type { PackageDetail, SelectedAddon } from "../types";
 import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
 import { formatPrice } from "../utils/formatPrice";
@@ -90,6 +91,18 @@ export default function PackageDetailPage({
 
   const selectedVariant =
     data.variants.find((variant) => variant.id === selectedVariantId) ?? data.variants[0];
+
+  // Help & Support: this page suggests Package support, and every ticket
+  // raised here carries the package (StickyBookingCard adds date/location).
+  useRegisterSupportContext({
+    pageName: "Package page",
+    phase: "browsing",
+    suggestedType: "package",
+    packageId: data.id,
+    packageName: selectedVariant?.label ? `${data.title} · ${selectedVariant.label}` : data.title,
+    vendorName: data.vendor.businessName || data.vendor.name,
+    categoryLabel: data.categoryLabel,
+  });
 
   // Feeds the account dashboard's "Recently Viewed" list and "Viewed Items"
   // count. There's no backend endpoint for this, so it's stored per-browser

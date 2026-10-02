@@ -18,6 +18,7 @@ import HighlightChips from "./HighlightChips";
 import PackageReviewModal, { type PackageReviewDraft } from "./PackageReviewModal";
 import PackageReviewRow from "./PackageReviewRow";
 import ReviewEventCard from "./ReviewEventCard";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 import ReviewTipsCard from "./ReviewTipsCard";
 import StarRating from "./StarRating";
 
@@ -110,6 +111,17 @@ export default function BookingReviewContent({ bookingId }: { bookingId: string 
       cancelled = true;
     };
   }, [bookingId, isHydrated, isLoggedIn, router]);
+
+  // After the event: the Help panel opens on feedback for this booking.
+  useRegisterSupportContext({
+    pageName: "Rate your event",
+    phase: "post_event",
+    suggestedType: "feedback",
+    bookingId: view?.reference ?? bookingId,
+    eventTitle: view?.eventTitle,
+    eventDate: view?.eventDate,
+    location: view?.location,
+  });
 
   const packageState = new Map(state?.packages.map((row) => [row.bookingId, row]) ?? []);
   // Only packages the customer can rate now, or already has — a declined or

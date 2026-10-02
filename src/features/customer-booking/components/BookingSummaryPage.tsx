@@ -10,6 +10,7 @@ import PaymentScheduleDialog from "./PaymentScheduleDialog";
 import CheckoutLoginGate from "@/features/customer-checkout/components/CheckoutLoginGate";
 import BookingSummarySkeleton from "./BookingSummarySkeleton";
 import { useBookingSummaryData } from "../hooks/useBookingSummaryData";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 
 export default function BookingSummaryPage() {
   const {
@@ -22,6 +23,7 @@ export default function BookingSummaryPage() {
     couponFeedback,
   } = useBookingSummaryData();
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  useRegisterSupportContext({ pageName: "Checkout · Review", phase: "checkout", suggestedType: "booking" });
 
   const blockedServices =
     data && !data.readyForPayment

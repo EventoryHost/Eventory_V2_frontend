@@ -1,4 +1,6 @@
 import Image from "next/image";
+import { whatsappLinkForContext } from "@/features/customer-support/utils/whatsapp";
+import SupportInlineEntry from "@/features/customer-support/components/SupportInlineEntry";
 
 // Only these 5 categories have a dedicated "coming soon" illustration —
 // Decorator isn't included in that asset drop, so it renders the text +
@@ -77,7 +79,7 @@ export default function NoPackagesFound({
       </p>
 
       <a
-        href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+        href={whatsappLinkForContext({ categoryLabel }, whatsappText)}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-2 flex w-[278px] items-center justify-center gap-2.5 rounded-full bg-[#00AB82] py-4 pr-9 pl-8 font-figtree text-[16px] font-semibold text-white transition-opacity hover:opacity-90"
@@ -85,6 +87,14 @@ export default function NoPackagesFound({
         <WhatsAppIcon />
         Book Through Whatsapp
       </a>
+
+      <SupportInlineEntry
+        type="event"
+        title="Or tell us about your event"
+        description="We'll suggest packages that fit, even before they're listed online"
+        className="mt-4 w-full max-w-[400px] text-left"
+        testId="empty-listing-support-entry"
+      />
     </div>
   );
 }

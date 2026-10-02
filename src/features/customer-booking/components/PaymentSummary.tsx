@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Tag, ShieldCheck, Info, ArrowRight, BadgeCheck } from "lucide-react";
+import SupportInlineEntry from "@/features/customer-support/components/SupportInlineEntry";
 
 export type PaymentSummaryProps = {
   vendorCount: number;
@@ -216,6 +217,14 @@ export default function PaymentSummary({
           See full payment schedule
           <ArrowRight size={16} />
         </button>
+
+        {/* Checkout steps hide the floating Help launcher, so support lives inline here. */}
+        <SupportInlineEntry
+          type="booking"
+          title="Stuck at checkout?"
+          description="Payments, token amount, cancellation — we'll help you finish"
+          testId="checkout-support-entry"
+        />
       </div>
     </div>
   );

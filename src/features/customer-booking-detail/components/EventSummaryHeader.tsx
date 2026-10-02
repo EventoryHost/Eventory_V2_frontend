@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { CalendarDays, Download, FileText, MapPin, Users } from "lucide-react";
+import { CalendarDays, Download, FileText, Headphones, MapPin, Users } from "lucide-react";
 import { downloadBookingInvoice } from "@/lib/customerBookingApi";
+import { openSupport } from "@/features/customer-support/store";
 import type { BookingDetailView } from "../types";
 import { durationLabel, formatBookedOn } from "../utils/eventTiming";
 
@@ -115,14 +116,17 @@ export default function EventSummaryHeader({ view }: { view: BookingDetailView }
           <Download className="h-4 w-4" />
         </button>
 
-        {/* The backend has no EM/support contact to route this to — it says so
-            in the booking payload — so the row stays inert for now. */}
-        <span
-          title="Support contact isn't wired up yet"
-          className="flex w-full cursor-default items-center justify-center rounded-full px-3 py-2 text-[14px] font-medium leading-5 text-[#3F3F47]"
+        {/* Opens the Help panel on this booking: what it shows depends on the
+            phase (before / on the day / after) registered by BookingDetailContent. */}
+        <button
+          type="button"
+          onClick={() => openSupport()}
+          data-testid="booking-help-button"
+          className="flex w-full items-center justify-center gap-1.5 rounded-full px-3 py-2 text-[14px] font-medium leading-5 text-[#3F3F47] transition-colors hover:bg-[#F4F4F5]"
         >
+          <Headphones className="h-4 w-4" />
           Help &amp; Support
-        </span>
+        </button>
 
         {invoiceError && <p className="text-[12px] leading-4 text-[#C81E0D]">{invoiceError}</p>}
       </div>

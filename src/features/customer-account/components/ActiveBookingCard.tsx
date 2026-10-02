@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { CalendarX, Check, CheckCircle2, Copy, ShieldCheck } from "lucide-react";
+import { CalendarX, Check, CheckCircle2, Copy, Headphones, ShieldCheck } from "lucide-react";
+import { openSupport } from "@/features/customer-support/store";
 import type { BookingOrderGroup } from "../types";
 import { formatAmount, formatBookedOn } from "../utils/groupBookings";
 
@@ -252,12 +253,35 @@ export default function ActiveBookingCard({ order }: { order: BookingOrderGroup 
               </div>
             </div>
 
-            <Link
-              href={`/bookings/${order.reference}`}
-              className="shrink-0 self-start rounded-full border border-[#E4E4E7] px-3 py-1.5 text-[14px] font-medium leading-5 text-[#27272A] transition-colors hover:bg-[#FAFAFA] sm:self-auto"
-            >
-              View Booking
-            </Link>
+            <div className="flex shrink-0 items-center gap-2 self-start sm:self-auto">
+              {/* Order support for this one booking (the list page has no single booking context). */}
+              <button
+                type="button"
+                onClick={() =>
+                  openSupport({
+                    type: "order",
+                    context: {
+                      pageName: "My bookings",
+                      phase: "booked",
+                      suggestedType: "order",
+                      bookingId: order.reference,
+                      eventTitle: order.title,
+                      location: order.location ?? undefined,
+                    },
+                  })
+                }
+                className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[14px] font-medium leading-5 text-[#3F3F47] transition-colors hover:bg-[#F4F4F5]"
+              >
+                <Headphones className="h-4 w-4" />
+                Help
+              </button>
+              <Link
+                href={`/bookings/${order.reference}`}
+                className="rounded-full border border-[#E4E4E7] px-3 py-1.5 text-[14px] font-medium leading-5 text-[#27272A] transition-colors hover:bg-[#FAFAFA]"
+              >
+                View Booking
+              </Link>
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,8 @@ import { getPaymentStatus, createTokenPayment, type PaymentStatus } from "@/lib/
 import { loadCashfree } from "@/lib/cashfree";
 import { ApiError } from "@/lib/apiClient";
 import CheckoutLoginGate from "@/features/customer-checkout/components/CheckoutLoginGate";
+import SupportInlineEntry from "@/features/customer-support/components/SupportInlineEntry";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 
 const POLL_INTERVAL_MS = 2000;
 const TIMEOUT_MS = 2 * 60 * 1000;
@@ -28,6 +30,20 @@ function PaymentReturnContent() {
   const [view, setView] = useState<ViewState>(paymentId ? { kind: "polling" } : { kind: "missing-id" });
   const [retrying, setRetrying] = useState(false);
   const stopRef = useRef(false);
+  useRegisterSupportContext({ pageName: "Payment status", phase: "checkout", suggestedType: "booking" });
+
+  // Payment trouble goes straight to Booking support, pre-tagged.
+  const paymentHelp = (
+    <SupportInlineEntry
+      type="booking"
+      category="checkout"
+      topic="Issue in making payment"
+      title="Payment trouble? Talk to us"
+      description="We'll help you finish the booking"
+      className="mt-4 w-full max-w-[400px] text-left"
+      testId="payment-support-entry"
+    />
+  );
 
   useEffect(() => {
     if (!paymentId) return;
@@ -133,6 +149,7 @@ function PaymentReturnContent() {
           <Link href="/booking-summary" className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
             Back to your booking
           </Link>
+          {paymentHelp}
         </>
       )}
 
@@ -156,6 +173,7 @@ function PaymentReturnContent() {
           <Link href="/booking-summary" className="font-figtree text-[13px] font-medium text-[#71717B] underline">
             Back to your booking
           </Link>
+          {paymentHelp}
         </>
       )}
 
@@ -166,6 +184,7 @@ function PaymentReturnContent() {
           <Link href="/booking-summary" className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
             Back to your booking
           </Link>
+          {paymentHelp}
         </>
       )}
     </div>

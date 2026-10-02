@@ -19,6 +19,8 @@ import VendorNotePromptModal from "./VendorNotePromptModal";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 import { useSelectedCity, setSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
+import SupportInlineEntry from "@/features/customer-support/components/SupportInlineEntry";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 
 import EventTimingSlots, { type SlotsState } from "./EventTimingSlots";
 import LocationServiceability, { type ServiceabilityState } from "./LocationServiceability";
@@ -122,6 +124,15 @@ export default function StickyBookingCard({
   // yet). See the mount effect below for why this replaced this card's own
   // independent detectCurrentLocation() call.
   const { city: navbarCity } = useSelectedCity();
+
+  // Whatever the customer has filled in so far rides along on a support
+  // ticket / WhatsApp message raised from this page.
+  useRegisterSupportContext({
+    eventType: eventType || undefined,
+    eventDate: eventDate || undefined,
+    location: location || undefined,
+    guests: guestCount ? `${guestCount} guests` : undefined,
+  });
 
   // Reflects whether this exact package is already sitting in the cart, so
   // navigating back to its PDP doesn't invite adding a duplicate row —
@@ -710,6 +721,16 @@ export default function StickyBookingCard({
         <p className="mt-3 text-center font-figtree text-[11px] text-neutral-tertiary">
           Date locked instantly · held safely until setup
         </p>
+
+        {/* Inline Package support (instead of a second floating button). */}
+        <SupportInlineEntry
+          type="package"
+          title="Questions about this package?"
+          description="What's included, customising it, and how booking works"
+          whatsapp="Hi Eventory, I have a question about this package."
+          className="mt-4"
+          testId="pdp-support-entry"
+        />
       </div>
 
       <VendorNotePromptModal

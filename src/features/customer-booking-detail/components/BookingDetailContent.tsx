@@ -16,6 +16,9 @@ import BookingPackagesList from "./BookingPackagesList";
 import BookingSidebar from "./BookingSidebar";
 import BookingStatusBanner from "./BookingStatusBanner";
 import EventSummaryHeader from "./EventSummaryHeader";
+import SupportInlineEntry from "@/features/customer-support/components/SupportInlineEntry";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
+import type { SupportContext, SupportPhase } from "@/features/customer-support/types";
 
 type DetailTab = "timeline" | "packages";
 
@@ -24,18 +27,62 @@ const BREADCRUMBS = [
   { label: "Your bookings", href: "/account/bookings" },
 ];
 
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/** Before / on the day / after — decides which Help doors this booking gets. */
+function supportPhaseOf(view: BookingDetailView): SupportPhase {
+  const event = new Date(view.eventDate);
+  const today = new Date();
+  if (sameDay(event, today)) return "event_day";
+  const allDone = view.packages.length > 0 && view.packages.every((p) => p.statusTone === "completed");
+  if (allDone || event < today) return "post_event";
+  return "booked";
+}
+
+function supportContextOf(view: BookingDetailView | null, phase: SupportPhase | null): SupportContext {
+  if (!view || !phase) return { pageName: "Booking details" };
+  return {
+    pageName: "Booking details",
+    phase,
+    suggestedType: phase === "event_day" ? "event_day_issue" : phase === "post_event" ? "feedback" : "order",
+    bookingId: view.reference,
+    eventTitle: view.eventTitle,
+    eventDate: view.eventDate,
+    location: view.location,
+    guests: view.guestsLabel,
+    packages: view.packages.map((p) => ({
+      id: p.id,
+      name: p.name,
+      vendorName: p.vendorName,
+      status: p.statusLabel.charAt(0) + p.statusLabel.slice(1).toLowerCase(),
+    })),
+  };
+}
+
 /**
  * Booking Details (node 1629:6393). The route is keyed by one booking, but
  * the page is about the whole event: the header, totals and timeline span
  * every package booked for it — see getBookingDetailView.
  */
-export default function BookingDetailContent({ bookingId }: { bookingId: string }) {
+export default function BookingDetailContent({
+  bookingId,
+  demoView,
+  demoPhase,
+}: {
+  bookingId: string;
+  /** Static preview (see /bookings/demo): skips auth and the API. */
+  demoView?: BookingDetailView;
+  /** Demo only: force the support phase instead of deriving it from the event date. */
+  demoPhase?: SupportPhase;
+}) {
   const { isLoggedIn, isHydrated } = useCustomerSession();
   const router = useRouter();
 
-  const [view, setView] = useState<BookingDetailView | null>(null);
+  const [view, setView] = useState<BookingDetailView | null>(demoView ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [hasSettled, setHasSettled] = useState(false);
+  const [hasSettled, setHasSettled] = useState(Boolean(demoView));
   const [tab, setTab] = useState<DetailTab>("timeline");
   /** Booking reference of the package whose panel is open (node 1629:9256). */
   const [openPackage, setOpenPackage] = useState<string | null>(null);
@@ -43,6 +90,7 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
   const [bannerError, setBannerError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (demoView) return;
     if (!isHydrated) return;
     if (!isLoggedIn) {
       router.replace(`/register?redirectTo=/bookings/${bookingId}`);
@@ -67,7 +115,10 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
     return () => {
       cancelled = true;
     };
-  }, [bookingId, isHydrated, isLoggedIn, router]);
+  }, [bookingId, demoView, isHydrated, isLoggedIn, router]);
+
+  const supportPhase = view ? (demoPhase ?? supportPhaseOf(view)) : null;
+  useRegisterSupportContext(supportContextOf(view, supportPhase));
 
   const banner = view ? buildBookingBanner(view) : null;
 
@@ -176,7 +227,32 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
               )}
             </div>
 
-            <BookingSidebar view={view} />
+            <div className="flex w-full flex-col gap-4 lg:w-[360px]">
+              {supportPhase === "event_day" ? (
+                <SupportInlineEntry
+                  type="event_day_issue"
+                  title="Something wrong at your event?"
+                  description="Vendor late, setup not right? Report it — your EM is notified immediately"
+                  testId="booking-support-entry"
+                />
+              ) : supportPhase === "post_event" ? (
+                <SupportInlineEntry
+                  type="feedback"
+                  category="rate"
+                  title="How did it go?"
+                  description="Rate your vendors, or flag a delivery issue from the event"
+                  testId="booking-support-entry"
+                />
+              ) : (
+                <SupportInlineEntry
+                  type="order"
+                  title="Chat with your Event Manager"
+                  description="Order status, payments, changes — this booking is attached"
+                  testId="booking-support-entry"
+                />
+              )}
+              <BookingSidebar view={view} />
+            </div>
           </div>
 
           {openPackage && (

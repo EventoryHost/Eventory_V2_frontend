@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { MessageCircle, Pencil } from "lucide-react";
+import { openSupport } from "@/features/customer-support/store";
 
 export type BookingSuccessSidebarProps = {
   changeDeadlineLabel: string;
@@ -23,6 +24,7 @@ export default function BookingSuccessSidebar({
         </Link>
         <button
           type="button"
+          onClick={() => openSupport({ type: "order", category: "order-status" })}
           className="flex w-full items-center justify-center gap-2 rounded-full border border-[#D4D4D8] bg-white py-[15px] font-figtree text-[16px] font-semibold text-[#09090B]"
         >
           <MessageCircle size={18} />

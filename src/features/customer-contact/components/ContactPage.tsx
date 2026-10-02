@@ -18,6 +18,7 @@ import { confirmFreeCheckout, createTokenPayment } from "@/lib/customerPaymentAp
 import { loadCashfree } from "@/lib/cashfree";
 import { clearCheckoutSessionId } from "@/lib/checkoutSession";
 import { ApiError } from "@/lib/apiClient";
+import { useRegisterSupportContext } from "@/features/customer-support/hooks/useSupport";
 
 export default function ContactPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function ContactPage() {
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  useRegisterSupportContext({ pageName: "Checkout · Details", phase: "checkout", suggestedType: "booking" });
 
   // Real, in-app Cashfree payment (pay-integrate.txt, 2026-08-27) — the
   // customer is redirected to Cashfree's hosted page to actually pay, then

@@ -34,7 +34,7 @@ const SOCIALS = [
 ];
 
 const BOTTOM_LINKS = [
-  { label: "Help Center", href: "#" },
+  { label: "Help Center", href: "/account/support" },
   { label: "Contacts", href: "/contact" },
   { label: "FAQs", href: "#" },
   { label: "Privacy Policy", href: "#" },

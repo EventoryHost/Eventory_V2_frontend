@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Headset, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import SupportInlineEntry from "@/features/customer-support/components/SupportInlineEntry";
 import type { AppliedCoupon } from "../types";
 import { formatPrice } from "../utils/currency";
 import CouponInput from "./CouponInput";
@@ -105,12 +106,14 @@ export default function PaymentSummary({
       )}
 
       <div className="space-y-3 text-center">
-        <Link
-          href="mailto:support@eventory.in"
-          className="flex items-center justify-center gap-2 font-figtree text-[14px] font-semibold text-brand-primary transition-colors hover:text-brand-primary/80"
-        >
-          <Headset className="h-[18px] w-[18px]" /> Contact EMS Support
-        </Link>
+        {/* Was a mailto: — now raises a Booking support ticket with the cart context. */}
+        <SupportInlineEntry
+          type="booking"
+          variant="link"
+          title="Contact EMS Support"
+          className="w-full"
+          testId="cart-support-entry"
+        />
         <p className="px-2 font-figtree text-[12px] leading-relaxed text-neutral-tertiary">
           By proceeding, you agree to Eventory&apos;s{" "}
           <Link href="/terms-of-service" className="underline">

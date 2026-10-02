@@ -1,5 +1,6 @@
 // src/app/(customer)/packages/page.tsx
 import { getPackagesPageData } from "@/features/customer-packages/services/getPackagesPageData";
+import SupportPageContext from "@/features/customer-support/components/SupportPageContext";
 import PackagesPageContent from "@/features/customer-packages/components/PackagesPageContent";
 
 // Live inventory, not build-time content — render per-request rather than
@@ -9,5 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function PackagesPage() {
   const data = await getPackagesPageData();
 
-  return <PackagesPageContent data={data} />;
+  return (
+    <>
+      <SupportPageContext pageName="Packages" suggestedType="event" />
+      <PackagesPageContent data={data} />
+    </>
+  );
 }

@@ -2,6 +2,7 @@
 import { Lora } from "next/font/google";
 import CheckoutNavbar from "@/features/customer-checkout/components/CheckoutNavbar";
 import Footer from "@/features/customer-landing/components/Footer";
+import SupportRoot from "@/features/customer-support/components/SupportRoot";
 import "../(customer)/customer-theme.css";
 
 const lora = Lora({
@@ -23,6 +24,7 @@ export default function BookingSuccessLayout({
       <CheckoutNavbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      <SupportRoot />
     </div>
   );
 }

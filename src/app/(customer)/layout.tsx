@@ -2,6 +2,7 @@
 import { Lora } from "next/font/google";
 import Navbar from "@/features/customer-landing/components/Navbar";
 import Footer from "@/features/customer-landing/components/Footer";
+import SupportRoot from "@/features/customer-support/components/SupportRoot";
 import "./customer-theme.css";
 
 const lora = Lora({
@@ -31,6 +32,7 @@ export default function CustomerLayout({
       <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
+      <SupportRoot />
     </div>
   );
 }
