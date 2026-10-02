@@ -61,7 +61,7 @@ function CitySelect() {
         <span className="max-w-55 truncate" title={city ?? undefined}>
           {city ?? "Select City"}
         </span>
-        <ChevronDown size={14} className="shrink-0" />
+        <ChevronDown size={12} className="shrink-0" />
       </button>
 
       {isOpen && (
@@ -82,19 +82,19 @@ function NavLinks({ className = "" }: { className?: string }) {
           <Link
             key={item.label}
             href={item.href}
-            className={`flex items-center gap-1 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] ${className}`}
+            className={`flex items-center gap-1 rounded-full py-3 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] text-brand-950 transition hover:bg-black/[0.03] ${item.hasDropdown ? "pr-3 pl-4" : "px-4"} ${className}`}
           >
             {item.label}
-            {item.hasDropdown && <ChevronDown size={14} />}
+            {item.hasDropdown && <ChevronDown size={18} />}
           </Link>
         ) : (
           <button
             key={item.label}
             type="button"
-            className={`flex items-center gap-1 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] ${className}`}
+            className={`flex items-center gap-1 rounded-full py-3 font-semibold text-[14px] leading-[20px] tracking-[-0.01em] text-brand-950 transition hover:bg-black/[0.03] ${item.hasDropdown ? "pr-3 pl-4" : "px-4"} ${className}`}
           >
             {item.label}
-            {item.hasDropdown && <ChevronDown size={14} />}
+            {item.hasDropdown && <ChevronDown size={18} />}
           </button>
         )
       )}
@@ -114,7 +114,7 @@ function CartButton() {
   return (
     <Link
       href="/cart"
-      className="flex items-center gap-1.5 rounded-full bg-customer-bg px-3 py-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
+      className="flex items-center gap-1.5 rounded-full bg-white px-3 py-2 text-brand-950 font-semibold text-[14px] leading-[20px] tracking-[-0.01em]"
     >
       <CartIcon className="h-5 w-5" />
       <span className="hidden sm:inline">Cart</span>
@@ -180,7 +180,7 @@ export default function Navbar() {
   return (
     <>
     <header
-      className={`fixed top-[0.61px] inset-x-0 z-50 w-full border-b border-black/5 bg-customer-bg transition-transform duration-300 ${
+      className={`fixed top-[0.61px] inset-x-0 z-50 w-full border-b border-black/5 bg-white transition-transform duration-300 ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
     >
@@ -199,16 +199,19 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* Second div: nav links (desktop only) */}
-        <nav className="hidden lg:flex items-center gap-8">
+        {/* Second div: nav links (desktop only) — each link is its own
+            padded pill (pl-4 pr-3 py-3, or px-4 for the two with no
+            dropdown), zero gap between them, per the Figma spec: the
+            padding itself is the spacing, not a gap on this row. */}
+        <nav className="hidden lg:flex items-center">
           <NavLinks />
         </nav>
 
-        {/* Third div: cart + signup/login (desktop only). Cart comes first —
-            that's the order in every frame of the design. */}
+        {/* Third div: signup/login + cart (desktop only) — Signup/Login
+            comes first, matching the design. */}
         <div className="hidden lg:flex items-center gap-2">
-          <CartButton />
           <SignupLoginLink className="rounded-full px-4 py-2" />
+          <CartButton />
         </div>
 
         {/* Mobile/tablet: cart + hamburger toggle */}
@@ -228,7 +231,7 @@ export default function Navbar() {
 
       {/* Mobile/tablet dropdown panel */}
       {isMenuOpen && (
-        <div className="lg:hidden border-t border-black/5 bg-customer-bg px-4 sm:px-6 py-4 flex flex-col gap-4">
+        <div className="lg:hidden border-t border-black/5 bg-white px-4 sm:px-6 py-4 flex flex-col gap-4">
           <CitySelect />
           <nav className="flex flex-col gap-4">
             <NavLinks />

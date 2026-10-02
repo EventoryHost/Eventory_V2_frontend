@@ -8,24 +8,13 @@ import { EXTENDED_COLOUR_PALETTE } from "../data/extendedColorPalette";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import SetupDetailPanel from "./SetupDetailPanel";
 import QuantityInput from "./QuantityInput";
+import TypeSelectDropdown from "./TypeSelectDropdown";
+import ColourSelectDropdown from "./ColourSelectDropdown";
 
 type FooterPhase = "idle" | "processing" | "committed";
 type ModalView = "detail" | "customize";
 
 const NEW_ITEM_SLOT = "__new__";
-
-// The checkmark needs to stay legible on both dark swatches (Maroon, Navy)
-// and light ones (White, Cream) — a fixed white check would vanish on the
-// latter, so pick the check's color from the swatch's own brightness.
-function isLightSwatch(hex: string): boolean {
-  const match = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!match) return false;
-  const value = parseInt(match[1], 16);
-  const r = (value >> 16) & 255;
-  const g = (value >> 8) & 255;
-  const b = value & 255;
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.7;
-}
 
 export default function CustomizeWorkshopModal({
   setup,
@@ -387,27 +376,13 @@ function AttributeEditor({
     const isOtherSelected = item.type === "Other" || (item.type !== undefined && !item.typeOptions.includes(item.type));
     sections.push(
       <div key="type">
-        <div className={`mb-2 ${SECTION_HEADING}`}>{item.typeLabel}</div>
-        <div className="flex flex-wrap gap-2">
-          {item.typeOptions.map((option) => {
-            const selected = option === "Other" ? isOtherSelected : item.type === option;
-            return (
-              <button
-                key={option}
-                type="button"
-                onClick={() => onSetType(option)}
-                className={`rounded-full border px-3 py-1.5 font-figtree text-[13px] transition ${
-                  selected
-                    ? "border-brand-primary bg-brand-primary/10 text-brand-primary"
-                    : "border-black/15 text-brand-950 hover:border-black/30"
-                }`}
-              >
-                {option}
-                {option === item.originalType && <span className="ml-1 text-[10px] text-neutral-tertiary">(original)</span>}
-              </button>
-            );
-          })}
-        </div>
+        <TypeSelectDropdown
+          label={item.typeLabel ?? "Type"}
+          placeholder={`Select ${item.typeLabel ?? "type"}`}
+          options={item.typeOptions}
+          value={isOtherSelected ? "Other" : item.type}
+          onChange={onSetType}
+        />
         {isOtherSelected && (
           <input
             type="text"
@@ -490,46 +465,20 @@ function AttributeEditor({
 
   // Colour, last. Brand-new item ("Add an item") — its own curated palette
   // (COLOUR_PALETTE), multi-select, unrelated to any vendor default (there
-  // isn't one), so this stays exactly as it always has.
+  // isn't one).
   if (item.isNew && item.colourOptions && item.colourOptions.length > 0) {
+    const selectedColourIds = item.colours ?? [];
     sections.push(
       <div key="colour">
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className={SECTION_HEADING}>Colours</span>
-          <span className="font-figtree text-[12px] leading-[18px] font-normal normal-case text-neutral-tertiary">
-            · Pick colors you would want in your setup
-          </span>
-        </div>
-        <div className="flex flex-wrap gap-4">
-          {item.colourOptions.map((colour) => {
-            const selected = item.colours?.includes(colour.id);
-            return (
-              <button
-                key={colour.id}
-                type="button"
-                onClick={() => onToggleColour(colour.id)}
-                className="flex flex-col items-center gap-1.5"
-              >
-                <span
-                  className={`relative flex h-14 w-14 items-center justify-center rounded-full border transition ${
-                    selected
-                      ? "border-black/10 ring-[1.5px] ring-[#B4112A] ring-offset-2 ring-offset-white"
-                      : "border-black/10"
-                  }`}
-                  style={{ backgroundColor: colour.swatch }}
-                >
-                  {selected && (
-                    <Check
-                      className={`h-6 w-6 ${isLightSwatch(colour.swatch) ? "text-brand-950" : "text-white"}`}
-                      strokeWidth={3}
-                    />
-                  )}
-                </span>
-                <span className="font-figtree text-[12px] text-neutral-secondary">{colour.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <ColourSelectDropdown
+          label="Colours"
+          helperText="pick as many as you like"
+          placeholder="Pick your Colors"
+          options={item.colourOptions}
+          selectedIds={selectedColourIds}
+          onToggle={onToggleColour}
+          onClear={() => selectedColourIds.forEach((id) => onToggleColour(id))}
+        />
       </div>
     );
   }
@@ -557,57 +506,13 @@ function AttributeEditor({
             ? `The vendor already offers ${currentVendorColours.join(", ")} for this item — pick from here only if you want something else. This counts as a request.`
             : "Pick colour(s) the vendor doesn't already offer for this item. This counts as a request."}
         </p>
-        <div className="max-h-[280px] space-y-4 overflow-y-auto pr-1">
-          {EXTENDED_COLOUR_PALETTE.map((category) => (
-            <div key={category.id}>
-              <div className="mb-2 font-figtree text-[11px] leading-[16px] font-semibold text-neutral-tertiary">
-                {category.label}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {category.colours.map((colour) => {
-                  const selected = item.customColours?.includes(colour.id);
-                  return (
-                    <button
-                      key={colour.id}
-                      type="button"
-                      title={colour.label}
-                      onClick={() => onToggleCustomColour(colour.id)}
-                      className="flex flex-col items-center gap-1"
-                    >
-                      <span
-                        className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition ${
-                          selected
-                            ? "border-black/10 ring-[1.5px] ring-[#B4112A] ring-offset-2 ring-offset-white"
-                            : "border-black/10"
-                        }`}
-                        style={{ backgroundColor: colour.swatch }}
-                      >
-                        {selected && (
-                          <Check
-                            className={`h-4 w-4 ${isLightSwatch(colour.swatch) ? "text-brand-950" : "text-white"}`}
-                            strokeWidth={3}
-                          />
-                        )}
-                      </span>
-                      <span className="w-14 truncate text-center font-figtree text-[10px] text-neutral-secondary">
-                        {colour.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-        {item.customColours && item.customColours.length > 0 && (
-          <button
-            type="button"
-            onClick={onClearCustomColours}
-            className="mt-3 font-figtree text-[12px] font-semibold text-brand-primary hover:underline"
-          >
-            Remove this request — use the vendor's colour instead
-          </button>
-        )}
+        <ColourSelectDropdown
+          placeholder="Pick your Colors"
+          categories={EXTENDED_COLOUR_PALETTE}
+          selectedIds={item.customColours ?? []}
+          onToggle={onToggleCustomColour}
+          onClear={onClearCustomColours}
+        />
       </div>
     );
   }
