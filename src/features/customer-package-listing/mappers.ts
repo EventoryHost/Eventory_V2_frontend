@@ -7,6 +7,7 @@ import {
 } from "@/lib/customerDiscoveryApi";
 import { resolveVendorCategory } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import type { PackageListItem } from "./types";
 
 export function mapPackageToListItem(pkg: RawPackage): PackageListItem {
@@ -28,7 +29,7 @@ export function mapPackageToListItem(pkg: RawPackage): PackageListItem {
     categoryLabel: resolved?.label ?? "",
     categoryIcon: meta?.icon,
     categoryGradientFrom: meta?.gradientFrom,
-    eventTypes: pkg.step1_eventAndCrew?.eventCategories ?? [],
+    eventTypes: filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []),
     // The package's own rating isn't stored; the owning vendor's stands in,
     // which is what the PDP and every other package card already show.
     rating: pkg.vendorId?.rating ?? 0,

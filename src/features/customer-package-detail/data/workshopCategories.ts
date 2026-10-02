@@ -141,7 +141,7 @@ export const COLOUR_PALETTE: ColourOption[] = [
   { id: "orange", label: "Orange", swatch: "#FB8C00" },
   { id: "brown", label: "Brown", swatch: "#643801" },
   { id: "mango", label: "Mango", swatch: "#F9A825" },
-  { id: "maroon-wedding", label: "Maroon (Wedding classic)", swatch: "#7A1F2B" },
+  { id: "maroon-wedding", label: "Maroon (Classic)", swatch: "#7A1F2B" },
   { id: "gold", label: "Gold", swatch: "#D4AF37" },
   { id: "teal", label: "Teal", swatch: "#008080" },
   { id: "peach", label: "Peach", swatch: "#FFD3AC" },

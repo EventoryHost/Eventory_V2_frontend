@@ -11,6 +11,7 @@ import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
 import { ALL_EXTENDED_COLOURS } from "../data/extendedColorPalette";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { formatPrice } from "../utils/formatPrice";
 import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolicy";
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
@@ -81,7 +82,7 @@ export default function StickyBookingCard({
   prefillEventDetails?: RawCartEventDetails;
 }) {
   const eventTypeOptions = useMemo(
-    () => eventCategories.map((category) => ({ value: category, label: category })),
+    () => filterHiddenEventCategories(eventCategories).map((category) => ({ value: category, label: category })),
     [eventCategories]
   );
   const [eventType, setEventType] = useState("");
