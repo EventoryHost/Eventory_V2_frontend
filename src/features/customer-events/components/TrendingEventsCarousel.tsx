@@ -16,8 +16,8 @@ const EVENTS: TrendingEventCardProps[] = [
   },
   {
     badge: "TRENDING",
-    title: "Winter Wedding Fair",
-    subtitle: "Book your dream winter wedding",
+    title: "Winter Festive Fair",
+    subtitle: "Book your dream winter fest",
     date: "20 December 2026",
     peopleBooked: "1.5K+ People booked",
     ctaLabel: "Book Your Package",

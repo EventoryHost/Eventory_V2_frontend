@@ -98,7 +98,7 @@ export interface BudgetEstimator {
   vendorOptions: string[];
   estimatedMin: number;
   estimatedMax: number;
-  /** Chips shown on the result card, e.g. ["Wedding", "Ghaziabad"]. */
+  /** Chips shown on the result card, e.g. ["Celebration", "Ghaziabad"]. */
   tags: string[];
   marketInsight: string;
   vendorGroups: BudgetEstimatorVendorGroup[];

@@ -121,18 +121,49 @@ export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
   Balloons: "/images/customize/balloon.png",
 };
 
+// Flat colour list for the "Add an item" workshop flow's Colours dropdown —
+// given directly by product 2026-10-02 (replaces the earlier 13-colour
+// set). Deliberately flat/uncategorised, matching the Figma dropdown
+// (distinct from data/extendedColorPalette.ts's 5-category palette, which
+// is a separate picker for a different flow — requesting an alternate
+// colour on an EXISTING item). Two "Coral"/"Green"/"Red" entries are
+// duplicate labels with distinct hex values, kept as given rather than
+// silently merged or renamed.
 export const COLOUR_PALETTE: ColourOption[] = [
-  { id: "marigold", label: "Marigold", swatch: "#F0A500" },
-  { id: "ivory", label: "Cream/Ivory", swatch: "#F5EEDC" },
-  { id: "rose-gold", label: "Rose Gold", swatch: "#DB9A93" },
-  { id: "maroon", label: "Maroon", swatch: "#5C0A24" },
-  { id: "champagne", label: "Champagne", swatch: "#E8D9B5" },
+  { id: "white", label: "White", swatch: "#FFFFFF" },
+  { id: "blue", label: "Blue", swatch: "#2B7FFF" },
+  { id: "green-1", label: "Green", swatch: "#00C950" },
+  { id: "turquoise", label: "Turquoise", swatch: "#40E0D0" },
+  { id: "red-1", label: "Red", swatch: "#FF3333" },
+  { id: "burgundy", label: "Burgundy", swatch: "#800020" },
+  { id: "fuchsia", label: "Fuchsia", swatch: "#FF00FF" },
+  { id: "champagne", label: "Champagne", swatch: "#F7E7CE" },
+  { id: "orange", label: "Orange", swatch: "#FB8C00" },
+  { id: "brown", label: "Brown", swatch: "#643801" },
+  { id: "mango", label: "Mango", swatch: "#F9A825" },
+  { id: "maroon-wedding", label: "Maroon (Classic)", swatch: "#7A1F2B" },
   { id: "gold", label: "Gold", swatch: "#D4AF37" },
-  { id: "terracotta", label: "Terracotta", swatch: "#B5602D" },
-  { id: "warm-white", label: "Warm White", swatch: "#FBF6EC" },
-  { id: "blush-pink", label: "Blush Pink", swatch: "#F4C2C2" },
-  { id: "forest-green", label: "Forest Green", swatch: "#2E4A3D" },
-  { id: "navy", label: "Navy", swatch: "#1B2A4A" },
-  { id: "charcoal", label: "Charcoal", swatch: "#333333" },
-  { id: "natural-wood", label: "Natural Wood", swatch: "#A0784A" },
+  { id: "teal", label: "Teal", swatch: "#008080" },
+  { id: "peach", label: "Peach", swatch: "#FFD3AC" },
+  { id: "ivory", label: "Cream/Ivory", swatch: "#FFF8E7" },
+  { id: "rose-gold", label: "Rose Gold", swatch: "#B76E79" },
+  { id: "navy", label: "Navy Blue", swatch: "#000080" },
+  { id: "copper", label: "Copper", swatch: "#B87333" },
+  { id: "saffron", label: "Saffron (Diwali)", swatch: "#FF9933" },
+  { id: "green-2", label: "Green", swatch: "#2E7D32" },
+  { id: "purple", label: "Purple", swatch: "#7B3FA1" },
+  { id: "emerald", label: "Emerald", swatch: "#009B77" },
+  { id: "royal-blue", label: "Royal Blue", swatch: "#4169E1" },
+  { id: "pastel-pink", label: "Pastel Pink", swatch: "#F8C8DC" },
+  { id: "blush", label: "Blush", swatch: "#F4C2C2" },
+  { id: "coral-1", label: "Coral", swatch: "#FF6F61" },
+  { id: "mustard", label: "Mustard", swatch: "#D4A017" },
+  { id: "coral-2", label: "Coral", swatch: "#FF6F61" },
+  { id: "silver", label: "Silver", swatch: "#C0C0C0" },
+  { id: "grey", label: "Grey", swatch: "#808080" },
+  { id: "yellow", label: "Yellow", swatch: "#FFD54F" },
+  { id: "red-2", label: "Red", swatch: "#D32F2F" },
+  { id: "lavender", label: "Lavender", swatch: "#C8A2C8" },
+  { id: "black", label: "Black", swatch: "#1A1A1A" },
+  { id: "multicolor", label: "Multicolor", swatch: "multicolor" },
 ];

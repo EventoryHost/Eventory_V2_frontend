@@ -4,6 +4,7 @@ import { browsePackages } from "@/lib/customerDiscoveryApi";
 import { mapPackageToVendor } from "@/features/customer-vendors/mappers";
 import { resolveVendorCategory } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import type { VendorProfileData } from "../types";
 
 /** How many of the vendor's packages the "Event Packages" grid shows. */
@@ -65,7 +66,7 @@ export async function getVendorProfileData(vendorId: string): Promise<VendorProf
       // Deduped: a vendor whose city is also listed among their service
       // areas would otherwise render the same chip twice.
       serviceAreas: [...new Set(serviceAreas)],
-      eventCategories: raw.eventCategories ?? [],
+      eventCategories: filterHiddenEventCategories(raw.eventCategories ?? []),
       stats: {
         experience: raw.experience,
         bookingsPerYear: raw.bookingsPerYear,

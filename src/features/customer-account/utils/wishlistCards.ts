@@ -3,6 +3,7 @@ import { CATEGORY_META } from "@/lib/categoryMeta";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { formatPrice } from "@/features/customer-vendors/utils/currency";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 
 /** How many event tags the card shows before collapsing the rest into "+N more". */
 const MAX_EVENT_TAGS = 3;
@@ -93,7 +94,7 @@ export function mapWishlistCard(item: RawWishlistItem): WishlistCardItem | null 
       ...base,
       packageId: pkg._id,
       href: `/packages/${pkg._id}`,
-      ...splitTags(pkg.step1_eventAndCrew?.eventCategories ?? []),
+      ...splitTags(filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? [])),
       title: pkg.step1_eventAndCrew?.packageName ?? "Package",
       variantLabel: pkg.variantType,
       image: pkg.step4_sampleMedia?.media?.[0]?.url,
@@ -108,7 +109,7 @@ export function mapWishlistCard(item: RawWishlistItem): WishlistCardItem | null 
   const vendor = item.vendorId!;
   return {
     ...base,
-    ...splitTags(vendor.eventCategories ?? []),
+    ...splitTags(filterHiddenEventCategories(vendor.eventCategories ?? [])),
     title: vendor.businessName ?? "Vendor",
     image: vendor.profilePicture,
     rating: vendor.rating ?? 0,

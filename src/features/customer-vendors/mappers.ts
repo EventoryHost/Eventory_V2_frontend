@@ -8,6 +8,7 @@ import {
 } from "@/lib/customerDiscoveryApi";
 import { resolveVendorCategory, VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
+import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { VENDOR_CATEGORIES } from "./data/filterConfig";
 import type { Vendor } from "./types";
 
@@ -46,7 +47,7 @@ export function mapVendorToCard(raw: RawVendorPublic): Vendor {
     categoryLabel: resolved?.label ?? "",
     categoryIcon: meta?.icon,
     categoryGradientFrom: meta?.gradientFrom,
-    eventTypes: raw.eventCategories ?? [],
+    eventTypes: filterHiddenEventCategories(raw.eventCategories ?? []),
     rating: raw.rating ?? 0,
     reviewCount: raw.reviewsCount ?? 0,
     location: raw.city ?? "",
@@ -82,7 +83,7 @@ export function mapPackageToVendor(pkg: RawPackage): Vendor {
     categoryLabel,
     categoryIcon: meta?.icon,
     categoryGradientFrom: meta?.gradientFrom,
-    eventTypes: pkg.step1_eventAndCrew?.eventCategories ?? [],
+    eventTypes: filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []),
     highlightTags: extractHighlightTags(pkg),
     rating: pkg.vendorId?.rating ?? 0,
     reviewCount: pkg.vendorId?.reviewsCount ?? 0,

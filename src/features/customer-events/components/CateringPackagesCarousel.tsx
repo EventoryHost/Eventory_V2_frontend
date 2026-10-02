@@ -9,7 +9,7 @@ const PACKAGES: ProductCardProps[] = Array.from({ length: 6 }, () => ({
   image: "/images/customer/events/buffet.jpg",
   categoryLabel: "Caterer",
   categoryIcon: "/images/customer/caterers.png",
-  tags: ["Wedding", "Anniversary", "Social Gathering"],
+  tags: ["Celebration", "Anniversary", "Social Gathering"],
   title: "Holi Special package for Holi",
   rating: 4.5,
   reviewCount: 13,
