@@ -8,6 +8,12 @@ const REQUEST_BADGE: Record<PanelRequest["requestType"], string> = {
   remove: "Removal",
 };
 
+const STATUS_BADGE: Record<NonNullable<PanelRequest["status"]>, { label: string; className: string }> = {
+  Pending: { label: "Awaiting vendor", className: "bg-[#FEF3C6] text-[#973C00]" },
+  Accepted: { label: "Accepted", className: "bg-[#DCFCE7] text-[#016630]" },
+  Rejected: { label: "Declined", className: "bg-[#FFE2E2] text-[#9F0712]" },
+};
+
 /** "Colour: ~~White~~ Maroon" — the old value struck out, the new one bold. */
 function RequestLine({ label, was, now }: { label: string; was?: string; now?: string }) {
   if (!now && !was) return null;
@@ -46,9 +52,17 @@ function RequestCard({ request }: { request: PanelRequest }) {
         </div>
       )}
 
-      <span className="shrink-0 rounded-full bg-[#F4F4F5] px-2 py-0.5 text-[9px] font-medium uppercase leading-[18px] text-[#3F3F47]">
-        {REQUEST_BADGE[request.requestType]}
-      </span>
+      <div className="flex shrink-0 flex-col items-end gap-1">
+        <span className="rounded-full bg-[#F4F4F5] px-2 py-0.5 text-[9px] font-medium uppercase leading-[18px] text-[#3F3F47]">
+          {REQUEST_BADGE[request.requestType]}
+        </span>
+        {/* The vendor's decision — absent on bookings made before the field existed. */}
+        {request.status && (
+          <span className={`rounded-full px-2 py-0.5 text-[9px] font-medium uppercase leading-[18px] ${STATUS_BADGE[request.status].className}`}>
+            {STATUS_BADGE[request.status].label}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
