@@ -13,6 +13,20 @@
   }
 }
 
+/* Landing search bar's dropdown panels (SearchDropdownPanel, the Event
+   Date calendar) — 8px drop + 0.98→1 scale over 200ms, anchored to the
+   field's left edge, per Figma node 2240:10112's own spec. */
+@keyframes dropdown-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 :root {
   --customer-bg: #faf9f6;
   --brand-950: #1e0306;
