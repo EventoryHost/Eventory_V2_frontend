@@ -42,6 +42,8 @@ export interface PackagePanelView {
   eventType?: string;
   total: number;
   status: string;
+  /** Every request on the booking (workshop + older change requests), and how many the vendor hasn't decided yet. */
+  requestCounts: { total: number; pending: number };
   notes?: string;
 
   setups: PanelSetup[];
@@ -59,6 +61,14 @@ function vendorNameOf(vendor: unknown) {
   if (!vendor || typeof vendor === "string") return undefined;
   const record = vendor as { businessName?: string; pocName?: string };
   return record.businessName ?? record.pocName;
+}
+
+/** No status (a booking made before the field existed) counts as decided, same as vendorAcceptedEverything. */
+function countRequests(requests: { status?: string }[]) {
+  return {
+    total: requests.length,
+    pending: requests.filter((request) => request.status === "Pending").length,
+  };
 }
 
 /**
@@ -134,6 +144,7 @@ export async function getPackagePanelView(bookingReference: string): Promise<Pac
     eventType: booking.eventType ?? undefined,
     total: booking.totalAmount,
     status: booking.status,
+    requestCounts: countRequests([...requests, ...(booking.changeRequests ?? [])]),
     notes: booking.notes ?? undefined,
 
     setups,

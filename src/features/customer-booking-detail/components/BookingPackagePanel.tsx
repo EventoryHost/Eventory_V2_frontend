@@ -10,26 +10,63 @@ import PackageSetupCard from "./PackageSetupCard";
 /** The stepper across the top of the panel, and where each status sits on it. */
 const JOURNEY = ["Booking confirmed", "Additional request pending", "Proposal", "Event Locked"] as const;
 
-const STATUS_STEP: Record<string, number> = {
-  NewBooking: -1,
-  Viewed: -1,
-  InDiscussion: 1,
-  Confirmed: 0,
-  Completed: 3,
-  Declined: -1,
-  Cancelled: -1,
-};
-
-/** The highlighted "where things stand" line under the stepper. */
+/** The highlighted "where things stand" line under the stepper, for statuses that aren't on the journey. */
 const STATUS_CALLOUT: Record<string, { title: string; description: string }> = {
   NewBooking: { title: "Booking sent", description: "Waiting for vendor to view." },
   Viewed: { title: "Vendor has viewed your booking", description: "Waiting for them to respond." },
   InDiscussion: { title: "Additional request pending", description: "The vendor is reviewing your requests." },
-  Confirmed: { title: "Booking confirmed", description: "Your package is locked in for the event." },
   Completed: { title: "Event complete", description: "This package has been delivered." },
   Declined: { title: "Declined by vendor", description: "This package wasn't taken up." },
   Cancelled: { title: "Cancelled", description: "This package was cancelled." },
 };
+
+function plural(count: number, word: string) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+/**
+ * Where this package sits on JOURNEY. Status alone can't say: a booking stays
+ * "Confirmed" while the vendor works through the customer's requests, so the
+ * request decisions move it along — the same "accepted everything, not merely
+ * Confirmed" rule as the page's own timeline (vendorAcceptedEverything).
+ * Nothing on the journey counts as reached before the vendor confirms.
+ */
+function journeyProgress(view: PackagePanelView): { step: number; callout?: { title: string; description: string } } {
+  if (view.status === "Completed") return { step: JOURNEY.length - 1, callout: STATUS_CALLOUT.Completed };
+  if (view.status !== "Confirmed") return { step: -1, callout: STATUS_CALLOUT[view.status] };
+
+  const { total, pending } = view.requestCounts;
+  const decided = total - pending;
+
+  if (pending === 0) {
+    return {
+      step: JOURNEY.length - 1,
+      callout: {
+        title: "Event locked",
+        description:
+          total === 0
+            ? "Your package is locked in for the event."
+            : `The vendor has responded to all ${plural(total, "request")}.`,
+      },
+    };
+  }
+  if (decided === 0) {
+    return {
+      step: 1,
+      callout: {
+        title: "Additional request pending",
+        description: `The vendor is reviewing your ${plural(total, "request")}.`,
+      },
+    };
+  }
+  return {
+    step: 2,
+    callout: {
+      title: "Proposal in progress",
+      description: `The vendor has responded to ${decided} of ${plural(total, "request")}.`,
+    },
+  };
+}
 
 function MetaChip({ icon: Icon, children }: { icon: typeof Clock; children: React.ReactNode }) {
   return (
@@ -128,8 +165,7 @@ export default function BookingPackagePanel({
     };
   }, [onClose]);
 
-  const currentStep = view ? (STATUS_STEP[view.status] ?? -1) : -1;
-  const callout = view ? STATUS_CALLOUT[view.status] : undefined;
+  const { step: currentStep, callout } = view ? journeyProgress(view) : { step: -1, callout: undefined };
   const eventDate = view ? formatEventDate(view.eventDate) : null;
 
   return (
