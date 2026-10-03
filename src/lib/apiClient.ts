@@ -88,7 +88,22 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
   return (await response.json()) as T;
 }
 
-export async function refreshAccessToken(): Promise<string> {
+// Single-flight: the backend rotates the refresh token on every call and
+// treats a second use of the old one as theft (tokenService.js's
+// rotateRefreshToken revokes every session for the customer). A page load
+// with an expired access token fires several 401s at once (profile, cart,
+// bookings), so without sharing one refresh they raced, the loser hit
+// REFRESH_TOKEN_REUSED, and the customer was logged out on reload.
+let refreshInFlight: Promise<string> | null = null;
+
+export function refreshAccessToken(): Promise<string> {
+  refreshInFlight ??= requestNewAccessToken().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+async function requestNewAccessToken(): Promise<string> {
   const data = await apiFetch<{ success: boolean; accessToken: string }>("/customer/auth/refresh-token", {
     method: "POST",
     auth: false,

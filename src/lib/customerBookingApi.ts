@@ -117,6 +117,8 @@ export interface RawBooking {
    * setups and items (the ids the workshop generated).
    */
   customizeRequests?: RawCustomizeRequest[];
+  /** The older add/remove request list — carries the same vendor decision, so progress has to honour it too. */
+  changeRequests?: RawChangeRequest[];
   /** Empty on vendor-created bookings, which never go through a cart. */
   selectedAddOns?: RawSelectedAddOn[];
   createdAt: string;
