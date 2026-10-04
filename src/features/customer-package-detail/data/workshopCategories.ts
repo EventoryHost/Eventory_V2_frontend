@@ -57,8 +57,8 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
     typeOptions: ["Metallic Balloons", "Chrome Balloons", "Confetti Balloons", "Balloon Arch", "Other"],
   },
   {
-    id: "Carpet/Flooring Decor",
-    label: "Carpet/Flooring Decor",
+    id: "Carpet",
+    label: "Carpet",
     typeLabel: "Flooring type",
     typeOptions: ["Red Carpet", "White Carpet", "Artificial Grass Turf", "Wooden Dance Floor", "Other"],
   },
@@ -100,6 +100,25 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
     typeLabel: "Prop type",
     typeOptions: ["Vintage Trunk", "Easel Stand", "Flower Vases", "Lanterns", "Other"],
   },
+  {
+    id: "Rangoli",
+    label: "Rangoli",
+    typeLabel: "Rangoli style",
+    // No existing Rangoli data anywhere in the codebase (vendor schemas,
+    // seed data) to ground this in — these are common real-world rangoli
+    // styles, this session's own reasonable pick, not sourced from a given
+    // list. Flag for product review before shipping, same as the other
+    // extrapolated category mappings in eventSearchTaxonomy.ts.
+    typeOptions: [
+      "Floral Rangoli",
+      "Peacock Design",
+      "Geometric / Traditional",
+      "Colour Powder (Gulal)",
+      "Flower Petals",
+      "Rice / Flour Rangoli",
+      "Other",
+    ],
+  },
 ];
 
 // How full/dense a decor item should look — backend stores this as a free
@@ -114,11 +133,12 @@ export const VOLUME_OPTIONS = ["Low", "Medium", "High"];
 export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
   Flowers: "/images/customize/flowers.png",
   Lighting: "/images/customize/lighting.png",
-  "Carpet/Flooring Decor": "/images/customize/carpet.png",
+  Carpet: "/images/customize/carpet.png",
   Furnitures: "/images/customize/furniture.png",
   Signage: "/images/customize/signage.png",
   "Fabric/Drapery": "/images/customize/fabric.png",
   Balloons: "/images/customize/balloon.png",
+  Rangoli: "/images/customize/rangoli.png",
 };
 
 // Flat colour list for the "Add an item" workshop flow's Colours dropdown —

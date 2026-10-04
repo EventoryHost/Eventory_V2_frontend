@@ -148,6 +148,11 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
   function addItem(setupId: string, category: WorkshopCategoryDef): string {
     const id = `new-${setupId}-${category.id}-${Math.random().toString(36).slice(2, 8)}`;
     const defaultType = category.typeOptions[0];
+    // Volume (Low/Medium/High density) only makes sense for Flowers — real
+    // bug fixed 2026-10-04 (PM-reported: "volume field only for flowers"):
+    // every new-item category got a Volume section regardless, since this
+    // was set unconditionally.
+    const isFlowers = category.label === "Flowers";
     const newItem: IncludedItemLine = {
       id,
       label: category.label,
@@ -161,9 +166,9 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
       colourOptions: COLOUR_PALETTE,
       colours: [],
       originalColours: [],
-      volumeOptions: VOLUME_OPTIONS,
-      volume: VOLUME_OPTIONS[1],
-      originalVolume: VOLUME_OPTIONS[1],
+      volumeOptions: isFlowers ? VOLUME_OPTIONS : undefined,
+      volume: isFlowers ? VOLUME_OPTIONS[1] : undefined,
+      originalVolume: isFlowers ? VOLUME_OPTIONS[1] : undefined,
       isNew: true,
     };
     setItemsBySetup((prev) => ({ ...prev, [setupId]: [...(prev[setupId] ?? []), newItem] }));
@@ -260,9 +265,10 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
             colourOptions: COLOUR_PALETTE,
             colours,
             originalColours: [],
-            volumeOptions: VOLUME_OPTIONS,
-            volume: request.volume,
-            originalVolume: request.volume,
+            // Same "Flowers only" rule as addItem() above.
+            volumeOptions: request.label === "Flowers" ? VOLUME_OPTIONS : undefined,
+            volume: request.label === "Flowers" ? request.volume : undefined,
+            originalVolume: request.label === "Flowers" ? request.volume : undefined,
             isNew: true,
           };
           base[request.setupId] = [...list, newItem];

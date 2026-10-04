@@ -367,9 +367,13 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           typeLabel,
           type,
           originalType: type,
-          volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
-          volume: line.volume || undefined,
-          originalVolume: line.volume || undefined,
+          // Volume (Low/Medium/High density) only makes sense for Flowers —
+          // real bug fixed 2026-10-04 (PM-reported: "volume field only for
+          // flowers"): previously shown for ANY item the vendor happened to
+          // set a volume value on, regardless of itemType.
+          volumeOptions: line.volume && line.itemType === "Flowers" ? VOLUME_OPTIONS : undefined,
+          volume: line.itemType === "Flowers" ? line.volume || undefined : undefined,
+          originalVolume: line.itemType === "Flowers" ? line.volume || undefined : undefined,
           colourOptions,
           colours,
           originalColours: colours,

@@ -27,6 +27,19 @@
   }
 }
 
+/* Become-a-Vendor page's "Grow your Event Business" category badges —
+   gentle continuous up/down float, each badge offset to its own duration/
+   delay (inline style) so all 6 don't bob in lockstep. */
+@keyframes badge-float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
 :root {
   --customer-bg: #faf9f6;
   --brand-950: #1e0306;

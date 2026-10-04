@@ -2,50 +2,11 @@
 
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-
-// Only "North East Delhi" had a real locality list in the design handoff
-// (Badarpur Khadar, Bhajan Pura, then "Brahampuri" repeated — the design's
-// own placeholder for "more localities go here"). Every other district is
-// a real NCR district name from the design, but has no locality list yet —
-// its row renders a "Localities coming soon" placeholder instead of
-// fabricating area names that would look real but aren't. Fill in
-// `localities` here once that data exists.
-const DISTRICTS: { name: string; localities: string[] }[] = [
-  {
-    name: "North East Delhi",
-    localities: [
-      "Badarpur Khadar",
-      "Bhajan Pura",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-      "Brahampuri",
-    ],
-  },
-  { name: "South East Delhi", localities: [] },
-  { name: "East Delhi", localities: [] },
-  { name: "North Delhi", localities: [] },
-  { name: "North West Delhi", localities: [] },
-  { name: "Shahdara", localities: [] },
-  { name: "South Delhi", localities: [] },
-  { name: "South West Delhi", localities: [] },
-  { name: "West Delhi", localities: [] },
-  { name: "Faridabad", localities: [] },
-  { name: "Gurugram", localities: [] },
-  { name: "Central Delhi", localities: [] },
-  { name: "Ghaziabad", localities: [] },
-  { name: "Gautam Buddha Nagar", localities: [] },
-];
+import { SERVICE_AREAS } from "../data/serviceAreas";
 
 export default function LocalitiesSection() {
-  const [expanded, setExpanded] = useState(DISTRICTS[0].name);
-  const activeDistrict = DISTRICTS.find((d) => d.name === expanded);
+  const [expanded, setExpanded] = useState(SERVICE_AREAS[0].area);
+  const activeDistrict = SERVICE_AREAS.find((d) => d.area === expanded);
 
   return (
     <section className="w-full bg-white px-4 pb-16 sm:px-6 lg:px-16">
@@ -62,19 +23,19 @@ export default function LocalitiesSection() {
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2">
-          {DISTRICTS.map((district, i) => {
-            const isActive = district.name === expanded;
+          {SERVICE_AREAS.map((district, i) => {
+            const isActive = district.area === expanded;
             return (
-              <div key={district.name} className="flex items-center gap-3">
+              <div key={district.area} className="flex items-center gap-3">
                 {i > 0 && <span className="font-figtree text-[12px] text-[#71717B]">|</span>}
                 <button
                   type="button"
-                  onClick={() => setExpanded(isActive ? "" : district.name)}
+                  onClick={() => setExpanded(isActive ? "" : district.area)}
                   className={`flex items-center gap-1 font-figtree text-[14px] leading-[20px] font-medium whitespace-nowrap transition ${
                     isActive ? "text-[#030303]" : "text-[#71717B] hover:text-[#030303]"
                   }`}
                 >
-                  {district.name}
+                  {district.area}
                   <ChevronDown className={`h-5 w-5 shrink-0 transition-transform ${isActive ? "rotate-180" : ""}`} />
                 </button>
               </div>
