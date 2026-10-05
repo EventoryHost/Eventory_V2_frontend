@@ -33,6 +33,14 @@ export default function CustomizeWorkshopModal({
   const [selectedItemId, setSelectedItemId] = useState(initialItemId ?? items[0]?.id ?? NEW_ITEM_SLOT);
   const [phase, setPhase] = useState<FooterPhase>("idle");
   const [isLeaveGuardOpen, setIsLeaveGuardOpen] = useState(false);
+  // "Other" is a real selection (item.type === "Other" literally) until the
+  // customer types their own value into the text field it reveals — real
+  // bug fixed 2026-10-04 (PM-reported: "user cannot just select other and
+  // save"): nothing previously stopped leaving that field blank. Only
+  // surfaced once they actually try to leave via "Save & back" rather than
+  // on every keystroke, so picking "Other" doesn't show an error before
+  // they've had a chance to type anything.
+  const [showTypeError, setShowTypeError] = useState(false);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Captured once, on mount — this is already the committed/last-saved
   // state (hydrateFromRequests runs before this modal can ever open), so
@@ -79,6 +87,7 @@ export default function CustomizeWorkshopModal({
   function setType(type: string) {
     if (!selectedItem) return;
     workshop.setType(setup.id, selectedItem.id, type);
+    if (type !== "Other") setShowTypeError(false);
     flash();
   }
 
@@ -207,7 +216,10 @@ export default function CustomizeWorkshopModal({
                       <button
                         key={item.id}
                         type="button"
-                        onClick={() => setSelectedItemId(item.id)}
+                        onClick={() => {
+                          setSelectedItemId(item.id);
+                          setShowTypeError(false);
+                        }}
                         className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-left transition sm:w-full sm:shrink sm:justify-between sm:gap-2 sm:rounded-none sm:border-y-0 sm:border-r-0 sm:border-l-4 sm:px-4 sm:py-3 sm:pl-3.5 ${
                           item.id === selectedItemId
                             ? "border-brand-950 bg-white sm:bg-white"
@@ -235,7 +247,10 @@ export default function CustomizeWorkshopModal({
 
                   <button
                     type="button"
-                    onClick={() => setSelectedItemId(NEW_ITEM_SLOT)}
+                    onClick={() => {
+                      setSelectedItemId(NEW_ITEM_SLOT);
+                      setShowTypeError(false);
+                    }}
                     className={`flex shrink-0 items-center justify-center gap-1.5 rounded-full border border-dashed border-[#EA1D3B]/40 px-3 py-1.5 text-center font-figtree text-[13px] leading-[18px] font-medium whitespace-nowrap text-[#EA1D3B] transition sm:w-full sm:rounded-none sm:border-none sm:px-4 sm:py-3 sm:text-[16px] sm:leading-[24px] sm:whitespace-normal ${
                       selectedItemId === NEW_ITEM_SLOT ? "bg-white" : "hover:bg-white/60"
                     }`}
@@ -260,6 +275,7 @@ export default function CustomizeWorkshopModal({
                         onClearCustomColours={clearCustomColours}
                         onSetVolume={setVolume}
                         onSetQuantity={setQuantity}
+                        showTypeError={showTypeError}
                       />
                     )
                   ) : (
@@ -294,10 +310,16 @@ export default function CustomizeWorkshopModal({
               </div>
               <button
                 type="button"
-                onClick={() => setView("detail")}
-                className="rounded-full border border-black/15 px-4 py-2 font-figtree text-[13px] font-semibold text-brand-950 transition hover:border-black/30"
+                onClick={() => {
+                  if (selectedItem?.type === "Other") {
+                    setShowTypeError(true);
+                    return;
+                  }
+                  setView("detail");
+                }}
+                className="rounded-full border border-[#030303] bg-transparent px-5 py-2 font-figtree text-[14px] font-medium text-[#030303] transition hover:bg-black/5"
               >
-                Back to Setup
+                Save &amp; back
               </button>
             </div>
           </>
@@ -349,6 +371,7 @@ function AttributeEditor({
   onClearCustomColours,
   onSetVolume,
   onSetQuantity,
+  showTypeError,
 }: {
   item: IncludedItemLine;
   onRemove: () => void;
@@ -358,6 +381,7 @@ function AttributeEditor({
   onClearCustomColours: () => void;
   onSetVolume: (volume: string) => void;
   onSetQuantity: (qty: number) => void;
+  showTypeError?: boolean;
 }) {
   const sections: React.ReactNode[] = [];
 
@@ -384,25 +408,43 @@ function AttributeEditor({
           onChange={onSetType}
         />
         {isOtherSelected && (
-          <input
-            type="text"
-            value={item.type === "Other" ? "" : (item.type ?? "")}
-            onChange={(e) => onSetType(e.target.value === "" ? "Other" : e.target.value)}
-            placeholder={`Enter ${item.typeLabel?.toLowerCase() ?? "type"}`}
-            autoFocus
-            className="mt-2 w-full rounded-lg border border-black/15 px-3 py-2 font-figtree text-[13px] text-brand-950 placeholder:text-neutral-tertiary focus:border-brand-primary focus:outline-none"
-          />
+          <>
+            <input
+              type="text"
+              value={item.type === "Other" ? "" : (item.type ?? "")}
+              onChange={(e) => onSetType(e.target.value === "" ? "Other" : e.target.value)}
+              placeholder={`Enter ${item.typeLabel?.toLowerCase() ?? "type"}`}
+              autoFocus
+              aria-invalid={showTypeError && item.type === "Other"}
+              className={`mt-2 w-full rounded-lg border px-3 py-2 font-figtree text-[13px] text-brand-950 placeholder:text-neutral-tertiary focus:outline-none ${
+                showTypeError && item.type === "Other"
+                  ? "border-red-400 focus:border-red-500"
+                  : "border-black/15 focus:border-brand-primary"
+              }`}
+            />
+            {showTypeError && item.type === "Other" && (
+              <p className="mt-1 font-figtree text-[12px] text-red-600">
+                Please enter the {item.typeLabel?.toLowerCase() ?? "type"} before saving.
+              </p>
+            )}
+          </>
         )}
       </div>
     );
   }
 
-  if (item.volumeOptions && item.volumeOptions.length > 0) {
+  // Volume (Low/Medium/High density) only makes sense for Flowers — defended
+  // here too (not just at the data sources in useCustomizeWorkshop.ts/
+  // getPackageDetail.ts), so a non-Flowers item can never show it even if
+  // some other path ever sets volumeOptions on one again.
+  const showVolume = item.category === "Flowers" && Boolean(item.volumeOptions?.length);
+
+  if (showVolume) {
     sections.push(
       <div key="volume">
         <div className={`mb-2 ${SECTION_HEADING}`}>Volume</div>
         <div className="flex flex-wrap gap-2">
-          {item.volumeOptions.map((option) => (
+          {item.volumeOptions!.map((option) => (
             <button
               key={option}
               type="button"
@@ -426,7 +468,7 @@ function AttributeEditor({
   // a countable quantity for that item, so no Quantity control is shown at
   // all when Volume applies (2026-10-01, product-confirmed) — same rule as
   // the read-only item-details view (SetupDetailPanel.tsx).
-  if (!item.volumeOptions || item.volumeOptions.length === 0) {
+  if (!showVolume) {
     sections.push(
       <div key="quantity">
         <div className={`mb-2 ${SECTION_HEADING}`}>Quantity</div>
@@ -536,17 +578,16 @@ function AttributeEditor({
       </div>
 
       {/* Read-only facts the vendor set (item type/category, its sub-type —
-          e.g. "Metallic Balloons" — and length) — shown whenever present but
-          NOT as an editable picker like the typeOptions section above: these
-          are free text on the schema (flowerType/lightingType/subCategory),
-          not a fixed option list, so there's nothing real to offer as
-          choices. REAL GAP FIXED 2026-10-02 (PM-reported: "balloon type and
-          all not displayed in customization modal") — previously shown only
-          in the read-only Item Details view, never here, since this section
-          only ever rendered when typeOptions (new-item categories only) was
-          set. */}
-      {!item.typeOptions?.length && (item.category || item.type || item.length != null) && (
-        <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-black/[0.03] px-4 py-3">
+          e.g. "Metallic Balloons" — and length). Mobile-only (PM-requested
+          2026-10-05). Shows the Type/subtype row regardless of whether the
+          interactive dropdown below also covers it (PM-confirmed
+          2026-10-05: both should be visible on mobile, not just one) — the
+          interactive section may be further down past a scroll, so this
+          row stays as the always-visible quick summary. REAL GAP FIXED
+          2026-10-02 (PM-reported: "balloon type and all not displayed in
+          customization modal") — this is what first added it. */}
+      {(item.category || item.type || item.length != null) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-black/[0.03] px-4 py-3 sm:hidden">
           {item.category && (
             <div>
               <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">Item Type</div>
@@ -613,22 +654,35 @@ function RemovalPanel({ item, onCancel }: { item: IncludedItemLine; onCancel: ()
 function CategoryGrid({ onPick }: { onPick: (category: WorkshopCategoryDef) => void }) {
   return (
     <div>
-      <h3 className="font-figtree text-[20px] font-bold text-brand-950">New item</h3>
-      <p className="mt-1 font-figtree text-[13px] text-neutral-secondary">Choose an item of your choice in the setup</p>
-      <div className="mt-5 grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:gap-4">
+      <div className="-mx-4 -mt-4 border-b border-[#E4E4E7] px-4 py-3 sm:-mx-6 sm:-mt-6 sm:px-6">
+        <h3 className="font-figtree text-[20px] leading-7 font-semibold text-[#09090B]">New item</h3>
+        <p className="mt-1 font-figtree text-[14px] leading-5 text-[#71717B]">
+          Choose an item of your choice in the setup
+        </p>
+      </div>
+      {/* Fixed-px column tracks (not 1fr/stretch) — a grid-cols-2 with auto
+          columns stretches each card to fill half the panel's real width,
+          which is wider than Figma's own fixed 206px cards and threw off
+          the gap rhythm even though the gap VALUE was already correct
+          (real bug fixed 2026-10-04). Matching the track width to the
+          card's own fixed width keeps every card exactly 206×100 with the
+          exact 18/20px gaps regardless of how wide this panel renders. */}
+      <div className="mt-5 grid grid-cols-1 gap-x-[18px] gap-y-5 min-[460px]:grid-cols-[206px_206px]">
         {WORKSHOP_CATEGORIES.map((category) => (
           <button
             key={category.id}
             type="button"
             onClick={() => onPick(category)}
-            className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[11px] border-[0.92px] border-black/10 bg-white p-3 text-left transition hover:border-brand-primary hover:bg-brand-primary/5 sm:w-[206px]"
+            className="relative flex h-[100px] w-full items-start overflow-hidden rounded-[11px] border-[0.92px] border-[#E4E4E7] bg-white px-[17px] py-[15px] text-left transition hover:border-brand-primary hover:bg-brand-primary/5 min-[460px]:w-[206px]"
           >
-            <span className="font-figtree text-[14px] font-semibold text-brand-950">{category.label}</span>
+            <span className="relative z-[1] font-figtree text-[16px] leading-[26px] font-medium text-black">
+              {category.label}
+            </span>
             {WORKSHOP_CATEGORY_IMAGES[category.id] && (
               <img
                 src={WORKSHOP_CATEGORY_IMAGES[category.id]}
                 alt=""
-                className="pointer-events-none absolute right-1 bottom-1 h-[62px] w-[62px] object-contain"
+                className="pointer-events-none absolute right-3 bottom-2 h-[80px] w-[80px] object-contain"
               />
             )}
           </button>

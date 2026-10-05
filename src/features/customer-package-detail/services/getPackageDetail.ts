@@ -22,7 +22,7 @@ import {
   type RawDjItem,
   type RawMakeupItem,
 } from "@/lib/customerPackageDetailApi";
-import { VOLUME_OPTIONS } from "../data/workshopCategories";
+import { VOLUME_OPTIONS, getWorkshopCategoryForItemType } from "../data/workshopCategories";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
@@ -339,22 +339,54 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
         // subCategory was ever read, so any item whose type lived in one of
         // these two fields instead showed no Type at all.
         const specificType = line.flowerType || line.lightingType;
-        // subCategory is only a meaningful extra fact when it says something
-        // beyond the item's own name (e.g. name="Chrome Balloons",
-        // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
-        // Bouquet", subCategory="Rose" — real extra detail, kept). Reverted
-        // 2026-10-02 per product decision — keep this filter even though it
-        // means an item whose subCategory happens to equal its name (common
-        // for Balloons) shows no Type.
-        const subCategoryType = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
-        const type = specificType || subCategoryType;
-        const typeLabel = line.flowerType
-          ? "Flower type"
-          : line.lightingType
-            ? "Fixture type"
-            : type
-              ? `${line.itemType ?? "Sub"} Type`
+        // Existing items now get the SAME curated subtype dropdown as
+        // "Add an item" when their itemType maps to one (PM-requested
+        // 2026-10-05) — prefilled with the vendor's real, UNFILTERED value,
+        // distinct from the passive-display `type` below. Showing the real
+        // value as genuinely selected (even a literal "Other", even one
+        // that happens to match the item's own name) is correct for an
+        // interactive picker in a way it wasn't for read-only text — "Other"
+        // selected here reveals the free-text field, which is itself the
+        // fix for the 2026-10-05 "Other displayed with no way to specify
+        // it" gap.
+        const workshopCategory = getWorkshopCategoryForItemType(line.itemType);
+        let type: string | undefined;
+        let typeLabel: string | undefined;
+        let typeOptions: string[] | undefined;
+        if (workshopCategory) {
+          typeOptions = workshopCategory.typeOptions;
+          typeLabel = line.flowerType ? "Flower type" : line.lightingType ? "Fixture type" : workshopCategory.typeLabel;
+          const rawType = specificType || line.subCategory || undefined;
+          // A literal "Other" still correctly selects the "Other" pill
+          // (isOtherSelected in CustomizeWorkshopModal.tsx checks for this
+          // exact string) and reveals its free-text field — but prefills
+          // that field with the item's own name rather than leaving it
+          // blank (PM-requested 2026-10-05), since the name is usually
+          // already a reasonable answer to "what kind of X is this"
+          // (e.g. name="Foil Balloon" for a Balloons item marked "Other").
+          type = rawType && rawType.trim().toLowerCase() === "other" ? line.name || "Other" : rawType;
+        } else {
+          // Passive display only (no curated list for this itemType) —
+          // subCategory is only a meaningful extra fact when it says
+          // something beyond the item's own name (e.g. name="Chrome
+          // Balloons", subCategory="Chrome Balloons" — redundant, dropped;
+          // name="Rose Bouquet", subCategory="Rose" — real extra detail,
+          // kept), and a literal "Other" is excluded the same way (real bug
+          // fixed 2026-10-05 — showing the bare word "Other" with no
+          // elaboration and no way to fix it was meaningless).
+          const subCategoryType =
+            line.subCategory && line.subCategory !== line.name && line.subCategory.trim().toLowerCase() !== "other"
+              ? line.subCategory
               : undefined;
+          type = specificType || subCategoryType;
+          typeLabel = line.flowerType
+            ? "Flower type"
+            : line.lightingType
+              ? "Fixture type"
+              : type
+                ? `${line.itemType ?? "Sub"} Type`
+                : undefined;
+        }
         return {
           id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
           label: line.name ?? "Item",
@@ -365,11 +397,16 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           // — real, already in the API response, previously dropped entirely.
           category: line.itemType || undefined,
           typeLabel,
+          typeOptions,
           type,
           originalType: type,
-          volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
-          volume: line.volume || undefined,
-          originalVolume: line.volume || undefined,
+          // Volume (Low/Medium/High density) only makes sense for Flowers —
+          // real bug fixed 2026-10-04 (PM-reported: "volume field only for
+          // flowers"): previously shown for ANY item the vendor happened to
+          // set a volume value on, regardless of itemType.
+          volumeOptions: line.volume && line.itemType === "Flowers" ? VOLUME_OPTIONS : undefined,
+          volume: line.itemType === "Flowers" ? line.volume || undefined : undefined,
+          originalVolume: line.itemType === "Flowers" ? line.volume || undefined : undefined,
           colourOptions,
           colours,
           originalColours: colours,

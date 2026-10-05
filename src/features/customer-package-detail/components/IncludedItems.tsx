@@ -173,14 +173,14 @@ export default function IncludedItems({
                             <span
                               className={`font-figtree text-[14px] leading-[20px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}
                             >
-                              {/* Volume (Low/Medium/High density — e.g.
-                                  flowers) replaces the concept of a
-                                  countable quantity for that item, so "× N"
-                                  is dropped whenever Volume applies
-                                  (2026-10-01, product-confirmed) — same rule
-                                  as SetupDetailPanel/CustomizeWorkshopModal. */}
+                              {/* Volume (Low/Medium/High density) only
+                                  applies to Flowers (2026-10-04) and
+                                  replaces the concept of a countable
+                                  quantity for that item, so "× N" is
+                                  dropped whenever it applies — same rule as
+                                  SetupDetailPanel/CustomizeWorkshopModal. */}
                               {line.label}
-                              {!line.volume && ` × ${line.qty}`}
+                              {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                             </span>
                             {line.isNew && (
                               <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">

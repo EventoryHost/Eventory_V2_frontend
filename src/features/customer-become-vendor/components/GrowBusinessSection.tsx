@@ -25,25 +25,30 @@ const CATEGORY_BADGES: {
   top: number;
   side: "left" | "right";
   offset: number;
+  /** Seconds — varied per badge so all 6 don't bob in lockstep. */
+  duration: number;
+  delay: number;
 }[] = [
-  { id: "photographer", label: "Photographer", top: 54, side: "left", offset: 230 },
-  { id: "decorator", label: "Decorator", top: 215, side: "left", offset: 125 },
-  { id: "dj-artist", label: "DJ Artist", top: 356, side: "left", offset: 260 },
-  { id: "caterer", label: "Caterer", top: 54, side: "right", offset: 230 },
-  { id: "venue-provider", label: "Venue Provider", top: 215, side: "right", offset: 125 },
-  { id: "makeup-artist", label: "Makeup Artist", top: 356, side: "right", offset: 260 },
+  { id: "photographer", label: "Photographer", top: 54, side: "left", offset: 230, duration: 3.2, delay: 0 },
+  { id: "decorator", label: "Decorator", top: 215, side: "left", offset: 125, duration: 3.8, delay: 0.5 },
+  { id: "dj-artist", label: "DJ Artist", top: 356, side: "left", offset: 260, duration: 3.4, delay: 1 },
+  { id: "caterer", label: "Caterer", top: 54, side: "right", offset: 230, duration: 3.6, delay: 0.3 },
+  { id: "venue-provider", label: "Venue Provider", top: 215, side: "right", offset: 125, duration: 3, delay: 0.8 },
+  { id: "makeup-artist", label: "Makeup Artist", top: 356, side: "right", offset: 260, duration: 4, delay: 0.2 },
 ];
 
-function CategoryBadge({ id, label, top, side, offset }: (typeof CATEGORY_BADGES)[number]) {
+function CategoryBadge({ id, label, top, side, offset, duration, delay }: (typeof CATEGORY_BADGES)[number]) {
   const meta = CATEGORY_META[id];
   const ring = RING_SATURATED[id];
   return (
     <div
       // Floating badges only make sense at the desktop size the exact px
-      // offsets were measured against — hidden below lg rather than
+      // offsets were measured about — hidden below lg rather than
       // rescaled, same approach as the Hero image's own absolute spec.
+      // Continuous float (badge-float, customer-theme.css) — duration/delay
+      // staggered per badge so all 6 don't bob in lockstep.
       className="absolute hidden flex-col items-center lg:flex"
-      style={{ top, [side]: offset }}
+      style={{ top, [side]: offset, animation: `badge-float ${duration}s ease-in-out ${delay}s infinite` }}
     >
       <div
         className="flex h-24 w-24 shrink-0 items-center justify-center rounded-full p-[6.67px]"
