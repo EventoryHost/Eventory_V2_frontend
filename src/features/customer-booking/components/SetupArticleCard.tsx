@@ -58,6 +58,11 @@ export default function SetupArticleCard({
     });
   }
 
+  // Every item's requests pooled into one collective, ordered list — each
+  // carries its item's name since the requests are no longer shown nested
+  // under that item directly.
+  const allRequests = items.flatMap((item) => item.requests.map((request) => ({ itemName: item.name, request })));
+
   return (
     <div className="flex w-full max-w-[586px] flex-col gap-4 rounded-[24px] border border-[#E4E4E7] p-5">
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -104,6 +109,11 @@ export default function SetupArticleCard({
           Items ({items.length} Item{items.length === 1 ? "" : "s"})
         </span>
 
+        {/* All items listed plainly first, requests collected separately
+            below — changed 2026-10-06 (PM-reported: requests used to be
+            interleaved under each item individually; now matches the PDP's
+            Customize Items workshop, where every setup's requests are one
+            combined list at the bottom, not split per item). */}
         {items.map((item, i) => (
           <div key={i} className="flex flex-col gap-1.5">
             <p className="font-figtree text-[14px] font-semibold leading-[20px] text-[#030303]">
@@ -112,56 +122,56 @@ export default function SetupArticleCard({
             <p className="font-figtree text-[14px] font-normal leading-[20px] text-[#3F3F47]">
               {item.subtitle}
             </p>
-
-            {item.requests.length > 0 && (
-              // Same "Your requests" treatment as the PDP's Customize Items
-              // workshop (YourRequestsPanel.tsx) — amber panel, count badge,
-              // per-request white card with a top-right status pill — so a
-              // customer who saw these on the PDP recognizes them here.
-              <div className="mt-1 flex flex-col gap-2 rounded-[16px] bg-[#FFFBEB] p-4">
-                <div className="flex items-center gap-2">
-                  <span className="font-figtree text-[13px] font-semibold text-[#3F3F47]">Requests</span>
-                  <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#BB4D00] font-figtree text-[10px] font-bold text-white">
-                    {item.requests.length}
-                  </span>
-                </div>
-
-                {item.requests.map((request, j) => (
-                  <div
-                    key={j}
-                    className="flex items-start justify-between gap-3 rounded-[16px] bg-white p-4"
-                  >
-                    {request.status === "removal" ? (
-                      <span className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B] line-through">
-                        {request.label}
-                      </span>
-                    ) : (
-                      <div className="flex flex-col gap-1">
-                        {request.attributes.map((attribute) => (
-                          <p
-                            key={attribute.label}
-                            className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]"
-                          >
-                            {attribute.label}:{" "}
-                            {attribute.oldValue && (
-                              <span className="line-through">{attribute.oldValue}</span>
-                            )}{" "}
-                            <span className="font-semibold text-[#0F172A]">{attribute.newValue}</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    <span className="flex h-[22px] shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] px-2 font-figtree text-[12px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
-                      {request.status === "adding" ? "Adding" : request.status === "removal" ? "Removing" : "Change"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         ))}
       </div>
+
+      {allRequests.length > 0 && (
+        // Same "Your requests" treatment as the PDP's Customize Items
+        // workshop (YourRequestsPanel.tsx) — amber panel, count badge,
+        // per-request white card with a top-right status pill — so a
+        // customer who saw these on the PDP recognizes them here. Every
+        // item's requests pooled into this one collective list rather than
+        // shown under each item separately.
+        <div className="flex flex-col gap-2 rounded-[16px] bg-[#FFFBEB] p-4">
+          <div className="flex items-center gap-2">
+            <span className="font-figtree text-[13px] font-semibold text-[#3F3F47]">Requests</span>
+            <span className="flex h-[20px] w-[20px] shrink-0 items-center justify-center rounded-full bg-[#BB4D00] font-figtree text-[10px] font-bold text-white">
+              {allRequests.length}
+            </span>
+          </div>
+
+          {allRequests.map(({ itemName, request }, j) => (
+            <div key={j} className="flex items-start justify-between gap-3 rounded-[16px] bg-white p-4">
+              <div className="min-w-0">
+                <p className="font-figtree text-[13px] font-bold leading-[18px] text-[#0F172A]">{itemName}</p>
+                {request.status === "removal" ? (
+                  <p className="mt-1 font-figtree text-[13px] font-normal leading-[18px] text-[#71717B] line-through">
+                    {request.label}
+                  </p>
+                ) : (
+                  <div className="mt-1 flex flex-col gap-1">
+                    {request.attributes.map((attribute) => (
+                      <p
+                        key={attribute.label}
+                        className="font-figtree text-[13px] font-normal leading-[18px] text-[#71717B]"
+                      >
+                        {attribute.label}:{" "}
+                        {attribute.oldValue && <span className="line-through">{attribute.oldValue}</span>}{" "}
+                        <span className="font-semibold text-[#0F172A]">{attribute.newValue}</span>
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <span className="flex h-[22px] shrink-0 items-center justify-center rounded-full bg-[#F4F4F5] px-2 font-figtree text-[12px] font-medium tracking-[0.02em] text-[#3F3F47] uppercase">
+                {request.status === "adding" ? "Adding" : request.status === "removal" ? "Removing" : "Change"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

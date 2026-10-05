@@ -578,17 +578,16 @@ function AttributeEditor({
       </div>
 
       {/* Read-only facts the vendor set (item type/category, its sub-type —
-          e.g. "Metallic Balloons" — and length) — shown whenever present but
-          NOT as an editable picker like the typeOptions section above: these
-          are free text on the schema (flowerType/lightingType/subCategory),
-          not a fixed option list, so there's nothing real to offer as
-          choices. REAL GAP FIXED 2026-10-02 (PM-reported: "balloon type and
-          all not displayed in customization modal") — previously shown only
-          in the read-only Item Details view, never here, since this section
-          only ever rendered when typeOptions (new-item categories only) was
-          set. */}
-      {!item.typeOptions?.length && (item.category || item.type || item.length != null) && (
-        <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-black/[0.03] px-4 py-3">
+          e.g. "Metallic Balloons" — and length). Mobile-only (PM-requested
+          2026-10-05). Shows the Type/subtype row regardless of whether the
+          interactive dropdown below also covers it (PM-confirmed
+          2026-10-05: both should be visible on mobile, not just one) — the
+          interactive section may be further down past a scroll, so this
+          row stays as the always-visible quick summary. REAL GAP FIXED
+          2026-10-02 (PM-reported: "balloon type and all not displayed in
+          customization modal") — this is what first added it. */}
+      {(item.category || item.type || item.length != null) && (
+        <div className="flex flex-wrap gap-x-6 gap-y-2 rounded-xl bg-black/[0.03] px-4 py-3 sm:hidden">
           {item.category && (
             <div>
               <div className="font-figtree text-[11px] font-medium text-neutral-tertiary">Item Type</div>
