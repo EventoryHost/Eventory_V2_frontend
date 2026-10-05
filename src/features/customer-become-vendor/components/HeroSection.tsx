@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 // Static placeholder — no vendor-count endpoint exists yet. Replace with a
 // real fetched total once one does; explicitly not treated as live data
@@ -48,12 +49,14 @@ export default function HeroSection() {
           >
             Register Now
           </Link>
-          <Link
-            href="/contact"
+          <a
+            href={buildWhatsAppLink("Hi, I'm interested in becoming a vendor on Eventory.")}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex h-11 w-[123px] items-center justify-center rounded-[52px] bg-[#FDEEF0] font-figtree text-[15px] font-semibold text-[#F0596F] transition hover:bg-[#FBE0E5]"
           >
             Contact Us
-          </Link>
+          </a>
         </div>
       </div>
 
