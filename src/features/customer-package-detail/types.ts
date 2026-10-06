@@ -56,8 +56,8 @@ export interface IncludedItemLine {
   type?: string;
   originalType?: string;
   colourOptions?: ColourOption[];
-  /** Selected colour ids — the vendor's own palette (colourOptions). Multi-
-   * select, freely changeable (item-details section, SetupDetailPanel.tsx)
+  /** Selected colour id — the vendor's own palette (colourOptions). Single-
+   * select (radio group), freely changeable (item-details section, SetupDetailPanel.tsx)
    * and NEVER a request: "these are the options the vendor already provides." */
   colours?: string[];
   originalColours?: string[];

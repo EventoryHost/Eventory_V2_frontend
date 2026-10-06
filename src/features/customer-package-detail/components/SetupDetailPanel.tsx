@@ -70,13 +70,15 @@ function ItemDetailCard({
           <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">
             Color <span className="text-neutral-tertiary/70">· pick the one you&apos;d like</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Color">
             {item.colourOptions.map((colour) => {
               const selected = item.colours?.includes(colour.id);
               return (
                 <button
                   key={colour.id}
                   type="button"
+                  role="radio"
+                  aria-checked={selected}
                   disabled={item.removalRequested}
                   onClick={() => onSelectColour(colour.id)}
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-figtree text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
