@@ -18,16 +18,14 @@ export default function PaymentScheduleDialog({
   /**
    * The SAME rows/grandTotal already shown in Payment Summary behind this
    * modal (Total booking amount, convenience fee, discount, GST, …) — not
-   * re-derived here. Needed because `milestones` only ever sums to each
-   * line's tax-inclusive package price (cartPricingService.js's
-   * computeLineMilestones comment: "milestones sum to 100% of the... amount
-   * owed" — for that ONE line's package+GST only). The convenience fee and
-   * any discount are order-level, computed once across the whole quote, and
-   * were never folded into any per-line milestone — so the milestone list
-   * alone under-totals whenever either applies. Real bug: the modal used to
-   * show a schedule that didn't add up to the "Grand total" the customer
-   * sees on the page behind it. Showing the same rows/grandTotal here
-   * (rather than a second computation) guarantees they can never drift.
+   * re-derived here, so this modal's total can never drift from the page
+   * behind it. `milestones` itself is guaranteed to sum to this same
+   * grandTotal too: cartPricingService.js's computeQuoteForLines reconciles
+   * any gap between the per-line milestone amounts and the real payable
+   * total (convenience fee, discount, round-off — all order-level, never
+   * any one line's own milestones) into the last milestone of the last
+   * line, mirroring the business admin's custom-order schedule reconciling
+   * its own "Final Pay" row the same way.
    */
   rows: BookingLineRow[];
   grandTotal: string;
