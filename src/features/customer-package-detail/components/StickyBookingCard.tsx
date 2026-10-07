@@ -332,9 +332,20 @@ export default function StickyBookingCard({
     };
   }, [packageId, validEventDate]);
 
-  const convenienceFee =
+  const rawConvenienceFee =
     conveniencePreview?.configured && validEventDate ? conveniencePreview.fee : 0;
-  const estimatedTotal = packageTotal + gstAmount + convenienceFee;
+  // Round the estimated total up to the next ₹100 (999 -> 1000, 2370 -> 2400)
+  // — mirrors cartPricingService.js's grandTotal rounding so this preview
+  // never disagrees with what cart/checkout later shows. The gap is folded
+  // into the displayed convenience fee rather than shown as its own line,
+  // same reconciliation the backend does — only once the fee is actually
+  // configured, since rounding a fee that's still "pending" would invent a
+  // number that isn't really there yet.
+  const rawEstimatedTotal = packageTotal + gstAmount + rawConvenienceFee;
+  const estimatedTotal = rawEstimatedTotal > 0 ? Math.ceil(rawEstimatedTotal / 100) * 100 : 0;
+  const roundOffGap = estimatedTotal - rawEstimatedTotal;
+  const convenienceFee =
+    conveniencePreview?.configured && validEventDate ? rawConvenienceFee + roundOffGap : 0;
   const parsedGuestCount = Number(guestCount);
   const validGuestCount = guestCount.trim() && Number.isFinite(parsedGuestCount) && parsedGuestCount > 0;
   // Cart's own "Event Details Missing" warning used to exist because this

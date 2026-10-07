@@ -52,7 +52,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
     updateItem(setupId, itemId, { volume });
   }
 
-  // Multi-select toggle among the vendor's OWN colourOptions — the
+  // Single-select (radio-group) among the vendor's OWN colourOptions — the
   // item-details section's clickable swatches (SetupDetailPanel.tsx).
   // Deliberately not run through hasChanged's originalColours: this never
   // generates a request, so there is nothing to diff against.
@@ -61,11 +61,7 @@ export function useCustomizeWorkshop(setups: IncludedItemEntry[]) {
       ...prev,
       [setupId]: (prev[setupId] ?? []).map((item) => {
         if (item.id !== itemId || item.removalRequested) return item;
-        const selected = item.colours ?? [];
-        const colours = selected.includes(colourId)
-          ? selected.filter((c) => c !== colourId)
-          : [...selected, colourId];
-        return { ...item, colours };
+        return { ...item, colours: [colourId] };
       }),
     }));
   }

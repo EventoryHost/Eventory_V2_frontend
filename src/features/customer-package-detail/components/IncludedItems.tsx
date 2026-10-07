@@ -40,6 +40,19 @@ export default function IncludedItems({
     });
   }
 
+  // Vendors sometimes pack several bullet lines into one array entry
+  // (`"•Cake table \n•Fairy lights \n•Led age letter"`) instead of pressing
+  // Enter between them on the vendor form, which would've split them into
+  // separate array elements. Flatten on "\n" and strip any "•" the vendor
+  // already typed, so each line still renders as its own bullet regardless
+  // of which way the vendor entered it.
+  const flatExclusions = notIncluded.flatMap((exclusion) =>
+    exclusion
+      .split("\n")
+      .map((line) => line.trim().replace(/^•\s*/, ""))
+      .filter(Boolean)
+  );
+
   return (
     <section id="included" className="border-t border-black/5 pt-8">
       <SectionHeading>What&apos;s Included</SectionHeading>
@@ -93,9 +106,20 @@ export default function IncludedItems({
                       simply absent for other vendor types rather than a
                       placeholder standing in for it. */}
                   {setup.description && (
-                    <p className="mt-1 font-figtree text-[13px] leading-4.5 text-[#71717B]">
-                      {setup.description}
-                    </p>
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {setup.description
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line, j) => (
+                          <li
+                            key={j}
+                            className="font-figtree text-[13px] leading-4.5 text-[#71717B]"
+                          >
+                            {line}
+                          </li>
+                        ))}
+                    </ul>
                   )}
 
                   <div className="mt-2 flex flex-col gap-1">
@@ -207,7 +231,7 @@ export default function IncludedItems({
           })}
         </div>
 
-        {notIncluded.length > 0 && (
+        {flatExclusions.length > 0 && (
           <div className="border-t border-[#E4E4E7]">
             <button
               type="button"
@@ -227,12 +251,12 @@ export default function IncludedItems({
             {isExclusionsOpen && (
               <div className="border-t border-[#E4E4E7] bg-[#FAFAFA] px-7 py-4">
                 <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
-                  EXCLUSIONS ({notIncluded.length})
+                  EXCLUSIONS ({flatExclusions.length})
                 </p>
-                <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-                  {notIncluded.map((exclusion) => (
-                    <div key={exclusion} className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
+                <div className="flex flex-col gap-2">
+                  {flatExclusions.map((exclusion, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
                       <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
                     </div>
                   ))}

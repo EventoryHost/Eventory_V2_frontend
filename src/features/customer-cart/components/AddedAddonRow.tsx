@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { CartAddon } from "../types";
 import { formatPrice } from "../utils/currency";
 import QuantityInput from "@/features/customer-package-detail/components/QuantityInput";
+import IncludedItemImageModal from "@/features/customer-package-detail/components/IncludedItemImageModal";
 
 // A customer isn't going to want 1000 of a single add-on — same cap as
 // PDP's own Added Add-ons row (AddedAddonsSummary.tsx), which this mirrors.
@@ -21,11 +25,28 @@ export default function AddedAddonRow({
   onSetQuantity: (id: string, qty: number) => void;
   onRemove: (id: string) => void;
 }) {
+  const [isZoomed, setIsZoomed] = useState(false);
+
   return (
     <div className="flex items-center gap-3">
-      <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl bg-neutral-subtle">
+      <button
+        type="button"
+        onClick={() => setIsZoomed(true)}
+        aria-label={`View larger image of ${addon.title}`}
+        disabled={!addon.image}
+        className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl bg-neutral-subtle disabled:cursor-default"
+      >
         {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="84px" className="object-cover" />}
-      </div>
+      </button>
+
+      {addon.image && (
+        <IncludedItemImageModal
+          isOpen={isZoomed}
+          onClose={() => setIsZoomed(false)}
+          image={addon.image}
+          alt={addon.title}
+        />
+      )}
 
       <div className="min-w-0 flex-1">
         <h5 className="truncate font-figtree text-[14px] leading-[20px] font-semibold text-[#030303]">

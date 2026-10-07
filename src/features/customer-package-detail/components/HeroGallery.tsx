@@ -64,7 +64,6 @@ export default function HeroGallery({ images }: { images: GalleryImage[] }) {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         images={images}
-        onSelect={setActiveIndex}
       />
     </section>
   );

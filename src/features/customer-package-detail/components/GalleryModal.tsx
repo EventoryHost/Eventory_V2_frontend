@@ -1,26 +1,32 @@
 "use client";
 
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { X } from "lucide-react";
 import type { GalleryImage } from "../types";
 import PlaceholderMedia from "./PlaceholderMedia";
+import IncludedItemImageModal from "./IncludedItemImageModal";
 
 export default function GalleryModal({
   isOpen,
   onClose,
   images,
-  onSelect,
 }: {
   isOpen: boolean;
   onClose: () => void;
   images: GalleryImage[];
-  onSelect: (index: number) => void;
 }) {
+  // Clicking a thumbnail here only enlarges it — it must never change which
+  // photo shows as the PDP's main hero image, so this is local state, not
+  // routed through the hero's activeIndex.
+  const [zoomedImage, setZoomedImage] = useState<GalleryImage | null>(null);
+
   if (typeof document === "undefined") return null;
 
   return createPortal(
+    <>
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -57,10 +63,7 @@ export default function GalleryModal({
                 <button
                   key={image.id}
                   type="button"
-                  onClick={() => {
-                    onSelect(index);
-                    onClose();
-                  }}
+                  onClick={() => setZoomedImage(image)}
                   className="relative aspect-square overflow-hidden rounded-xl"
                 >
                   {image.image ? (
@@ -74,7 +77,15 @@ export default function GalleryModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+
+    <IncludedItemImageModal
+      isOpen={zoomedImage !== null}
+      onClose={() => setZoomedImage(null)}
+      image={zoomedImage?.image ?? null}
+      alt={zoomedImage?.alt ?? ""}
+    />
+    </>,
     document.body
   );
 }

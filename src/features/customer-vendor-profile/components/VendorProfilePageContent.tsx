@@ -14,6 +14,7 @@ import VendorStatsBar from "./VendorStatsBar";
 import VendorPackagesSection from "./VendorPackagesSection";
 import VendorGallerySection from "./VendorGallerySection";
 import VendorReviewsSection from "./VendorReviewsSection";
+import IncludedItemImageModal from "@/features/customer-package-detail/components/IncludedItemImageModal";
 
 const FALLBACK_AVATAR = "/images/customer/packages-pics.png";
 
@@ -27,6 +28,7 @@ export default function VendorProfilePageContent({ data }: { data: VendorProfile
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const wishlistItemIdsRef = useRef(new Map<string, string>());
   const [isAuthOpen, setIsAuthOpen] = useState(false);
+  const [isAvatarZoomed, setIsAvatarZoomed] = useState(false);
   const pendingBookmarkRef = useRef<{ id: string; type: "Package" | "Vendor" } | null>(null);
 
   // Wishlist is customer-only. Both kinds of save matter here: the vendor
@@ -125,7 +127,13 @@ export default function VendorProfilePageContent({ data }: { data: VendorProfile
 
       <div className="mx-auto w-full max-w-[1440px] px-4 pb-16 sm:px-6 lg:px-16">
         {/* Avatar straddles the cover's bottom edge, as in the design. */}
-        <div className="relative -mt-[52px] mb-5 size-[104px] overflow-hidden rounded-full border-4 border-white bg-white">
+        <button
+          type="button"
+          onClick={() => vendor.avatar && setIsAvatarZoomed(true)}
+          disabled={!vendor.avatar}
+          aria-label={vendor.avatar ? `View larger photo of ${vendor.name}` : undefined}
+          className="relative -mt-[52px] mb-5 size-[104px] overflow-hidden rounded-full border-4 border-white bg-white disabled:cursor-default"
+        >
           <Image
             src={vendor.avatar || vendor.categoryIcon || FALLBACK_AVATAR}
             alt=""
@@ -133,7 +141,16 @@ export default function VendorProfilePageContent({ data }: { data: VendorProfile
             sizes="104px"
             className="object-cover"
           />
-        </div>
+        </button>
+
+        {vendor.avatar && (
+          <IncludedItemImageModal
+            isOpen={isAvatarZoomed}
+            onClose={() => setIsAvatarZoomed(false)}
+            image={vendor.avatar}
+            alt={vendor.name}
+          />
+        )}
 
         <div className="flex flex-col gap-8">
           <VendorProfileHeader
