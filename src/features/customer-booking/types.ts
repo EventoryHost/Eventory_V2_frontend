@@ -82,10 +82,16 @@ export interface BookingVendorGroup {
   services: BookingServiceItem[];
 }
 
+// One row per PAYMENT STAGE ("Advance Payment" / "Final Payment"), not per
+// vendor line — groupPaymentMilestones.ts combines every line's own
+// milestones into just these two buckets (summed amount, earliest due
+// date), since a multi-vendor booking's "Payment Schedule" modal shows one
+// combined schedule, not each vendor's own breakdown. No `serviceName`/
+// `percentage` anymore — combining several vendors' milestones makes a
+// single "which package" or "what %" meaningless, and the modal no longer
+// shows per-package detail at all (PM decision 2026-10-11).
 export interface BookingPaymentMilestone {
-  serviceName: string;
   title: string;
-  percentage: number | null;
   amount: string | null;
   /** Formatted display date when the backend could compute one (needs the line's event date); otherwise the vendor's free-text "due X days before event" as a fallback. */
   due: string | null;

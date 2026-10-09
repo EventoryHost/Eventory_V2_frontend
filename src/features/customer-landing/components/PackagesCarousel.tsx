@@ -15,6 +15,7 @@ import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
+import { sanitizeCityName } from "@/lib/vendorLocation";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
@@ -26,7 +27,7 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
   // Same source composition as the PDP header's locationSummary (city, then
   // service areas) — kept consistent between the two so a package's
   // "location" reads the same wherever it's shown.
-  const locationList = [pkg.vendorId?.city, ...(pkg.vendorId?.serviceAreas ?? [])].filter(
+  const locationList = [sanitizeCityName(pkg.vendorId?.city), ...(pkg.vendorId?.serviceAreas ?? [])].filter(
     (location): location is string => Boolean(location)
   );
 

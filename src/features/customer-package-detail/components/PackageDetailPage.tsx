@@ -29,10 +29,13 @@ function scrollToBookingCard() {
 export default function PackageDetailPage({
   data,
   editItemId,
+  returnTo,
 }: {
   data: PackageDetail;
   /** Set when arriving via Cart's "Edit Package Details" — see CartItemRow/VendorActions/PackageInfo's editHref. Fetches that exact cart item so every field (event type, date, time, location, add-ons, vendor note) prefills with what was already selected instead of starting blank, and routes saves back to updateCartItem instead of creating a duplicate line. */
   editItemId?: string;
+  /** Where "Save changes" sends the customer back to once editItemId is set — "/cart" from Cart's edit link, "/booking-summary" from the Booking Summary modal's. Defaults to "/cart" in StickyBookingCard if absent (e.g. an old bookmarked edit link from before this existed). */
+  returnTo?: string;
 }) {
   const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
   // One entry per LINE (addonId + colour combination), not one per addon —
@@ -245,6 +248,7 @@ export default function PackageDetailPage({
           vendorNoteAttachments={vendorNoteAttachments}
           onVendorNoteAttachmentsChange={setVendorNoteAttachments}
           editItemId={editCartItem?._id}
+          returnTo={returnTo}
           prefillEventDetails={editCartItem?.eventDetails}
           cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
         />

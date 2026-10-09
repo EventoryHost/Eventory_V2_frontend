@@ -17,6 +17,7 @@ import { formatDayMonth, getCancellationTiers } from "../utils/cancellationPolic
 import PriceBreakdownDialog from "./PriceBreakdownDialog";
 import CancellationPolicyDialog from "./CancellationPolicyDialog";
 import VendorNotePromptModal from "./VendorNotePromptModal";
+import { isSafeInternalPath } from "@/lib/isSafeInternalPath";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 import { useSelectedCity, setSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
@@ -47,6 +48,7 @@ export default function StickyBookingCard({
   onVendorNoteAttachmentsChange,
   cancellationPolicyText,
   editItemId,
+  returnTo,
   prefillEventDetails,
 }: {
   packageId: string;
@@ -78,6 +80,8 @@ export default function StickyBookingCard({
   cancellationPolicyText?: string;
   /** Set when editing an existing cart line (see PackageDetailPage) — routes saves to updateCartItem instead of creating a new cart item. */
   editItemId?: string;
+  /** Where "Save changes" sends the customer back to (Cart's edit link sends "/cart", Booking Summary's sends "/booking-summary") — only used when editItemId is set. Defaults to "/cart" if absent. */
+  returnTo?: string;
   /** This cart item's already-saved event details, to prefill the fields below instead of starting blank. */
   prefillEventDetails?: RawCartEventDetails;
 }) {
@@ -461,6 +465,14 @@ export default function StickyBookingCard({
       if (editItemId) {
         await updateCartItem(editItemId, buildCartPayload(noteOverride, noteAttachmentsOverride));
         setInCartItemId(editItemId);
+        // "Save changes" on an existing cart line — PM decision 2026-10-12:
+        // take the customer straight back to wherever they came from to
+        // edit this (Cart's own edit link, or Booking Summary's) instead of
+        // leaving them on the PDP after saving. returnTo is only set on an
+        // edit link built after this existed — "/cart" is the safe default
+        // for an older link without one.
+        router.push(isSafeInternalPath(returnTo) ? returnTo : "/cart");
+        return;
       } else {
         const result = await addCartItem(buildCartPayload(noteOverride, noteAttachmentsOverride));
         setInCartItemId(result.itemId);

@@ -8,6 +8,7 @@ import {
 import { resolveVendorCategory } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
+import { sanitizeCityName } from "@/lib/vendorLocation";
 import type { PackageListItem } from "./types";
 
 export function mapPackageToListItem(pkg: RawPackage): PackageListItem {
@@ -18,7 +19,7 @@ export function mapPackageToListItem(pkg: RawPackage): PackageListItem {
   const category = resolved?.category ?? "all";
   const meta = CATEGORY_META[category];
 
-  const locations = [pkg.vendorId?.city, ...(pkg.vendorId?.serviceAreas ?? [])].filter(
+  const locations = [sanitizeCityName(pkg.vendorId?.city), ...(pkg.vendorId?.serviceAreas ?? [])].filter(
     (location): location is string => Boolean(location)
   );
 
