@@ -75,23 +75,19 @@ export default function PaymentScheduleDialog({
             ) : (
               <div className="divide-y divide-black/5 border-y border-black/5">
                 {milestones.map((milestone, index) => (
-                  <div key={`${milestone.serviceName}-${milestone.title}-${index}`} className="flex items-start gap-3 py-4">
+                  <div key={`${milestone.title}-${index}`} className="flex items-start gap-3 py-4">
                     <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle">
                       <Receipt className="h-4 w-4 text-brand-primary" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-figtree text-[13px] font-semibold text-brand-950">{milestone.title}</p>
-                      <p className="truncate font-figtree text-[12px] text-neutral-tertiary">
-                        {milestone.serviceName}
-                        {milestone.due ? ` · Due ${milestone.due}` : ""}
-                      </p>
+                      {milestone.due && (
+                        <p className="truncate font-figtree text-[12px] text-neutral-tertiary">Due {milestone.due}</p>
+                      )}
                     </div>
                     <div className="shrink-0 text-right">
                       {milestone.amount && (
                         <p className="font-figtree text-[14px] font-bold text-brand-950">{milestone.amount}</p>
-                      )}
-                      {milestone.percentage != null && (
-                        <p className="font-figtree text-[11px] text-neutral-tertiary">{milestone.percentage}%</p>
                       )}
                     </div>
                   </div>

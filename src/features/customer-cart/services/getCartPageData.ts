@@ -63,7 +63,9 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, VendorCardMeta>, ve
       // editItemId tells the PDP which exact cart line to prefill from and
       // save back to (see PackageDetailPage/StickyBookingCard) — without it,
       // "Edit Package Details" just reopened the PDP with every field blank.
-      href: `/packages/${item.packageId}?editItemId=${item._id}`,
+      // returnTo sends "Save changes" back here instead of leaving the
+      // customer stranded on the PDP after saving.
+      href: `/packages/${item.packageId}?editItemId=${item._id}&returnTo=/cart`,
     },
     selected: item.selectedForCheckout,
     eventDetails: {

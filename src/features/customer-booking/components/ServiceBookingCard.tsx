@@ -108,8 +108,13 @@ export default function ServiceBookingCard({
               // Same editItemId pattern cart's own "Edit Package" uses
               // (getCartPageData.ts's href) — reopens the PDP prefilled from
               // this exact line instead of just dumping the customer on
-              // /cart with nothing pre-selected.
-              href={packageId && cartItemId ? `/packages/${packageId}?editItemId=${cartItemId}` : "/cart"}
+              // /cart with nothing pre-selected. returnTo sends "Save
+              // changes" back to Booking Summary instead of /cart.
+              href={
+                packageId && cartItemId
+                  ? `/packages/${packageId}?editItemId=${cartItemId}&returnTo=/booking-summary`
+                  : "/cart"
+              }
               className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#3F3F47]"
             >
               <Pencil size={14} />

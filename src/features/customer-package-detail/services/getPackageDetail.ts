@@ -28,6 +28,7 @@ import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { formatHoursLabel, packageDurationsInHours } from "@/lib/formatHours";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
+import { sanitizeCityName } from "@/lib/vendorLocation";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
@@ -821,10 +822,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     rating: vendor?.rating ?? reviews.average,
     reviewCount: reviews.total,
     locationSummary:
-      [vendor?.city, ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
+      [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
     // Same composition as locationSummary, just uncapped — what "See the
     // location" expands to (city + every service area, not just the first 2).
-    fullLocationSummary: [vendor?.city, ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
+    fullLocationSummary:
+      [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
     gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,
@@ -832,8 +834,12 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       setupsLabel: setups.length
         ? `${setups.length} — ${setups.map((s) => s.name).filter(Boolean).slice(0, 3).join(", ")}`
         : "—",
-      serviceArea: vendor?.serviceAreas?.join(", ") || vendor?.city || "—",
-      serviceAreaList: vendor?.serviceAreas?.length ? vendor.serviceAreas : vendor?.city ? [vendor.city] : undefined,
+      serviceArea: vendor?.serviceAreas?.join(", ") || sanitizeCityName(vendor?.city) || "—",
+      serviceAreaList: vendor?.serviceAreas?.length
+        ? vendor.serviceAreas
+        : sanitizeCityName(vendor?.city)
+          ? [sanitizeCityName(vendor?.city)!]
+          : undefined,
       // durationOfSetup is lead time needed before the event starts — a
       // single number, not a range (step1_eventAndCrew.duration is a
       // different field entirely: how long the EVENT itself runs). Hours,

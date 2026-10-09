@@ -271,7 +271,11 @@ export default function ServiceDetailsModal({
             </span>
 
             <Link
-              href={packageId && cartItemId ? `/packages/${packageId}?editItemId=${cartItemId}` : "/cart"}
+              href={
+                packageId && cartItemId
+                  ? `/packages/${packageId}?editItemId=${cartItemId}&returnTo=/booking-summary`
+                  : "/cart"
+              }
               className="flex items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#F0596F]"
             >
               <Pencil size={14} />

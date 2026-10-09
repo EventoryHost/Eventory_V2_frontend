@@ -11,10 +11,10 @@ export default async function PackageDetail({
   searchParams,
 }: {
   params: Promise<{ packageId: string }>;
-  searchParams: Promise<{ editItemId?: string }>;
+  searchParams: Promise<{ editItemId?: string; returnTo?: string }>;
 }) {
   const { packageId } = await params;
-  const { editItemId } = await searchParams;
+  const { editItemId, returnTo } = await searchParams;
 
   let data;
   try {
@@ -30,5 +30,5 @@ export default async function PackageDetail({
   // the same component instance since it's the same component type, so
   // leftover state like a typed note silently carries over to the next
   // package viewed in the same session.
-  return <PackageDetailPage key={packageId} data={data} editItemId={editItemId} />;
+  return <PackageDetailPage key={packageId} data={data} editItemId={editItemId} returnTo={returnTo} />;
 }
