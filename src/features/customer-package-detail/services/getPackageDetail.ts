@@ -9,6 +9,7 @@ import type {
   VendorRequirement,
   VendorRequirementIcon,
   PolicyItem,
+  PaymentMilestone,
   VendorInfo,
   ReviewsSummary,
   RatingBreakdownEntry,
@@ -653,6 +654,24 @@ function mapPolicySlot(
   return { id, icon, title, description: description || "See document", href: slot.files?.[0] ?? "#" };
 }
 
+function mapPaymentMilestones(pkg: RawFullPackage): PaymentMilestone[] {
+  return (pkg.paymentMilestones?.milestones ?? []).map((m) => {
+    const days = m.dueOffsetDays ?? 0;
+    const plural = `${days} day${days === 1 ? "" : "s"}`;
+    const dueLabel =
+      m.dueOffsetFrom === "BeforeEvent"
+        ? `${plural} before the event`
+        : m.dueOffsetFrom === "AfterEvent"
+          ? `${plural} after the event`
+          : m.dueOffsetFrom === "OnEvent"
+            ? "on the event day"
+            : m.dueOffsetFrom === "OnBooking"
+              ? "at booking"
+              : (m.dueDays?.trim() ?? "").replace(/^On /, "on ");
+    return { title: m.title, percentage: m.percentage, dueLabel };
+  });
+}
+
 function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
   const charges = pkg.step3_policiesAndCharges;
   const policies: (PolicyItem | null)[] = [
@@ -863,6 +882,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       footnote: "Held safely by Eventory until your event is delivered.",
     },
     policies: mapPolicies(pkg),
+    paymentMilestones: mapPaymentMilestones(pkg),
     vendor: mapVendor(pkg),
     reviews,
     pricing: (() => {

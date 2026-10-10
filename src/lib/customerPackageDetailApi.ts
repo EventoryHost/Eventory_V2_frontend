@@ -162,6 +162,16 @@ export interface RawFullPackage {
   variantType?: string;
   packageGroupId: string;
   packageStatus: string;
+  /** Vendor-set balance schedule (Package.paymentMilestones). dueOffsetFrom/dueOffsetDays win over the free-text dueDays when present — same precedence as the backend's computeMilestoneDueDate. */
+  paymentMilestones?: {
+    milestones?: {
+      title: string;
+      percentage: number;
+      dueDays?: string;
+      dueOffsetFrom?: "BeforeEvent" | "AfterEvent" | "OnEvent" | "OnBooking" | null;
+      dueOffsetDays?: number | null;
+    }[];
+  };
   bookingSettings?: {
     bookingType?: "Ready-to-Book" | "Enquiry/Quote";
     paymentType?: "Free" | "Token";
