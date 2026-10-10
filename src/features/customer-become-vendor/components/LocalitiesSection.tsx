@@ -4,13 +4,23 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { SERVICE_AREAS } from "../data/serviceAreas";
 
-export default function LocalitiesSection() {
+// Two color themes, same interactive component — About Us's "We are live
+// in 200+ Localities" (Figma node 2438:22406) is functionally identical to
+// this section, just pink-tinted instead of cream, so it reuses this
+// rather than duplicating the expand/collapse logic.
+const VARIANTS = {
+  cream: { border: "border-[#FFEDCC]", bg: "bg-[#FFF8EB]", pillBorder: "border-[#E4E4E7]" },
+  pink: { border: "border-[#FDEEF0]", bg: "bg-[#FFF5F6]", pillBorder: "border-[#F9BDC5]" },
+};
+
+export default function LocalitiesSection({ variant = "cream" }: { variant?: keyof typeof VARIANTS }) {
   const [expanded, setExpanded] = useState(SERVICE_AREAS[0].area);
   const activeDistrict = SERVICE_AREAS.find((d) => d.area === expanded);
+  const theme = VARIANTS[variant];
 
   return (
     <section className="w-full bg-white px-4 pb-16 sm:px-6 lg:px-16">
-      <div className="mx-auto max-w-[1312px] rounded-[32px] border border-[#FFEDCC] bg-[#FFF8EB] px-6 py-10 sm:px-8 sm:py-12">
+      <div className={`mx-auto max-w-[1312px] rounded-[32px] border ${theme.border} ${theme.bg} px-6 py-10 sm:px-8 sm:py-12`}>
         <div className="flex max-w-[400px] flex-col gap-2">
           <p className="flex flex-wrap items-center gap-1 font-figtree text-[14px] leading-[20px]">
             <span className="font-normal text-[#3F3F47]">Available in</span>
@@ -49,7 +59,7 @@ export default function LocalitiesSection() {
               activeDistrict.localities.map((locality, i) => (
                 <span
                   key={`${locality}-${i}`}
-                  className="flex items-center rounded-full border border-[#E4E4E7] bg-white px-2 py-0.5 font-figtree text-[14px] leading-[20px] font-medium whitespace-nowrap text-black"
+                  className={`flex items-center rounded-full border ${theme.pillBorder} bg-white px-2 py-0.5 font-figtree text-[14px] leading-[20px] font-medium whitespace-nowrap text-black`}
                 >
                   {locality}
                 </span>
