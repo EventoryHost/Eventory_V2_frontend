@@ -1,0 +1,8 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="58" height="34" viewBox="0 0 58 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Typing">
+<path d="M0 16C0 7.16344 7.16344 0 16 0H42C50.8366 0 58 7.16344 58 16V18C58 26.8366 50.8366 34 42 34H16C7.16345 34 0 26.8366 0 18V16Z" fill="#F4F4F5"/>
+<circle id="Dot" cx="19" cy="17" r="3" fill="#9F9FA9"/>
+<circle id="Dot_2" cx="29" cy="17" r="3" fill="#9F9FA9"/>
+<circle id="Dot_3" cx="39" cy="17" r="3" fill="#9F9FA9"/>
+</g>
+</svg>

@@ -418,6 +418,7 @@ export const mockPackageDetail: PackageDetail = {
     ],
     footnote: "Held safely by Eventory until setup is complete.",
   },
+  paymentMilestones: [{ title: "Final Payment", percentage: 100, dueLabel: "7 days before the event" }],
   policies: [
     {
       id: "policy-cancellation",

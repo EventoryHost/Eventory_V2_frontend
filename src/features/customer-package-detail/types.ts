@@ -255,6 +255,13 @@ export interface PackagePricing {
   overtimeBillingUnit?: string;
 }
 
+export interface PaymentMilestone {
+  title: string;
+  percentage: number;
+  /** Human timing, e.g. "2 days before the event", "on the event day". */
+  dueLabel: string;
+}
+
 export interface PackageDetail {
   id: string;
   categoryLabel: string;
@@ -304,6 +311,8 @@ export interface PackageDetail {
   addons: AddonItem[];
   paymentProtection: { points: string[]; footnote: string };
   policies: PolicyItem[];
+  /** Balance schedule after the token — empty when the vendor set none. */
+  paymentMilestones: PaymentMilestone[];
   vendor: VendorInfo;
   reviews: ReviewsSummary;
   pricing: PackagePricing;

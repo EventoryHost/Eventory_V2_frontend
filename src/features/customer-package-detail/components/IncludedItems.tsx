@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { OPEN_CUSTOMISE_EVENT } from "@/features/customer-help/helpContext";
 import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -23,6 +24,18 @@ export default function IncludedItems({
 }) {
   const [activeSetupId, setActiveSetupId] = useState<string | null>(null);
   const activeSetup = items.find((setup) => setup.id === activeSetupId) ?? null;
+
+  // Help panel's "Open customise editor" (Figma 5.3) — opens the first
+  // setup's editor, the same one its own Customise button opens.
+  useEffect(() => {
+    const open = () => {
+      if (!items[0]) return;
+      document.getElementById("included")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveSetupId(items[0].id);
+    };
+    window.addEventListener(OPEN_CUSTOMISE_EVENT, open);
+    return () => window.removeEventListener(OPEN_CUSTOMISE_EVENT, open);
+  }, [items]);
   const [isExclusionsOpen, setIsExclusionsOpen] = useState(false);
   const [expandedImageSetupId, setExpandedImageSetupId] = useState<string | null>(null);
   const expandedImageSetup = items.find((setup) => setup.id === expandedImageSetupId) ?? null;
