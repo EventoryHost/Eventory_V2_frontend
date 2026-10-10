@@ -1,6 +1,10 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
+import ContactUsModal from "./ContactUsModal";
+import ContactSuccessModal from "./ContactSuccessModal";
 
 // Static placeholder — no vendor-count endpoint exists yet. Replace with a
 // real fetched total once one does; explicitly not treated as live data
@@ -9,6 +13,9 @@ import { buildWhatsAppLink } from "@/lib/whatsapp";
 const TOTAL_VENDORS = "4503";
 
 export default function HeroSection() {
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [successName, setSuccessName] = useState<string | null>(null);
+
   return (
     // No bottom padding — the next section (Why Choose Eventory) starts
     // flush against wherever the hero image ends, with zero gap. Top
@@ -49,14 +56,13 @@ export default function HeroSection() {
           >
             Register Now
           </Link>
-          <a
-            href={buildWhatsAppLink("Hi, I'm interested in becoming a vendor on Eventory.")}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => setIsContactOpen(true)}
             className="flex h-11 w-[123px] items-center justify-center rounded-[52px] bg-[#FDEEF0] font-figtree text-[15px] font-semibold text-[#F0596F] transition hover:bg-[#FBE0E5]"
           >
             Contact Us
-          </a>
+          </button>
         </div>
       </div>
 
@@ -78,6 +84,20 @@ export default function HeroSection() {
           priority
         />
       </div>
+
+      <ContactUsModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        onSubmitted={(name) => {
+          setIsContactOpen(false);
+          setSuccessName(name);
+        }}
+      />
+      <ContactSuccessModal
+        isOpen={successName !== null}
+        onClose={() => setSuccessName(null)}
+        name={successName ?? ""}
+      />
     </section>
   );
 }
