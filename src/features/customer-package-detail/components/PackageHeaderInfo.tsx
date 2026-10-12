@@ -164,50 +164,51 @@ export default function PackageHeaderInfo({
         )}
       </p>
 
-      {/* Own full-width row — fills whatever horizontal space the header
-          column actually has, rather than competing inline with the
-          rating/share/save row for leftover width (Figma node 2404:22954:
-          "fit as many chips as the row allows, then +N more"). */}
-      <div className="mb-3">
-        <LocationChipRow locations={data.locationList} />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 font-figtree text-[13px]">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Figma node 2404:22945 — review + service-area chips stacked on the
+          left as one column, Share/Save buttons on the right, the whole
+          block sitting on its own bottom border (replacing the separate
+          <hr> this used to end on). */}
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#E4E4E7] pt-1 pb-3 font-figtree text-[13px]">
+        <div className="flex min-w-0 flex-1 flex-col gap-4">
           {data.reviewCount > 0 && (
-            <div className="flex items-center gap-1 font-semibold text-brand-950">
-              <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
-              {data.rating}
-              <span className="font-normal text-neutral-tertiary underline">
-                &nbsp;(from {data.reviewCount} reviews)
+            <div className="flex items-center gap-1.5">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EA1D3B]">
+                <Star className="h-2.5 w-2.5 fill-white text-white" />
+              </span>
+              <span className="font-figtree text-[16px] font-semibold text-[#030303]">{data.rating}</span>
+              <span className="font-figtree text-[16px] text-neutral-secondary underline">
+                (from {data.reviewCount} reviews)
               </span>
             </div>
           )}
+
+          {/* Figma node 2404:22954: "fit as many chips as the row allows,
+              then +N more" — ONLY the vendor's serviceAreas field, nothing
+              else composed in alongside it (PM instruction, 2026-10-12). */}
+          <LocationChipRow locations={data.locationList} />
         </div>
 
-        <div className="flex items-center gap-4 font-medium text-neutral-secondary">
+        <div className="flex shrink-0 items-start gap-2">
           <button
             type="button"
             onClick={() => setIsShareOpen(true)}
-            className="flex items-center gap-1.5 hover:text-brand-950"
+            className="flex items-center gap-2 rounded-xl px-3 py-1.5 font-figtree text-[14px] font-medium text-[#030303] transition hover:bg-black/5"
           >
-            <Share2 className="h-4 w-4" /> Share
+            <Share2 className="h-3.5 w-3.5" /> Share
           </button>
           <button
             type="button"
             onClick={handleSaveClick}
             disabled={isSaving}
-            className={`flex items-center gap-1.5 hover:text-brand-950 disabled:cursor-not-allowed disabled:opacity-60 ${
-              isSaved ? "text-brand-950" : ""
+            className={`flex items-center gap-2 rounded-xl px-3 py-1.5 font-figtree text-[14px] font-medium transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 ${
+              isSaved ? "text-brand-950" : "text-[#030303]"
             }`}
           >
-            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-brand-950" : ""}`} />
+            <Bookmark className={`h-3.5 w-3.5 ${isSaved ? "fill-brand-950" : ""}`} />
             {isSaved ? "Saved" : "Save"}
           </button>
         </div>
       </div>
-
-      <hr className="mt-6 border-black/5" />
 
       <AuthModal
         isOpen={isAuthOpen}

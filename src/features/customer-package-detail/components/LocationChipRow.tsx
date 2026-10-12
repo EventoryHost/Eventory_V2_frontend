@@ -1,7 +1,6 @@
 "use client";
 
 import { useLayoutEffect, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
 
 const GAP_PX = 8; // matches the row's gap-2
 
@@ -69,10 +68,10 @@ export default function LocationChipRow({ locations }: { locations: string[] }) 
   const hasMore = remainingCount > 0;
   const visibleLocations = isExpanded ? locations : locations.slice(0, visibleCount);
 
-  return (
-    <div className="flex min-w-0 flex-1 items-center gap-1.5">
-      <MapPin className="h-4 w-4 shrink-0" style={{ color: "#EA1D3B" }} />
+  if (locations.length === 0) return null;
 
+  return (
+    <div className="flex min-w-0 flex-1 items-center">
       {/* Visible row — width-constrained, this is what the customer sees. */}
       <div ref={rowRef} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
         {visibleLocations.map((area) => (

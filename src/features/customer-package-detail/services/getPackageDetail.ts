@@ -29,7 +29,7 @@ import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { formatHoursLabel, packageDurationsInHours } from "@/lib/formatHours";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
-import { sanitizeCityName } from "@/lib/vendorLocation";
+import { sanitizeCityName, getServiceAreaNames } from "@/lib/vendorLocation";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
@@ -846,11 +846,15 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     // location" expands to (city + every service area, not just the first 2).
     fullLocationSummary:
       [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
-    // Same composition again, as an array — what the header's pill-chip row
-    // (Figma node 2404:22954) maps over, rather than the joined text above.
-    locationList: [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(
-      (area): area is string => Boolean(area)
-    ),
+    // What the header's pill-chip row (Figma node 2404:22954) maps over —
+    // deliberately ONLY the vendor's own serviceAreas field, no city mixed
+    // in (PM's explicit instruction, 2026-10-12). Not the same composition
+    // as locationSummary/fullLocationSummary above. getServiceAreaNames
+    // also handles serviceAreas' real `[{ area, sublocalities }]` shape
+    // (declared as string[] in the raw API type, but not actually that at
+    // runtime for any vendor who's re-saved since 2026-10-07) — a plain
+    // spread here would render "[object Object]" chips for those vendors.
+    locationList: getServiceAreaNames(vendor?.serviceAreas),
     gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,
