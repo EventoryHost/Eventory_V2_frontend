@@ -1,7 +1,11 @@
 // src/app/(customer)/layout.tsx
+"use client";
+
+import { usePathname } from "next/navigation";
 import { Lora } from "next/font/google";
 import Navbar from "@/features/customer-landing/components/Navbar";
 import Footer from "@/features/customer-landing/components/Footer";
+import BecomeVendorFooter from "@/features/customer-become-vendor/components/BecomeVendorFooter";
 import HelpWidget from "@/features/customer-help/components/HelpWidget";
 import "./customer-theme.css";
 
@@ -17,6 +21,12 @@ export default function CustomerLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // Become a Vendor got its own footer redesign (Figma node 2438:22038)
+  // that's explicitly scoped to that one page — every other page under this
+  // shared layout keeps the original Footer.
+  const pathname = usePathname();
+  const isBecomeVendorPage = pathname === "/become-a-vendor";
+
   return (
     <div
       // overflow-x-hidden (without overflow-y set) gets promoted by the CSS
@@ -31,7 +41,7 @@ export default function CustomerLayout({
     >
       <Navbar />
       <main className="flex-1">{children}</main>
-      <Footer />
+      {isBecomeVendorPage ? <BecomeVendorFooter /> : <Footer />}
       <HelpWidget />
     </div>
   );
