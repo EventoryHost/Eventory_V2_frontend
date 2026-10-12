@@ -43,6 +43,8 @@ export interface BookingOrderGroup {
   /** True when every package in the group is confirmed — the design collapses
       that to a single "All packages confirmed" row instead of a count. */
   allConfirmed: boolean;
+  /** Bookings whose vendor has answered every request and awaits the customer's review — "Response for proposal". */
+  proposalReferences: string[];
   /** Underlying rows, newest first — "View Booking" links to the first. */
   bookings: RawBookingListItem[];
 }

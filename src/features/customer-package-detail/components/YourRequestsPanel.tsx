@@ -8,14 +8,14 @@ const TYPE_LABEL: Record<CustomizeRequest["requestType"], string> = {
   remove: "Removing",
 };
 
-interface FieldRow {
+export interface FieldRow {
   label: string;
   from?: string;
   to: string;
 }
 
 // "Change" rows — diffs current vs. original attribute values.
-function changedFields(item: CustomizeRequest["item"]): FieldRow[] {
+export function changedFields(item: CustomizeRequest["item"]): FieldRow[] {
   const fields: FieldRow[] = [];
   if (item.type !== undefined && item.type !== item.originalType) {
     fields.push({ label: item.typeLabel ?? "Type", from: item.originalType ?? "—", to: item.type });
@@ -44,7 +44,7 @@ function changedFields(item: CustomizeRequest["item"]): FieldRow[] {
 }
 
 // "Add" rows — the new item's own attribute values, no "from" to diff against.
-function newItemFields(item: CustomizeRequest["item"]): FieldRow[] {
+export function newItemFields(item: CustomizeRequest["item"]): FieldRow[] {
   const fields: FieldRow[] = [];
   if (item.type !== undefined) fields.push({ label: item.typeLabel ?? "Type", to: item.type });
   if (item.volume !== undefined) fields.push({ label: "Volume", to: item.volume });

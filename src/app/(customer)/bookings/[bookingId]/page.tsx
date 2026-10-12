@@ -12,9 +12,14 @@ export const metadata: Metadata = {
 // loads client-side.
 export default async function BookingDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ bookingId: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const { bookingId } = await params;
-  return <BookingDetailContent bookingId={bookingId} />;
+  // ?proposal=1 — opened from a "Review Proposal" link elsewhere (My Bookings,
+  // a sibling vendor's journey row), straight into that panel.
+  const { proposal } = await searchParams;
+  return <BookingDetailContent bookingId={bookingId} openProposal={proposal === "1"} />;
 }

@@ -29,6 +29,9 @@ export type HelpPageContext = {
 /** Fired by the help panel's "Open customise editor"; IncludedItems opens its first setup. */
 export const OPEN_CUSTOMISE_EVENT = "eventory:help-open-customise";
 
+/** Fired by pages with their own "Help & Support" button (e.g. Review Proposal); HelpWidget opens on it. */
+export const OPEN_HELP_EVENT = "eventory:help-open";
+
 let current: HelpPageContext | null = null;
 const listeners = new Set<() => void>();
 

@@ -38,6 +38,15 @@ function journeyProgress(view: PackagePanelView): { step: number; callout?: { ti
   const { total, pending } = view.requestCounts;
   const decided = total - pending;
 
+  if (view.proposal.awaitingReview) {
+    return {
+      step: 2,
+      callout: {
+        title: "Proposal ready for review",
+        description: `The vendor has responded to all ${plural(total, "request")}. Review and accept it, or ask for more changes.`,
+      },
+    };
+  }
   if (pending === 0) {
     return {
       step: JOURNEY.length - 1,
