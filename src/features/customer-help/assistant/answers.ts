@@ -87,7 +87,7 @@ const RULES: Rule[] = [
   {
     re: /serve my area|which (areas|cities)|do you (serve|cover)|available in my (city|area)/,
     answer: () => ({
-      text: "We serve Delhi NCR: Delhi, Gurugram, Noida, Ghaziabad and Faridabad. Tell me your area and I’ll show packages whose vendors cover it.",
+      text: "We serve selected areas of Delhi NCR: Delhi, Gurugram, Noida, Greater Noida, Ghaziabad and Faridabad. Tell me your area or pincode and I’ll check.",
     }),
   },
   {

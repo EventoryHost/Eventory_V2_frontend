@@ -12,6 +12,7 @@ import type {
   BookingJourneyVendor,
   BookingPackageRow,
 } from "../types";
+import { isProposalAwaitingReview } from "../utils/proposal";
 
 /** Statuses the vendor hasn't acted on yet — the backend's PRE_ACCEPTANCE set. */
 const AWAITING_STATUSES: RawBookingListItem["status"][] = ["NewBooking", "Viewed", "InDiscussion"];
@@ -72,16 +73,18 @@ function vendorAcceptedEverything(row: RawBookingListItem): boolean {
   const confirmed = row.status === "Confirmed" || row.status === "Completed";
   if (!confirmed) return false;
 
-  return ![...(row.changeRequests ?? []), ...(row.customizeRequests ?? [])].some(
+  const pending = [...(row.changeRequests ?? []), ...(row.customizeRequests ?? [])].some(
     (request) => request.status === "Pending"
   );
+  // The vendor's decisions are a proposal the customer still has to accept.
+  return !pending && !isProposalAwaitingReview(row);
 }
 
 /** The per-vendor rows nested under the confirmation step. */
 function journeyVendors(group: RawBookingListItem[]): BookingJourneyVendor[] {
   return group.map((row) => {
     const settled = vendorAcceptedEverything(row);
-    const awaitingRequests = (row.status === "Confirmed" || row.status === "Completed") && !settled;
+    const awaitingCustomer = isProposalAwaitingReview(row);
     const declined = row.status === "Declined" || row.status === "Cancelled";
 
     return {
@@ -90,16 +93,16 @@ function journeyVendors(group: RawBookingListItem[]): BookingJourneyVendor[] {
       packageName: row.packageSnapshot?.name ?? "Package",
       variantLabel: row.packageSnapshot?.variantType ?? undefined,
       image: row.packageSnapshot?.image ?? undefined,
-      // A vendor who confirmed but left requests undecided gets the call to
-      // action rather than a "confirmed" pill — that is the one case the
-      // customer can actually act on.
+      // A vendor who has answered every request gets the call to action
+      // rather than a pill — reviewing that proposal is the one thing the
+      // customer can act on here.
       badge: settled
         ? { label: "CONFIRMED", tone: "confirmed" as const }
         : declined
           ? { label: row.status.toUpperCase(), tone: "declined" as const }
           : { label: "PENDING", tone: "pending" as const },
-      action: awaitingRequests
-        ? { label: "Review Proposal", href: `/bookings/${row.bookingId}` }
+      action: awaitingCustomer
+        ? { label: "Review Proposal", href: `/bookings/${row.bookingId}?proposal=1`, proposalFor: row.bookingId }
         : undefined,
     };
   });
@@ -274,6 +277,7 @@ export async function getBookingDetailView(bookingId: string): Promise<BookingDe
 
     packages,
     respondedCount: group.filter((row) => !AWAITING_STATUSES.includes(row.status)).length,
+    proposalsAwaitingReview: group.filter(isProposalAwaitingReview).map((row) => row.bookingId),
     journey: buildJourney(booking.bookingId, group, bookedOn, booking.eventDate, booking.confirmedAt),
     paymentTimeline: detail.paymentTimeline,
     cancellationPolicy: {

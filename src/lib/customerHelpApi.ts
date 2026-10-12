@@ -21,6 +21,8 @@ export interface HelpRequestPayload {
   phone?: string;
   pageUrl?: string;
   transcript?: string[];
+  /** The chat it's raised in: the ticket stays in it, one per chat. */
+  conversationId?: string;
 }
 
 /** The help thread after the brief: GET /customer/chat/help-request/:id. */
@@ -64,18 +66,21 @@ function readAnonId() {
   }
 }
 
+function rememberAnonId(anonId: string | null) {
+  if (!anonId) return;
+  try {
+    localStorage.setItem(ANON_KEY, anonId);
+  } catch {
+    // Storage blocked — the next request just gets a fresh anon id.
+  }
+}
+
 export async function createHelpRequest(payload: HelpRequestPayload) {
   const res = await apiFetch<HelpRequestResponse>("/customer/chat/help-request", {
     method: "POST",
     body: { ...payload, anon_id: readAnonId() },
   });
-  if (res.anonId) {
-    try {
-      localStorage.setItem(ANON_KEY, res.anonId);
-    } catch {
-      // Storage blocked — the next request just gets a fresh anon id.
-    }
-  }
+  rememberAnonId(res.anonId);
   return res;
 }
 
@@ -91,10 +96,11 @@ export async function getHelpRequest(enquiryId: string) {
   return res.request;
 }
 
-export async function sendHelpMessage(enquiryId: string, text: string) {
+/** `clientId` is the thread item's id, so the message is stored once. */
+export async function sendHelpMessage(enquiryId: string, text: string, clientId?: string) {
   const res = await apiFetch<{ success: true; message: HelpThreadMessage }>(
     `/customer/chat/help-request/${encodeURIComponent(enquiryId)}/messages`,
-    { method: "POST", body: { text, anon_id: readAnonId() } },
+    { method: "POST", body: { text, clientId, anon_id: readAnonId() } },
   );
   return res.message;
 }
@@ -132,7 +138,7 @@ export async function checkHelpArea(area: string) {
 
 export interface AreaWaitlistPayload {
   area: string;
-  areaSource: "typed" | "location_tag";
+  areaSource: "typed" | "location_tag" | "current_location";
   phone: string;
   consent: true;
   occasion?: string;
@@ -148,11 +154,48 @@ export async function joinAreaWaitlist(payload: AreaWaitlistPayload) {
     method: "POST",
     body: { ...payload, anon_id: readAnonId() },
   });
-  if (res.anonId) {
-    try {
-      localStorage.setItem(ANON_KEY, res.anonId);
-    } catch {
-      // Storage blocked — nothing to remember.
-    }
-  }
+  rememberAnonId(res.anonId);
+}
+
+// Saved help panel chats ("Your chats"): /customer/chat/help-conversations.
+// The thread is stored as the panel's own items and replayed as-is.
+
+export interface HelpConversationSummary {
+  conversationId: string;
+  title: string | null;
+  preview: string | null;
+  ticket: string | null;
+  enquiryId: string | null;
+  lastMessageAt: string;
+}
+
+export interface HelpConversation<Item = Record<string, unknown>, State = Record<string, unknown>>
+  extends HelpConversationSummary {
+  items: Item[];
+  state: State | null;
+}
+
+export async function listHelpConversations() {
+  const res = await apiFetch<{ success: true; conversations: HelpConversationSummary[] }>(
+    `/customer/chat/help-conversations${anonQuery()}`,
+  );
+  return res.conversations;
+}
+
+export async function getHelpConversation<Item, State>(conversationId: string) {
+  const res = await apiFetch<{ success: true; conversation: HelpConversation<Item, State> }>(
+    `/customer/chat/help-conversations/${encodeURIComponent(conversationId)}${anonQuery()}`,
+  );
+  return res.conversation;
+}
+
+export async function saveHelpConversation(
+  conversationId: string,
+  body: { items: unknown[]; state: unknown; enquiryId?: string; ticket?: string },
+) {
+  const res = await apiFetch<{ success: true; anonId: string | null }>(
+    `/customer/chat/help-conversations/${encodeURIComponent(conversationId)}`,
+    { method: "PUT", body: { ...body, anon_id: readAnonId() } },
+  );
+  rememberAnonId(res.anonId);
 }

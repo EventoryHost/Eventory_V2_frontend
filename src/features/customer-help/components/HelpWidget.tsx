@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { useSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
+import { listHelpConversations, type HelpConversationSummary } from "@/lib/customerHelpApi";
 import { useHelpConversation, type BriefDefaults } from "../assistant/useHelpConversation";
-import { OPEN_CUSTOMISE_EVENT, useHelpPageContext } from "../helpContext";
+import { OPEN_CUSTOMISE_EVENT, OPEN_HELP_EVENT, useHelpPageContext } from "../helpContext";
 import { useIsAfterHours } from "../hooks/useIsAfterHours";
 import HelpBriefCard, { type HelpBrief } from "./HelpBriefCard";
 import HelpCallBackForm from "./HelpCallBackForm";
@@ -104,6 +105,41 @@ export default function HelpWidget() {
 
   const close = useCallback(() => setOpen(false), []);
 
+  useEffect(() => {
+    const openPanel = () => setOpen(true);
+    window.addEventListener(OPEN_HELP_EVENT, openPanel);
+    return () => window.removeEventListener(OPEN_HELP_EVENT, openPanel);
+  }, []);
+
+  // "Your chats": loaded each time the tab is shown, so it's current.
+  const showingChats = open && view === "home" && tab === "chats";
+  const [chats, setChats] = useState<HelpConversationSummary[] | null>(null);
+  useEffect(() => {
+    if (!showingChats) return;
+    let stale = false;
+    listHelpConversations().then(
+      (rows) => !stale && setChats(rows),
+      () => !stale && setChats([]),
+    );
+    return () => {
+      stale = true;
+    };
+  }, [showingChats]);
+  const openChat = async (id: string) => {
+    if (id !== convo.conversationId) {
+      try {
+        await convo.openConversation(id);
+      } catch {
+        return;
+      }
+    }
+    setView("thread");
+  };
+  const newChat = () => {
+    convo.startNewConversation();
+    setTab("home");
+  };
+
   // Figma 11.1: WhatsApp opens a card first (number, the message we'll
   // start, what happens next); Back returns to where they were.
   const [whatsAppFrom, setWhatsAppFrom] = useState<Exclude<View, "whatsapp">>("home");
@@ -194,7 +230,14 @@ export default function HelpWidget() {
             onWhatsApp={openWhatsApp}
           />
         )}
-        {view === "home" && tab === "chats" && <HelpChats onAskQuestion={() => setTab("home")} />}
+        {view === "home" && tab === "chats" && (
+          <HelpChats
+            conversations={chats}
+            currentId={convo.conversationId}
+            onOpen={(id) => void openChat(id)}
+            onNewChat={newChat}
+          />
+        )}
         {view === "thread" && (
           <HelpThread
             items={convo.items}

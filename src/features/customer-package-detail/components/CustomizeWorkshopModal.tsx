@@ -22,14 +22,21 @@ export default function CustomizeWorkshopModal({
   workshop,
   initialItemId,
   onClose,
+  onBack,
 }: {
   setup: IncludedItemEntry;
   items: IncludedItemLine[];
   workshop: UseCustomizeWorkshopResult;
   initialItemId?: string;
   onClose: () => void;
+  /**
+   * Opens straight into "Customize items" and leaves through this instead of
+   * the setup detail view — Review Proposal's "Which Setup is this about?"
+   * picker is the step before, and edits stay live in its workshop.
+   */
+  onBack?: () => void;
 }) {
-  const [view, setView] = useState<ModalView>(initialItemId ? "customize" : "detail");
+  const [view, setView] = useState<ModalView>(initialItemId || onBack ? "customize" : "detail");
   const [selectedItemId, setSelectedItemId] = useState(initialItemId ?? items[0]?.id ?? NEW_ITEM_SLOT);
   const [phase, setPhase] = useState<FooterPhase>("idle");
   const [isLeaveGuardOpen, setIsLeaveGuardOpen] = useState(false);
@@ -191,7 +198,7 @@ export default function CustomizeWorkshopModal({
             <div className="flex items-center gap-3 border-b border-black/10 px-4 py-3 sm:px-6 sm:py-4">
               <button
                 type="button"
-                onClick={() => setView("detail")}
+                onClick={() => (onBack ? onBack() : setView("detail"))}
                 aria-label="Back to setup"
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-neutral-secondary transition hover:bg-black/5"
               >
@@ -323,7 +330,8 @@ export default function CustomizeWorkshopModal({
                     setShowTypeError(true);
                     return;
                   }
-                  setView("detail");
+                  if (onBack) onBack();
+                  else setView("detail");
                 }}
                 className="rounded-full border border-[#030303] bg-transparent px-5 py-2 font-figtree text-[14px] font-medium text-[#030303] transition hover:bg-black/5"
               >

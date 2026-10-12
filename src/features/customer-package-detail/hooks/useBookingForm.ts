@@ -8,7 +8,7 @@ import { getConvenienceFeePreview, getPackageServiceability, getPackageSlots, ty
 import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
-import { ALL_EXTENDED_COLOURS } from "../data/extendedColorPalette";
+import { toCustomizeRequestPayload } from "../utils/customizeRequestPayload";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { getCancellationTiers } from "../utils/cancellationPolicy";
 import { isSafeInternalPath } from "@/lib/isSafeInternalPath";
@@ -287,18 +287,7 @@ export function useBookingForm({
         color: addon.color,
         image: addon.image,
       })),
-      customizeRequests: customizeRequests.map((request) => ({
-        setupId: request.setupId,
-        itemId: request.itemId,
-        requestType: request.requestType,
-        label: request.item.label,
-        quantity: request.item.qty,
-        type: request.item.type,
-        colours: request.item.isNew
-          ? request.item.colours?.map((id) => request.item.colourOptions?.find((c) => c.id === id)?.label ?? id)
-          : request.item.customColours?.map((id) => ALL_EXTENDED_COLOURS.find((c) => c.id === id)?.label ?? id),
-        volume: request.item.volume,
-      })) satisfies RawCustomizeRequest[],
+      customizeRequests: customizeRequests.map(toCustomizeRequestPayload) satisfies RawCustomizeRequest[],
       colourPreferences: colourPreferences satisfies RawColourPreference[],
     };
   }
