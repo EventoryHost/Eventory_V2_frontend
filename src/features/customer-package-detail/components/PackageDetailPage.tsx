@@ -209,7 +209,11 @@ export default function PackageDetailPage({
   return (
     <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
-      <HeroGallery images={data.gallery} />
+      <HeroGallery
+        images={data.gallery}
+        categoryLabel={data.categoryLabel}
+        vendorUnitName={data.vendorUnitName}
+      />
       <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
 
       <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
