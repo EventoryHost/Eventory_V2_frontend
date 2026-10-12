@@ -129,13 +129,20 @@ export default function CustomizeWorkshopModal({
     flash();
   }
 
+  // A setup can't be emptied out entirely via requests — at least one of
+  // its ORIGINAL (vendor-set, non-isNew) items must stay. Items added here
+  // via "Add an item" don't count either way: cancelling one of those isn't
+  // a removal request at all, it just undoes the add.
+  const activeOriginalCount = items.filter((i) => !i.isNew && !i.removalRequested).length;
+  const canRemoveSelected = Boolean(selectedItem) && (selectedItem!.isNew || activeOriginalCount > 1);
+
   function handleRemoveClick() {
     if (!selectedItem) return;
     if (selectedItem.isNew) {
       const fallback = items.find((i) => i.id !== selectedItem.id)?.id ?? NEW_ITEM_SLOT;
       workshop.cancelAdd(setup.id, selectedItem.id);
       setSelectedItemId(fallback);
-    } else {
+    } else if (canRemoveSelected) {
       workshop.requestRemoval(setup.id, selectedItem.id);
       flash();
     }
@@ -269,6 +276,7 @@ export default function CustomizeWorkshopModal({
                       <AttributeEditor
                         item={selectedItem}
                         onRemove={handleRemoveClick}
+                        canRemove={canRemoveSelected}
                         onSetType={setType}
                         onToggleColour={toggleColour}
                         onToggleCustomColour={toggleCustomColour}
@@ -365,6 +373,7 @@ const SECTION_HEADING = "font-figtree text-[12px] leading-[18px] font-medium tra
 function AttributeEditor({
   item,
   onRemove,
+  canRemove,
   onSetType,
   onToggleColour,
   onToggleCustomColour,
@@ -375,6 +384,8 @@ function AttributeEditor({
 }: {
   item: IncludedItemLine;
   onRemove: () => void;
+  /** False when this is the setup's last remaining (non-isNew) item — a setup can't be emptied out entirely via requests. */
+  canRemove: boolean;
   onSetType: (type: string) => void;
   onToggleColour: (colourId: string) => void;
   onToggleCustomColour: (colourId: string) => void;
@@ -571,11 +582,19 @@ function AttributeEditor({
         <button
           type="button"
           onClick={onRemove}
-          className="flex shrink-0 items-center gap-1 rounded-lg border border-black/10 px-3 py-1.5 font-figtree text-[12px] font-medium text-neutral-secondary transition hover:border-red-200 hover:text-red-600"
+          disabled={!canRemove}
+          title={canRemove ? undefined : "At least one item must stay in this setup"}
+          className="flex shrink-0 items-center gap-1 rounded-lg border border-black/10 px-3 py-1.5 font-figtree text-[12px] font-medium text-neutral-secondary transition hover:border-red-200 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-black/10 disabled:hover:text-neutral-secondary"
         >
           <Trash2 className="h-3.5 w-3.5" /> Remove
         </button>
       </div>
+
+      {!canRemove && (
+        <p className="-mt-3 font-figtree text-[12px] text-neutral-tertiary">
+          At least one item must stay in this setup — you can&apos;t remove the last one.
+        </p>
+      )}
 
       {/* Read-only facts the vendor set (item type/category, its sub-type —
           e.g. "Metallic Balloons" — and length). Mobile-only (PM-requested

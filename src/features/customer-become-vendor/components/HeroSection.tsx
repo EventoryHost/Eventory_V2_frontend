@@ -50,7 +50,7 @@ export default function HeroSection() {
           </h1>
 
           <p className="font-figtree text-[16px] leading-[24px] font-medium text-[#71717B]">
-            Description about the hero line
+            Get verified leads, manage every inquiry in one place, and turn them into confirmed events.
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 lg:justify-start">

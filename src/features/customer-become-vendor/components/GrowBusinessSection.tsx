@@ -89,8 +89,8 @@ export default function GrowBusinessSection() {
         </h2>
 
         <p className="mt-6 max-w-[620px] font-figtree text-[16px] leading-[24px] font-medium text-[#3C060D]">
-          Corporate event planning made better with verified vendors&apos; coordination, a dedicated event manager,
-          and professional on-ground execution.
+          Register in minutes and open your online store on Eventory. Set up your profile, add your packages, and
+          connect with clients who are ready to book your services.
         </p>
 
         <Link

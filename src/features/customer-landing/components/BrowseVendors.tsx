@@ -54,7 +54,9 @@ export default function BrowseVendors() {
         packages together.
       </p>
 
-      <div className="mt-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      {/* Mobile: 2 rows of 3 small cards (grid-cols-3), shrunk to fit —
+          sm+ keeps the original 202x172 card size and 3/6-col layout. */}
+      <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-4 lg:grid-cols-6">
         {VENDOR_CATEGORIES.map((category) => (
           <Link
             key={category.label}
@@ -62,9 +64,9 @@ export default function BrowseVendors() {
             style={{
               background: `radial-gradient(circle at 100% 100%, ${category.color} 0%, #ffffff 65%)`,
             }}
-            className="relative mx-auto w-full max-w-[202px] h-[172px] overflow-hidden rounded-[20px] border border-black/5 text-left"
+            className="relative mx-auto h-[108px] w-full max-w-[202px] overflow-hidden rounded-[14px] border border-black/5 text-left sm:h-[172px] sm:rounded-[20px]"
           >
-            <span className="absolute top-6 left-5 right-5 z-10 font-figtree font-semibold text-brand-950 text-[16px] leading-[1.2]">
+            <span className="absolute top-2.5 left-2.5 right-2.5 z-10 font-figtree font-semibold text-brand-950 text-[11px] leading-[1.2] sm:top-6 sm:left-5 sm:right-5 sm:text-[16px]">
               {category.label}
             </span>
             <Image
@@ -72,7 +74,7 @@ export default function BrowseVendors() {
               alt={category.label}
               width={160}
               height={160}
-              className="absolute -bottom-2 -right-2 h-[55%] w-[55%] object-contain"
+              className="absolute -bottom-1 -right-1 h-[48%] w-[48%] object-contain sm:-bottom-2 sm:-right-2 sm:h-[55%] sm:w-[55%]"
             />
           </Link>
         ))}
