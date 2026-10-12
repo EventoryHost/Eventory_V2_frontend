@@ -827,6 +827,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     // location" expands to (city + every service area, not just the first 2).
     fullLocationSummary:
       [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
+    // Same composition again, as an array — what the header's pill-chip row
+    // (Figma node 2404:22954) maps over, rather than the joined text above.
+    locationList: [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(
+      (area): area is string => Boolean(area)
+    ),
     gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,

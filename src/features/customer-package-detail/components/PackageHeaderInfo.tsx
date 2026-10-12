@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { MapPin, Share2, Star, Bookmark, BadgeCheck } from "lucide-react";
+import { Share2, Star, Bookmark, BadgeCheck } from "lucide-react";
 import type { PackageDetail } from "../types";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import ShareModal from "./ShareModal";
+import LocationChipRow from "./LocationChipRow";
 
 // Vendors sometimes author a single event-category entry as one composite
 // string with " / " as their own separator (e.g. "Ganesh Chaturthi / Ganesh
@@ -41,6 +42,7 @@ export default function PackageHeaderInfo({
     | "reviewCount"
     | "locationSummary"
     | "fullLocationSummary"
+    | "locationList"
     | "vendor"
   >;
   onCreateQuotation: () => void;
@@ -48,9 +50,7 @@ export default function PackageHeaderInfo({
   const { isLoggedIn } = useCustomerSession();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isLocationExpanded, setIsLocationExpanded] = useState(false);
   const [isEventTagsExpanded, setIsEventTagsExpanded] = useState(false);
-  const hasMoreLocation = data.fullLocationSummary !== data.locationSummary;
   const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isSaved = isLoggedIn && savedItemId !== null;
@@ -164,33 +164,25 @@ export default function PackageHeaderInfo({
         )}
       </p>
 
+      {/* Own full-width row — fills whatever horizontal space the header
+          column actually has, rather than competing inline with the
+          rating/share/save row for leftover width (Figma node 2404:22954:
+          "fit as many chips as the row allows, then +N more"). */}
+      <div className="mb-3">
+        <LocationChipRow locations={data.locationList} />
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3 font-figtree text-[13px]">
         <div className="flex flex-wrap items-center gap-3">
           {data.reviewCount > 0 && (
-            <>
-              <div className="flex items-center gap-1 font-semibold text-brand-950">
-                <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
-                {data.rating}
-                <span className="font-normal text-neutral-tertiary underline">
-                  &nbsp;(from {data.reviewCount} reviews)
-                </span>
-              </div>
-              <span className="h-1 w-1 rounded-full bg-neutral-tertiary/40" />
-            </>
+            <div className="flex items-center gap-1 font-semibold text-brand-950">
+              <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
+              {data.rating}
+              <span className="font-normal text-neutral-tertiary underline">
+                &nbsp;(from {data.reviewCount} reviews)
+              </span>
+            </div>
           )}
-          <div className="flex items-center gap-1.5 text-neutral-secondary">
-            <MapPin className="h-4 w-4 shrink-0" style={{ color: "#EA1D3B" }} />
-            {isLocationExpanded ? data.fullLocationSummary : data.locationSummary}
-            {hasMoreLocation && (
-              <button
-                type="button"
-                onClick={() => setIsLocationExpanded((expanded) => !expanded)}
-                className="font-medium text-brand-950 underline"
-              >
-                {isLocationExpanded ? "Show less" : "...See the location"}
-              </button>
-            )}
-          </div>
         </div>
 
         <div className="flex items-center gap-4 font-medium text-neutral-secondary">
