@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
+import { setHelpPageContext } from "@/features/customer-help/helpContext";
 import type { PackageDetail, SelectedAddon } from "../types";
 import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
 import { formatPrice } from "../utils/formatPrice";
@@ -54,6 +55,26 @@ export default function PackageDetailPage({
   // IncludedItems, which meant the customize-items requests never reached
   // the add-to-cart call at all.
   const workshop = useCustomizeWorkshop(data.includedItems);
+
+  // Tells the Help panel which package the customer is looking at (context
+  // chip + "How does the ₹X token work?" suggestion).
+  useEffect(() => {
+    const variant = data.variants.find((v) => v.id === selectedVariantId);
+    setHelpPageContext({
+      kind: "package",
+      packageId: data.id,
+      packageName: data.title,
+      vendorName: data.vendor.name,
+      tokenAmount: data.pricing.tokenType ? data.pricing.tokenAmount : 0,
+      cancellationPolicy: data.policies.find((p) => p.id === "policy-cancellation")?.description,
+      included: data.includedItems.map((item) => item.title),
+      variant: variant && { label: variant.label, setupsCount: variant.setupsCount, itemsCount: variant.itemsCount },
+      milestones: data.paymentMilestones.filter((m) => m.dueLabel),
+      vendorType: data.categoryLabel,
+      eventCategories: data.eventCategories,
+    });
+    return () => setHelpPageContext(null);
+  }, [data, selectedVariantId]);
 
   // One-time prefill fetch — the variant itself doesn't need this (defaultVariantId
   // above already matches the exact package/variant this URL points to, which is
