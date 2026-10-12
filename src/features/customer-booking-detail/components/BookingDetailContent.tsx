@@ -12,6 +12,7 @@ import { buildBookingBanner } from "../utils/bookingBanner";
 import type { BookingDetailView } from "../types";
 import BookingJourney from "./BookingJourney";
 import BookingPackagePanel from "./BookingPackagePanel";
+import ReviewProposalPanel from "./ReviewProposalPanel";
 import BookingPackagesList from "./BookingPackagesList";
 import BookingSidebar from "./BookingSidebar";
 import BookingStatusBanner from "./BookingStatusBanner";
@@ -29,7 +30,14 @@ const BREADCRUMBS = [
  * the page is about the whole event: the header, totals and timeline span
  * every package booked for it — see getBookingDetailView.
  */
-export default function BookingDetailContent({ bookingId }: { bookingId: string }) {
+export default function BookingDetailContent({
+  bookingId,
+  openProposal = false,
+}: {
+  bookingId: string;
+  /** Open this booking's Review Proposal panel on load (?proposal=1). */
+  openProposal?: boolean;
+}) {
   const { isLoggedIn, isHydrated } = useCustomerSession();
   const router = useRouter();
 
@@ -39,6 +47,10 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
   const [tab, setTab] = useState<DetailTab>("timeline");
   /** Booking reference of the package whose panel is open (node 1629:9256). */
   const [openPackage, setOpenPackage] = useState<string | null>(null);
+  /** Booking reference whose Review Proposal panel is open (node 2276:15962). */
+  const [reviewingProposal, setReviewingProposal] = useState<string | null>(openProposal ? bookingId : null);
+  /** Bumped after the customer answers a proposal, to reload the page's booking. */
+  const [reloadKey, setReloadKey] = useState(0);
   const [bannerBusy, setBannerBusy] = useState(false);
   const [bannerError, setBannerError] = useState<string | null>(null);
 
@@ -67,7 +79,7 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
     return () => {
       cancelled = true;
     };
-  }, [bookingId, isHydrated, isLoggedIn, router]);
+  }, [bookingId, isHydrated, isLoggedIn, router, reloadKey]);
 
   const banner = view ? buildBookingBanner(view) : null;
 
@@ -78,6 +90,11 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
    */
   async function handleBannerAction() {
     if (!banner || !view) return;
+
+    if (banner.variant === "proposal" && banner.action.bookingReference) {
+      setReviewingProposal(banner.action.bookingReference);
+      return;
+    }
 
     if (banner.variant !== "advance-due" || !banner.action.milestoneId) {
       setTab("packages");
@@ -170,7 +187,7 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
               </div>
 
               {tab === "timeline" ? (
-                <BookingJourney steps={view.journey} />
+                <BookingJourney steps={view.journey} onReviewProposal={setReviewingProposal} />
               ) : (
                 <BookingPackagesList packages={view.packages} onOpen={setOpenPackage} />
               )}
@@ -181,6 +198,17 @@ export default function BookingDetailContent({ bookingId }: { bookingId: string 
 
           {openPackage && (
             <BookingPackagePanel bookingReference={openPackage} onClose={() => setOpenPackage(null)} />
+          )}
+
+          {reviewingProposal && (
+            <ReviewProposalPanel
+              bookingReference={reviewingProposal}
+              onClose={() => setReviewingProposal(null)}
+              onResolved={() => {
+                setReviewingProposal(null);
+                setReloadKey((key) => key + 1);
+              }}
+            />
           )}
         </>
       )}

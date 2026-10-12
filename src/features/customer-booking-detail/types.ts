@@ -10,7 +10,8 @@ export interface BookingJourneyVendor {
   timeLabel?: string;
   /** Right-hand slot: a status pill, or a call to action. */
   badge?: { label: string; tone: "pending" | "confirmed" | "declined" };
-  action?: { label: string; href: string };
+  /** proposalFor: the booking whose Review Proposal panel this opens, when the page can open it in place. */
+  action?: { label: string; href: string; proposalFor?: string };
 }
 
 /** One step of the event journey down the left of the page (node 1629:6665). */
@@ -67,6 +68,8 @@ export interface BookingDetailView {
   packages: BookingPackageRow[];
   /** Vendors that have accepted or declined, out of the whole group. */
   respondedCount: number;
+  /** Booking references whose vendor has answered every request and is waiting on the customer (Review Proposal). */
+  proposalsAwaitingReview: string[];
   journey: BookingJourneyStep[];
   paymentTimeline: RawBookingMilestone[];
   cancellationPolicy: { title?: string; text?: string; fileUrl?: string; note: string };

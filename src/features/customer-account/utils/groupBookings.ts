@@ -1,5 +1,6 @@
 import type { RawBookingListItem } from "@/lib/customerBookingApi";
 import type { BookingOrderGroup } from "../types";
+import { isProposalAwaitingReview } from "@/features/customer-booking-detail/utils/proposal";
 
 /** Statuses the vendor hasn't acted on yet — the backend's PRE_ACCEPTANCE set. */
 const NEEDS_RESPONSE_STATUSES: RawBookingListItem["status"][] = ["NewBooking", "Viewed", "InDiscussion"];
@@ -79,6 +80,7 @@ export function groupBookingsByEvent(bookings: RawBookingListItem[]): BookingOrd
       ).length,
       allConfirmed:
         sorted.length > 0 && sorted.every((row) => row.status === "Confirmed"),
+      proposalReferences: sorted.filter(isProposalAwaitingReview).map((row) => row.bookingId),
       bookings: sorted,
     };
   });

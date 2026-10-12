@@ -54,7 +54,22 @@ function statusChips(order: BookingOrderGroup): StatusChip[] {
 
   const chips: StatusChip[] = [];
 
-  if (order.allConfirmed) {
+  // The designed "Response for proposal" state: a vendor answered every
+  // request and the customer's review is what's holding things up.
+  const proposals = order.proposalReferences.length;
+  if (proposals > 0) {
+    chips.push({
+      id: "proposal",
+      icon: "pending",
+      tone: "pending",
+      text:
+        proposals === 1
+          ? "Response for proposal"
+          : `${proposals} proposals need your response`,
+    });
+  }
+
+  if (order.allConfirmed && proposals === 0) {
     chips.push({
       id: "locked",
       icon: "locked",
@@ -252,12 +267,21 @@ export default function ActiveBookingCard({ order }: { order: BookingOrderGroup 
               </div>
             </div>
 
-            <Link
-              href={`/bookings/${order.reference}`}
-              className="shrink-0 self-start rounded-full border border-[#E4E4E7] px-3 py-1.5 text-[14px] font-medium leading-5 text-[#27272A] transition-colors hover:bg-[#FAFAFA] sm:self-auto"
-            >
-              View Booking
-            </Link>
+            {order.proposalReferences.length > 0 ? (
+              <Link
+                href={`/bookings/${order.proposalReferences[0]}?proposal=1`}
+                className="shrink-0 self-start rounded-full bg-brand-primary px-3 py-1.5 text-[14px] font-medium leading-5 text-white transition-colors hover:bg-[#E14E64] sm:self-auto"
+              >
+                Review Proposal
+              </Link>
+            ) : (
+              <Link
+                href={`/bookings/${order.reference}`}
+                className="shrink-0 self-start rounded-full border border-[#E4E4E7] px-3 py-1.5 text-[14px] font-medium leading-5 text-[#27272A] transition-colors hover:bg-[#FAFAFA] sm:self-auto"
+              >
+                View Booking
+              </Link>
+            )}
           </div>
         </div>
       </div>

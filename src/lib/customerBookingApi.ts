@@ -1,7 +1,7 @@
 import { apiFetch } from "./apiClient";
 import { apiUrl } from "./api";
 import { getAccessToken } from "./customerSession";
-import type { RawConvenienceFeeBreakdown } from "./customerCartApi";
+import type { RawConvenienceFeeBreakdown, RawCustomizeRequest as CartCustomizeRequest } from "./customerCartApi";
 
 // Raw shapes returned by /api/customer/bookings/:bookingId (Eventory_V2_backend
 // customerBookingController.js's getBookingDetail) — the "My Bookings" /
@@ -47,6 +47,8 @@ export interface RawBookingPackageSnapshot {
 export type RawRequestStatus = "Pending" | "Accepted" | "Rejected";
 
 export interface RawCustomizeRequest {
+  /** Stable since 2026-09-22 — absent on a request that hasn't been saved yet. */
+  _id?: string;
   setupId: string;
   itemId: string;
   requestType: "change" | "add" | "remove";
@@ -57,6 +59,20 @@ export interface RawCustomizeRequest {
   volume: string | null;
   /** The vendor's decision on this one item. Absent on bookings made before the field existed. */
   status?: RawRequestStatus;
+  /** When the vendor decided it. */
+  respondedAt?: string | null;
+  /** Set on follow-up requests sent from Review Proposal; null on ones carried from checkout. */
+  requestedAt?: string | null;
+}
+
+/**
+ * The customer's answer to the vendor's decisions (Booking.proposalResponse).
+ * A null status means the vendor's latest decisions haven't been answered —
+ * the backend clears it whenever the vendor decides a request.
+ */
+export interface RawProposalResponse {
+  status: "Accepted" | "ChangesRequested" | null;
+  respondedAt: string | null;
 }
 
 /**
@@ -121,6 +137,8 @@ export interface RawBooking {
   changeRequests?: RawChangeRequest[];
   /** Empty on vendor-created bookings, which never go through a cart. */
   selectedAddOns?: RawSelectedAddOn[];
+  /** Absent on bookings stored before the field existed — read as unanswered. */
+  proposalResponse?: RawProposalResponse | null;
   createdAt: string;
 }
 
@@ -152,6 +170,23 @@ export interface RawPriceCharge {
   type: "Base" | "Fee" | "Tax";
 }
 
+/** One keyed row of the vendor's pricing (utils/pricingBreakdown.js). Deductions carry negative amounts. */
+export interface RawPricingRow {
+  key: "itemsAdded" | "addonsAdded" | "itemsRemoved" | "addonsRemoved" | "discountAllowed";
+  label: string;
+  amount: number;
+}
+
+/** The structured breakdown behind priceBreakdown.charges — what Review Proposal labels row by row. */
+export interface RawPricingBreakdown {
+  originalPackagePrice: number;
+  additions: RawPricingRow[];
+  deductions: RawPricingRow[];
+  subtotal: number;
+  tax: { label: string; ratePct: number; amount: number };
+  finalAmount: number;
+}
+
 export interface RawBookingDetailResponse {
   status: "SUCCESS";
   booking: RawBooking;
@@ -169,6 +204,8 @@ export interface RawBookingDetailResponse {
     totalReceived: number;
     amountDue: number;
   };
+  /** Absent from a backend older than the Review Proposal endpoints. */
+  pricingBreakdown?: RawPricingBreakdown;
   paymentTimeline: RawBookingMilestone[];
   cancellationPolicy: RawBookingCancellationPolicy;
   /** Event-manager contact. `available` is false everywhere today — no EM
@@ -178,6 +215,25 @@ export interface RawBookingDetailResponse {
 
 export async function getBookingDetail(bookingId: string) {
   return apiFetch<RawBookingDetailResponse>(`/customer/bookings/${bookingId}`, { auth: true });
+}
+
+/** Review Proposal → "Accept Proposal". 409s while any request is still Pending. */
+export async function acceptProposal(bookingId: string) {
+  return apiFetch<{ status: "SUCCESS"; proposalResponse: RawProposalResponse }>(
+    `/customer/bookings/${bookingId}/proposal/accept`,
+    { method: "POST", auth: true }
+  );
+}
+
+/** A follow-up "Customize items" request — the same shape the cart sends (toCustomizeRequestPayload). */
+export type NewCustomizeRequest = CartCustomizeRequest;
+
+/** Review Proposal → "Still Needs Changes" → Continue. Appended as Pending for the vendor to decide. */
+export async function addCustomizeRequests(bookingId: string, requests: NewCustomizeRequest[]) {
+  return apiFetch<{ status: "SUCCESS"; customizeRequests: RawCustomizeRequest[]; proposalResponse: RawProposalResponse }>(
+    `/customer/bookings/${bookingId}/customize-requests`,
+    { method: "POST", auth: true, body: { requests } }
+  );
 }
 
 /**
@@ -225,6 +281,7 @@ export interface RawBookingListItem {
   /** Both request lists, so the timeline can require "vendor accepted everything". */
   changeRequests?: RawChangeRequest[];
   customizeRequests?: RawCustomizeRequest[];
+  proposalResponse?: RawProposalResponse | null;
 }
 
 export interface RawBookingsResponse {

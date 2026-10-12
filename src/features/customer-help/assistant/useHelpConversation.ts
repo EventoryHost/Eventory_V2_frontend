@@ -1,14 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ApiError } from "@/lib/apiClient";
+import { detectCurrentLocation } from "@/lib/geocoding";
 import {
   checkHelpArea,
   createHelpRequest,
+  getHelpConversation,
   getHelpRequest,
   joinAreaWaitlist,
+  saveHelpConversation,
   requestHelpCallBack,
   sendHelpMessage,
   type HelpAreaCheck,
+  type HelpConversation,
   type HelpRequestState,
 } from "@/lib/customerHelpApi";
 import type { HelpPageContext } from "../helpContext";
@@ -101,12 +106,38 @@ export type ThreadItem =
       kind: "out-of-area";
       id: string;
       area: string;
-      areaSource: "typed" | "location_tag";
+      areaSource: AreaSource;
       closest: { label: string; city: string }[];
       state: "open" | "saved" | "dismissed";
     }
   /** Guests asking for a call back type a number first. */
   | { kind: "call-back-form"; id: string; state: "open" | "sent" };
+
+/** Where an area came from: typed, the site's location tag, or a fresh fix. */
+type AreaSource = "typed" | "location_tag" | "current_location";
+
+/** "Do you serve my area?" — they mean where they are, not a place they named. */
+const MY_AREA =
+  /\b(my|our) (area|location|city|place|locality|address|pincode|pin code)\b|\bwhere i (live|am|stay)\b|\bnear me\b|\b(serve|cover|deliver)\w* (here|me)\b/i;
+const SERVE_QUESTION = /\b(serve|serving|cover|covering|available|deliver|service)/i;
+
+/** The customer's current location: a fresh browser fix, else the location tag. */
+async function currentPlace(
+  locationCity: string | null,
+): Promise<{ text: string; source: AreaSource } | null> {
+  let denied = false;
+  try {
+    const p = await navigator.permissions?.query({ name: "geolocation" });
+    denied = p?.state === "denied";
+  } catch {
+    // No Permissions API (older Safari): just ask for a fix.
+  }
+  if (!denied) {
+    const fix = await detectCurrentLocation();
+    if (fix.status === "success") return { text: fix.label, source: "current_location" };
+  }
+  return locationCity ? { text: locationCity, source: "location_tag" } : null;
+}
 
 export type BriefDefaults = {
   initial: Partial<
@@ -189,7 +220,7 @@ const joinList = (items: string[]) =>
     : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 
 const NCR_COVERAGE =
-  "Eventory is in Delhi NCR: most of Delhi, Gurugram, Noida, Greater Noida, Ghaziabad and Faridabad.";
+  "Eventory is in Delhi NCR: selected areas of Delhi, Gurugram, Noida, Greater Noida, Ghaziabad and Faridabad.";
 
 const uid = () => crypto.randomUUID();
 const timeOf = (d: Date | string) =>
@@ -203,6 +234,9 @@ const timeOf = (d: Date | string) =>
 const now = () => timeOf(new Date());
 
 const POLL_MS = 15000;
+// The open chat, so a reload (or another page) picks it up again.
+const CONVERSATION_KEY = "eventory_help_conversation";
+const SAVE_DELAY_MS = 800;
 const TALK_TO_PERSON =
   /\b(talk|speak|chat)\b.*\b(person|human|someone|somebody|event manager|agent|team)\b|\bcall me\b|\bcall back\b|\bcallback\b/i;
 
@@ -244,6 +278,32 @@ function statusOf(r: HelpRequestState): Extract<ThreadItem, { kind: "status" }>[
 }
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+type Draft = {
+  req: ParsedRequest;
+  followUps: number;
+  /** What they typed, for the out-of-area lead. */
+  text?: string;
+  /** "Sector 15" — the cities to choose from (Figma 9.4). */
+  areaChoices?: { label: string; city: string }[];
+  /** An area we don't serve, so the brief can pre-fill it (Figma 9.6). */
+  unservedArea?: string;
+  /** We asked for their area: the next message is one. */
+  awaitingArea?: boolean;
+};
+type SavedState = { draft: Draft | null };
+
+/** A thread as saved: no typing dots, no photos (they live in this tab only). */
+const forSaving = (items: ThreadItem[]) =>
+  items
+    .filter((i) => i.kind !== "typing")
+    .map((i) =>
+      i.kind === "me" && i.photoUrl
+        ? { ...i, photoUrl: undefined }
+        : i.kind === "brief" && i.defaults.photo
+          ? { ...i, defaults: { ...i.defaults, photo: undefined } }
+          : i,
+    );
+
 function understoodTags(req: ParsedRequest) {
   return [
     req.occasion?.label,
@@ -280,17 +340,24 @@ export function useHelpConversation({
   const [busy, setBusy] = useState(false);
   // Once the brief is sent the thread is the Event Manager chat.
   const [request, setRequest] = useState<HelpRequestState | null>(null);
+  // The saved chat's id ("Your chats" tab); its ticket stays in it.
+  const [conversationId, setConversationId] = useState<string | null>(null);
+
+  /** This chat's id, made on first need (first save, or the brief). */
+  const ensureConversationId = () => {
+    if (conversationId) return conversationId;
+    const id = uid();
+    setConversationId(id);
+    try {
+      localStorage.setItem(CONVERSATION_KEY, id);
+    } catch {
+      // Storage blocked: saved, but won't reopen after a reload.
+    }
+    return id;
+  };
+
   // The request being explored, plus how many follow-ups it has used.
-  const draft = useRef<{
-    req: ParsedRequest;
-    followUps: number;
-    /** What they typed, for the out-of-area lead. */
-    text?: string;
-    /** "Sector 15" — the cities to choose from (Figma 9.4). */
-    areaChoices?: { label: string; city: string }[];
-    /** An area we don't serve, so the brief can pre-fill it (Figma 9.6). */
-    unservedArea?: string;
-  } | null>(null);
+  const draft = useRef<Draft | null>(null);
 
   // Area checks by lower-cased text; the brief's warning reads these.
   const areaCache = useRef(new Map<string, HelpAreaCheck>());
@@ -393,9 +460,10 @@ export function useHelpConversation({
   /** After the brief: messages go to the Event Manager team, not the assistant. */
   const messageEventManager = async (text: string) => {
     if (!request) return;
-    push({ kind: "me", id: uid(), time: now(), text });
+    const id = uid();
+    push({ kind: "me", id, time: now(), text });
     try {
-      const sent = await sendHelpMessage(request.enquiryId, text);
+      const sent = await sendHelpMessage(request.enquiryId, text, id);
       seen.current.add(sent.messageId);
     } catch {
       push({
@@ -435,12 +503,20 @@ export function useHelpConversation({
   const locate = async (
     text: string,
     parsed: ParsedRequest,
-    { askOnly = false }: { askOnly?: boolean } = {},
+    {
+      askOnly = false,
+      place,
+    }: {
+      askOnly?: boolean;
+      /** Check this place instead of reading one from the text. */
+      place?: { text: string; source: AreaSource };
+    } = {},
   ) => {
     const d = draft.current;
     if (!d) return;
-    const typed = areaPhrase(text);
-    const where = typed ?? locationCity ?? undefined;
+    const typed = place ? undefined : areaPhrase(text);
+    const where = place?.text ?? typed ?? locationCity ?? undefined;
+    const source: AreaSource = place?.source ?? (typed ? "typed" : "location_tag");
     if (!where) {
       await exploreNext();
       return;
@@ -452,6 +528,16 @@ export function useHelpConversation({
 
     // Check unavailable: search as before rather than block the customer.
     if (!r) {
+      if (askOnly) {
+        push({
+          kind: "assistant",
+          id: uid(),
+          time: now(),
+          text: `I couldn’t check ${source === "typed" ? "that area" : "your location"} right now. ${NCR_COVERAGE}`,
+        });
+        push({ kind: "feedback", id: uid(), closed: false });
+        return;
+      }
       d.req.area =
         parsed.area ??
         (!typed && locationCity ? { label: locationCity, city: locationCity, fromLocation: true } : undefined);
@@ -477,32 +563,37 @@ export function useHelpConversation({
       });
       return;
     }
+    const whereNote =
+      source === "current_location"
+        ? `You’re in ${r.label} right now. `
+        : source === "location_tag"
+          ? `Your location is set to ${r.label}. `
+          : "";
     if (!r.serviceable) {
       d.unservedArea = r.label;
-      const fromTag = !typed;
       push({
         kind: "assistant",
         id: uid(),
         time: now(),
-        text: `${fromTag ? `Your location is set to ${r.label}. ` : ""}We don’t cover ${r.label} yet. ${NCR_COVERAGE}`,
+        text: `${whereNote}We don’t cover ${r.label} yet. ${NCR_COVERAGE}`,
       });
       push({
         kind: "out-of-area",
         id: uid(),
         area: r.label,
-        areaSource: fromTag ? "location_tag" : "typed",
+        areaSource: source,
         closest: r.closest,
         state: "open",
       });
       return;
     }
-    d.req.area = { label: r.label, city: r.city ?? r.label, fromLocation: !typed };
+    d.req.area = { label: r.label, city: r.city ?? r.label, fromLocation: source !== "typed" };
     if (askOnly) {
       push({
         kind: "assistant",
         id: uid(),
         time: now(),
-        text: `Yes, we cover ${r.label}. Tell me the occasion, guest count and budget, and I’ll show packages there.`,
+        text: `${whereNote}Yes, we cover ${source === "typed" ? r.label : "it"}. Tell me the occasion, guest count and budget, and I’ll show packages there.`,
       });
       push({ kind: "feedback", id: uid(), closed: false });
       return;
@@ -588,8 +679,39 @@ export function useHelpConversation({
         const parsed = parseRequest(text);
         const faq = answerQuestion(text, pageContext);
 
+        // "Do you serve my area?" — check where they are now.
+        if (!parsed.occasion && SERVE_QUESTION.test(text) && MY_AREA.test(text) && !areaPhrase(text)) {
+          draft.current = { req: {}, followUps: 0, text };
+          const typingId = uid();
+          push({ kind: "typing", id: typingId });
+          const here = await currentPlace(locationCity);
+          setItems((prev) => prev.filter((i) => i.id !== typingId));
+          if (!here) {
+            draft.current.awaitingArea = true;
+            push({
+              kind: "assistant",
+              id: uid(),
+              time: now(),
+              text: "I can’t see your location. Tell me your area or pincode and I’ll check.",
+            });
+            return;
+          }
+          await locate(text, parsed, { askOnly: true, place: here });
+          return;
+        }
+
+        // The area or pincode we asked for.
+        if (draft.current?.awaitingArea && !parsed.occasion && !faq) {
+          draft.current = { req: {}, followUps: 0, text };
+          await locate(text, parsed, {
+            askOnly: true,
+            place: { text: areaPhrase(text) ?? text, source: "typed" },
+          });
+          return;
+        }
+
         // "Do you serve Chandigarh?" — check the place they named.
-        if (!parsed.occasion && areaPhrase(text) && /\b(serve|cover|available|deliver)/i.test(text)) {
+        if (!parsed.occasion && areaPhrase(text) && SERVE_QUESTION.test(text)) {
           draft.current = { req: { ...parsed, area: undefined }, followUps: 0, text };
           await locate(text, parsed, { askOnly: true });
           return;
@@ -873,6 +995,7 @@ export function useHelpConversation({
       phone: brief.phone ?? undefined,
       pageUrl: window.location.href,
       transcript,
+      conversationId: ensureConversationId(),
     });
     const r = res.request;
     setItems((prev) => [
@@ -985,6 +1108,117 @@ export function useHelpConversation({
     ]);
   };
 
+  // ---- Saved chats ("Your chats" tab) ----
+  // What was last saved, so an unchanged thread isn't sent again.
+  const savedJson = useRef("");
+
+  /** Resumes a saved chat: its thread, where the assistant was, and its request. */
+  const applyConversation = useCallback(
+    async (id: string, c: HelpConversation<ThreadItem, SavedState>) => {
+      seen.current = new Set(
+        c.items.filter((i) => i.kind === "event-manager").map((i) => i.id),
+      );
+      draft.current = c.state?.draft ?? null;
+      sharedPhoto.current = null;
+      savedJson.current = "";
+      setItems(c.items);
+      setRequest(null);
+      setConversationId(id);
+      try {
+        localStorage.setItem(CONVERSATION_KEY, id);
+      } catch {
+        // Storage blocked: this chat just won't reopen after a reload.
+      }
+      if (c.enquiryId) {
+        try {
+          sync(await getHelpRequest(c.enquiryId));
+        } catch {
+          // The request can't be read (signed out since?): the thread still shows.
+        }
+      }
+    },
+    [sync],
+  );
+  const openConversation = useCallback(
+    async (id: string) =>
+      applyConversation(id, await getHelpConversation<ThreadItem, SavedState>(id)),
+    [applyConversation],
+  );
+
+  /** "New chat": an empty thread; the old one stays in the list. */
+  const startNewConversation = useCallback(() => {
+    setItems([]);
+    setRequest(null);
+    draft.current = null;
+    seen.current = new Set();
+    sharedPhoto.current = null;
+    savedJson.current = "";
+    setConversationId(null);
+    try {
+      localStorage.removeItem(CONVERSATION_KEY);
+    } catch {
+      // Nothing stored.
+    }
+  }, []);
+
+  // A reload or a new page resumes the open chat.
+  useEffect(() => {
+    let id: string | null = null;
+    try {
+      id = localStorage.getItem(CONVERSATION_KEY);
+    } catch {
+      return;
+    }
+    if (!id) return;
+    const saved = id;
+    getHelpConversation<ThreadItem, SavedState>(saved).then(
+      (c) => applyConversation(saved, c),
+      (e) => {
+      // Gone, or not this person's: start fresh. Offline: keep it for next time.
+        if (e instanceof ApiError && e.status === 404) {
+          try {
+            localStorage.removeItem(CONVERSATION_KEY);
+          } catch {
+            // Nothing stored.
+          }
+        }
+      },
+    );
+    // Once, on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Saves the thread once it settles (not mid-reply), from the first message on.
+  useEffect(() => {
+    if (busy || !items.some((i) => i.kind === "me")) return;
+    const timer = window.setTimeout(() => {
+      const body = {
+        items: forSaving(items),
+        state: { draft: draft.current },
+        enquiryId: request?.enquiryId,
+        ticket: request?.ticket,
+      };
+      const json = JSON.stringify(body);
+      if (json === savedJson.current) return;
+      let id = conversationId;
+      if (!id) {
+        id = uid();
+        setConversationId(id);
+        try {
+          localStorage.setItem(CONVERSATION_KEY, id);
+        } catch {
+          // Storage blocked: saved, but won't reopen after a reload.
+        }
+      }
+      savedJson.current = json;
+      saveHelpConversation(id, body).catch(() => {
+        // Try again on the next change.
+        savedJson.current = "";
+      });
+    }, SAVE_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [items, busy, request, conversationId]);
+
   /** Status card "Get a call back": straight away with an account number. */
   const callBack = useCallback(() => {
     if (!request || request.callBack) return;
@@ -1030,5 +1264,8 @@ export function useHelpConversation({
     ticket: request?.ticket,
     callBack,
     confirmCallBack,
+    conversationId,
+    openConversation,
+    startNewConversation,
   };
 }
