@@ -133,7 +133,7 @@ export default function PackageHeaderInfo({
                 <button
                   type="button"
                   onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
-                  className="underline"
+                  className="ml-1 font-bold underline"
                 >
                   {isEventTagsExpanded ? "Show less" : `${data.moreEventTagsCount} more events`}
                 </button>
@@ -249,7 +249,7 @@ export default function PackageHeaderInfo({
                 <button
                   type="button"
                   onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
-                  className="underline"
+                  className="ml-1 font-bold underline"
                 >
                   {isEventTagsExpanded ? "Show less" : `+${data.moreEventTagsCount}`}
                 </button>

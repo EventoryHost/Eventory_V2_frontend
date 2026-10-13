@@ -28,7 +28,6 @@ import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { formatHoursLabel, packageDurationsInHours } from "@/lib/formatHours";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { sanitizeCityName, getServiceAreaNames } from "@/lib/vendorLocation";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
@@ -794,11 +793,12 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     })
   );
 
-  // Filtered here (not just at each display site) so both the header's
-  // eventTags pills AND moreEventTagsCount stay consistent with what's
-  // actually shown — PM-requested 2026-10-02, the word "wedding" must not
-  // appear anywhere on site (see lib/eventCategories.ts's own comment).
-  const eventCategories = filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []);
+  // PM reversal (2026-10-14): show every category the vendor actually set,
+  // including ones lib/eventCategories.ts's hidden-set used to merge/hide
+  // (e.g. "Birthday" alongside "Birthday Party") — no longer filtered here.
+  // filterHiddenEventCategories itself is left in place for other surfaces
+  // that still want it; this package detail mapping just stops calling it.
+  const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
   // Unit decided on all of the package's duration fields together, the same
   // rule the card and the backend migration use.

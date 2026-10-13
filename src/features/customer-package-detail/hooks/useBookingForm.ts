@@ -9,7 +9,6 @@ import { detectCurrentLocation } from "@/lib/geocoding";
 import { ApiError } from "@/lib/apiClient";
 import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../types";
 import { toCustomizeRequestPayload } from "../utils/customizeRequestPayload";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { getCancellationTiers } from "../utils/cancellationPolicy";
 import { isSafeInternalPath } from "@/lib/isSafeInternalPath";
 import { useSelectedCity, setSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
@@ -64,8 +63,11 @@ export function useBookingForm({
   returnTo?: string;
   prefillEventDetails?: RawCartEventDetails;
 }) {
+  // PM reversal (2026-10-14): show every category the vendor set, including
+  // ones previously hidden/merged as duplicates (e.g. "Birthday" alongside
+  // "Birthday Party") — no longer filtered.
   const eventTypeOptions = useMemo(
-    () => filterHiddenEventCategories(eventCategories).map((category) => ({ value: category, label: category })),
+    () => eventCategories.map((category) => ({ value: category, label: category })),
     [eventCategories]
   );
   const [eventType, setEventType] = useState("");

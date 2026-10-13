@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
-import { browsePackages } from "@/lib/customerDiscoveryApi";
+import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
@@ -59,6 +59,14 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
+  // Event Type options scoped to the active category tab (2026-10-14 —
+  // PM-reported: the Decorator tab used to still offer "Workshop", a
+  // category only a Photographer (PAV) package actually has, which then
+  // correctly but confusingly resolved to "no packages found" for that
+  // tab). Seeded from the server-rendered "All" list; refetched below
+  // whenever the category tab changes.
+  const [eventCategoryOptions, setEventCategoryOptions] = useState(data.eventCategoryOptions);
+
   const [packages, setPackages] = useState(data.packages);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(data.totalPages);
@@ -90,19 +98,35 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sort, date]);
 
-  // Refetch page 1 when category, sort or the debounced search changes.
-  // Skipped on the very first run when they all match what the server
-  // already rendered, so the page doesn't flash a reload of its own data.
+  // The sidebar's "Event Type" section, joined for the server call below.
+  // REAL BUG FIXED 2026-10-14: this filter used to only ever narrow the
+  // single already-loaded page client-side (see filterPackages.ts's old
+  // eventType check) — a real, Live package tagged with the picked category
+  // could easily not be on that page (e.g. a low-ranked "Baby Shower
+  // Decoration" package when sorted "newest"), showing "no packages found"
+  // for a category that was never actually empty. Every option this sidebar
+  // offers only exists because at least one Live package has it (see
+  // getPackageListingData.ts / the backend's liveEventCategoriesCache.js),
+  // so picking one must reliably find that package regardless of
+  // pagination/sort — hence refetching from the server, same as
+  // category/sort/search/date below, instead of a client-only refinement.
+  const eventTypeParam = (selected.eventType ?? []).join(",");
+
+  // Refetch page 1 when category, sort, event type, or the debounced search
+  // changes. Skipped on the very first run when they all match what the
+  // server already rendered, so the page doesn't flash a reload of its own
+  // data.
   const isFirstRun = useRef(true);
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (category === "all" && sort === "newest" && !debouncedSearch && !date) return;
+      if (category === "all" && sort === "newest" && !debouncedSearch && !date && !eventTypeParam) return;
     }
     let cancelled = false;
     setIsLoading(true);
     browsePackages({
       q: debouncedSearch || undefined,
+      eventCategory: eventTypeParam || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
       sort: SORT_UI_TO_API[sort],
       date: date || undefined,
@@ -124,7 +148,39 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     return () => {
       cancelled = true;
     };
-  }, [category, sort, debouncedSearch, date]);
+  }, [category, sort, debouncedSearch, date, eventTypeParam]);
+
+  // Re-fetch the Event Type options scoped to whichever category tab is now
+  // active (unscoped for "All"). Any currently-selected event type that
+  // isn't in the new list is dropped too — an invisible chip still silently
+  // filtering for an option the sidebar no longer even offers would be
+  // confusing, not useful.
+  const isFirstCategoryRun = useRef(true);
+  useEffect(() => {
+    if (isFirstCategoryRun.current) {
+      isFirstCategoryRun.current = false;
+      if (category === "all") return;
+    }
+    let cancelled = false;
+    getPackagesFilters({ vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category] })
+      .then((response) => {
+        if (cancelled) return;
+        const options = response.filters.eventCategories.map((c) => ({ id: c, label: c }));
+        setEventCategoryOptions(options);
+        setSelected((prev) => {
+          const validIds = new Set(options.map((o) => o.id));
+          const nextEventType = (prev.eventType ?? []).filter((id) => validIds.has(id));
+          if (nextEventType.length === (prev.eventType ?? []).length) return prev;
+          return { ...prev, eventType: nextEventType };
+        });
+      })
+      .catch(() => {
+        // Best-effort — keep whatever options were already showing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category]);
 
   // Wishlist is customer-only; packages are saved as itemType "Package".
   useEffect(() => {
@@ -189,8 +245,8 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // Sections depend on the active category: the design's Makeup Service /
   // Style / Hair sections belong to Makeup Artist only.
   const filterSections = useMemo(
-    () => getPackageFilterSections({ eventCategoryOptions: data.eventCategoryOptions, categoryId: category }),
-    [data.eventCategoryOptions, category]
+    () => getPackageFilterSections({ eventCategoryOptions, categoryId: category }),
+    [eventCategoryOptions, category]
   );
 
   const visiblePackages = useMemo(() => filterPackages(packages, selected), [packages, selected]);
@@ -222,6 +278,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
       const nextPage = page + 1;
       const response = await browsePackages({
         q: debouncedSearch || undefined,
+        eventCategory: eventTypeParam || undefined,
         vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
         sort: SORT_UI_TO_API[sort],
         date: date || undefined,

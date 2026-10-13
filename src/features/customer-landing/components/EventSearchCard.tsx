@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { getPackagesFilters } from "@/lib/customerDiscoveryApi";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { toEventTypeDisplay, allowedServicesFor, ALL_SERVICE_OPTIONS } from "../data/eventSearchTaxonomy";
 import SearchFieldTrigger from "./SearchFieldTrigger";
 import SearchDropdownPanel from "./SearchDropdownPanel";
@@ -47,10 +46,10 @@ export default function EventSearchCard() {
     };
   }, []);
 
-  const eventTypes = useMemo(
-    () => toEventTypeDisplay(filterHiddenEventCategories(rawEventCategories)),
-    [rawEventCategories]
-  );
+  // PM reversal (2026-10-14): show every real event category the backend
+  // returns, including ones previously merged/hidden as duplicates — no
+  // longer filtered.
+  const eventTypes = useMemo(() => toEventTypeDisplay(rawEventCategories), [rawEventCategories]);
 
   const filteredEventTypes = useMemo(() => {
     const q = eventTypeQuery.trim().toLowerCase();

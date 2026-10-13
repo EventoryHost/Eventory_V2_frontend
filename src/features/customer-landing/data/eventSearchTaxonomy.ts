@@ -14,9 +14,9 @@ import { CATEGORY_META } from "@/lib/categoryMeta";
 // by hand — so a new category a vendor adds tomorrow still gets a sensible
 // icon/subtitle/service-filter rather than rendering blank.
 //
-// "Wedding" and its variants are excluded via filterHiddenEventCategories
-// (lib/eventCategories.ts) before this ever sees them — same sitewide rule
-// as every other wedding-category dropdown, decided 2026-10-02/03.
+// PM reversal (2026-10-14): every real category is now shown here,
+// including "Wedding" and its variants, which used to be excluded via
+// filterHiddenEventCategories before this ever saw them.
 export interface EventTypeDisplay {
   id: string;
   label: string;

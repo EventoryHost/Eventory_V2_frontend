@@ -20,8 +20,10 @@ export default function GalleryModal({
 }) {
   // Clicking a thumbnail here only enlarges it — it must never change which
   // photo shows as the PDP's main hero image, so this is local state, not
-  // routed through the hero's activeIndex.
-  const [zoomedImage, setZoomedImage] = useState<GalleryImage | null>(null);
+  // routed through the hero's activeIndex. Tracked by index (not just the
+  // image) so the zoomed view's prev/next arrows have something to step.
+  const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
+  const zoomedImage = zoomedIndex != null ? images[zoomedIndex] : null;
 
   if (typeof document === "undefined") return null;
 
@@ -63,7 +65,7 @@ export default function GalleryModal({
                 <button
                   key={image.id}
                   type="button"
-                  onClick={() => setZoomedImage(image)}
+                  onClick={() => setZoomedIndex(index)}
                   className="relative aspect-square overflow-hidden rounded-xl"
                 >
                   {image.image ? (
@@ -81,9 +83,11 @@ export default function GalleryModal({
 
     <IncludedItemImageModal
       isOpen={zoomedImage !== null}
-      onClose={() => setZoomedImage(null)}
+      onClose={() => setZoomedIndex(null)}
       image={zoomedImage?.image ?? null}
       alt={zoomedImage?.alt ?? ""}
+      onPrev={images.length > 1 ? () => setZoomedIndex((i) => (i! - 1 + images.length) % images.length) : undefined}
+      onNext={images.length > 1 ? () => setZoomedIndex((i) => (i! + 1) % images.length) : undefined}
     />
     </>,
     document.body
