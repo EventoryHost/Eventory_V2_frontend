@@ -35,9 +35,20 @@ export async function getComparison(): Promise<ComparisonView> {
     })
     .catch(() => new Map<string, string>());
 
-  const details = await Promise.all(session.items.map((item) => getPackageDetail(item.packageId)));
+  // One hidden vendor's package (Unlive/deactivated/under the profile-
+  // completion floor — see backend's customerVisibility.js) 404s at
+  // getPackageDetail. Without a per-item catch, Promise.all rejected the
+  // WHOLE comparison the instant any single compared package went hidden —
+  // the other, perfectly valid columns disappeared along with it. Dropping
+  // just that one column (same "fewer than were saved" resilience the
+  // compare SESSION itself already has to tolerate) keeps the rest of the
+  // comparison intact instead of failing the whole page.
+  const details = await Promise.all(
+    session.items.map((item) => getPackageDetail(item.packageId).catch(() => null))
+  );
+  const validDetails = details.filter((detail): detail is NonNullable<typeof detail> => detail !== null);
 
-  const inputs: ComparisonInput[] = details.map((detail) => ({
+  const inputs: ComparisonInput[] = validDetails.map((detail) => ({
     detail,
     note: notesByPackageId.get(detail.id) ?? "",
   }));

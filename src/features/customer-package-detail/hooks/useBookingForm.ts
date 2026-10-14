@@ -255,6 +255,14 @@ export function useBookingForm({
   const parsedGuestCount = Number(guestCount);
   const validGuestCount = guestCount.trim() && Number.isFinite(parsedGuestCount) && parsedGuestCount > 0;
   const guestCountComplete = requiresGuestCount ? Boolean(validGuestCount) : true;
+  // `slots.length === 0` is checked for "nothing offered, nothing to pick"
+  // in general — NOT as a FULL_DAY proxy. The backend now generates AUTO
+  // slots (6 AM–midnight, 3-hour blocks) for full-day packages too when the
+  // vendor hasn't set custom ones, so an empty array is a genuine edge case
+  // (e.g. no price to derive slots from) rather than the normal full-day
+  // case it used to be — this still requires picking one of whatever IS
+  // offered, full-day packages included, and only skips the requirement
+  // when the vendor's slots endpoint truly has nothing to show.
   const timingComplete =
     slotsState.status === "ready" &&
     slotsState.data.dayAvailable &&
