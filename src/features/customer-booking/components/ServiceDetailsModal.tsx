@@ -209,10 +209,13 @@ export default function ServiceDetailsModal({
           price: formatPrice(entry.price),
         }))
     : [];
+  // Team & equipment is already folded into each entry.price by
+  // getPackageDetail.ts's distributeTeamAndEquipmentCharge (PM instruction:
+  // no explicit line for it anywhere customer-facing) — itemsSubtotal
+  // already carries the full charge, so it's not added again here.
   const itemsSubtotal = detail ? detail.includedItems.reduce((sum, entry) => sum + entry.price, 0) : 0;
   const addonsSubtotal = addons.reduce((sum, addon) => sum + addon.amount * addon.quantity, 0);
-  const teamAndEquipmentCharge = detail?.pricing.teamAndEquipmentCharge ?? 0;
-  const breakdownSubtotal = itemsSubtotal + addonsSubtotal + teamAndEquipmentCharge;
+  const breakdownSubtotal = itemsSubtotal + addonsSubtotal;
   const gstPercent = detail?.pricing.gstPercent ?? 0;
   const gstAmount = Math.round((breakdownSubtotal * gstPercent) / 100);
   const breakdownTotal = breakdownSubtotal + gstAmount;
@@ -348,7 +351,6 @@ export default function ServiceDetailsModal({
                 <PriceBreakdownContent
                   items={breakdownItems}
                   addons={addons}
-                  teamAndEquipmentCharge={teamAndEquipmentCharge > 0 ? formatPrice(teamAndEquipmentCharge) : undefined}
                   subtotal={formatPrice(breakdownSubtotal)}
                   gstPercent={gstPercent}
                   gstAmount={formatPrice(gstAmount)}

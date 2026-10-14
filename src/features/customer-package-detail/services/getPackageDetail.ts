@@ -573,6 +573,28 @@ function mapIncludedItems(pkg: RawFullPackage): IncludedItemEntry[] {
   }
 }
 
+// Spreads the package's flat team & equipment charge evenly across its
+// included items/setups rather than showing it as its own line anywhere
+// on the customer side (PM instruction), while keeping every item's own
+// displayed price summing to the real subtotal the customer is actually
+// charged — so adding up the individual setup prices shown in "What's
+// Included" / the price breakdown never looks short against the grand
+// total. Whole-rupee shares; the remainder from an uneven split goes to
+// the LAST item — same "last slot absorbs the drift" pattern the
+// backend's cartPricingService.js already uses for its own rounding gaps.
+function distributeTeamAndEquipmentCharge(
+  items: IncludedItemEntry[],
+  teamAndEquipmentCharge: number
+): IncludedItemEntry[] {
+  if (teamAndEquipmentCharge <= 0 || items.length === 0) return items;
+  const share = Math.floor(teamAndEquipmentCharge / items.length);
+  const remainder = teamAndEquipmentCharge - share * items.length;
+  return items.map((item, i) => ({
+    ...item,
+    price: item.price + share + (i === items.length - 1 ? remainder : 0),
+  }));
+}
+
 function mapNotIncluded(pkg: RawFullPackage): string[] {
   return pkg.step2_productsAndPricing?.notIncluded ?? [];
 }
@@ -821,6 +843,8 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   // Decorator / DJ / Photographer bookings aren't priced or scoped by
   // headcount, so the PDP booking form drops the guest-count field for them.
   const requiresGuestCount = !["Decorator", "DJArtist", "PAV"].includes(pkg.vendorType);
+  const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
+  const includedItems = distributeTeamAndEquipmentCharge(mapIncludedItems(pkg), teamAndEquipmentCharge);
 
   return {
     id: pkg._id,
@@ -884,7 +908,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     // AboutPackage/parseAboutText.ts decides bullets vs. plain text from its shape,
     // which a pre-joined string would have already destroyed.
     aboutText: pkg.step2_productsAndPricing?.included?.length ? pkg.step2_productsAndPricing.included : ["No description provided yet."],
-    includedItems: mapIncludedItems(pkg),
+    includedItems,
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
     addons: mapAddons(pkg),
@@ -901,7 +925,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     vendor: mapVendor(pkg),
     reviews,
     pricing: (() => {
-      const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
+      // Same teamAndEquipmentCharge already distributed into includedItems
+      // above — this `pricing` object still carries the flat figure for
+      // whatever reads it directly (e.g. token-amount math below, which
+      // needs the real total regardless of how it's itemized on screen),
+      // just no longer shown as a line of its own anywhere customer-facing.
       // REAL BUG FOUND 2026-09-26 (product-manager-reported: an
       // inclusive-GST package still showed and added GST on the PDP,
       // inflating the estimated total): this read gstRatePercent
