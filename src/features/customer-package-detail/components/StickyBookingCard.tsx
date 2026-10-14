@@ -18,8 +18,6 @@ import type { UseBookingFormResult } from "../hooks/useBookingForm";
 export default function StickyBookingCard({
   form,
   packageTotal,
-  teamAndEquipmentCharge,
-  teamAndEquipmentBillingUnit,
   overtimeChargeRate,
   overtimeBillingUnit,
   gstPercent,
@@ -32,8 +30,6 @@ export default function StickyBookingCard({
   /** Shared booking state/logic — one instance, lifted to PackageDetailPage and passed to both this (desktop) card and the mobile sticky bar/sheet, so there's a single source of truth for the in-flight booking rather than two independently-drifting copies of the same form. */
   form: UseBookingFormResult;
   packageTotal: number;
-  teamAndEquipmentCharge: number;
-  teamAndEquipmentBillingUnit?: string;
   overtimeChargeRate: number;
   overtimeBillingUnit?: string;
   gstPercent: number;
@@ -297,8 +293,6 @@ export default function StickyBookingCard({
         onClose={() => setIsBreakdownOpen(false)}
         includedItems={includedItems}
         selectedAddons={selectedAddons}
-        teamAndEquipmentCharge={teamAndEquipmentCharge}
-        teamAndEquipmentBillingUnit={teamAndEquipmentBillingUnit}
         overtimeChargeRate={overtimeChargeRate}
         overtimeBillingUnit={overtimeBillingUnit}
         subtotal={packageTotal}

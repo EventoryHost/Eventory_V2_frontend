@@ -286,8 +286,6 @@ export default function PackageDetailPage({
           <StickyBookingCard
             form={bookingForm}
             packageTotal={packageTotal}
-            teamAndEquipmentCharge={data.pricing.teamAndEquipmentCharge}
-            teamAndEquipmentBillingUnit={data.pricing.teamAndEquipmentBillingUnit}
             overtimeChargeRate={data.pricing.overtimeChargeRate}
             overtimeBillingUnit={data.pricing.overtimeBillingUnit}
             gstPercent={data.pricing.gstPercent}
