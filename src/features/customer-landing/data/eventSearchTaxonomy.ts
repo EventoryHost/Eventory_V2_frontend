@@ -74,11 +74,17 @@ function familyFor(label: string): EventTypeFamily {
   return EVENT_TYPE_FAMILIES.find((family) => family.match.test(label)) ?? DEFAULT_FAMILY;
 }
 
-/** Real backend category strings -> the dropdown row shape, deriving subtitle/icon by keyword family. */
-export function toEventTypeDisplay(categories: string[]): EventTypeDisplay[] {
-  return categories.map((label) => {
+/**
+ * Grouped event-category options (lib/eventCategoryGroups.ts's merged
+ * "Birthday"/"Corporate"/etc. buckets) -> the dropdown row shape, deriving
+ * subtitle/icon by keyword family off each option's canonical LABEL — `id`
+ * is passed through unchanged (it's the comma-joined raw values the
+ * backend actually filters on, not something to re-derive styling from).
+ */
+export function toEventTypeDisplay(options: { id: string; label: string }[]): EventTypeDisplay[] {
+  return options.map(({ id, label }) => {
     const family = familyFor(label);
-    return { id: label, label, subtitle: family.subtitle, IconComponent: family.icon };
+    return { id, label, subtitle: family.subtitle, IconComponent: family.icon };
   });
 }
 
@@ -87,16 +93,24 @@ export function allowedServicesFor(eventTypeLabel: string): string[] | null {
   return familyFor(eventTypeLabel).services;
 }
 
-// All 6 real vendor categories, in the same fixed order the Figma dropdown
-// rows use — reuses the codebase's own existing category icons
-// (CATEGORY_META) rather than Figma-exported ones, since these are
+// All 6 real vendor categories. Decorator is listed FIRST (2026-10-14,
+// deliberate deviation from the Figma order) since it's the only vendor
+// type with real Live packages behind it right now — every other service
+// gets the "Coming soon" badge rather than quietly looking identical to a
+// fully-working option. Icons reuse the codebase's own existing category
+// icons (CATEGORY_META) rather than Figma-exported ones, since these are
 // exact-match real icons already used for these same 6 categories
 // elsewhere (PDP header, landing carousel badges).
 export const ALL_SERVICE_OPTIONS = [
-  { id: "venue-provider", label: "Venue provider", icon: CATEGORY_META["venue-provider"].icon },
-  { id: "caterer", label: "Caterer", icon: CATEGORY_META.caterer.icon },
   { id: "decorator", label: "Decorator", icon: CATEGORY_META.decorator.icon },
-  { id: "makeup-artist", label: "Makeup artist", icon: CATEGORY_META["makeup-artist"].icon },
-  { id: "dj-artist", label: "DJ artist", icon: CATEGORY_META["dj-artist"].icon },
-  { id: "photographer", label: "Photographer & videographer", icon: CATEGORY_META.photographer.icon },
+  { id: "venue-provider", label: "Venue provider", icon: CATEGORY_META["venue-provider"].icon, comingSoon: true },
+  { id: "caterer", label: "Caterer", icon: CATEGORY_META.caterer.icon, comingSoon: true },
+  { id: "makeup-artist", label: "Makeup artist", icon: CATEGORY_META["makeup-artist"].icon, comingSoon: true },
+  { id: "dj-artist", label: "DJ artist", icon: CATEGORY_META["dj-artist"].icon, comingSoon: true },
+  {
+    id: "photographer",
+    label: "Photographer & videographer",
+    icon: CATEGORY_META.photographer.icon,
+    comingSoon: true,
+  },
 ];

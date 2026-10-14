@@ -1,4 +1,5 @@
 import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { mapPackageToListItem } from "../mappers";
 import { PACKAGES_PAGE_SIZE, RECOMMENDED_LIMIT } from "../data/filterConfig";
@@ -27,11 +28,11 @@ export async function getPackageListingData(): Promise<PackageListingData> {
     totalPages: packagesResponse.totalPages,
     // PM reversal (2026-10-14): show every real, unique event category the
     // backend's facet aggregation returns (GET /customer/packages/filters),
-    // including ones previously merged/hidden as duplicates.
-    eventCategoryOptions: filtersResponse.filters.eventCategories.map((category) => ({
-      id: category,
-      label: category,
-    })),
+    // including ones previously merged/hidden as duplicates — THEN merge
+    // near-duplicate variants ("Birthday"/"Birthday Party"/"Birthday Party
+    // Decoration") into one option by keyword family (lib/eventCategoryGroups.ts).
+    // Selecting the merged option matches every real variant server-side.
+    eventCategoryOptions: groupEventCategories(filtersResponse.filters.eventCategories),
     recommended: (recommendedResponse?.packages ?? []).map(mapPackageToListItem),
   };
 }

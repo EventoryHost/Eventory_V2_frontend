@@ -9,6 +9,7 @@ import { getFilterSections, VENDORS_PAGE_SIZE } from "../data/filterConfig";
 import { filterVendors, filterOptionLabel } from "../utils/filterVendors";
 import { mapVendorToCard } from "../mappers";
 import { browseVendors, getVendorFilters } from "@/lib/customerDiscoveryApi";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import { CATEGORY_TO_VENDOR_TYPE, VENDOR_SORT_UI_TO_API } from "@/lib/vendorType";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
@@ -207,7 +208,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     getVendorFilters({ vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category] })
       .then((response) => {
         if (cancelled) return;
-        const options = response.filters.eventCategories.map((c) => ({ id: c, label: c }));
+        const options = groupEventCategories(response.filters.eventCategories);
         setEventCategoryOptions(options);
         setSelected((prev) => {
           const validIds = new Set(options.map((o) => o.id));
@@ -344,7 +345,11 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const chips: ActiveChip[] = filterSections.flatMap((section) =>
     selected[section.id].map((id) => ({
       key: `${section.id}-${id}`,
-      label: filterOptionLabel(section.id, id),
+      // Looked up from the section's own options first — eventType's ids
+      // can now be a comma-joined group of raw values (see
+      // lib/eventCategoryGroups.ts), so the human-readable label lives on
+      // the option, not the id itself.
+      label: section.options.find((option) => option.id === id)?.label ?? filterOptionLabel(section.id, id),
       onRemove: () => toggleOption(section.id, id),
     }))
   );

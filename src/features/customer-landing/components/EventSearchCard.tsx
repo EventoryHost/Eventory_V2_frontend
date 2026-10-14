@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { getPackagesFilters } from "@/lib/customerDiscoveryApi";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { toEventTypeDisplay, allowedServicesFor, ALL_SERVICE_OPTIONS } from "../data/eventSearchTaxonomy";
 import SearchFieldTrigger from "./SearchFieldTrigger";
 import SearchDropdownPanel from "./SearchDropdownPanel";
@@ -18,7 +19,14 @@ export default function EventSearchCard() {
   // wrongly hardcoded 4 entries, hiding ~18 other real live categories;
   // see eventSearchTaxonomy.ts's own comment for the fix.
   const [rawEventCategories, setRawEventCategories] = useState<string[]>([]);
+  // eventType = comma-joined raw values (what's actually sent as the
+  // backend's eventCategory param / the URL's ?eventType=); eventTypeLabel =
+  // the canonical display text ("Birthday") shown in the field and used for
+  // the keyword-family service lookup below. Merged options (see
+  // lib/eventCategoryGroups.ts) can disagree between these two — a
+  // standalone, unmerged category still has id === label as before.
   const [eventType, setEventType] = useState("");
+  const [eventTypeLabel, setEventTypeLabel] = useState("");
   const [vendorService, setVendorService] = useState("");
   const [date, setDate] = useState("");
   // Separate from the committed eventType/vendorService above — real bug
@@ -48,8 +56,13 @@ export default function EventSearchCard() {
 
   // PM reversal (2026-10-14): show every real event category the backend
   // returns, including ones previously merged/hidden as duplicates — no
-  // longer filtered.
-  const eventTypes = useMemo(() => toEventTypeDisplay(rawEventCategories), [rawEventCategories]);
+  // longer filtered. Near-duplicate variants ("Birthday", "Birthday Party",
+  // "Birthday Party Decoration") are THEN merged into one option by keyword
+  // family (2026-10-14) — picking it matches every real variant server-side.
+  const eventTypes = useMemo(
+    () => toEventTypeDisplay(groupEventCategories(rawEventCategories)),
+    [rawEventCategories]
+  );
 
   const filteredEventTypes = useMemo(() => {
     const q = eventTypeQuery.trim().toLowerCase();
@@ -58,9 +71,10 @@ export default function EventSearchCard() {
   }, [eventTypes, eventTypeQuery]);
 
   // Values this event type doesn't actually offer, by keyword family (see
-  // eventSearchTaxonomy.ts). No event type picked yet = every service
-  // shown, unfiltered (fields can be filled in any order).
-  const allowedServiceIds = eventType ? allowedServicesFor(eventType) : null;
+  // eventSearchTaxonomy.ts) — looked up off the canonical LABEL, not the
+  // (possibly comma-joined, multi-raw-value) id. No event type picked yet =
+  // every service shown, unfiltered (fields can be filled in any order).
+  const allowedServiceIds = eventTypeLabel ? allowedServicesFor(eventTypeLabel) : null;
   const serviceOptionsForEventType = allowedServiceIds
     ? ALL_SERVICE_OPTIONS.filter((option) => allowedServiceIds.includes(option.id))
     : ALL_SERVICE_OPTIONS;
@@ -79,7 +93,7 @@ export default function EventSearchCard() {
         // Nothing matching was picked while a field was open — revert the
         // typed text back to whatever's actually selected, same as the old
         // SearchAutocomplete's own click-outside behaviour.
-        setEventTypeQuery(eventType);
+        setEventTypeQuery(eventTypeLabel);
         setVendorServiceQuery(vendorServiceLabel());
       }
     }
@@ -96,8 +110,15 @@ export default function EventSearchCard() {
     return ALL_SERVICE_OPTIONS.find((option) => option.id === vendorService)?.label ?? "";
   }
 
-  function selectEventType(label: string) {
-    setEventType(label);
+  function selectEventType(id: string) {
+    // `id` is what SearchDropdownPanel's row.id gives us — the comma-joined
+    // raw values for a merged option (see lib/eventCategoryGroups.ts), or
+    // the raw value itself for an unmerged one. The row's own canonical
+    // label is what the field displays and what the family lookup below
+    // needs, so it's looked up here rather than re-derived from `id`.
+    const label = eventTypes.find((t) => t.id === id)?.label ?? id;
+    setEventType(id);
+    setEventTypeLabel(label);
     setEventTypeQuery(label);
     // Switching event type can make the currently-picked service
     // incompatible with the new one — clear it rather than silently
@@ -149,7 +170,10 @@ export default function EventSearchCard() {
           query={eventTypeQuery}
           onQueryChange={(text) => {
             setEventTypeQuery(text);
-            if (eventType && text !== eventType) setEventType("");
+            if (eventTypeLabel && text !== eventTypeLabel) {
+              setEventType("");
+              setEventTypeLabel("");
+            }
             setOpenField("eventType");
           }}
           placeholder="Search your Event type"
@@ -181,7 +205,7 @@ export default function EventSearchCard() {
         />
         {openField === "vendorService" && (
           <SearchDropdownPanel
-            header={eventType ? `Services for ${eventType}` : "All services"}
+            header={eventTypeLabel ? `Services for ${eventTypeLabel}` : "All services"}
             rows={filteredServiceOptions}
             selectedId={vendorService}
             onSelect={selectVendorService}

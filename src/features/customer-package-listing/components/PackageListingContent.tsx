@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
 import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
@@ -165,7 +166,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     getPackagesFilters({ vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category] })
       .then((response) => {
         if (cancelled) return;
-        const options = response.filters.eventCategories.map((c) => ({ id: c, label: c }));
+        const options = groupEventCategories(response.filters.eventCategories);
         setEventCategoryOptions(options);
         setSelected((prev) => {
           const validIds = new Set(options.map((o) => o.id));
@@ -298,7 +299,13 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   const chips: ActiveChip[] = filterSections.flatMap((section) =>
     (selected[section.id] ?? []).map((id) => ({
       key: `${section.id}-${id}`,
-      label: packageFilterLabel(section.id, id),
+      // Looked up from the section's own options first — eventType's ids
+      // can now be a comma-joined group of raw values (see
+      // lib/eventCategoryGroups.ts), so the human-readable label lives on
+      // the option, not the id itself. packageFilterLabel is still the
+      // right source for the few sections whose label table it owns,
+      // falling back to the raw id only if neither finds a match.
+      label: section.options.find((option) => option.id === id)?.label ?? packageFilterLabel(section.id, id),
       onRemove: () => toggleOption(section.id, id),
     }))
   );
