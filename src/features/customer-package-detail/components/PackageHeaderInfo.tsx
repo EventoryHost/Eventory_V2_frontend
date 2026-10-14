@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { MapPin, Share2, Star, Bookmark, BadgeCheck } from "lucide-react";
+import { Share2, Star, Bookmark, BadgeCheck, Heart } from "lucide-react";
 import type { PackageDetail } from "../types";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import ShareModal from "./ShareModal";
+import LocationChipRow from "./LocationChipRow";
 
 // Vendors sometimes author a single event-category entry as one composite
 // string with " / " as their own separator (e.g. "Ganesh Chaturthi / Ganesh
@@ -41,6 +42,7 @@ export default function PackageHeaderInfo({
     | "reviewCount"
     | "locationSummary"
     | "fullLocationSummary"
+    | "locationList"
     | "vendor"
   >;
   onCreateQuotation: () => void;
@@ -48,9 +50,7 @@ export default function PackageHeaderInfo({
   const { isLoggedIn } = useCustomerSession();
   const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
-  const [isLocationExpanded, setIsLocationExpanded] = useState(false);
   const [isEventTagsExpanded, setIsEventTagsExpanded] = useState(false);
-  const hasMoreLocation = data.fullLocationSummary !== data.locationSummary;
   const [savedItemId, setSavedItemId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const isSaved = isLoggedIn && savedItemId !== null;
@@ -97,125 +97,228 @@ export default function PackageHeaderInfo({
 
   return (
     <section>
-      <div className="mb-3 flex flex-wrap items-center gap-3 font-figtree text-[13px]">
-        <div
-          className="flex shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
-          style={{
-            background: `linear-gradient(to left, ${data.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
-          }}
-        >
-          {data.categoryIcon && (
-            <Image
-              src={data.categoryIcon}
-              alt={data.categoryLabel}
-              width={20}
-              height={20}
-              className="h-5 w-5 rounded-full object-contain"
-            />
-          )}
-          <span className="font-figtree text-[12px] font-semibold whitespace-nowrap text-brand-950">
-            {data.categoryLabel}
+      {/* Desktop/tablet layout — unchanged. */}
+      <div className="hidden md:block">
+        <div className="mb-3 flex flex-wrap items-center gap-3 font-figtree text-[13px]">
+          <div
+            className="flex shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
+            style={{
+              background: `linear-gradient(to left, ${data.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
+            }}
+          >
+            {data.categoryIcon && (
+              <Image
+                src={data.categoryIcon}
+                alt={data.categoryLabel}
+                width={20}
+                height={20}
+                className="h-5 w-5 rounded-full object-contain"
+              />
+            )}
+            <span className="font-figtree text-[12px] font-semibold whitespace-nowrap text-brand-950">
+              {data.categoryLabel}
+            </span>
+          </div>
+          <span className="h-4 w-px shrink-0 bg-black/10" />
+          <span className="font-figtree text-[13px] font-medium text-[#B4112A]">
+            {(isEventTagsExpanded ? data.eventCategories : data.eventTags).map(dotSeparated).join(" • ")}
+            {data.moreEventTagsCount > 0 && (
+              <>
+                {!isEventTagsExpanded && (
+                  <>
+                    {" "}and{" "}
+                  </>
+                )}
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
+                  className="ml-1 font-bold underline"
+                >
+                  {isEventTagsExpanded ? "Show less" : `${data.moreEventTagsCount} more events`}
+                </button>
+              </>
+            )}
           </span>
         </div>
-        <span className="h-4 w-px shrink-0 bg-black/10" />
-        <span className="font-figtree text-[13px] font-medium text-[#B4112A]">
-          {(isEventTagsExpanded ? data.eventCategories : data.eventTags).map(dotSeparated).join(" • ")}
-          {data.moreEventTagsCount > 0 && (
-            <>
-              {!isEventTagsExpanded && (
-                <>
-                  {" "}and{" "}
-                </>
-              )}
-              {" "}
-              <button
-                type="button"
-                onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
-                className="underline"
-              >
-                {isEventTagsExpanded ? "Show less" : `${data.moreEventTagsCount} more events`}
-              </button>
-            </>
+
+        <h1 className="mb-2 flex flex-wrap items-center gap-3 font-figtree text-[26px] leading-tight font-bold text-brand-950 sm:text-[28px]">
+          {data.title}
+          {data.instantBooking && (
+            <span className="flex items-center gap-1 rounded-full border border-[#FEE2E2] bg-[#FEF2F2] px-2 py-1 font-figtree text-[11px] font-medium text-brand-primary">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
+              Instant booking
+            </span>
           )}
-        </span>
-      </div>
+        </h1>
+        <p className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-figtree text-[14px] text-neutral-secondary">
+          by <span className="font-semibold text-brand-950">{data.vendorName}</span>
+          {(data.idVerified || data.gstinVerified) && <span className="text-neutral-tertiary/50">·</span>}
+          {data.idVerified && (
+            <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[11px] font-medium text-success-700">
+              <BadgeCheck className="h-3.5 w-3.5" /> ID verified
+            </span>
+          )}
+          {data.gstinVerified && (
+            <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[11px] font-medium text-success-700">
+              <BadgeCheck className="h-3.5 w-3.5" /> GSTIN verified
+            </span>
+          )}
+        </p>
 
-      <h1 className="mb-2 flex flex-wrap items-center gap-3 font-figtree text-[26px] leading-tight font-bold text-brand-950 sm:text-[28px]">
-        {data.title}
-        {data.instantBooking && (
-          <span className="flex items-center gap-1 rounded-full border border-[#FEE2E2] bg-[#FEF2F2] px-2 py-1 font-figtree text-[11px] font-medium text-brand-primary">
-            <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-            Instant booking
-          </span>
-        )}
-      </h1>
-      <p className="mb-4 flex flex-wrap items-center gap-x-2 gap-y-1 font-figtree text-[14px] text-neutral-secondary">
-        by <span className="font-semibold text-brand-950">{data.vendorName}</span>
-        {(data.idVerified || data.gstinVerified) && <span className="text-neutral-tertiary/50">·</span>}
-        {data.idVerified && (
-          <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[11px] font-medium text-success-700">
-            <BadgeCheck className="h-3.5 w-3.5" /> ID verified
-          </span>
-        )}
-        {data.gstinVerified && (
-          <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 font-figtree text-[11px] font-medium text-success-700">
-            <BadgeCheck className="h-3.5 w-3.5" /> GSTIN verified
-          </span>
-        )}
-      </p>
-
-      <div className="flex flex-wrap items-center justify-between gap-3 font-figtree text-[13px]">
-        <div className="flex flex-wrap items-center gap-3">
-          {data.reviewCount > 0 && (
-            <>
-              <div className="flex items-center gap-1 font-semibold text-brand-950">
-                <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
-                {data.rating}
-                <span className="font-normal text-neutral-tertiary underline">
-                  &nbsp;(from {data.reviewCount} reviews)
+        {/* Figma node 2404:22945 — review + service-area chips stacked on the
+            left as one column, Share/Save buttons on the right, the whole
+            block sitting on its own bottom border (replacing the separate
+            <hr> this used to end on). */}
+        <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[#E4E4E7] pt-1 pb-3 font-figtree text-[13px]">
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            {data.reviewCount > 0 && (
+              <div className="flex items-center gap-1.5">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#EA1D3B]">
+                  <Star className="h-2.5 w-2.5 fill-white text-white" />
+                </span>
+                <span className="font-figtree text-[16px] font-semibold text-[#030303]">{data.rating}</span>
+                <span className="font-figtree text-[16px] text-neutral-secondary underline">
+                  (from {data.reviewCount} reviews)
                 </span>
               </div>
-              <span className="h-1 w-1 rounded-full bg-neutral-tertiary/40" />
-            </>
-          )}
-          <div className="flex items-center gap-1.5 text-neutral-secondary">
-            <MapPin className="h-4 w-4 shrink-0" style={{ color: "#EA1D3B" }} />
-            {isLocationExpanded ? data.fullLocationSummary : data.locationSummary}
-            {hasMoreLocation && (
-              <button
-                type="button"
-                onClick={() => setIsLocationExpanded((expanded) => !expanded)}
-                className="font-medium text-brand-950 underline"
-              >
-                {isLocationExpanded ? "Show less" : "...See the location"}
-              </button>
             )}
+
+            {/* Figma node 2404:22954: "fit as many chips as the row allows,
+                then +N more" — ONLY the vendor's serviceAreas field, nothing
+                else composed in alongside it (PM instruction, 2026-10-12). */}
+            <LocationChipRow locations={data.locationList} />
+          </div>
+
+          <div className="flex shrink-0 items-start gap-2">
+            <button
+              type="button"
+              onClick={() => setIsShareOpen(true)}
+              className="flex items-center gap-2 rounded-xl px-3 py-1.5 font-figtree text-[14px] font-medium text-[#030303] transition hover:bg-black/5"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Share
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveClick}
+              disabled={isSaving}
+              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 font-figtree text-[14px] font-medium transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isSaved ? "text-brand-950" : "text-[#030303]"
+              }`}
+            >
+              <Bookmark className={`h-3.5 w-3.5 ${isSaved ? "fill-brand-950" : ""}`} />
+              {isSaved ? "Saved" : "Save"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile layout (Figma node 2565:27868) — same data, different
+          arrangement: Share/Save sits next to the "by <vendor>" byline
+          instead of next to the rating/chips, the Instant booking pill
+          drops onto its own line above the rating instead of sitting next
+          to the title, and there's no bottom border. Save uses a heart
+          icon here (Figma's actual asset for this button), not the
+          bookmark icon the desktop button uses. */}
+      <div className="flex flex-col gap-1 font-figtree md:hidden">
+        <div className="flex flex-wrap items-center gap-2 text-[13px]">
+          <div
+            className="flex h-6 shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
+            style={{
+              background: `linear-gradient(to left, ${data.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
+            }}
+          >
+            {data.categoryIcon && (
+              <Image
+                src={data.categoryIcon}
+                alt={data.categoryLabel}
+                width={16}
+                height={16}
+                className="h-4 w-4 rounded-full object-contain"
+              />
+            )}
+            <span className="font-bold whitespace-nowrap text-[#3C060D] text-[11px] tracking-[-0.11px] uppercase">
+              {data.categoryLabel}
+            </span>
+          </div>
+          <span className="text-[12px] whitespace-nowrap text-[#71717B]">
+            {(isEventTagsExpanded ? data.eventCategories : data.eventTags).map(dotSeparated).join(" • ")}
+            {data.moreEventTagsCount > 0 && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
+                  className="ml-1 font-bold underline"
+                >
+                  {isEventTagsExpanded ? "Show less" : `+${data.moreEventTagsCount}`}
+                </button>
+              </>
+            )}
+          </span>
+        </div>
+
+        <h1 className="font-semibold text-[#222] text-[24px] leading-[34px]">{data.title}</h1>
+
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5 text-[14px] text-[#3F3F47]">
+            by <span className="font-semibold text-brand-950">{data.vendorName}</span>
+            {(data.idVerified || data.gstinVerified) && <span className="text-neutral-tertiary/50">·</span>}
+            {data.idVerified && (
+              <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-[11px] font-medium text-success-700">
+                <BadgeCheck className="h-3.5 w-3.5" /> ID verified
+              </span>
+            )}
+            {data.gstinVerified && (
+              <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-[11px] font-medium text-success-700">
+                <BadgeCheck className="h-3.5 w-3.5" /> GSTIN verified
+              </span>
+            )}
+          </p>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setIsShareOpen(true)}
+              className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-[14px] font-medium text-[#030303] transition hover:bg-black/5"
+            >
+              <Share2 className="h-3.5 w-3.5" /> Share
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveClick}
+              disabled={isSaving}
+              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-[14px] font-medium transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 ${
+                isSaved ? "text-brand-950" : "text-[#030303]"
+              }`}
+            >
+              <Heart className={`h-3.5 w-3.5 ${isSaved ? "fill-brand-950" : ""}`} />
+              {isSaved ? "Saved" : "Save"}
+            </button>
           </div>
         </div>
 
-        <div className="flex items-center gap-4 font-medium text-neutral-secondary">
-          <button
-            type="button"
-            onClick={() => setIsShareOpen(true)}
-            className="flex items-center gap-1.5 hover:text-brand-950"
-          >
-            <Share2 className="h-4 w-4" /> Share
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveClick}
-            disabled={isSaving}
-            className={`flex items-center gap-1.5 hover:text-brand-950 disabled:cursor-not-allowed disabled:opacity-60 ${
-              isSaved ? "text-brand-950" : ""
-            }`}
-          >
-            <Bookmark className={`h-4 w-4 ${isSaved ? "fill-brand-950" : ""}`} />
-            {isSaved ? "Saved" : "Save"}
-          </button>
+        <div className="flex flex-col gap-4">
+          {data.instantBooking && (
+            <span className="w-fit rounded-full bg-[#FDEEF0] px-2.5 py-1 text-[12px] font-medium text-[#F0596F]">
+              Instant booking
+            </span>
+          )}
+
+          {data.reviewCount > 0 && (
+            <div className="flex items-center gap-1">
+              <Image src="/images/customer/package-detail/rating-star.svg" alt="" width={15} height={15} />
+              <span className="text-[14px] font-semibold text-[#222]">{data.rating}</span>
+              <span className="text-[14px] text-[#71717B] underline">({data.reviewCount} reviews)</span>
+            </div>
+          )}
+
+          {/* Figma node 2404:22954: "fit as many chips as the row allows,
+              then +N more" — ONLY the vendor's serviceAreas field, nothing
+              else composed in alongside it (PM instruction, 2026-10-12). */}
+          <LocationChipRow locations={data.locationList} />
         </div>
       </div>
-
-      <hr className="mt-6 border-black/5" />
 
       <AuthModal
         isOpen={isAuthOpen}

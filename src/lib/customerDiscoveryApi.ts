@@ -236,13 +236,14 @@ export async function browseVendors(params: BrowseVendorsParams = {}) {
   return apiFetch<BrowseVendorsResponse>(`/customer/vendors${toQueryString(params)}`, { auth: false });
 }
 
-/** Vendor-derived facets (types/event categories/cities) — the listing sidebar. */
-export async function getVendorFilters() {
-  return apiFetch<VendorFiltersResponse>("/customer/vendors/filters", { auth: false });
+/** Vendor-derived facets (types/event categories/cities) — the listing sidebar. `vendorType` scopes `filters.eventCategories` to just that vendor type's own live categories — same reasoning as getPackagesFilters' own vendorType param. Omit for the unscoped "All" list. */
+export async function getVendorFilters(params: { vendorType?: string } = {}) {
+  return apiFetch<VendorFiltersResponse>(`/customer/vendors/filters${toQueryString(params)}`, { auth: false });
 }
 
-export async function getPackagesFilters() {
-  return apiFetch<PackagesFiltersResponse>("/customer/packages/filters", { auth: false });
+/** `vendorType` scopes `filters.eventCategories` to just that vendor type's own live categories — e.g. the package listing's Decorator tab never offers "Workshop" (a Photographer-only category) that would resolve to zero results for that tab. Omit for the unscoped "All" list. */
+export async function getPackagesFilters(params: { vendorType?: string } = {}) {
+  return apiFetch<PackagesFiltersResponse>(`/customer/packages/filters${toQueryString(params)}`, { auth: false });
 }
 
 export interface PopularPackagesResponse extends BrowsePackagesResponse {

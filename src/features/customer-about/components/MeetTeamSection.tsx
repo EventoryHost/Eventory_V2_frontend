@@ -1,9 +1,9 @@
 // Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2438-22262
-// Note: the Figma file uses the exact same stock placeholder photo for all
-// four cards, and every caption literally reads "7 Memebrs in Product
-// Team" (typo and all) regardless of the card's own team name — none of
-// that was introduced while implementing this; it's placeholder content
-// that still needs real team photos/copy from whoever owns it.
+// Note: every caption literally reads "7 Memebrs in Product Team" (typo
+// and all) in the Figma file, regardless of the card's own team name —
+// not something introduced while implementing this. The four photos are
+// real office/team stock photos now (no blob-mask illustration anymore —
+// the design itself was updated since this section was first built).
 
 type TeamCard = {
   name: string;
@@ -29,16 +29,22 @@ export default function MeetTeamSection() {
           Meet Our Team
         </h2>
 
-        <div className="mt-12 grid grid-cols-2 gap-x-6 gap-y-12 sm:grid-cols-4">
+        <div className="mt-6 flex flex-wrap items-start gap-5">
           {TEAMS.map((team) => (
-            <div key={team.name} className="flex flex-col items-center text-center">
-              <img src={team.image} alt="" className="h-auto w-full max-w-[280px]" />
-              <p className="mt-2 font-figtree text-[20px] leading-[1.1] font-semibold tracking-[-0.48px] text-[#EA1D3B] sm:text-[24px]">
-                {team.name}
-              </p>
-              <p className="mt-1 font-figtree text-[16px] leading-[1.5] font-medium tracking-[-0.16px] text-[#1E0306]">
-                {team.memberCount} Members in {team.name}
-              </p>
+            <div key={team.name} className="flex min-w-[260px] flex-1 flex-col items-center gap-3 text-center">
+              <img
+                src={team.image}
+                alt=""
+                className="aspect-[313/363] w-full rounded-[20px] object-cover"
+              />
+              <div className="flex flex-col gap-1">
+                <p className="font-figtree text-[20px] leading-[1.1] font-semibold tracking-[-0.48px] text-[#EA1D3B] sm:text-[24px]">
+                  {team.name}
+                </p>
+                <p className="font-figtree text-[16px] leading-[1.5] font-medium tracking-[-0.16px] text-[#1E0306]">
+                  {team.memberCount} Members in {team.name}
+                </p>
+              </div>
             </div>
           ))}
         </div>

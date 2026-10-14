@@ -17,7 +17,15 @@ export default function SearchDropdownPanel({
   className = "",
 }: {
   header: string;
-  rows: { id: string; label: string; subtitle?: string; icon?: string; IconComponent?: LucideIcon }[];
+  rows: {
+    id: string;
+    label: string;
+    subtitle?: string;
+    icon?: string;
+    IconComponent?: LucideIcon;
+    /** Figma node 2250:9764 — "Choose vendor service"'s non-Decorator rows (data/eventSearchTaxonomy.ts's ALL_SERVICE_OPTIONS). Still clickable, just visually flagged as not live yet. */
+    comingSoon?: boolean;
+  }[];
   selectedId?: string;
   onSelect: (id: string) => void;
   className?: string;
@@ -54,10 +62,17 @@ export default function SearchDropdownPanel({
                   <img src={row.icon} alt="" className="absolute inset-0 h-full w-full object-contain p-1" />
                 )}
               </span>
-              <span className="flex min-w-0 flex-col">
-                <span className="truncate font-figtree text-[16px] font-medium text-[#030303]">{row.label}</span>
-                {row.subtitle && (
-                  <span className="truncate font-figtree text-[13px] text-[#8E8E96]">{row.subtitle}</span>
+              <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate font-figtree text-[16px] font-medium text-[#030303]">{row.label}</span>
+                  {row.subtitle && (
+                    <span className="truncate font-figtree text-[13px] text-[#8E8E96]">{row.subtitle}</span>
+                  )}
+                </span>
+                {row.comingSoon && (
+                  <span className="shrink-0 rounded-full border-[0.5px] border-[#9F9FA9] bg-white px-2.5 py-0.5 font-figtree text-[9px] font-semibold tracking-[0.09px] text-[#9F9FA9] uppercase">
+                    Coming soon
+                  </span>
                 )}
               </span>
             </button>

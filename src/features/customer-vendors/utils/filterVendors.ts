@@ -10,12 +10,13 @@ function ratingMatches(rating: number, optionId: string) {
  * Client-side refinement on top of the page already fetched from
  * GET /customer/vendors.
  *
- * Search, category and sort are NOT handled here any more — the vendors
- * endpoint does all three server-side, so re-applying them client-side
- * would only ever narrow the current page and fight the real result count.
- * What's left are the multi-select sidebar sections, which the endpoint has
- * no equivalent for: they stay an OR-within-section, AND-across-section
- * pass over whatever page is loaded.
+ * Search, category, sort AND event type (added 2026-10-14 — see
+ * VendorsPageContent.tsx's eventTypeParam comment) are all applied by the
+ * endpoint itself; re-applying them client-side would only ever narrow the
+ * current page and fight the real result count. What's left are the
+ * remaining multi-select sidebar sections, which the endpoint has no
+ * equivalent for: they stay an OR-within-section, AND-across-section pass
+ * over whatever page is loaded.
  *
  * THREE SECTIONS ARE DELIBERATELY INERT, because a vendor row carries no
  * data to test them against:
@@ -31,13 +32,9 @@ function ratingMatches(rating: number, optionId: string) {
  * narrowing on them would mean inventing a signal and dropping every result.
  */
 export function filterVendors(vendors: Vendor[], selected: SelectedFilters): Vendor[] {
-  const { eventType, locality, rating } = selected;
+  const { locality, rating } = selected;
 
   return vendors.filter((vendor) => {
-    if (eventType.length > 0 && !eventType.some((id) => vendor.eventTypes.includes(id))) {
-      return false;
-    }
-
     // Matched against city AND service areas — the same list the card's
     // location strip shows, so a vendor is findable by anywhere they serve,
     // not only where they are registered.

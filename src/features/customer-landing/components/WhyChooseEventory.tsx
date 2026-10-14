@@ -52,14 +52,14 @@ export default function WhyChooseEventory() {
             <div
               key={feature.title}
               className={`relative w-full min-h-[152px] rounded-tl-[4px] rounded-tr-2xl rounded-br-2xl rounded-bl-2xl pt-11 pr-6 pb-6 pl-6 ${
-                isPink ? "bg-[#F0596F]" : "bg-[#FFF9F1]"
+                isPink ? "bg-[#F0596F]" : "bg-white"
               }`}
             >
               <span
                 className={`absolute -top-6 left-6 flex h-14 w-14 items-center justify-center rounded-full ${
                   isPink
-                    ? "bg-[#FFF9F1] text-[#F0596F] border border-[#F0596F]"
-                    : "bg-[#F0596F] text-[#FFF9F1]"
+                    ? "bg-white text-[#F0596F] border border-[#F0596F]"
+                    : "bg-[#F0596F] text-white"
                 }`}
               >
                 <Icon size={22} />

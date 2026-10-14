@@ -18,9 +18,13 @@ const NOTE = "font-figtree text-[12px] leading-[16.5px] font-medium text-[#71717
 
 /**
  * "Event timing" — the vendor's own slots for the picked date (from
- * GET /customer/packages/:id/slots), shown as selectable chips. Renders
- * nothing for FULL_DAY packages, and a message instead of empty chips when
- * the day itself is unavailable.
+ * GET /customer/packages/:id/slots), shown as selectable chips. The
+ * backend now generates AUTO slots (6 AM–midnight, 3-hour blocks) for
+ * FULL_DAY packages without custom ones too, so this renders the same
+ * picker for those as for TIME_SLOTS packages — an empty `slots` array is a
+ * genuine edge case now (e.g. no price to derive slots from), not the
+ * normal full-day case it used to be. Renders a message instead of chips
+ * when the day itself is unavailable.
  */
 export default function EventTimingSlots({
   state,

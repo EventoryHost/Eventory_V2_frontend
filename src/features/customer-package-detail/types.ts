@@ -288,6 +288,8 @@ export interface PackageDetail {
   locationSummary: string;
   /** Same city + service-area composition as locationSummary, uncapped — what the header's "See the location" expands to. */
   fullLocationSummary: string;
+  /** Same city + service-area composition as fullLocationSummary, but as an array — what the header renders as individual pill chips (Figma node 2404:22954), rather than the plain comma-joined text locationSummary/fullLocationSummary are for other spots (ShareModal, etc). */
+  locationList: string[];
   gallery: GalleryImage[];
   variants: PackageVariant[];
   defaultVariantId: string;

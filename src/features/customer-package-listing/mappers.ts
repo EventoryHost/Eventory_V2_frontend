@@ -7,7 +7,6 @@ import {
 } from "@/lib/customerDiscoveryApi";
 import { resolveVendorCategory } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
 import { sanitizeCityName } from "@/lib/vendorLocation";
 import type { PackageListItem } from "./types";
 
@@ -30,7 +29,9 @@ export function mapPackageToListItem(pkg: RawPackage): PackageListItem {
     categoryLabel: resolved?.label ?? "",
     categoryIcon: meta?.icon,
     categoryGradientFrom: meta?.gradientFrom,
-    eventTypes: filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []),
+    // PM reversal (2026-10-14): show every category the vendor set,
+    // including ones previously merged/hidden as duplicates.
+    eventTypes: pkg.step1_eventAndCrew?.eventCategories ?? [],
     // The package's own rating isn't stored; the owning vendor's stands in,
     // which is what the PDP and every other package card already show.
     rating: pkg.vendorId?.rating ?? 0,

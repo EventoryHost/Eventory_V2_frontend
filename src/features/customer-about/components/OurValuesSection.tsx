@@ -6,8 +6,6 @@
 type ValueCard = {
   label: string;
   quote: string;
-  /** "primary" = the pink-themed first card; "neutral" = the cream-themed other two. */
-  variant: "primary" | "neutral";
 };
 
 const CARDS: ValueCard[] = [
@@ -15,38 +13,28 @@ const CARDS: ValueCard[] = [
     label: "Our Values",
     quote:
       "At Eventory, we believe clarity builds trust. We value structured planning, honest communication, and partnerships that actually deliver. Every event deserves accountability, not chaos, and that's the standard we hold ourselves to",
-    variant: "primary",
   },
   {
     label: "Our Vision",
     quote:
       "At Eventory, we believe clarity builds trust. We value structured planning, honest communication, and partnerships that actually deliver. Every event deserves accountability, not chaos, and that's the standard we hold ourselves to",
-    variant: "neutral",
   },
   {
     label: "Our Mission",
     quote:
       "At Eventory, we believe clarity builds trust. We value structured planning, honest communication, and partnerships that actually deliver. Every event deserves accountability, not chaos, and that's the standard we hold ourselves to",
-    variant: "neutral",
   },
 ];
 
+// All three cards share the same neutral (cream) resting look — the pink
+// "Our Values" treatment isn't one card's permanent identity, it's a hover
+// state any of the three cards takes on (group/group-hover, so each card's
+// own hover only affects itself, not its siblings).
 function ValueCardItem({ card }: { card: ValueCard }) {
-  const isPrimary = card.variant === "primary";
   return (
-    <div
-      className={`relative flex flex-1 flex-col rounded-[28px] p-1 ${isPrimary ? "bg-[#F0596F]" : "bg-[#FFF0DB]"}`}
-    >
-      <div
-        className={`relative flex flex-1 flex-col rounded-[24px] bg-white px-6 pt-10 pb-14 ${
-          isPrimary ? "" : "border border-[#FFF0DB]"
-        }`}
-      >
-        <span
-          className={`font-figtree text-[80px] leading-[64px] font-bold ${
-            isPrimary ? "text-[#F0596F]" : "text-[#3C060D]"
-          }`}
-        >
+    <div className="group relative flex flex-1 flex-col rounded-[28px] bg-[#FFF0DB] p-1 transition-colors duration-200 hover:bg-[#F0596F]">
+      <div className="relative flex flex-1 flex-col rounded-[24px] border border-[#FFF0DB] bg-white px-6 pt-10 pb-14 transition-colors duration-200 group-hover:border-transparent">
+        <span className="font-figtree text-[80px] leading-[64px] font-bold text-[#3C060D] transition-colors duration-200 group-hover:text-[#F0596F]">
           &ldquo;
         </span>
         <p className="mt-2 font-figtree text-[16px] leading-[1.5] font-medium tracking-[-0.16px] text-[#3F3F47]">
@@ -54,16 +42,8 @@ function ValueCardItem({ card }: { card: ValueCard }) {
         </p>
       </div>
 
-      <div
-        className={`absolute bottom-1 left-1 flex h-[56px] items-center rounded-tr-[50px] rounded-bl-[27px] pr-9 pl-6 ${
-          isPrimary ? "bg-[#F0596F]" : "bg-[#FFF0DB]"
-        }`}
-      >
-        <span
-          className={`font-figtree text-[24px] font-bold tracking-[-0.5px] whitespace-nowrap ${
-            isPrimary ? "text-white" : "text-[#3C060D]"
-          }`}
-        >
+      <div className="absolute bottom-1 left-1 flex h-[56px] items-center rounded-tr-[50px] rounded-bl-[27px] bg-[#FFF0DB] pr-9 pl-6 transition-colors duration-200 group-hover:bg-[#F0596F]">
+        <span className="font-figtree text-[24px] font-bold tracking-[-0.5px] whitespace-nowrap text-[#3C060D] transition-colors duration-200 group-hover:text-white">
           {card.label}
         </span>
       </div>

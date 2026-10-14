@@ -23,6 +23,7 @@ export const mockPackageDetail: PackageDetail = {
   reviewCount: 13,
   locationSummary: "Delhi NCR, Gurugram, Noida",
   fullLocationSummary: "Delhi NCR, Gurugram, Noida, Ghaziabad, Faridabad",
+  locationList: ["Delhi NCR", "Gurugram", "Noida", "Ghaziabad", "Faridabad"],
   gallery: [
     { id: "gallery-1", image: "/images/customer/haldi.jpg", alt: "Marigold stage main view" },
     { id: "gallery-2", image: "/images/customer/packages-pics.png", alt: "Stage detail — marigold garlands" },

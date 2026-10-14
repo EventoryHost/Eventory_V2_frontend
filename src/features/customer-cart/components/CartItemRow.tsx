@@ -67,7 +67,6 @@ export default function CartItemRow({
             <PackageInfo
               cartPackage={item.package}
               eventDetails={item.eventDetails}
-              specialRequest={item.specialRequest}
               onRemove={() => onRemove(item.id)}
               onMoveToWishlist={() => onMoveToWishlist(item.id)}
             />
