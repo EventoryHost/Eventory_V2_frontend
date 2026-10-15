@@ -9,7 +9,7 @@ const LINK_GROUPS = [
       { label: "Careers", href: "#" },
       { label: "Become a vendor", href: "/become-a-vendor" },
       { label: "Corporate Events", href: "#" },
-      { label: "Blog", href: "#" },
+      { label: "Blog", href: "/blogs" },
     ],
   },
   {
