@@ -117,8 +117,11 @@ export default function ProductCard({
           </p>
         </div>
 
-        {/* Title */}
-        <h3 className="font-figtree text-[20px] font-bold leading-[1.2] text-brand-950 line-clamp-2">
+        {/* Title — min-h reserves 2 lines' worth of space even when the
+            title only takes 1, so cards with short titles don't end up
+            shorter than cards whose titles wrap (PM-reported alignment
+            issue, 2026-10-15). */}
+        <h3 className="min-h-[48px] font-figtree text-[20px] font-bold leading-[1.2] text-brand-950 line-clamp-2">
           {title}
         </h3>
 
