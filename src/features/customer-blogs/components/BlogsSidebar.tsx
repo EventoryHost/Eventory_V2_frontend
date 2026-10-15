@@ -1,0 +1,113 @@
+import Image from "next/image";
+import { ArrowRight } from "lucide-react";
+
+const TRENDING_ITEMS = [
+  {
+    thumb: "/images/customer/blogs/sidebar-thumb-1.png",
+    title: "Pastel party décor that looks great on camera",
+    readTime: "5 min read",
+  },
+  {
+    thumb: "/images/customer/blogs/sidebar-thumb-2.png",
+    title: "How much does a 100-guest birthday cost in 2026?",
+    readTime: "7 min read",
+  },
+  {
+    thumb: "/images/customer/blogs/sidebar-thumb-3.png",
+    title: "Baby shower themes that feel personal",
+    readTime: "4 min read",
+  },
+  {
+    thumb: "/images/customer/blogs/sidebar-thumb-4.png",
+    title: "Festive lobby décor ideas for your society",
+    readTime: "6 min read",
+  },
+];
+
+// Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2679-31218
+export default function BlogsSidebar() {
+  return (
+    <div className="flex w-full flex-col items-start gap-6">
+      <div className="relative flex h-[600px] w-full flex-col justify-between overflow-hidden rounded-[20px] p-7">
+        <Image
+          src="/images/customer/blogs/sidebar-promo-banner.png"
+          alt=""
+          fill
+          className="object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(61,5,13,0.05)] via-[45%] via-[rgba(61,5,13,0.35)] to-[rgba(61,5,13,0.92)]" />
+
+        <div className="relative flex items-center justify-between">
+          <span className="rounded-full bg-[#FFD230] px-3 py-1.5 font-figtree text-[12px] font-bold tracking-normal text-[#3C060D] uppercase">
+            Festive offer
+          </span>
+          <span className="rounded-full bg-white px-2.5 py-1 font-figtree text-[12px] font-medium text-[#3C060D]">
+            Ad
+          </span>
+        </div>
+
+        <div className="relative flex flex-col gap-3.5">
+          <p className="font-figtree text-[12px] font-bold tracking-normal text-[#FFD230] uppercase">
+            Up to 20% off
+          </p>
+          <h3 className="font-figtree text-[26px] leading-[32px] font-semibold text-white sm:text-[32px] sm:leading-[36px]">
+            Diwali packages for{" "}
+            <span className="italic" style={{ fontFamily: "var(--font-lora)", color: "#FCDEE2" }}>
+              every home
+            </span>
+          </h3>
+          <p className="font-figtree text-[16px] leading-[24px] font-medium text-white">
+            Décor, catering and DJ packages from verified vendors in Jaipur. Book by 25 Oct to lock your date.
+          </p>
+          <a
+            href="/packages/browse"
+            className="flex w-full items-center justify-center gap-2.5 rounded-full bg-white px-6 py-4 font-figtree text-[16px] font-semibold text-[#F0596F]"
+          >
+            Browse Diwali packages
+            <ArrowRight size={16} />
+          </a>
+          <p className="font-figtree text-[12px] font-medium text-white opacity-85">
+            Free cancellation on most packages &middot; T&amp;Cs apply
+          </p>
+        </div>
+      </div>
+
+      <div className="flex w-full flex-col items-start gap-[18px] rounded-2xl border border-[#F4F4F5] bg-white p-6">
+        <p className="font-figtree text-[20px] font-semibold text-[#1E0306]">Trending this week</p>
+
+        {TRENDING_ITEMS.map((item, index) => (
+          <div key={item.title} className="flex w-full flex-col gap-[18px]">
+            {index > 0 && <div className="h-px w-full bg-[#F4F4F5]" />}
+            <div className="flex w-full items-center gap-3.5">
+              <div className="relative size-[72px] shrink-0 overflow-hidden rounded-xl">
+                <Image src={item.thumb} alt={item.title} fill className="object-cover" />
+              </div>
+              <div className="flex flex-1 flex-col gap-1.5">
+                <p className="font-figtree text-[14px] leading-[20px] font-semibold text-[#18181B]">{item.title}</p>
+                <p className="font-figtree text-[12px] font-medium text-[#71717B]">{item.readTime}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex w-full flex-col items-start gap-3.5 rounded-2xl border border-[#FFFBEB] bg-[#FFFBEB] p-6">
+        <p className="font-figtree text-[20px] font-semibold text-[#1E0306]">Event ideas in your inbox</p>
+        <p className="font-figtree text-[14px] leading-[20px] font-medium text-[#71717B]">
+          One email a month with seasonal themes, budgets and vendor offers.
+        </p>
+        <input
+          type="email"
+          placeholder="Your email address"
+          className="h-12 w-full rounded-full border border-[#F4F4F5] bg-white px-4 font-figtree text-[14px] font-medium text-[#3F3F47] placeholder:text-[#9F9FA9] outline-none focus:border-[#F0596F]/40"
+        />
+        <button
+          type="button"
+          className="w-full rounded-full bg-[#F0596F] py-4 font-figtree text-[16px] font-semibold text-white"
+        >
+          Subscribe
+        </button>
+      </div>
+    </div>
+  );
+}
