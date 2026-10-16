@@ -25,6 +25,7 @@ const RELATED_POSTS = [
     title: "Baby Shower and Welcome Baby Decoration at Home",
     description:
       "Decor ideas for the godh bharai and the homecoming, plus how to keep the mother-to-be comfortable and the newborn's space safe.",
+    href: "/blogs/baby-shower-welcome-baby-decoration",
   },
 ];
 
