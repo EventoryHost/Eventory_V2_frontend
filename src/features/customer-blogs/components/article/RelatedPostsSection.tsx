@@ -9,6 +9,7 @@ const RELATED_POSTS = [
     title: "15 Questions to Ask Before You Book a Decorator",
     description:
       "A copy-and-send checklist for birthday, anniversary, proposal, baby shower and welcome-baby decor, plus the red flags to walk away from.",
+    href: "/blogs/decorator-questions-checklist",
   },
   {
     image: "/images/customer/tech.jpg",
@@ -16,6 +17,7 @@ const RELATED_POSTS = [
     title: "Surprise Decoration for Your Partner",
     description:
       "Seven setups for a birthday, an anniversary or the big question, plus the planning that keeps the surprise a surprise.",
+    href: "/blogs/surprise-decoration-for-partner",
   },
   {
     image: "/images/customer/expo.jpg",
@@ -51,7 +53,7 @@ export default function RelatedPostsSection() {
           {RELATED_POSTS.map((post) => (
             <a
               key={post.title}
-              href="#"
+              href={post.href ?? "#"}
               className="flex flex-1 flex-col overflow-hidden rounded-[20px] border border-[#E6E6E6] bg-white"
             >
               <div className="relative h-[220px] w-full shrink-0">

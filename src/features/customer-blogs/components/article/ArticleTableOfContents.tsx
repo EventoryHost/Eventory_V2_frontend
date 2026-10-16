@@ -7,17 +7,21 @@ export type TocItem = { id: string; label: string };
 
 // Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2679-28375
 // (TOC Header) + node-id=2679-28388 (TOC Links) + node-id=2679-28411 (TOC Meta) + node-id=2679-28424 (TOC Actions)
-// Also node-id=2679-30637/30650/30673/30686 — same layout, reused across article pages.
+// Also node-id=2679-30637/30650/30673/30686 and node-id=2679-28997 (adds the read-progress
+// bar under the header) — same layout, reused across article pages.
 export default function ArticleTableOfContents({
   items,
   readTime = "5 min read",
   authorName = "Team Eventory",
   timeLeft = "5 minutes left",
+  showProgress = false,
 }: {
   items: TocItem[];
   readTime?: string;
   authorName?: string;
   timeLeft?: string;
+  /** Shows a thin progress bar under the header, filled by how far through the TOC items the reader has scrolled. */
+  showProgress?: boolean;
 }) {
   const [activeId, setActiveId] = useState(items[0]?.id);
 
@@ -74,6 +78,17 @@ export default function ArticleTableOfContents({
           <p className="font-figtree text-[12px] font-medium text-[#9F9FA9]">{readTime}</p>
         </div>
       </div>
+
+      {showProgress && (
+        <div className="h-1 w-full bg-[#FFE3E7]">
+          <div
+            className="h-1 bg-[#F0596F] transition-all"
+            style={{
+              width: `${((items.findIndex((item) => item.id === activeId) + 1) / items.length) * 100}%`,
+            }}
+          />
+        </div>
+      )}
 
       <div className="flex w-full flex-col items-start gap-1 px-4 pt-4 pb-3">
         {items.map((item) => {

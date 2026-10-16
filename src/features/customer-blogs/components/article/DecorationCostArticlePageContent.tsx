@@ -45,7 +45,7 @@ export default function DecorationCostArticlePageContent() {
           <ArticleShareRail />
           <DecorationCostBody />
           <aside className="sticky top-24 hidden w-[320px] shrink-0 lg:block">
-            <ArticleTableOfContents items={TOC_ITEMS} authorName="Anishka" />
+            <ArticleTableOfContents items={TOC_ITEMS} authorName="Anishka" showProgress />
           </aside>
         </div>
       </section>
@@ -57,6 +57,7 @@ export default function DecorationCostArticlePageContent() {
           description="Compare decoration packages by occasion, check what each one includes and book online, or talk to our team."
           imageSrc="/images/customer/needhelp.png"
           imageAlt="People celebrating"
+          flipImage
           primaryLabel="Browse Packages"
           primaryHref="/packages/browse"
           footnote=""

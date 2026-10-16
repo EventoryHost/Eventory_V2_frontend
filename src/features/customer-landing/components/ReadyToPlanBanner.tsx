@@ -11,6 +11,7 @@ export default function ReadyToPlanBanner({
   footnote = "100% free to Browse • Instant access",
   secondaryLabel,
   secondaryHref,
+  flipImage = false,
 }: {
   heading?: string;
   description?: string;
@@ -22,6 +23,8 @@ export default function ReadyToPlanBanner({
   /** Second, text-only CTA shown beside the primary button — omitted by default (landing page's original single-button layout). */
   secondaryLabel?: string;
   secondaryHref?: string;
+  /** Mirrors the image horizontally — useful when reusing a photo shot facing the other way. */
+  flipImage?: boolean;
 }) {
   return (
     <section
@@ -31,7 +34,12 @@ export default function ReadyToPlanBanner({
       }}
     >
       <div className="absolute inset-y-0 right-0 hidden w-1/2 lg:block">
-        <Image src={imageSrc} alt={imageAlt} fill className="object-cover" />
+        <Image
+          src={imageSrc}
+          alt={imageAlt}
+          fill
+          className={`object-cover ${flipImage ? "scale-x-[-1]" : ""}`}
+        />
       </div>
 
       <div className="relative z-10 flex h-full max-w-[692px] flex-col items-start justify-center gap-4 px-8 lg:pl-12 lg:pr-0">

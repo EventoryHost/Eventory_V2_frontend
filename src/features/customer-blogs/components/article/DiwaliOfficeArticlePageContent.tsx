@@ -46,7 +46,7 @@ export default function DiwaliOfficeArticlePageContent() {
           <ArticleShareRail />
           <ArticleBody />
           <aside className="sticky top-24 hidden w-[320px] shrink-0 lg:block">
-            <ArticleTableOfContents items={TOC_ITEMS} />
+            <ArticleTableOfContents items={TOC_ITEMS} showProgress />
           </aside>
         </div>
       </section>
