@@ -56,7 +56,7 @@ export default function FeaturedStorySection() {
             </div>
 
             <a
-              href="#"
+              href="/blogs/diwali-office-decoration-ideas-2026"
               className="flex w-fit items-center gap-2.5 rounded-full bg-[#F0596F] px-8 py-4 font-figtree text-[16px] font-semibold text-white"
             >
               Read the full story
