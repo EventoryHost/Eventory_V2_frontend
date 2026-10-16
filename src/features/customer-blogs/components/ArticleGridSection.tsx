@@ -10,6 +10,8 @@ export type Article = {
   excerpt: string;
   authorInitials: string;
   authorName: string;
+  /** Falls back to "#" (not yet built) when omitted. */
+  href?: string;
 };
 
 export const ARTICLES: Article[] = [
@@ -23,6 +25,7 @@ export const ARTICLES: Article[] = [
     excerpt: "Marigold arches, floor seating and lighting ideas that look rich without the price tag.",
     authorInitials: "AD",
     authorName: "Archi Deval",
+    href: "/blogs/decoration-cost-delhi-ncr-2026",
   },
   {
     id: "first-birthday-themes",
@@ -106,7 +109,7 @@ export const ARTICLES: Article[] = [
 function BlogCard({ article }: { article: Article }) {
   return (
     <a
-      href="#"
+      href={article.href ?? "#"}
       className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition-colors hover:border-[#F0596F]/30"
     >
       <div className="relative h-[240px] w-full shrink-0">
