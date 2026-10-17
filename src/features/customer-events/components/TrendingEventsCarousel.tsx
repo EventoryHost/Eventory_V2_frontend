@@ -7,6 +7,7 @@ import TrendingEventCard, {
 
 const EVENTS: TrendingEventCardProps[] = [
   {
+    image: "/images/customer/events/megaholibash.png",
     badge: "TRENDING",
     title: "Mega Holi Bash 2026",
     subtitle: "Its time to book your holi party",
@@ -15,6 +16,7 @@ const EVENTS: TrendingEventCardProps[] = [
     ctaLabel: "Book Your Package",
   },
   {
+    image: "/images/customer/events/winterfestive.png",
     badge: "TRENDING",
     title: "Winter Festive Fair",
     subtitle: "Book your dream winter fest",
@@ -23,6 +25,7 @@ const EVENTS: TrendingEventCardProps[] = [
     ctaLabel: "Book Your Package",
   },
   {
+    image: "/images/customer/events/newyear.png",
     badge: "TRENDING",
     title: "New Year Bash 2027",
     subtitle: "Ring in the new year in style",

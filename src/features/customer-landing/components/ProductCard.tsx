@@ -79,12 +79,9 @@ export default function ProductCard({
             event.stopPropagation();
             onToggleBookmark?.();
           }}
-          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/20 backdrop-blur-md"
+          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 backdrop-blur-[5.6px]"
         >
-          <Bookmark
-            className="h-4 w-4 text-white backdrop-blur-sm"
-            fill={isBookmarked ? "currentColor" : "none"}
-          />
+          <Bookmark className="h-5 w-5 text-white" fill={isBookmarked ? "currentColor" : "none"} />
         </button>
       </div>
 

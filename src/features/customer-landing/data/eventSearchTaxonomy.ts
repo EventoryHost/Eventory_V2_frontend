@@ -105,8 +105,8 @@ export const ALL_SERVICE_OPTIONS = [
   { id: "decorator", label: "Decorator", icon: CATEGORY_META.decorator.icon },
   { id: "venue-provider", label: "Venue provider", icon: CATEGORY_META["venue-provider"].icon, comingSoon: true },
   { id: "caterer", label: "Caterer", icon: CATEGORY_META.caterer.icon, comingSoon: true },
-  { id: "makeup-artist", label: "Makeup artist", icon: CATEGORY_META["makeup-artist"].icon, comingSoon: true },
   { id: "dj-artist", label: "DJ artist", icon: CATEGORY_META["dj-artist"].icon, comingSoon: true },
+  { id: "makeup-artist", label: "Makeup artist", icon: CATEGORY_META["makeup-artist"].icon, comingSoon: true },
   {
     id: "photographer",
     label: "Photographer & videographer",

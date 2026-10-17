@@ -8,108 +8,85 @@ export type Article = {
   readTime: string;
   title: string;
   excerpt: string;
-  authorInitials: string;
+  authorAvatar: string;
   authorName: string;
-  /** Falls back to "#" (not yet built) when omitted. */
-  href?: string;
+  href: string;
 };
 
+// The 5 real article pages built under src/features/customer-blogs/components/article/.
 export const ARTICLES: Article[] = [
   {
-    id: "mehendi-decor-budget",
-    category: "Wedding",
-    cover: "/images/customer/blogs/article-cover-1.png",
-    date: "Oct 2, 2026",
-    readTime: "6 min read",
-    title: "Mehendi décor on a budget: 9 setups under ₹50,000",
-    excerpt: "Marigold arches, floor seating and lighting ideas that look rich without the price tag.",
-    authorInitials: "AD",
-    authorName: "Archi Deval",
+    id: "diwali-office-decoration-ideas-2026",
+    category: "Festivals & Seasons",
+    cover: "/images/customer/blogs/article-diwali-office/hero-image.png",
+    date: "Oct 10, 2026",
+    readTime: "5 min read",
+    title: "Diwali Office Decoration Ideas for 2026 (and How to Get It Done Without Last-Minute Chaos)",
+    excerpt:
+      "Zone-by-zone decor ideas for your office, plus the approvals, timeline and vendor questions most guides skip.",
+    authorAvatar: "/images/customer/blogs/article-diwali-office/author-prathmesh.png",
+    authorName: "Prathmesh",
+    href: "/blogs/diwali-office-decoration-ideas-2026",
+  },
+  {
+    id: "decoration-cost-delhi-ncr-2026",
+    category: "Planning & Costs",
+    cover: "/images/customer/blogs/article-decoration-cost-delhi-ncr/hero-image.png",
+    date: "Oct 10, 2026",
+    readTime: "5 min read",
+    title:
+      "Decoration Cost in Delhi NCR (2026): Birthday, Anniversary, Proposal, Baby Shower and Welcome Baby",
+    excerpt:
+      "What each type of celebration setup costs, what pushes the price up, and how to compare two packages without getting caught by extras.",
+    authorAvatar: "/images/customer/blogs/article-decoration-cost-delhi-ncr/author-anishka.png",
+    authorName: "Anishka",
     href: "/blogs/decoration-cost-delhi-ncr-2026",
   },
   {
-    id: "first-birthday-themes",
-    category: "Birthday",
-    cover: "/images/customer/blogs/article-cover-2.png",
-    date: "Sep 28, 2026",
+    id: "decorator-questions-checklist",
+    category: "Planning & Costs",
+    cover: "/images/customer/blogs/article-decorator-questions/hero-image.png",
+    date: "Oct 10, 2026",
     readTime: "5 min read",
-    title: "First birthday themes parents are loving this year",
-    excerpt: "Soft balloon walls, pastel cakes and photo corners — plus what each one costs to book.",
-    authorInitials: "NS",
-    authorName: "Neha Sharma",
+    title: "15 Questions to Ask Before You Book a Decorator",
+    excerpt:
+      "A copy-and-send checklist for birthday, anniversary, proposal, baby shower and welcome-baby decor, with what a good answer sounds like and the red flags to walk away from.",
+    authorAvatar: "/images/customer/blogs/article-decorator-questions/author-keshav.png",
+    authorName: "Keshav",
+    href: "/blogs/decorator-questions-checklist",
   },
   {
-    id: "baby-shower-checklist",
-    category: "Baby Shower",
-    cover: "/images/customer/blogs/article-cover-3.png",
-    date: "Sep 24, 2026",
-    readTime: "7 min read",
-    title: "Planning a baby shower at home: a simple checklist",
-    excerpt: "Everything to sort two weeks out, one week out and on the day, in one list.",
-    authorInitials: "RJ",
-    authorName: "Ritika Jain",
-  },
-  {
-    id: "offsite-team-enjoy",
-    category: "Corporate",
-    cover: "/images/customer/blogs/article-cover-4.png",
-    date: "Sep 20, 2026",
-    readTime: "8 min read",
-    title: "How to plan an offsite your team will actually enjoy",
-    excerpt: "Venues, catering and activities that work for 30 to 300 people.",
-    authorInitials: "RM",
-    authorName: "Rajesh Mehta",
-  },
-  {
-    id: "holi-party-ideas",
-    category: "Festivals",
-    cover: "/images/customer/blogs/article-cover-5.png",
-    date: "Sep 15, 2026",
+    id: "surprise-decoration-for-partner",
+    category: "Decoration Ideas",
+    cover: "/images/customer/blogs/article-surprise-decoration/hero-image.png",
+    date: "Oct 10, 2026",
     readTime: "5 min read",
-    title: "Top 10 Holi party ideas for 2026",
-    excerpt: "Organic colours, a DJ who reads the crowd, and snacks that survive the splash.",
-    authorInitials: "AD",
-    authorName: "Archi Deval",
+    title: "Surprise Decoration for Your Partner: Birthday, Anniversary and Proposal Ideas (and How to Pull It Off)",
+    excerpt:
+      "Seven setups for a birthday, an anniversary or the big question, plus the planning that keeps the surprise a surprise.",
+    authorAvatar: "/images/customer/blogs/article-surprise-decoration/author-ruchi.png",
+    authorName: "Ruchi",
+    href: "/blogs/surprise-decoration-for-partner",
   },
   {
-    id: "hiring-a-dj",
-    category: "Vendor Guides",
-    cover: "/images/customer/blogs/article-cover-6.png",
-    date: "Sep 11, 2026",
-    readTime: "4 min read",
-    title: "Hiring a DJ: 7 questions to ask before you book",
-    excerpt: "Sound setup, playlists, overtime charges — what to confirm before you pay the token.",
-    authorInitials: "KS",
-    authorName: "Kabir Singh",
-  },
-  {
-    id: "winter-haldi",
-    category: "Wedding",
-    cover: "/images/customer/blogs/article-cover-7.png",
-    date: "Sep 6, 2026",
-    readTime: "6 min read",
-    title: "Winter haldi: marigolds, mustard drapes and fairy lights",
-    excerpt: "A warm, cosy haldi setup that photographs beautifully on a winter afternoon.",
-    authorInitials: "SK",
-    authorName: "Sardar Khan",
-  },
-  {
-    id: "pastel-party-decor",
-    category: "Décor Tips",
-    cover: "/images/customer/blogs/article-cover-8.png",
-    date: "Sep 2, 2026",
+    id: "baby-shower-welcome-baby-decoration",
+    category: "Decoration Ideas",
+    cover: "/images/customer/blogs/article-baby-shower-welcome/hero-image.png",
+    date: "Oct 10, 2026",
     readTime: "5 min read",
-    title: "Pastel party décor that looks great on camera",
-    excerpt: "Colour pairings, lighting tips and backdrops our photographers love.",
-    authorInitials: "NS",
-    authorName: "Neha Sharma",
+    title: "Baby Shower and Welcome Baby Decoration at Home: Ideas and Planning Guide",
+    excerpt:
+      "Decor ideas for the godh bharai and the homecoming, plus how to keep the mother-to-be comfortable and the newborn's space safe.",
+    authorAvatar: "/images/customer/blogs/article-baby-shower-welcome/author-amit.png",
+    authorName: "Amit Rai",
+    href: "/blogs/baby-shower-welcome-baby-decoration",
   },
 ];
 
 function BlogCard({ article }: { article: Article }) {
   return (
     <a
-      href={article.href ?? "#"}
+      href={article.href}
       className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition-colors hover:border-[#F0596F]/30"
     >
       <div className="relative h-[240px] w-full shrink-0">
@@ -129,8 +106,8 @@ function BlogCard({ article }: { article: Article }) {
         <p className="font-figtree text-[16px] leading-[24px] font-medium text-[#71717B]">{article.excerpt}</p>
 
         <div className="mt-1.5 flex items-center gap-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-2xl bg-[#FDEEF0]">
-            <span className="font-figtree text-[12px] font-semibold text-[#B4112A]">{article.authorInitials}</span>
+          <div className="relative size-8 shrink-0 overflow-hidden rounded-2xl bg-[#FDEEF0]">
+            <Image src={article.authorAvatar} alt={article.authorName} fill className="object-cover" />
           </div>
           <span className="font-figtree text-[14px] font-semibold text-[#18181B]">{article.authorName}</span>
         </div>

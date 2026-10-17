@@ -158,7 +158,7 @@ export default function MobileBookingBar({
   return (
     <>
       {/* Floating sticky bar — Figma node 2548:28662. */}
-      <div className="fixed inset-x-4 bottom-4 z-40 md:hidden">
+      <div className="fixed inset-x-4 bottom-4 z-40 lg:hidden">
         <div className="flex items-center gap-2.5 rounded-[32px] border-[0.5px] border-[#E4E4E7] bg-white py-2 pr-2 pl-5 shadow-[0px_8px_28px_0px_rgba(0,0,0,0.16)]">
           <button type="button" onClick={openSheet} className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
             <span className="flex items-baseline gap-1">
@@ -183,7 +183,7 @@ export default function MobileBookingBar({
           component covering all four since they're the same sheet at
           different steps of the same flow. */}
       {isSheetOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             aria-label="Close"

@@ -33,7 +33,7 @@ export default function SearchDropdownPanel({
   return (
     <div
       role="listbox"
-      className={`absolute top-[calc(100%+8px)] left-0 z-20 w-[360px] origin-top-left animate-[dropdown-enter_200ms_ease-out] rounded-[20px] border border-[#E4E4E8] bg-white p-2.5 shadow-[0px_10px_40px_0px_rgba(0,0,0,0.1)] ${className}`}
+      className={`absolute top-[calc(100%+8px)] left-0 z-20 w-full origin-top-left animate-[dropdown-enter_200ms_ease-out] rounded-[20px] border border-[#E4E4E8] bg-white p-2.5 shadow-[0px_10px_40px_0px_rgba(0,0,0,0.1)] ${className}`}
     >
       <div className="px-2.5 pt-2 pb-1.5">
         <span className="font-figtree text-[12px] font-medium tracking-[0.04em] text-[#8E8E96] uppercase">

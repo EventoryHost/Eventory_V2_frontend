@@ -1,31 +1,59 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
+import {
+  getPopularPackages,
+  getPackageImage,
+  getPackageStartingPrice,
+  type RawPackage,
+} from "@/lib/customerDiscoveryApi";
+import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
+import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 
-const TRENDING_ITEMS = [
-  {
-    thumb: "/images/customer/blogs/sidebar-thumb-1.png",
-    title: "Pastel party décor that looks great on camera",
-    readTime: "5 min read",
-  },
-  {
-    thumb: "/images/customer/blogs/sidebar-thumb-2.png",
-    title: "How much does a 100-guest birthday cost in 2026?",
-    readTime: "7 min read",
-  },
-  {
-    thumb: "/images/customer/blogs/sidebar-thumb-3.png",
-    title: "Baby shower themes that feel personal",
-    readTime: "4 min read",
-  },
-  {
-    thumb: "/images/customer/blogs/sidebar-thumb-4.png",
-    title: "Festive lobby décor ideas for your society",
-    readTime: "6 min read",
-  },
-];
+const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
+
+type TrendingPackage = {
+  id: string;
+  title: string;
+  thumb: string;
+  categoryLabel: string;
+  price: string;
+  href: string;
+};
+
+function toTrendingPackage(pkg: RawPackage): TrendingPackage {
+  const categoryId = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType];
+  const categoryLabel = VENDOR_CATEGORIES.find((c) => c.id === categoryId)?.label ?? pkg.vendorType;
+  return {
+    id: pkg._id,
+    title: pkg.step1_eventAndCrew?.packageName ?? "Package",
+    thumb: getPackageImage(pkg) ?? FALLBACK_IMAGE,
+    categoryLabel,
+    price: `From ₹${getPackageStartingPrice(pkg).toLocaleString("en-IN")}`,
+    href: `/packages/${pkg._id}`,
+  };
+}
 
 // Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2679-31218
 export default function BlogsSidebar() {
+  const [trendingPackages, setTrendingPackages] = useState<TrendingPackage[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPopularPackages({ limit: 4 })
+      .then((response) => {
+        if (!cancelled) setTrendingPackages(response.packages.map(toTrendingPackage));
+      })
+      .catch(() => {
+        // Best-effort — the Trending section just stays empty on failure.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <div className="relative flex h-[600px] w-full flex-col justify-between overflow-hidden rounded-[20px] p-7">
@@ -75,20 +103,28 @@ export default function BlogsSidebar() {
       <div className="flex w-full flex-col items-start gap-[18px] rounded-2xl border border-[#F4F4F5] bg-white p-6">
         <p className="font-figtree text-[20px] font-semibold text-[#1E0306]">Trending this week</p>
 
-        {TRENDING_ITEMS.map((item, index) => (
-          <div key={item.title} className="flex w-full flex-col gap-[18px]">
-            {index > 0 && <div className="h-px w-full bg-[#F4F4F5]" />}
-            <div className="flex w-full items-center gap-3.5">
-              <div className="relative size-[72px] shrink-0 overflow-hidden rounded-xl">
-                <Image src={item.thumb} alt={item.title} fill className="object-cover" />
+        {trendingPackages.length === 0 ? (
+          <p className="font-figtree text-[13px] text-[#9F9FA9]">No trending packages yet.</p>
+        ) : (
+          trendingPackages.map((pkg, index) => (
+            <a key={pkg.id} href={pkg.href} className="flex w-full flex-col gap-[18px]">
+              {index > 0 && <div className="h-px w-full bg-[#F4F4F5]" />}
+              <div className="flex w-full items-center gap-3.5">
+                <div className="relative size-[72px] shrink-0 overflow-hidden rounded-xl">
+                  <Image src={pkg.thumb} alt={pkg.title} fill className="object-cover" />
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <p className="truncate font-figtree text-[14px] leading-[20px] font-semibold text-[#18181B]">
+                    {pkg.title}
+                  </p>
+                  <p className="font-figtree text-[12px] font-medium text-[#71717B]">
+                    {pkg.categoryLabel} &middot; {pkg.price}
+                  </p>
+                </div>
               </div>
-              <div className="flex flex-1 flex-col gap-1.5">
-                <p className="font-figtree text-[14px] leading-[20px] font-semibold text-[#18181B]">{item.title}</p>
-                <p className="font-figtree text-[12px] font-medium text-[#71717B]">{item.readTime}</p>
-              </div>
-            </div>
-          </div>
-        ))}
+            </a>
+          ))
+        )}
       </div>
 
       <div className="flex w-full flex-col items-start gap-3.5 rounded-2xl border border-[#FFFBEB] bg-[#FFFBEB] p-6">
