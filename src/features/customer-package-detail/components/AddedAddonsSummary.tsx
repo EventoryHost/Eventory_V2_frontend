@@ -1,8 +1,12 @@
+"use client";
+
+import { useState } from "react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import type { SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
 import QuantityInput from "./QuantityInput";
+import IncludedItemImageModal from "./IncludedItemImageModal";
 
 // A customer isn't going to want 1000 of a single add-on — this caps the
 // typed value the same way a real form field would, distinct from min=0
@@ -23,6 +27,8 @@ export default function AddedAddonsSummary({
   onSetQuantity: (lineKey: string, qty: number) => void;
   onRemove: (lineKey: string) => void;
 }) {
+  const [zoomedAddon, setZoomedAddon] = useState<SelectedAddon | null>(null);
+
   if (addons.length === 0) return null;
 
   return (
@@ -35,13 +41,19 @@ export default function AddedAddonsSummary({
         {addons.map((addon, i) => {
           return (
             <div key={addon.lineKey} className="flex items-center gap-3 py-4 first:pt-0">
-              <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl">
+              <button
+                type="button"
+                onClick={() => addon.image && setZoomedAddon(addon)}
+                disabled={!addon.image}
+                aria-label={addon.image ? `View larger image of ${addon.title}` : undefined}
+                className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl disabled:cursor-default"
+              >
                 {addon.image ? (
                   <img src={addon.image} alt={addon.title} className="block h-full w-full object-cover" />
                 ) : (
                   <PlaceholderMedia seed={i} className="absolute inset-0" />
                 )}
-              </div>
+              </button>
 
               <div className="min-w-0 flex-1">
                 <h4 className="truncate font-figtree text-[14px] leading-[20px] font-semibold text-[#030303]">
@@ -104,6 +116,13 @@ export default function AddedAddonsSummary({
           );
         })}
       </div>
+
+      <IncludedItemImageModal
+        isOpen={zoomedAddon !== null}
+        onClose={() => setZoomedAddon(null)}
+        image={zoomedAddon?.image ?? null}
+        alt={zoomedAddon?.title ?? ""}
+      />
     </div>
   );
 }

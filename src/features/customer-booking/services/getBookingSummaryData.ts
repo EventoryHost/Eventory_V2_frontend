@@ -18,6 +18,7 @@ import {
   getCancellationTierStatus,
 } from "@/features/customer-package-detail/utils/cancellationPolicy";
 import { CATEGORY_META } from "@/lib/categoryMeta";
+import { groupPaymentMilestones } from "../utils/groupPaymentMilestones";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import type {
   BookingLineRow,
@@ -149,22 +150,10 @@ function earliestCancellationTiers(lines: RawCheckoutSessionLine[]) {
 }
 
 function mapMilestones(
-  quote: RawCheckoutSessionResponse["session"]["lockedQuote"],
-  lineById: Map<string, RawCheckoutSessionLine>
+  quote: RawCheckoutSessionResponse["session"]["lockedQuote"]
 ): BookingPaymentMilestone[] {
   if (!quote) return [];
-  return quote.lines.flatMap((quoteLine) => {
-    const serviceName = lineById.get(quoteLine.lineId)?.packageSnapshot.name ?? "Package";
-    return (quoteLine.milestones ?? []).map((milestone) => ({
-      serviceName,
-      title: milestone.title,
-      percentage: milestone.percentage,
-      amount: milestone.amount != null ? formatPrice(milestone.amount) : null,
-      due: milestone.dueDate
-        ? formatShortDate(new Date(milestone.dueDate))
-        : (milestone.dueDaysRaw ?? null),
-    }));
-  });
+  return groupPaymentMilestones(quote.lines, formatPrice, formatShortDate);
 }
 
 async function resolveVendors(vendorIds: string[]): Promise<Map<string, RawVendorPublicMinimal>> {
@@ -333,7 +322,7 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
   // paymentMilestones config (cartPricingService.js's computeLineMilestones)
   // — "See full payment schedule" used to have nowhere to send this, even
   // though the backend already returns it on every line.
-  const milestones = mapMilestones(quote, lineById);
+  const milestones = mapMilestones(quote);
 
   return {
     sessionId: session._id,

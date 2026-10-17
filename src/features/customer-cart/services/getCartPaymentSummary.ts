@@ -1,7 +1,7 @@
 import type { RawCartQuote } from "@/lib/customerCartApi";
-import { buildConvenienceFeeRow } from "@/lib/convenienceFee";
 import type { CartVendor } from "../types";
 import type { BookingLineRow, BookingPaymentMilestone } from "@/features/customer-booking/types";
+import { groupPaymentMilestones } from "@/features/customer-booking/utils/groupPaymentMilestones";
 import { formatPrice } from "../utils/currency";
 import {
   formatShortDate,
@@ -49,8 +49,11 @@ export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: Car
   const rows: BookingLineRow[] = [];
   if (quote) {
     rows.push({ label: "Total booking amount", value: formatPrice(quote.subtotal) });
-    const feeRow = buildConvenienceFeeRow(quote, formatPrice);
-    if (feeRow) rows.push(feeRow);
+    // "Service & security fee" (the convenience fee) is deliberately NOT
+    // shown here — PM wants it surfaced only on the booking summary/review
+    // page, not the cart page's right-side panel. grandTotal below still
+    // includes it (quote.grandTotal is computed server-side with the fee
+    // baked in) — only the line item is hidden here, the total is unchanged.
     if (quote.discount) {
       rows.push({ label: "Discount", value: `-${formatPrice(quote.discount)}` });
     }
@@ -60,16 +63,7 @@ export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: Car
     }
   }
 
-  const milestones: BookingPaymentMilestone[] = (quote?.lines ?? []).flatMap((quoteLine) => {
-    const serviceName = vendors.find((v) => v.id === quoteLine.lineId)?.package.title ?? "Package";
-    return (quoteLine.milestones ?? []).map((milestone) => ({
-      serviceName,
-      title: milestone.title,
-      percentage: milestone.percentage,
-      amount: milestone.amount != null ? formatPrice(milestone.amount) : null,
-      due: milestone.dueDate ? formatShortDate(new Date(milestone.dueDate)) : (milestone.dueDaysRaw ?? null),
-    }));
-  });
+  const milestones: BookingPaymentMilestone[] = groupPaymentMilestones(quote?.lines ?? [], formatPrice, formatShortDate);
 
   return {
     rows,

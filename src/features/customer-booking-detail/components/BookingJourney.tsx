@@ -19,7 +19,13 @@ const BADGE_TONE: Record<NonNullable<BookingJourneyVendor["badge"]>["tone"], str
  * One vendor nested inside a step — the card list the vendor-confirmation
  * state shows under "N of M Vendors confirmed".
  */
-function JourneyVendorCard({ vendor }: { vendor: BookingJourneyVendor }) {
+function JourneyVendorCard({
+  vendor,
+  onReviewProposal,
+}: {
+  vendor: BookingJourneyVendor;
+  onReviewProposal?: (bookingReference: string) => void;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-xl border border-[#E4E4E7] bg-white p-3">
       {vendor.image && (
@@ -40,7 +46,16 @@ function JourneyVendorCard({ vendor }: { vendor: BookingJourneyVendor }) {
       </div>
 
       {/* A vendor the customer can act on gets the link; everyone else a pill. */}
-      {vendor.action ? (
+      {vendor.action?.proposalFor && onReviewProposal ? (
+        // Opens the Review Proposal panel in place rather than navigating.
+        <button
+          type="button"
+          onClick={() => onReviewProposal(vendor.action!.proposalFor!)}
+          className="shrink-0 text-[12px] font-semibold text-brand-primary hover:underline"
+        >
+          {vendor.action.label}
+        </button>
+      ) : vendor.action ? (
         <Link
           href={vendor.action.href}
           className="shrink-0 text-[12px] font-semibold text-brand-primary hover:underline"
@@ -66,7 +81,14 @@ function JourneyVendorCard({ vendor }: { vendor: BookingJourneyVendor }) {
  * muted. A completed step is ticked; the step in progress shows a hollow
  * ring; steps can carry a right-aligned action and a nested vendor list.
  */
-export default function BookingJourney({ steps }: { steps: BookingJourneyStep[] }) {
+export default function BookingJourney({
+  steps,
+  onReviewProposal,
+}: {
+  steps: BookingJourneyStep[];
+  /** Handles a vendor row's "Review Proposal" in place; without it the row links to that booking's page. */
+  onReviewProposal?: (bookingReference: string) => void;
+}) {
   return (
     <ol className="flex flex-col">
       {steps.map((step, index) => {
@@ -132,7 +154,7 @@ export default function BookingJourney({ steps }: { steps: BookingJourneyStep[] 
               {step.vendors && step.vendors.length > 0 && (
                 <div className="mt-2 flex flex-col gap-2">
                   {step.vendors.map((vendor) => (
-                    <JourneyVendorCard key={vendor.id} vendor={vendor} />
+                    <JourneyVendorCard onReviewProposal={onReviewProposal} key={vendor.id} vendor={vendor} />
                   ))}
                 </div>
               )}

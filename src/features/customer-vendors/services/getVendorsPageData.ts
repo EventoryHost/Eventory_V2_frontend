@@ -2,7 +2,7 @@ import type { VendorsPageData } from "../types";
 import { VENDOR_CATEGORIES, VENDORS_PAGE_SIZE } from "../data/filterConfig";
 import { mapVendorToCard } from "../mappers";
 import { browseVendors, getVendorFilters } from "@/lib/customerDiscoveryApi";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 
 /**
  * Initial data for the Vendor Listing page — one row per VENDOR, server
@@ -26,10 +26,13 @@ export async function getVendorsPageData(): Promise<VendorsPageData> {
     vendors: vendorsResponse.vendors.map(mapVendorToCard),
     total: vendorsResponse.total,
     totalPages: vendorsResponse.totalPages,
-    eventCategoryOptions: filterHiddenEventCategories(filtersResponse.filters.eventCategories).map((category) => ({
-      id: category,
-      label: category,
-    })),
+    // PM reversal (2026-10-14): show every real, unique event category the
+    // backend's facet aggregation returns (GET /customer/vendors/filters),
+    // including ones previously merged/hidden as duplicates — THEN merge
+    // near-duplicate variants into one option by keyword family (see
+    // lib/eventCategoryGroups.ts). Selecting the merged option matches
+    // every real variant server-side.
+    eventCategoryOptions: groupEventCategories(filtersResponse.filters.eventCategories),
     cityOptions: filtersResponse.filters.cities.map((city) => ({ id: city, label: city })),
   };
 }

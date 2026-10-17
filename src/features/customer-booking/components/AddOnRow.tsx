@@ -1,4 +1,8 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
+import IncludedItemImageModal from "@/features/customer-package-detail/components/IncludedItemImageModal";
 
 export type AddOnRowProps = {
   image: string;
@@ -21,11 +25,20 @@ export default function AddOnRow({
   category = "",
   attributes = [],
 }: AddOnRowProps) {
+  const [isZoomed, setIsZoomed] = useState(false);
+
   return (
     <div className="flex items-center gap-3">
-      <div className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl bg-neutral-subtle">
+      <button
+        type="button"
+        onClick={() => setIsZoomed(true)}
+        aria-label={`View larger image of ${name}`}
+        className="relative h-[84px] w-[84px] shrink-0 overflow-hidden rounded-xl bg-neutral-subtle"
+      >
         <Image src={image} alt={name} fill sizes="84px" className="object-cover" />
-      </div>
+      </button>
+
+      <IncludedItemImageModal isOpen={isZoomed} onClose={() => setIsZoomed(false)} image={image} alt={name} />
 
       <div className="min-w-0 flex-1">
         <h5 className="truncate font-figtree text-[14px] leading-[20px] font-semibold text-[#030303]">

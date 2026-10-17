@@ -162,6 +162,16 @@ export interface RawFullPackage {
   variantType?: string;
   packageGroupId: string;
   packageStatus: string;
+  /** Vendor-set balance schedule (Package.paymentMilestones). dueOffsetFrom/dueOffsetDays win over the free-text dueDays when present — same precedence as the backend's computeMilestoneDueDate. */
+  paymentMilestones?: {
+    milestones?: {
+      title: string;
+      percentage: number;
+      dueDays?: string;
+      dueOffsetFrom?: "BeforeEvent" | "AfterEvent" | "OnEvent" | "OnBooking" | null;
+      dueOffsetDays?: number | null;
+    }[];
+  };
   bookingSettings?: {
     bookingType?: "Ready-to-Book" | "Enquiry/Quote";
     paymentType?: "Free" | "Token";
@@ -336,7 +346,15 @@ export interface RawPackageSlot {
   available: boolean;
 }
 
-/** GET /customer/packages/:id/slots?date= — the package's vendor-defined slot list minus whatever that date rules out. slots is empty for FULL_DAY packages. */
+/**
+ * GET /customer/packages/:id/slots?date= — the package's slot list for that
+ * date. `slotSource: "VENDOR"` is the vendor's own defined slots; `"AUTO"`
+ * is backend-generated (6 AM–midnight in `slotLengthHours`-long blocks,
+ * sized off `priceBasis`) for a package — FULL_DAY included — that has no
+ * custom slots of its own. `slots` being empty is now a genuine edge case
+ * (no price to derive AUTO slots from), not a reliable "this is a FULL_DAY
+ * package" signal the way it used to be before AUTO generation existed.
+ */
 export interface RawPackageSlotsResponse {
   status: "SUCCESS";
   packageId: string;

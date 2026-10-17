@@ -15,8 +15,6 @@ export default function PriceBreakdownDialog({
   onClose,
   includedItems,
   selectedAddons,
-  teamAndEquipmentCharge,
-  teamAndEquipmentBillingUnit,
   overtimeChargeRate,
   overtimeBillingUnit,
   subtotal,
@@ -34,8 +32,6 @@ export default function PriceBreakdownDialog({
   onClose: () => void;
   includedItems: IncludedItemEntry[];
   selectedAddons: SelectedAddon[];
-  teamAndEquipmentCharge: number;
-  teamAndEquipmentBillingUnit?: string;
   overtimeChargeRate: number;
   overtimeBillingUnit?: string;
   subtotal: number;
@@ -147,15 +143,12 @@ export default function PriceBreakdownDialog({
             </div>
 
             <div className="mt-4 space-y-2 font-figtree text-[13px]">
-              {teamAndEquipmentCharge > 0 && (
-                <div className="flex justify-between text-neutral-secondary">
-                  <span>
-                    Team &amp; equipment
-                    {teamAndEquipmentBillingUnit && ` /${teamAndEquipmentBillingUnit}`}
-                  </span>
-                  <span>{formatPrice(teamAndEquipmentCharge)}</span>
-                </div>
-              )}
+              {/* No "Team & equipment" line here (PM instruction) — the
+                  charge is distributed into each included item's own
+                  displayed price instead (getPackageDetail.ts's
+                  distributeTeamAndEquipmentCharge), so it's already folded
+                  into the item rows above and into `subtotal` below without
+                  needing its own line, and the two never disagree. */}
               <div className="flex justify-between text-neutral-secondary">
                 <span>Subtotal</span>
                 <span>{formatPrice(subtotal)}</span>

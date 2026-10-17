@@ -57,8 +57,8 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
     typeOptions: ["Metallic Balloons", "Chrome Balloons", "Confetti Balloons", "Balloon Arch", "Other"],
   },
   {
-    id: "Carpet/Flooring Decor",
-    label: "Carpet/Flooring Decor",
+    id: "Carpet",
+    label: "Carpet",
     typeLabel: "Flooring type",
     typeOptions: ["Red Carpet", "White Carpet", "Artificial Grass Turf", "Wooden Dance Floor", "Other"],
   },
@@ -100,7 +100,55 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
     typeLabel: "Prop type",
     typeOptions: ["Vintage Trunk", "Easel Stand", "Flower Vases", "Lanterns", "Other"],
   },
+  {
+    id: "Rangoli",
+    label: "Rangoli",
+    typeLabel: "Rangoli style",
+    // No existing Rangoli data anywhere in the codebase (vendor schemas,
+    // seed data) to ground this in — these are common real-world rangoli
+    // styles, this session's own reasonable pick, not sourced from a given
+    // list. Flag for product review before shipping, same as the other
+    // extrapolated category mappings in eventSearchTaxonomy.ts.
+    typeOptions: [
+      "Floral Rangoli",
+      "Peacock Design",
+      "Geometric / Traditional",
+      "Colour Powder (Gulal)",
+      "Flower Petals",
+      "Rice / Flour Rangoli",
+      "Other",
+    ],
+  },
 ];
+
+// Maps a real vendor item's itemType (decoratorStep2Schema.js's enum:
+// "Flowers" | "Lighting" | "Balloons" | "Carpet/Flooring Decor" |
+// "Furniture" | "Custom" | "") to the matching WORKSHOP_CATEGORIES entry,
+// so an EXISTING item (not just a brand-new "Add an item" one) can offer
+// the same curated subtype picker — PM-requested 2026-10-05. Three of the
+// five real values differ in spelling from their WORKSHOP_CATEGORIES id
+// ("Furniture" vs "Furnitures", "Carpet/Flooring Decor" vs "Carpet") hence
+// this lookup table rather than a direct id match. "Custom" and "" have no
+// curated list to offer, so they're omitted — those items keep showing no
+// subtype picker, same as before this change.
+const ITEM_TYPE_TO_WORKSHOP_CATEGORY_ID: Record<string, string> = {
+  Flowers: "Flowers",
+  Lighting: "Lighting",
+  Balloons: "Balloons",
+  "Carpet/Flooring Decor": "Carpet",
+  Furniture: "Furnitures",
+  // Not in decoratorStep2Schema.js's documented itemType enum, but confirmed
+  // present as a real stored value on live prod data regardless (package
+  // 6aa8f2cfd42d13b64c078206's "Part Propz" item) — mapped so those items
+  // get the picker too rather than silently falling through.
+  Props: "Props",
+};
+
+export function getWorkshopCategoryForItemType(itemType: string | undefined): WorkshopCategoryDef | undefined {
+  if (!itemType) return undefined;
+  const id = ITEM_TYPE_TO_WORKSHOP_CATEGORY_ID[itemType];
+  return id ? WORKSHOP_CATEGORIES.find((category) => category.id === id) : undefined;
+}
 
 // How full/dense a decor item should look — backend stores this as a free
 // string per item (decoratorStep2Schema.js), so any vendor-entered original
@@ -114,11 +162,12 @@ export const VOLUME_OPTIONS = ["Low", "Medium", "High"];
 export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
   Flowers: "/images/customize/flowers.png",
   Lighting: "/images/customize/lighting.png",
-  "Carpet/Flooring Decor": "/images/customize/carpet.png",
+  Carpet: "/images/customize/carpet.png",
   Furnitures: "/images/customize/furniture.png",
   Signage: "/images/customize/signage.png",
   "Fabric/Drapery": "/images/customize/fabric.png",
   Balloons: "/images/customize/balloon.png",
+  Rangoli: "/images/customize/rangoli.png",
 };
 
 // Flat colour list for the "Add an item" workshop flow's Colours dropdown —

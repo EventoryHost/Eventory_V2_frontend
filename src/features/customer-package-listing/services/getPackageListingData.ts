@@ -1,9 +1,9 @@
 import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { mapPackageToListItem } from "../mappers";
 import { PACKAGES_PAGE_SIZE, RECOMMENDED_LIMIT } from "../data/filterConfig";
 import type { PackageListingData } from "../types";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
 
 /**
  * Initial data for the package listing (/packages/browse), server-fetched
@@ -26,10 +26,13 @@ export async function getPackageListingData(): Promise<PackageListingData> {
     packages: packagesResponse.packages.map(mapPackageToListItem),
     total: packagesResponse.total,
     totalPages: packagesResponse.totalPages,
-    eventCategoryOptions: filterHiddenEventCategories(filtersResponse.filters.eventCategories).map((category) => ({
-      id: category,
-      label: category,
-    })),
+    // PM reversal (2026-10-14): show every real, unique event category the
+    // backend's facet aggregation returns (GET /customer/packages/filters),
+    // including ones previously merged/hidden as duplicates — THEN merge
+    // near-duplicate variants ("Birthday"/"Birthday Party"/"Birthday Party
+    // Decoration") into one option by keyword family (lib/eventCategoryGroups.ts).
+    // Selecting the merged option matches every real variant server-side.
+    eventCategoryOptions: groupEventCategories(filtersResponse.filters.eventCategories),
     recommended: (recommendedResponse?.packages ?? []).map(mapPackageToListItem),
   };
 }

@@ -18,16 +18,14 @@ export default function PaymentScheduleDialog({
   /**
    * The SAME rows/grandTotal already shown in Payment Summary behind this
    * modal (Total booking amount, convenience fee, discount, GST, …) — not
-   * re-derived here. Needed because `milestones` only ever sums to each
-   * line's tax-inclusive package price (cartPricingService.js's
-   * computeLineMilestones comment: "milestones sum to 100% of the... amount
-   * owed" — for that ONE line's package+GST only). The convenience fee and
-   * any discount are order-level, computed once across the whole quote, and
-   * were never folded into any per-line milestone — so the milestone list
-   * alone under-totals whenever either applies. Real bug: the modal used to
-   * show a schedule that didn't add up to the "Grand total" the customer
-   * sees on the page behind it. Showing the same rows/grandTotal here
-   * (rather than a second computation) guarantees they can never drift.
+   * re-derived here, so this modal's total can never drift from the page
+   * behind it. `milestones` itself is guaranteed to sum to this same
+   * grandTotal too: cartPricingService.js's computeQuoteForLines reconciles
+   * any gap between the per-line milestone amounts and the real payable
+   * total (convenience fee, discount, round-off — all order-level, never
+   * any one line's own milestones) into the last milestone of the last
+   * line, mirroring the business admin's custom-order schedule reconciling
+   * its own "Final Pay" row the same way.
    */
   rows: BookingLineRow[];
   grandTotal: string;
@@ -77,23 +75,19 @@ export default function PaymentScheduleDialog({
             ) : (
               <div className="divide-y divide-black/5 border-y border-black/5">
                 {milestones.map((milestone, index) => (
-                  <div key={`${milestone.serviceName}-${milestone.title}-${index}`} className="flex items-start gap-3 py-4">
+                  <div key={`${milestone.title}-${index}`} className="flex items-start gap-3 py-4">
                     <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle">
                       <Receipt className="h-4 w-4 text-brand-primary" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-figtree text-[13px] font-semibold text-brand-950">{milestone.title}</p>
-                      <p className="truncate font-figtree text-[12px] text-neutral-tertiary">
-                        {milestone.serviceName}
-                        {milestone.due ? ` · Due ${milestone.due}` : ""}
-                      </p>
+                      {milestone.due && (
+                        <p className="truncate font-figtree text-[12px] text-neutral-tertiary">Due {milestone.due}</p>
+                      )}
                     </div>
                     <div className="shrink-0 text-right">
                       {milestone.amount && (
                         <p className="font-figtree text-[14px] font-bold text-brand-950">{milestone.amount}</p>
-                      )}
-                      {milestone.percentage != null && (
-                        <p className="font-figtree text-[11px] text-neutral-tertiary">{milestone.percentage}%</p>
                       )}
                     </div>
                   </div>

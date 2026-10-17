@@ -26,5 +26,13 @@ export function isHiddenEventCategory(category: string): boolean {
 }
 
 export function filterHiddenEventCategories(categories: string[]): string[] {
-  return categories.filter((category) => !isHiddenEventCategory(category));
+  const visible = categories.filter((category) => !isHiddenEventCategory(category));
+  // Real bug found live (package 6ac4a35b9b8e10a54484f660): a package whose
+  // ONLY category is "Birthday" — itself on the hidden list as a dup of
+  // another term — filtered down to an empty array, leaving the PDP's
+  // Event Type picker with nothing to choose and the booking form
+  // permanently incomplete. Hiding a term is only safe when the package has
+  // OTHER categories left to show; if filtering would zero it out entirely,
+  // fall back to the unfiltered list rather than breaking booking.
+  return visible.length > 0 ? visible : categories;
 }

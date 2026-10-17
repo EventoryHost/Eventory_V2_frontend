@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
+import { setHelpPageContext } from "@/features/customer-help/helpContext";
 import type { PackageDetail, SelectedAddon } from "../types";
 import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
+import { useBookingForm } from "../hooks/useBookingForm";
 import { formatPrice } from "../utils/formatPrice";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
@@ -20,6 +22,7 @@ import PoliciesSection from "./PoliciesSection";
 import VendorSection from "./VendorSection";
 import ReviewsSection from "./ReviewsSection";
 import StickyBookingCard from "./StickyBookingCard";
+import MobileBookingBar from "./MobileBookingBar";
 
 function scrollToBookingCard() {
   document.getElementById("booking-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -29,10 +32,13 @@ function scrollToBookingCard() {
 export default function PackageDetailPage({
   data,
   editItemId,
+  returnTo,
 }: {
   data: PackageDetail;
   /** Set when arriving via Cart's "Edit Package Details" — see CartItemRow/VendorActions/PackageInfo's editHref. Fetches that exact cart item so every field (event type, date, time, location, add-ons, vendor note) prefills with what was already selected instead of starting blank, and routes saves back to updateCartItem instead of creating a duplicate line. */
   editItemId?: string;
+  /** Where "Save changes" sends the customer back to once editItemId is set — "/cart" from Cart's edit link, "/booking-summary" from the Booking Summary modal's. Defaults to "/cart" in StickyBookingCard if absent (e.g. an old bookmarked edit link from before this existed). */
+  returnTo?: string;
 }) {
   const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
   // One entry per LINE (addonId + colour combination), not one per addon —
@@ -51,6 +57,26 @@ export default function PackageDetailPage({
   // IncludedItems, which meant the customize-items requests never reached
   // the add-to-cart call at all.
   const workshop = useCustomizeWorkshop(data.includedItems);
+
+  // Tells the Help panel which package the customer is looking at (context
+  // chip + "How does the ₹X token work?" suggestion).
+  useEffect(() => {
+    const variant = data.variants.find((v) => v.id === selectedVariantId);
+    setHelpPageContext({
+      kind: "package",
+      packageId: data.id,
+      packageName: data.title,
+      vendorName: data.vendor.name,
+      tokenAmount: data.pricing.tokenType ? data.pricing.tokenAmount : 0,
+      cancellationPolicy: data.policies.find((p) => p.id === "policy-cancellation")?.description,
+      included: data.includedItems.map((item) => item.title),
+      variant: variant && { label: variant.label, setupsCount: variant.setupsCount, itemsCount: variant.itemsCount },
+      milestones: data.paymentMilestones.filter((m) => m.dueLabel),
+      vendorType: data.categoryLabel,
+      eventCategories: data.eventCategories,
+    });
+    return () => setHelpPageContext(null);
+  }, [data, selectedVariantId]);
 
   // One-time prefill fetch — the variant itself doesn't need this (defaultVariantId
   // above already matches the exact package/variant this URL points to, which is
@@ -141,6 +167,31 @@ export default function PackageDetailPage({
   // actually runs over), so it's surfaced separately, not added here.
   const packageTotal = (selectedVariant?.price ?? 0) + data.pricing.teamAndEquipmentCharge + addonsTotal;
 
+  // Lifted here (rather than inside StickyBookingCard, as it used to be) so
+  // the exact same booking state can also drive the mobile sticky bar/sheet
+  // (MobileBookingBar) — one source of truth for one in-flight booking,
+  // instead of two independent copies that could drift apart.
+  const bookingForm = useBookingForm({
+    packageId: data.id,
+    packageTotal,
+    gstPercent: data.pricing.gstPercent,
+    tokenAmount: data.pricing.tokenAmount,
+    tokenType: data.pricing.tokenType,
+    tokenValue: data.pricing.tokenValue,
+    requiresGuestCount: data.requiresGuestCount,
+    eventCategories: data.eventCategories,
+    selectedAddons,
+    customizeRequests: workshop.requests,
+    colourPreferences: workshop.colourPreferences,
+    vendorNote,
+    onVendorNoteChange: setVendorNote,
+    vendorNoteAttachments,
+    onVendorNoteAttachmentsChange: setVendorNoteAttachments,
+    editItemId: editCartItem?._id,
+    returnTo,
+    prefillEventDetails: editCartItem?.eventDetails,
+  });
+
   // The "+" on an add-on card (AddonCard.tsx) always calls this, whether or
   // not that add-on already has a quantity — real bug fixed 2026-10-01: the
   // card used to hide its own "+" once any quantity existed, which made a
@@ -185,7 +236,11 @@ export default function PackageDetailPage({
   return (
     <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
-      <HeroGallery images={data.gallery} />
+      <HeroGallery
+        images={data.gallery}
+        categoryLabel={data.categoryLabel}
+        vendorUnitName={data.vendorUnitName}
+      />
       <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
 
       <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
@@ -223,32 +278,37 @@ export default function PackageDetailPage({
           {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
         </div>
 
-        <StickyBookingCard
-          packageId={data.id}
-          packageTotal={packageTotal}
-          teamAndEquipmentCharge={data.pricing.teamAndEquipmentCharge}
-          teamAndEquipmentBillingUnit={data.pricing.teamAndEquipmentBillingUnit}
-          overtimeChargeRate={data.pricing.overtimeChargeRate}
-          overtimeBillingUnit={data.pricing.overtimeBillingUnit}
-          gstPercent={data.pricing.gstPercent}
-          tokenAmount={data.pricing.tokenAmount}
-          tokenType={data.pricing.tokenType}
-          tokenValue={data.pricing.tokenValue}
-          requiresGuestCount={data.requiresGuestCount}
-          eventCategories={data.eventCategories}
-          selectedAddons={selectedAddons}
-          includedItems={data.includedItems}
-          customizeRequests={workshop.requests}
-          colourPreferences={workshop.colourPreferences}
-          vendorNote={vendorNote}
-          onVendorNoteChange={setVendorNote}
-          vendorNoteAttachments={vendorNoteAttachments}
-          onVendorNoteAttachmentsChange={setVendorNoteAttachments}
-          editItemId={editCartItem?._id}
-          prefillEventDetails={editCartItem?.eventDetails}
-          cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
-        />
+        {/* Desktop/tablet sidebar card — unchanged. Hidden on mobile, where
+            MobileBookingBar (a fixed bottom bar + bottom sheet, Figma nodes
+            2548:28662 onward) replaces it instead of just stacking below
+            all the page content like this card used to on narrow screens. */}
+        <div className="hidden lg:block">
+          <StickyBookingCard
+            form={bookingForm}
+            packageTotal={packageTotal}
+            overtimeChargeRate={data.pricing.overtimeChargeRate}
+            overtimeBillingUnit={data.pricing.overtimeBillingUnit}
+            gstPercent={data.pricing.gstPercent}
+            requiresGuestCount={data.requiresGuestCount}
+            includedItems={data.includedItems}
+            selectedAddons={selectedAddons}
+            editItemId={editCartItem?._id}
+            cancellationPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
+          />
+        </div>
       </div>
+
+      <MobileBookingBar
+        form={bookingForm}
+        title={data.title}
+        variantLabel={data.variants.find((v) => v.id === selectedVariantId)?.label}
+        setupsCount={data.variants.find((v) => v.id === selectedVariantId)?.setupsCount}
+        packageTotal={packageTotal}
+        gstPercent={data.pricing.gstPercent}
+        addonsTotal={addonsTotal}
+        requiresGuestCount={data.requiresGuestCount}
+        editItemId={editCartItem?._id}
+      />
     </main>
     </div>
   );

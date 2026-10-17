@@ -15,6 +15,7 @@ export const VENDOR_CATEGORIES: VendorCategory[] = [
 ];
 
 export const PRICE_RANGE_OPTIONS: FilterOption[] = [
+  { id: "1999-4999", label: "₹1999 - ₹4999" },
   { id: "5000-9999", label: "₹5000 - ₹9999" },
   { id: "10000-14999", label: "₹10000 - ₹14999" },
   { id: "15000-19999", label: "₹15000 - ₹19999" },

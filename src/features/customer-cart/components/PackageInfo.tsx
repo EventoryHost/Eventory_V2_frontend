@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { PartyPopper, SquarePen } from "lucide-react";
+import { SquarePen } from "lucide-react";
 import type { CartPackage, EventDetails as EventDetailsData } from "../types";
 import { getCategoryIconMeta, getCategoryLabel } from "../utils/categoryMeta";
 import {
@@ -11,18 +11,14 @@ import {
 import EventDetails from "./EventDetails";
 import VendorActions from "./VendorActions";
 
-const EVENT_TYPE_PREFIX = /^Event type:\s*/i;
-
 export default function PackageInfo({
   cartPackage,
   eventDetails,
-  specialRequest,
   onRemove,
   onMoveToWishlist,
 }: {
   cartPackage: CartPackage;
   eventDetails: EventDetailsData;
-  specialRequest: string;
   onRemove: () => void;
   onMoveToWishlist: () => void;
 }) {
@@ -93,13 +89,6 @@ export default function PackageInfo({
           </Link>
 
           <EventDetails details={eventDetails} />
-
-          {specialRequest && (
-            <div className="mb-3 flex items-center gap-1.5 font-figtree text-[13px] text-neutral-secondary">
-              <PartyPopper className="h-4 w-4 shrink-0 text-brand-primary" />
-              {specialRequest.replace(EVENT_TYPE_PREFIX, "")}
-            </div>
-          )}
 
           {cancellationTiers && cancellationStatus && (
             <p

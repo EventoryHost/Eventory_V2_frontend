@@ -14,6 +14,8 @@ export interface BookingBanner {
     milestoneId?: string;
     /** Navigates instead of calling onAction — the "Leave a review" CTA. */
     href?: string;
+    /** The booking whose Review Proposal panel the "proposal" banner opens. */
+    bookingReference?: string;
   };
 }
 
@@ -22,11 +24,12 @@ export interface BookingBanner {
  * (node 1644:10229). Only one shows at a time, most urgent first: a finished
  * event, then money due, then vendors still to answer.
  *
- * "proposal" is defined in the component but never produced here: a proposal
- * is an Enquiry-side concept in the backend, with nothing on Booking to read
- * it from. Same story for a distinct "additional requests" record — the
- * requests-open copy is driven by packages still awaiting a vendor instead,
- * which is what the booking data actually knows.
+ * "proposal" shows once a vendor has answered every request and the
+ * customer hasn't answered back (Booking.proposalResponse — see
+ * isProposalAwaitingReview). It outranks money due: the schedule may still
+ * move with the proposal. There's no distinct "additional requests" record —
+ * the requests-open copy is driven by packages still awaiting a vendor
+ * instead, which is what the booking data actually knows.
  */
 export function buildBookingBanner(view: BookingDetailView): BookingBanner | null {
   const total = view.packages.length;
@@ -42,6 +45,19 @@ export function buildBookingBanner(view: BookingDetailView): BookingBanner | nul
       title: "Your event is complete",
       description: "Tell us how it went. Your review helps your vendors and guides the next host.",
       action: { label: "Leave a review", style: "primary", href: `/bookings/${view.reference}/review` },
+    };
+  }
+
+  const proposals = view.proposalsAwaitingReview;
+  if (proposals.length > 0) {
+    return {
+      variant: "proposal",
+      title:
+        proposals.length === 1
+          ? "Your vendor has responded to your requests"
+          : `${proposals.length} vendors have responded to your requests`,
+      description: "See what they accepted and the updated price, then accept the proposal or ask for more changes.",
+      action: { label: "Review Proposal", style: "primary", bookingReference: proposals[0] },
     };
   }
 

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 // Only these 5 categories have a dedicated "coming soon" illustration —
 // Decorator isn't included in that asset drop, so it renders the text +
@@ -77,7 +78,7 @@ export default function NoPackagesFound({
       </p>
 
       <a
-        href={`https://wa.me/?text=${encodeURIComponent(whatsappText)}`}
+        href={buildWhatsAppLink(whatsappText)}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-2 flex w-[278px] items-center justify-center gap-2.5 rounded-full bg-[#00AB82] py-4 pr-9 pl-8 font-figtree text-[16px] font-semibold text-white transition-opacity hover:opacity-90"

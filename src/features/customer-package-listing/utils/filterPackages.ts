@@ -9,9 +9,10 @@ function priceInRange(price: number, rangeId: string) {
 
 /**
  * Client-side refinement on top of the page already fetched from
- * GET /customer/packages. Search, category and sort are applied by the
- * endpoint, so only the sidebar's multi-selects run here: OR within a
- * section, AND across sections.
+ * GET /customer/packages. Search, category, sort AND event type (added
+ * 2026-10-14 — see PackageListingContent.tsx's eventTypeParam comment) are
+ * all applied by the endpoint itself; only pricing's multi-select still
+ * runs here.
  *
  * FOUR SECTIONS ARE DELIBERATELY INERT, because nothing in the data can
  * answer them:
@@ -32,13 +33,9 @@ export function filterPackages(
   packages: PackageListItem[],
   selected: PackageSelectedFilters
 ): PackageListItem[] {
-  const eventType = selected.eventType ?? [];
   const pricing = selected.pricing ?? [];
 
   return packages.filter((pkg) => {
-    if (eventType.length > 0 && !eventType.some((id) => pkg.eventTypes.includes(id))) {
-      return false;
-    }
     if (pricing.length > 0 && !pricing.some((id) => priceInRange(pkg.startingPrice, id))) {
       return false;
     }

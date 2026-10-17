@@ -3,14 +3,17 @@ import {
   type RawCustomizeRequest,
   type RawPolicySlot,
   type RawPriceCharge,
+  type RawPricingBreakdown,
+  type RawProposalResponse,
 } from "@/lib/customerBookingApi";
 import { getPackageDetail } from "@/features/customer-package-detail/services/getPackageDetail";
 import type { IncludedItemEntry } from "@/features/customer-package-detail/types";
+import { isProposalAwaitingReview } from "../utils/proposal";
 
 /** A workshop request, paired with the item it was made against (when it resolves). */
 export interface PanelRequest extends RawCustomizeRequest {
   /** The item's values before the request, for the struck-through "was" text. */
-  previous?: { type?: string; colours?: string[]; volume?: string };
+  previous?: { type?: string; colours?: string[]; volume?: string; qty?: number; typeLabel?: string; category?: string };
 }
 
 export interface PanelSetup {
@@ -42,6 +45,8 @@ export interface PackagePanelView {
   eventType?: string;
   total: number;
   status: string;
+  /** Every request on the booking (workshop + older change requests), and how many the vendor hasn't decided yet. */
+  requestCounts: { total: number; pending: number };
   notes?: string;
 
   setups: PanelSetup[];
@@ -53,12 +58,30 @@ export interface PackagePanelView {
   discountAmount: number;
   grandTotal: number;
   policies: { cancellation: RawPolicySlot | null; lastMinute: RawPolicySlot | null; general: RawPolicySlot[]; note: string };
+
+  /** The vendor's answer to the workshop requests, and the customer's answer back (Review Proposal). */
+  proposal: {
+    awaitingReview: boolean;
+    response: RawProposalResponse | null;
+    /** Every workshop request, unchanged — what "Still Needs Changes" builds its baseline from. */
+    requests: RawCustomizeRequest[];
+    /** Keyed price rows; absent from a backend older than the Review Proposal endpoints. */
+    pricingBreakdown?: RawPricingBreakdown;
+  };
 }
 
 function vendorNameOf(vendor: unknown) {
   if (!vendor || typeof vendor === "string") return undefined;
   const record = vendor as { businessName?: string; pocName?: string };
   return record.businessName ?? record.pocName;
+}
+
+/** No status (a booking made before the field existed) counts as decided, same as vendorAcceptedEverything. */
+function countRequests(requests: { status?: string }[]) {
+  return {
+    total: requests.length,
+    pending: requests.filter((request) => request.status === "Pending").length,
+  };
 }
 
 /**
@@ -84,8 +107,16 @@ export async function getPackagePanelView(bookingReference: string): Promise<Pac
     forSetup.forEach((request) => {
       const item = entry.items.find((line) => line.id === request.itemId);
       const key = item ? item.id : "";
+      // Colours resolved to their names — originalColours holds the swatch ids.
       const previous = item
-        ? { type: item.originalType, colours: item.originalColours, volume: item.originalVolume }
+        ? {
+            type: item.originalType,
+            colours: item.originalColours?.map((id) => item.colourOptions?.find((c) => c.id === id)?.label ?? id),
+            volume: item.originalVolume,
+            qty: item.originalQty,
+            typeLabel: item.typeLabel,
+            category: item.category,
+          }
         : undefined;
       (requestsByItemId[key] ??= []).push({ ...request, previous });
     });
@@ -134,6 +165,7 @@ export async function getPackagePanelView(bookingReference: string): Promise<Pac
     eventType: booking.eventType ?? undefined,
     total: booking.totalAmount,
     status: booking.status,
+    requestCounts: countRequests([...requests, ...(booking.changeRequests ?? [])]),
     notes: booking.notes ?? undefined,
 
     setups,
@@ -149,6 +181,13 @@ export async function getPackagePanelView(bookingReference: string): Promise<Pac
       lastMinute: detail.cancellationPolicy?.lastMinutePolicy ?? null,
       general: detail.cancellationPolicy?.generalPolicies ?? [],
       note: detail.cancellationPolicy?.note ?? "",
+    },
+
+    proposal: {
+      awaitingReview: isProposalAwaitingReview(booking),
+      response: booking.proposalResponse ?? null,
+      requests,
+      pricingBreakdown: detail.pricingBreakdown,
     },
   };
 }

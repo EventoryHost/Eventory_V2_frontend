@@ -9,6 +9,7 @@ import type {
   VendorRequirement,
   VendorRequirementIcon,
   PolicyItem,
+  PaymentMilestone,
   VendorInfo,
   ReviewsSummary,
   RatingBreakdownEntry,
@@ -22,12 +23,12 @@ import {
   type RawDjItem,
   type RawMakeupItem,
 } from "@/lib/customerPackageDetailApi";
-import { VOLUME_OPTIONS } from "../data/workshopCategories";
+import { VOLUME_OPTIONS, getWorkshopCategoryForItemType } from "../data/workshopCategories";
 import type { RawVendorPublic } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { formatHoursLabel, packageDurationsInHours } from "@/lib/formatHours";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
+import { sanitizeCityName, getServiceAreaNames } from "@/lib/vendorLocation";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { ApiError } from "@/lib/apiClient";
 import { mockPackageDetail } from "../data/mockPackageDetailData";
@@ -339,22 +340,54 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
         // subCategory was ever read, so any item whose type lived in one of
         // these two fields instead showed no Type at all.
         const specificType = line.flowerType || line.lightingType;
-        // subCategory is only a meaningful extra fact when it says something
-        // beyond the item's own name (e.g. name="Chrome Balloons",
-        // subCategory="Chrome Balloons" — redundant, dropped; name="Rose
-        // Bouquet", subCategory="Rose" — real extra detail, kept). Reverted
-        // 2026-10-02 per product decision — keep this filter even though it
-        // means an item whose subCategory happens to equal its name (common
-        // for Balloons) shows no Type.
-        const subCategoryType = line.subCategory && line.subCategory !== line.name ? line.subCategory : undefined;
-        const type = specificType || subCategoryType;
-        const typeLabel = line.flowerType
-          ? "Flower type"
-          : line.lightingType
-            ? "Fixture type"
-            : type
-              ? `${line.itemType ?? "Sub"} Type`
+        // Existing items now get the SAME curated subtype dropdown as
+        // "Add an item" when their itemType maps to one (PM-requested
+        // 2026-10-05) — prefilled with the vendor's real, UNFILTERED value,
+        // distinct from the passive-display `type` below. Showing the real
+        // value as genuinely selected (even a literal "Other", even one
+        // that happens to match the item's own name) is correct for an
+        // interactive picker in a way it wasn't for read-only text — "Other"
+        // selected here reveals the free-text field, which is itself the
+        // fix for the 2026-10-05 "Other displayed with no way to specify
+        // it" gap.
+        const workshopCategory = getWorkshopCategoryForItemType(line.itemType);
+        let type: string | undefined;
+        let typeLabel: string | undefined;
+        let typeOptions: string[] | undefined;
+        if (workshopCategory) {
+          typeOptions = workshopCategory.typeOptions;
+          typeLabel = line.flowerType ? "Flower type" : line.lightingType ? "Fixture type" : workshopCategory.typeLabel;
+          const rawType = specificType || line.subCategory || undefined;
+          // A literal "Other" still correctly selects the "Other" pill
+          // (isOtherSelected in CustomizeWorkshopModal.tsx checks for this
+          // exact string) and reveals its free-text field — but prefills
+          // that field with the item's own name rather than leaving it
+          // blank (PM-requested 2026-10-05), since the name is usually
+          // already a reasonable answer to "what kind of X is this"
+          // (e.g. name="Foil Balloon" for a Balloons item marked "Other").
+          type = rawType && rawType.trim().toLowerCase() === "other" ? line.name || "Other" : rawType;
+        } else {
+          // Passive display only (no curated list for this itemType) —
+          // subCategory is only a meaningful extra fact when it says
+          // something beyond the item's own name (e.g. name="Chrome
+          // Balloons", subCategory="Chrome Balloons" — redundant, dropped;
+          // name="Rose Bouquet", subCategory="Rose" — real extra detail,
+          // kept), and a literal "Other" is excluded the same way (real bug
+          // fixed 2026-10-05 — showing the bare word "Other" with no
+          // elaboration and no way to fix it was meaningless).
+          const subCategoryType =
+            line.subCategory && line.subCategory !== line.name && line.subCategory.trim().toLowerCase() !== "other"
+              ? line.subCategory
               : undefined;
+          type = specificType || subCategoryType;
+          typeLabel = line.flowerType
+            ? "Flower type"
+            : line.lightingType
+              ? "Fixture type"
+              : type
+                ? `${line.itemType ?? "Sub"} Type`
+                : undefined;
+        }
         return {
           id: `${setup._id ?? `setup-${i}`}-item-${idx}`,
           label: line.name ?? "Item",
@@ -365,11 +398,16 @@ function mapIncludedItemsDecorator(pkg: RawFullPackage): IncludedItemEntry[] {
           // — real, already in the API response, previously dropped entirely.
           category: line.itemType || undefined,
           typeLabel,
+          typeOptions,
           type,
           originalType: type,
-          volumeOptions: line.volume ? VOLUME_OPTIONS : undefined,
-          volume: line.volume || undefined,
-          originalVolume: line.volume || undefined,
+          // Volume (Low/Medium/High density) only makes sense for Flowers —
+          // real bug fixed 2026-10-04 (PM-reported: "volume field only for
+          // flowers"): previously shown for ANY item the vendor happened to
+          // set a volume value on, regardless of itemType.
+          volumeOptions: line.volume && line.itemType === "Flowers" ? VOLUME_OPTIONS : undefined,
+          volume: line.itemType === "Flowers" ? line.volume || undefined : undefined,
+          originalVolume: line.itemType === "Flowers" ? line.volume || undefined : undefined,
           colourOptions,
           colours,
           originalColours: colours,
@@ -535,6 +573,28 @@ function mapIncludedItems(pkg: RawFullPackage): IncludedItemEntry[] {
   }
 }
 
+// Spreads the package's flat team & equipment charge evenly across its
+// included items/setups rather than showing it as its own line anywhere
+// on the customer side (PM instruction), while keeping every item's own
+// displayed price summing to the real subtotal the customer is actually
+// charged — so adding up the individual setup prices shown in "What's
+// Included" / the price breakdown never looks short against the grand
+// total. Whole-rupee shares; the remainder from an uneven split goes to
+// the LAST item — same "last slot absorbs the drift" pattern the
+// backend's cartPricingService.js already uses for its own rounding gaps.
+function distributeTeamAndEquipmentCharge(
+  items: IncludedItemEntry[],
+  teamAndEquipmentCharge: number
+): IncludedItemEntry[] {
+  if (teamAndEquipmentCharge <= 0 || items.length === 0) return items;
+  const share = Math.floor(teamAndEquipmentCharge / items.length);
+  const remainder = teamAndEquipmentCharge - share * items.length;
+  return items.map((item, i) => ({
+    ...item,
+    price: item.price + share + (i === items.length - 1 ? remainder : 0),
+  }));
+}
+
 function mapNotIncluded(pkg: RawFullPackage): string[] {
   return pkg.step2_productsAndPricing?.notIncluded ?? [];
 }
@@ -614,6 +674,24 @@ function mapPolicySlot(
   const description = slot.writtenText || slot.templateTitle;
   if (!description && !slot.files?.length) return null;
   return { id, icon, title, description: description || "See document", href: slot.files?.[0] ?? "#" };
+}
+
+function mapPaymentMilestones(pkg: RawFullPackage): PaymentMilestone[] {
+  return (pkg.paymentMilestones?.milestones ?? []).map((m) => {
+    const days = m.dueOffsetDays ?? 0;
+    const plural = `${days} day${days === 1 ? "" : "s"}`;
+    const dueLabel =
+      m.dueOffsetFrom === "BeforeEvent"
+        ? `${plural} before the event`
+        : m.dueOffsetFrom === "AfterEvent"
+          ? `${plural} after the event`
+          : m.dueOffsetFrom === "OnEvent"
+            ? "on the event day"
+            : m.dueOffsetFrom === "OnBooking"
+              ? "at booking"
+              : (m.dueDays?.trim() ?? "").replace(/^On /, "on ");
+    return { title: m.title, percentage: m.percentage, dueLabel };
+  });
 }
 
 function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
@@ -737,11 +815,12 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     })
   );
 
-  // Filtered here (not just at each display site) so both the header's
-  // eventTags pills AND moreEventTagsCount stay consistent with what's
-  // actually shown — PM-requested 2026-10-02, the word "wedding" must not
-  // appear anywhere on site (see lib/eventCategories.ts's own comment).
-  const eventCategories = filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []);
+  // PM reversal (2026-10-14): show every category the vendor actually set,
+  // including ones lib/eventCategories.ts's hidden-set used to merge/hide
+  // (e.g. "Birthday" alongside "Birthday Party") — no longer filtered here.
+  // filterHiddenEventCategories itself is left in place for other surfaces
+  // that still want it; this package detail mapping just stops calling it.
+  const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
   const crew = pkg.step1_eventAndCrew?.crewSize;
   // Unit decided on all of the package's duration fields together, the same
   // rule the card and the backend migration use.
@@ -764,6 +843,8 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   // Decorator / DJ / Photographer bookings aren't priced or scoped by
   // headcount, so the PDP booking form drops the guest-count field for them.
   const requiresGuestCount = !["Decorator", "DJArtist", "PAV"].includes(pkg.vendorType);
+  const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
+  const includedItems = distributeTeamAndEquipmentCharge(mapIncludedItems(pkg), teamAndEquipmentCharge);
 
   return {
     id: pkg._id,
@@ -784,10 +865,20 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     rating: vendor?.rating ?? reviews.average,
     reviewCount: reviews.total,
     locationSummary:
-      [vendor?.city, ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
+      [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
     // Same composition as locationSummary, just uncapped — what "See the
     // location" expands to (city + every service area, not just the first 2).
-    fullLocationSummary: [vendor?.city, ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
+    fullLocationSummary:
+      [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
+    // What the header's pill-chip row (Figma node 2404:22954) maps over —
+    // deliberately ONLY the vendor's own serviceAreas field, no city mixed
+    // in (PM's explicit instruction, 2026-10-12). Not the same composition
+    // as locationSummary/fullLocationSummary above. getServiceAreaNames
+    // also handles serviceAreas' real `[{ area, sublocalities }]` shape
+    // (declared as string[] in the raw API type, but not actually that at
+    // runtime for any vendor who's re-saved since 2026-10-07) — a plain
+    // spread here would render "[object Object]" chips for those vendors.
+    locationList: getServiceAreaNames(vendor?.serviceAreas),
     gallery: mapGallery(pkg),
     variants,
     defaultVariantId: pkg._id,
@@ -795,8 +886,12 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       setupsLabel: setups.length
         ? `${setups.length} — ${setups.map((s) => s.name).filter(Boolean).slice(0, 3).join(", ")}`
         : "—",
-      serviceArea: vendor?.serviceAreas?.join(", ") || vendor?.city || "—",
-      serviceAreaList: vendor?.serviceAreas?.length ? vendor.serviceAreas : vendor?.city ? [vendor.city] : undefined,
+      serviceArea: vendor?.serviceAreas?.join(", ") || sanitizeCityName(vendor?.city) || "—",
+      serviceAreaList: vendor?.serviceAreas?.length
+        ? vendor.serviceAreas
+        : sanitizeCityName(vendor?.city)
+          ? [sanitizeCityName(vendor?.city)!]
+          : undefined,
       // durationOfSetup is lead time needed before the event starts — a
       // single number, not a range (step1_eventAndCrew.duration is a
       // different field entirely: how long the EVENT itself runs). Hours,
@@ -813,7 +908,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     // AboutPackage/parseAboutText.ts decides bullets vs. plain text from its shape,
     // which a pre-joined string would have already destroyed.
     aboutText: pkg.step2_productsAndPricing?.included?.length ? pkg.step2_productsAndPricing.included : ["No description provided yet."],
-    includedItems: mapIncludedItems(pkg),
+    includedItems,
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
     addons: mapAddons(pkg),
@@ -826,10 +921,15 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       footnote: "Held safely by Eventory until your event is delivered.",
     },
     policies: mapPolicies(pkg),
+    paymentMilestones: mapPaymentMilestones(pkg),
     vendor: mapVendor(pkg),
     reviews,
     pricing: (() => {
-      const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
+      // Same teamAndEquipmentCharge already distributed into includedItems
+      // above — this `pricing` object still carries the flat figure for
+      // whatever reads it directly (e.g. token-amount math below, which
+      // needs the real total regardless of how it's itemized on screen),
+      // just no longer shown as a line of its own anywhere customer-facing.
       // REAL BUG FOUND 2026-09-26 (product-manager-reported: an
       // inclusive-GST package still showed and added GST on the PDP,
       // inflating the estimated total): this read gstRatePercent

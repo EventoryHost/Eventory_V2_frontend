@@ -5,9 +5,13 @@ import { Clock } from "lucide-react";
 import { ApiError } from "@/lib/apiClient";
 import { patchCheckoutSessionEventTiming } from "@/lib/customerCheckoutApi";
 
-// Half-hour steps, "HH:MM" 24h values shown as 12h labels.
+// Half-hour steps, "HH:MM" 24h values shown as 12h labels, covering the
+// full day — but ORDERED starting at 9:00 AM (most events start well into
+// the morning, not at midnight) and wrapping around through the rest of
+// the day, ending at 8:30 AM, right before the next day's 9:00 AM.
+const DAY_START_HOUR = 9;
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const totalMinutes = index * 30;
+  const totalMinutes = ((DAY_START_HOUR * 2 + index) % 48) * 30;
   const hours24 = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;

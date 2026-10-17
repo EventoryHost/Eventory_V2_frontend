@@ -41,6 +41,8 @@ export default function SearchDatePicker({
   onChange,
   placeholder,
   variant = "filled",
+  isOpen: isOpenProp,
+  onOpenChange,
 }: {
   label: string;
   value: string;
@@ -52,8 +54,19 @@ export default function SearchDatePicker({
    * picked date) plus a "Pick date" box that opens the same calendar popup.
    */
   variant?: "filled" | "quick";
+  /**
+   * Optional external open control — lets EventSearchCard's auto-advance
+   * (picking a vendor service immediately opens the date calendar, same
+   * "hand-off" pattern as Event Type → vendor service) drive this from
+   * outside. Omitted by the PDP booking card's "quick" usage, which keeps
+   * managing its own open state internally as before.
+   */
+  isOpen?: boolean;
+  onOpenChange?: (isOpen: boolean) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  const isOpen = isOpenProp ?? internalIsOpen;
+  const setIsOpen = onOpenChange ?? setInternalIsOpen;
   const containerRef = useRef<HTMLDivElement>(null);
 
   const today = useMemo(() => {
@@ -166,7 +179,7 @@ export default function SearchDatePicker({
           })}
           <button
             type="button"
-            onClick={() => setIsOpen((open) => !open)}
+            onClick={() => setIsOpen(!isOpen)}
             aria-expanded={isOpen}
             className="flex h-[68px] w-[81px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#9F9FA9] bg-white text-[#3F3F47] transition-colors hover:bg-[#F4F4F5]"
           >
@@ -177,45 +190,63 @@ export default function SearchDatePicker({
       ) : (
         <button
           type="button"
-          onClick={() => setIsOpen((open) => !open)}
+          onClick={() => setIsOpen(!isOpen)}
           aria-expanded={isOpen}
-          className="flex w-full items-center justify-between rounded-full bg-[#F4F4F5] px-5 py-3 text-left text-[14px] text-[#71717B] outline-none"
+          className={`flex h-12 w-full items-center gap-2 rounded-full px-4 text-left transition-colors duration-[120ms] ease-out ${
+            isOpen
+              ? "border-[1.5px] border-[#030303] bg-white shadow-[0px_4px_7px_0px_rgba(0,0,0,0.08)]"
+              : "border border-transparent bg-[#F4F4F5] hover:bg-[#EAEAEC]"
+          }`}
         >
-          <span className="truncate">{value ? formatDisplayDate(value) : placeholder}</span>
-          <ChevronDown size={16} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+          <span
+            className={`flex-1 truncate font-figtree text-[16px] font-medium ${
+              value && !isOpen ? "text-[#030303]" : "text-[#9F9FA9]"
+            }`}
+          >
+            {value ? formatDisplayDate(value) : placeholder}
+          </span>
+          <ChevronDown
+            size={18}
+            className={`shrink-0 text-[#71717B] transition-transform ${isOpen ? "rotate-180" : ""}`}
+          />
         </button>
       )}
 
       {isOpen && (
-        <div className="absolute top-full left-0 z-20 mt-2 w-[314px] rounded-2xl bg-white p-4 shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="absolute top-[calc(100%+8px)] left-0 z-20 w-[314px] origin-top-left animate-[dropdown-enter_200ms_ease-out] rounded-[20px] border border-[#E4E4E8] bg-white p-2.5 shadow-[0px_10px_40px_0px_rgba(0,0,0,0.1)]">
+          <div className="px-2.5 pt-2 pb-1.5">
+            <span className="font-figtree text-[12px] font-medium tracking-[0.04em] text-[#8E8E96] uppercase">
+              Pick your event date
+            </span>
+          </div>
+          <div className="flex items-center justify-between px-1 pb-2">
             <button
               type="button"
               aria-label="Previous month"
               disabled={isPastMonth}
               onClick={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[#9F9FA9] transition-colors hover:bg-[#F4F4F5] disabled:cursor-not-allowed disabled:opacity-30"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[#9F9FA9] transition-colors hover:bg-[#F6F6F7] disabled:cursor-not-allowed disabled:opacity-30"
             >
               <ChevronLeft size={16} />
             </button>
-            <span className="font-figtree text-[14px] font-semibold text-brand-950">
+            <span className="font-figtree text-[15px] font-semibold text-[#111114]">
               {MONTH_LABELS[visibleMonth.getMonth()]} {visibleMonth.getFullYear()}
             </span>
             <button
               type="button"
               aria-label="Next month"
               onClick={() => setVisibleMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-full text-[#9F9FA9] transition-colors hover:bg-[#F4F4F5]"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-[#9F9FA9] transition-colors hover:bg-[#F6F6F7]"
             >
               <ChevronRight size={16} />
             </button>
           </div>
 
-          <div className="grid grid-cols-7 gap-y-1">
+          <div className="grid grid-cols-7 gap-0.5 px-1">
             {WEEKDAY_LABELS.map((weekday, index) => (
               <div
                 key={`${weekday}-${index}`}
-                className="flex h-8 items-center justify-center font-figtree text-[12px] font-medium text-[#9F9FA9]"
+                className="flex h-10 w-10 items-center justify-center font-figtree text-[12px] text-[#8E8E96]"
               >
                 {weekday}
               </div>
@@ -223,8 +254,9 @@ export default function SearchDatePicker({
 
             {weeks.flatMap((week, weekIndex) =>
               week.map((cellDate, dayIndex) => {
-                if (!cellDate) return <div key={`${weekIndex}-${dayIndex}`} />;
+                if (!cellDate) return <div key={`${weekIndex}-${dayIndex}`} className="h-10 w-10" />;
                 const isPast = cellDate < minDate;
+                const isToday = cellDate.getTime() === today.getTime();
                 const isSelected = value === toLocalISODate(cellDate);
                 return (
                   <button
@@ -235,12 +267,14 @@ export default function SearchDatePicker({
                       onChange(toLocalISODate(cellDate));
                       setIsOpen(false);
                     }}
-                    className={`flex h-8 w-8 items-center justify-center justify-self-center rounded-full font-figtree text-[13px] font-medium transition-colors ${
+                    className={`flex h-10 w-10 items-center justify-center justify-self-center rounded-full font-figtree text-[14px] transition-colors ${
                       isSelected
-                        ? "bg-brand-primary text-white"
+                        ? "bg-[#111114] font-medium text-white"
                         : isPast
-                          ? "cursor-not-allowed text-[#E4E4E7]"
-                          : "text-neutral-secondary hover:bg-[#F4F4F5]"
+                          ? "cursor-not-allowed text-[#D0D0D6]"
+                          : isToday
+                            ? "border border-[#111114] font-medium text-[#111114]"
+                            : "text-[#111114] hover:bg-[#F6F6F7]"
                     }`}
                   >
                     {cellDate.getDate()}

@@ -1,11 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import type { RecommendedAddon } from "../types";
 import { formatPrice } from "../utils/currency";
+import IncludedItemImageModal from "@/features/customer-package-detail/components/IncludedItemImageModal";
 
 // Same modal shape/animation as customer-package-detail/components/AddonDetailsModal.tsx
 // (image left, title/category right, price + Add footer) — trimmed to what
@@ -22,6 +24,8 @@ export default function AddonDetailsModal({
   onClose: () => void;
   onAdd: (addon: RecommendedAddon) => void;
 }) {
+  const [isZoomed, setIsZoomed] = useState(false);
+
   if (typeof document === "undefined" || !addon) return null;
 
   const priceUnit = addon.unitLabel.replace(/^\//, "");
@@ -32,6 +36,7 @@ export default function AddonDetailsModal({
   }
 
   return createPortal(
+    <>
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -61,14 +66,20 @@ export default function AddonDetailsModal({
             </button>
 
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <div className="relative h-[162px] w-full shrink-0 overflow-hidden rounded-lg bg-neutral-subtle sm:w-[183px]">
+              <button
+                type="button"
+                onClick={() => setIsZoomed(true)}
+                disabled={!addon.image}
+                aria-label={`View larger image of ${addon.title}`}
+                className="relative h-[162px] w-full shrink-0 overflow-hidden rounded-lg bg-neutral-subtle disabled:cursor-default sm:w-[183px]"
+              >
                 {addon.image && (
                   <Image src={addon.image} alt={addon.title} fill sizes="183px" className="object-cover" />
                 )}
                 <span className="absolute top-2 left-2 rounded-full bg-white/95 px-3 py-1 font-figtree text-[11px] font-semibold tracking-wide text-brand-primary uppercase shadow-sm">
                   {addon.category}
                 </span>
-              </div>
+              </button>
 
               <div className="flex-1 pr-8">
                 <h3 className="font-figtree text-[22px] font-semibold text-brand-950 sm:text-[24px]">{addon.title}</h3>
@@ -99,7 +110,17 @@ export default function AddonDetailsModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+
+    {addon.image && (
+      <IncludedItemImageModal
+        isOpen={isZoomed}
+        onClose={() => setIsZoomed(false)}
+        image={addon.image}
+        alt={addon.title}
+      />
+    )}
+    </>,
     document.body
   );
 }

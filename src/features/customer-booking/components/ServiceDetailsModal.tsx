@@ -2,11 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { X, Calendar, Clock, MapPin, Tag, Pencil } from "lucide-react";
+import { X, Calendar, Clock, MapPin, Tag, Pencil, XCircle } from "lucide-react";
 import CollapsibleSection from "./CollapsibleSection";
 import SetupArticleCard, { type SetupArticleCardProps, type SetupRequest } from "./SetupArticleCard";
 import AddOnRow from "./AddOnRow";
-import NotIncludedRow from "./NotIncludedRow";
 import AllPoliciesContent from "./AllPoliciesContent";
 import VendorNoteSection from "./VendorNoteSection";
 import PriceBreakdownContent from "./PriceBreakdownContent";
@@ -86,7 +85,7 @@ function mapSetups(detail: PackageDetail, customizeRequests: RawCustomizeRequest
         return {
           name: line.label,
           quantity: request?.quantity ?? line.qty,
-          subtitle: [line.category, line.type].filter(Boolean).join(" · "),
+          subtitle: [line.category, line.type, colourLabels(line.colours, line)].filter(Boolean).join(" · "),
           requests,
         };
       }),
@@ -188,7 +187,16 @@ export default function ServiceDetailsModal({
   if (!isOpen) return null;
 
   const setups = detail ? mapSetups(detail, customizeRequests) : [];
-  const notIncluded = detail?.notIncluded ?? [];
+  // Same flattening as the PDP's "Check Exclusions" (IncludedItems.tsx) —
+  // vendors sometimes pack several bullet lines into one array entry
+  // ("•Cake table \n•Fairy lights \n•Led age letter") instead of one entry
+  // per line, so this splits on "\n" and strips any "•" already typed.
+  const notIncluded = (detail?.notIncluded ?? []).flatMap((exclusion) =>
+    exclusion
+      .split("\n")
+      .map((line) => line.trim().replace(/^•\s*/, ""))
+      .filter(Boolean)
+  );
   const policies = detail?.policies ?? [];
 
   const breakdownItems = detail
@@ -201,10 +209,13 @@ export default function ServiceDetailsModal({
           price: formatPrice(entry.price),
         }))
     : [];
+  // Team & equipment is already folded into each entry.price by
+  // getPackageDetail.ts's distributeTeamAndEquipmentCharge (PM instruction:
+  // no explicit line for it anywhere customer-facing) — itemsSubtotal
+  // already carries the full charge, so it's not added again here.
   const itemsSubtotal = detail ? detail.includedItems.reduce((sum, entry) => sum + entry.price, 0) : 0;
   const addonsSubtotal = addons.reduce((sum, addon) => sum + addon.amount * addon.quantity, 0);
-  const teamAndEquipmentCharge = detail?.pricing.teamAndEquipmentCharge ?? 0;
-  const breakdownSubtotal = itemsSubtotal + addonsSubtotal + teamAndEquipmentCharge;
+  const breakdownSubtotal = itemsSubtotal + addonsSubtotal;
   const gstPercent = detail?.pricing.gstPercent ?? 0;
   const gstAmount = Math.round((breakdownSubtotal * gstPercent) / 100);
   const breakdownTotal = breakdownSubtotal + gstAmount;
@@ -263,7 +274,11 @@ export default function ServiceDetailsModal({
             </span>
 
             <Link
-              href={packageId && cartItemId ? `/packages/${packageId}?editItemId=${cartItemId}` : "/cart"}
+              href={
+                packageId && cartItemId
+                  ? `/packages/${packageId}?editItemId=${cartItemId}&returnTo=/booking-summary`
+                  : "/cart"
+              }
               className="flex items-center gap-1.5 font-figtree text-[14px] font-semibold leading-[22px] text-[#F0596F]"
             >
               <Pencil size={14} />
@@ -310,9 +325,12 @@ export default function ServiceDetailsModal({
               </CollapsibleSection>
 
               <CollapsibleSection label="Not included" count={`${notIncluded.length}`}>
-                <div className="flex flex-col gap-4">
-                  {notIncluded.map((name) => (
-                    <NotIncludedRow key={name} name={name} />
+                <div className="flex flex-col gap-2 rounded-2xl bg-[#F4F4F5] p-4">
+                  {notIncluded.map((name, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
+                      <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{name}</span>
+                    </div>
                   ))}
                 </div>
               </CollapsibleSection>
@@ -333,7 +351,6 @@ export default function ServiceDetailsModal({
                 <PriceBreakdownContent
                   items={breakdownItems}
                   addons={addons}
-                  teamAndEquipmentCharge={teamAndEquipmentCharge > 0 ? formatPrice(teamAndEquipmentCharge) : undefined}
                   subtotal={formatPrice(breakdownSubtotal)}
                   gstPercent={gstPercent}
                   gstAmount={formatPrice(gstAmount)}

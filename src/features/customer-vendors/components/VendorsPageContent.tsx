@@ -8,7 +8,8 @@ import { EMPTY_SELECTED_FILTERS } from "../types";
 import { getFilterSections, VENDORS_PAGE_SIZE } from "../data/filterConfig";
 import { filterVendors, filterOptionLabel } from "../utils/filterVendors";
 import { mapVendorToCard } from "../mappers";
-import { browseVendors } from "@/lib/customerDiscoveryApi";
+import { browseVendors, getVendorFilters } from "@/lib/customerDiscoveryApi";
+import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
 import { CATEGORY_TO_VENDOR_TYPE, VENDOR_SORT_UI_TO_API } from "@/lib/vendorType";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
@@ -40,20 +41,25 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const [sort, setSort] = useState<SortOption>((searchParams.get("sort") as SortOption) ?? "newest");
   const [view, setView] = useState<ViewMode>((searchParams.get("view") as ViewMode) ?? "grid");
 
-  // Deep-link-only params from the landing page search card — `eventCategory`
-  // and `date` aren't exposed as in-page controls here (event type is a
-  // multi-select checkbox that stays client-side, see filterVendors.ts), so
-  // they're captured once from the URL and threaded straight into every
-  // browsePackages call below rather than kept as reactive state.
-  const initialEventCategory = useRef(searchParams.get("eventType") ?? undefined);
+  // `date` deep-links from the landing search but isn't an in-page control
+  // here, so it's captured once and threaded straight into every
+  // browseVendors call below rather than kept as reactive state.
   const initialDate = useRef(searchParams.get("date") ?? undefined);
 
-  const [selected, setSelected] = useState<SelectedFilters>(() =>
-    initialEventCategory.current
-      ? { ...EMPTY_SELECTED, eventType: [initialEventCategory.current] }
-      : EMPTY_SELECTED
-  );
+  const [selected, setSelected] = useState<SelectedFilters>(() => {
+    const eventType = searchParams.get("eventType");
+    return eventType ? { ...EMPTY_SELECTED, eventType: [eventType] } : EMPTY_SELECTED;
+  });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // Event Type options scoped to the active category tab (2026-10-14 — same
+  // fix as the package listing's PackageListingContent.tsx: a tab used to
+  // still offer an event type that only exists on a DIFFERENT vendor type's
+  // Live packages — e.g. Decorator offering "Workshop", which only a
+  // Photographer/PAV package actually has — which correctly but confusingly
+  // resolved to "no vendors found" for that tab). Seeded from the server-
+  // rendered "All" list; refetched below whenever the category tab changes.
+  const [eventCategoryOptions, setEventCategoryOptions] = useState(data.eventCategoryOptions);
   const { isLoggedIn } = useCustomerSession();
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
   const wishlistItemIdsRef = useRef(new Map<string, string>());
@@ -133,24 +139,31 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sort, view]);
 
-  // Refetch page 1 from the real API whenever category, sort, or the
-  // debounced search term changes. Skips the very first run when
-  // category/sort/search all match what the server already fetched into
-  // `data` ("all"/"newest"/"") — refetching immediately would just flash a
-  // skeleton over data we already have. A deep link like
+  // The sidebar's "Event Type" section, joined for the server call below.
+  // REAL BUG FIXED 2026-10-14: this filter used to only ever narrow the
+  // single already-loaded page client-side (see filterVendors.ts's old
+  // eventType check) — a real, non-deactivated vendor with a Live package
+  // tagged with the picked category could easily not be on that page,
+  // showing "no vendors found" for a category that was never actually
+  // empty. Every option this sidebar offers only exists because at least
+  // one Live package has it (see liveEventCategoriesCache.js), so picking
+  // one must reliably find that vendor regardless of pagination/sort —
+  // hence refetching from the server, same as category/sort/search below,
+  // instead of a client-only refinement.
+  const eventTypeParam = (selected.eventType ?? []).join(",");
+
+  // Refetch page 1 from the real API whenever category, sort, event type,
+  // or the debounced search term changes. Skips the very first run when
+  // category/sort/search/eventType all match what the server already
+  // fetched into `data` ("all"/"newest"/""/none) — refetching immediately
+  // would just flash a skeleton over data we already have. A deep link like
   // /vendors?category=caterer or ?q=... differs from that default, so it
   // still fetches on mount to actually apply the requested filter.
   const isFirstRun = useRef(true);
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (
-        category === "all" &&
-        sort === "newest" &&
-        !debouncedSearch &&
-        !initialEventCategory.current &&
-        !initialDate.current
-      )
+      if (category === "all" && sort === "newest" && !debouncedSearch && !eventTypeParam && !initialDate.current)
         return;
     }
     let cancelled = false;
@@ -158,7 +171,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     browseVendors({
       q: debouncedSearch || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
-      eventCategory: initialEventCategory.current,
+      eventCategory: eventTypeParam || undefined,
       sort: VENDOR_SORT_UI_TO_API[sort],
       page: 1,
       limit: VENDORS_PAGE_SIZE,
@@ -178,7 +191,39 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     return () => {
       cancelled = true;
     };
-  }, [category, sort, debouncedSearch]);
+  }, [category, sort, debouncedSearch, eventTypeParam]);
+
+  // Re-fetch the Event Type options scoped to whichever category tab is now
+  // active (unscoped for "All"). Any currently-selected event type that
+  // isn't in the new list is dropped too — an invisible chip still silently
+  // filtering for an option the sidebar no longer even offers would be
+  // confusing, not useful.
+  const isFirstCategoryRun = useRef(true);
+  useEffect(() => {
+    if (isFirstCategoryRun.current) {
+      isFirstCategoryRun.current = false;
+      if (category === "all") return;
+    }
+    let cancelled = false;
+    getVendorFilters({ vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category] })
+      .then((response) => {
+        if (cancelled) return;
+        const options = groupEventCategories(response.filters.eventCategories);
+        setEventCategoryOptions(options);
+        setSelected((prev) => {
+          const validIds = new Set(options.map((o) => o.id));
+          const nextEventType = (prev.eventType ?? []).filter((id) => validIds.has(id));
+          if (nextEventType.length === (prev.eventType ?? []).length) return prev;
+          return { ...prev, eventType: nextEventType };
+        });
+      })
+      .catch(() => {
+        // Best-effort — keep whatever options were already showing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [category]);
 
   async function handleLoadMore() {
     if (isLoadingMore || page >= totalPages) return;
@@ -188,7 +233,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
       const response = await browseVendors({
         q: debouncedSearch || undefined,
         vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
-        eventCategory: initialEventCategory.current,
+        eventCategory: eventTypeParam || undefined,
         sort: VENDOR_SORT_UI_TO_API[sort],
         page: nextPage,
         limit: VENDORS_PAGE_SIZE,
@@ -206,10 +251,10 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const filterSections = useMemo(
     () =>
       getFilterSections({
-        eventCategoryOptions: data.eventCategoryOptions,
+        eventCategoryOptions,
         cityOptions: data.cityOptions,
       }),
-    [data.eventCategoryOptions, data.cityOptions]
+    [eventCategoryOptions, data.cityOptions]
   );
 
   // Search, category and sort are applied by the endpoint; only the
@@ -300,7 +345,11 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   const chips: ActiveChip[] = filterSections.flatMap((section) =>
     selected[section.id].map((id) => ({
       key: `${section.id}-${id}`,
-      label: filterOptionLabel(section.id, id),
+      // Looked up from the section's own options first — eventType's ids
+      // can now be a comma-joined group of raw values (see
+      // lib/eventCategoryGroups.ts), so the human-readable label lives on
+      // the option, not the id itself.
+      label: section.options.find((option) => option.id === id)?.label ?? filterOptionLabel(section.id, id),
       onRemove: () => toggleOption(section.id, id),
     }))
   );

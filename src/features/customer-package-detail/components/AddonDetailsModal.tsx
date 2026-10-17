@@ -8,6 +8,7 @@ import { AlertTriangle, X } from "lucide-react";
 import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
+import IncludedItemImageModal from "./IncludedItemImageModal";
 
 const DESCRIPTION_PREVIEW_LENGTH = 140;
 
@@ -30,6 +31,7 @@ export default function AddonDetailsModal({
 }) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [selectedColourId, setSelectedColourId] = useState<string | undefined>(addon?.colourOptions?.[0]?.id);
+  const [isZoomed, setIsZoomed] = useState(false);
 
   if (typeof document === "undefined" || !addon) return null;
 
@@ -46,6 +48,7 @@ export default function AddonDetailsModal({
   }
 
   return createPortal(
+    <>
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -75,7 +78,13 @@ export default function AddonDetailsModal({
             </button>
 
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-              <div className="relative h-[162px] w-full shrink-0 overflow-hidden rounded-lg sm:w-[183px]">
+              <button
+                type="button"
+                onClick={() => addon.image && setIsZoomed(true)}
+                disabled={!addon.image}
+                aria-label={addon.image ? `View larger image of ${addon.title}` : undefined}
+                className="relative h-[162px] w-full shrink-0 overflow-hidden rounded-lg disabled:cursor-default sm:w-[183px]"
+              >
                 {addon.image ? (
                   <Image src={addon.image} alt={addon.title} fill sizes="183px" className="object-cover" />
                 ) : (
@@ -84,7 +93,7 @@ export default function AddonDetailsModal({
                 <span className="absolute top-2 left-2 rounded-full bg-white/95 px-3 py-1 font-figtree text-[11px] font-semibold tracking-wide text-brand-primary uppercase shadow-sm">
                   {addon.category}
                 </span>
-              </div>
+              </button>
 
               <div className="flex-1 pr-8">
                 <h3 className="font-figtree text-[24px] leading-[32px] font-semibold text-[#030303]">{addon.title}</h3>
@@ -190,7 +199,17 @@ export default function AddonDetailsModal({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>,
+    </AnimatePresence>
+
+    {addon.image && (
+      <IncludedItemImageModal
+        isOpen={isZoomed}
+        onClose={() => setIsZoomed(false)}
+        image={addon.image}
+        alt={addon.title}
+      />
+    )}
+    </>,
     document.body
   );
 }

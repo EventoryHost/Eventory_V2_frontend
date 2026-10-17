@@ -9,6 +9,7 @@ import {
 import { resolveVendorCategory, VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
+import { sanitizeCityName } from "@/lib/vendorLocation";
 import { VENDOR_CATEGORIES } from "./data/filterConfig";
 import type { Vendor } from "./types";
 
@@ -30,7 +31,8 @@ export function mapVendorToCard(raw: RawVendorPublic): Vendor {
   const category = resolved?.category ?? "all";
   const meta = CATEGORY_META[category];
 
-  const locations = [raw.city, ...(raw.serviceAreas ?? [])].filter(
+  const city = sanitizeCityName(raw.city);
+  const locations = [city, ...(raw.serviceAreas ?? [])].filter(
     (location): location is string => Boolean(location)
   );
 
@@ -50,7 +52,7 @@ export function mapVendorToCard(raw: RawVendorPublic): Vendor {
     eventTypes: filterHiddenEventCategories(raw.eventCategories ?? []),
     rating: raw.rating ?? 0,
     reviewCount: raw.reviewsCount ?? 0,
-    location: raw.city ?? "",
+    location: city ?? "",
     locations,
     description: raw.description ?? "",
     coverImage: raw.coverImage,
@@ -70,7 +72,7 @@ export function mapPackageToVendor(pkg: RawPackage): Vendor {
 
   // Same source composition as the PDP header's locationSummary and the
   // landing page's ProductCard (city, then service areas).
-  const locations = [pkg.vendorId?.city, ...(pkg.vendorId?.serviceAreas ?? [])].filter(
+  const locations = [sanitizeCityName(pkg.vendorId?.city), ...(pkg.vendorId?.serviceAreas ?? [])].filter(
     (location): location is string => Boolean(location)
   );
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { OPEN_CUSTOMISE_EVENT } from "@/features/customer-help/helpContext";
 import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -23,6 +24,18 @@ export default function IncludedItems({
 }) {
   const [activeSetupId, setActiveSetupId] = useState<string | null>(null);
   const activeSetup = items.find((setup) => setup.id === activeSetupId) ?? null;
+
+  // Help panel's "Open customise editor" (Figma 5.3) — opens the first
+  // setup's editor, the same one its own Customise button opens.
+  useEffect(() => {
+    const open = () => {
+      if (!items[0]) return;
+      document.getElementById("included")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setActiveSetupId(items[0].id);
+    };
+    window.addEventListener(OPEN_CUSTOMISE_EVENT, open);
+    return () => window.removeEventListener(OPEN_CUSTOMISE_EVENT, open);
+  }, [items]);
   const [isExclusionsOpen, setIsExclusionsOpen] = useState(false);
   const [expandedImageSetupId, setExpandedImageSetupId] = useState<string | null>(null);
   const expandedImageSetup = items.find((setup) => setup.id === expandedImageSetupId) ?? null;
@@ -40,11 +53,25 @@ export default function IncludedItems({
     });
   }
 
+  // Vendors sometimes pack several bullet lines into one array entry
+  // (`"•Cake table \n•Fairy lights \n•Led age letter"`) instead of pressing
+  // Enter between them on the vendor form, which would've split them into
+  // separate array elements. Flatten on "\n" and strip any "•" the vendor
+  // already typed, so each line still renders as its own bullet regardless
+  // of which way the vendor entered it.
+  const flatExclusions = notIncluded.flatMap((exclusion) =>
+    exclusion
+      .split("\n")
+      .map((line) => line.trim().replace(/^•\s*/, ""))
+      .filter(Boolean)
+  );
+
   return (
     <section id="included" className="border-t border-black/5 pt-8">
       <SectionHeading>What&apos;s Included</SectionHeading>
 
-      <div className="overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white">
+      {/* Desktop/tablet layout — unchanged. */}
+      <div className="hidden overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white md:block">
         <div className="flex flex-col p-4">
           {items.map((setup, i) => {
             // Not "how many items are customisable" — how many the customer
@@ -93,9 +120,20 @@ export default function IncludedItems({
                       simply absent for other vendor types rather than a
                       placeholder standing in for it. */}
                   {setup.description && (
-                    <p className="mt-1 font-figtree text-[13px] leading-4.5 text-[#71717B]">
-                      {setup.description}
-                    </p>
+                    <ul className="mt-1 flex flex-col gap-0.5">
+                      {setup.description
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line, j) => (
+                          <li
+                            key={j}
+                            className="font-figtree text-[13px] leading-4.5 text-[#71717B]"
+                          >
+                            {line}
+                          </li>
+                        ))}
+                    </ul>
                   )}
 
                   <div className="mt-2 flex flex-col gap-1">
@@ -173,14 +211,14 @@ export default function IncludedItems({
                             <span
                               className={`font-figtree text-[14px] leading-[20px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}
                             >
-                              {/* Volume (Low/Medium/High density — e.g.
-                                  flowers) replaces the concept of a
-                                  countable quantity for that item, so "× N"
-                                  is dropped whenever Volume applies
-                                  (2026-10-01, product-confirmed) — same rule
-                                  as SetupDetailPanel/CustomizeWorkshopModal. */}
+                              {/* Volume (Low/Medium/High density) only
+                                  applies to Flowers (2026-10-04) and
+                                  replaces the concept of a countable
+                                  quantity for that item, so "× N" is
+                                  dropped whenever it applies — same rule as
+                                  SetupDetailPanel/CustomizeWorkshopModal. */}
                               {line.label}
-                              {!line.volume && ` × ${line.qty}`}
+                              {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                             </span>
                             {line.isNew && (
                               <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
@@ -206,42 +244,167 @@ export default function IncludedItems({
             );
           })}
         </div>
+      </div>
 
-        {notIncluded.length > 0 && (
-          <div className="border-t border-[#E4E4E7]">
-            <button
-              type="button"
-              onClick={() => setIsExclusionsOpen((open) => !open)}
-              className="flex h-10 w-full items-center justify-start gap-2 bg-[#FAFAFA] px-7 py-2"
-            >
-              <span className="font-figtree text-[14px] leading-[20px] font-medium text-[#B4112A]">
-                Check Exclusions
-              </span>
-              <ArrowRight
-                className={`h-4 w-4 shrink-0 text-[#B4112A] transition-transform ${
-                  isExclusionsOpen ? "rotate-90" : ""
-                }`}
-              />
-            </button>
+      {/* Mobile layout (Figma node 2565:28051) — one card per setup: a
+          smaller portrait image beside compact label:value detail lines
+          (instead of the desktop's wide image + stacked rows), a pill
+          "View setup" button, then the same items checklist below a dashed
+          divider, each green check now an outline icon (desktop's filled
+          CheckCircle2 swapped for the stroke-only variant Figma actually
+          uses here — same component, just unfilled). */}
+      <div className="flex flex-col divide-y divide-[#E4E4E7] rounded-2xl border border-[#E4E4E7] bg-white px-4 md:hidden">
+        {items.map((setup, i) => {
+          const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
+          const liveItems = setup.items;
+          return (
+            <div key={setup.id} className="flex flex-col gap-3 py-[14px]">
+              <div className="flex items-start gap-3">
+                {setup.image ? (
+                  <button
+                    type="button"
+                    onClick={() => setExpandedImageSetupId(setup.id)}
+                    aria-label={`View larger image of ${setup.title}`}
+                    className="h-[139px] w-[118px] shrink-0 overflow-hidden rounded-xl"
+                  >
+                    <img src={setup.image} alt={setup.title} className="block h-full w-full object-cover" />
+                  </button>
+                ) : (
+                  <div className="h-[139px] w-[118px] shrink-0 overflow-hidden rounded-xl">
+                    <PlaceholderMedia seed={i} className="absolute inset-0" />
+                  </div>
+                )}
 
-            {isExclusionsOpen && (
-              <div className="border-t border-[#E4E4E7] bg-[#FAFAFA] px-7 py-4">
-                <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
-                  EXCLUSIONS ({notIncluded.length})
-                </p>
-                <div className="grid grid-cols-1 gap-x-8 gap-y-2 sm:grid-cols-2">
-                  {notIncluded.map((exclusion) => (
-                    <div key={exclusion} className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
-                      <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
-                    </div>
-                  ))}
+                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <p className="font-figtree text-[16px] leading-[22px] font-semibold text-[#222]">{setup.title}</p>
+
+                  <div className="flex flex-col gap-1">
+                    {setup.details.map((detail) => {
+                      const key = `${setup.id}-${detail.label}-m`;
+                      const isExpanded = expandedDetailKeys.has(key);
+                      return (
+                        <p key={detail.label} className="font-figtree text-[14px] text-[#71717B]">
+                          {detail.label}:{" "}
+                          <span className="font-medium text-[#3F3F47]">
+                            {isExpanded && detail.allValues ? detail.allValues.join(", ") : detail.value}
+                            {detail.moreCount ? (
+                              <>
+                                {!isExpanded && " "}
+                                <button
+                                  type="button"
+                                  onClick={() => toggleDetailExpanded(key)}
+                                  className="underline"
+                                >
+                                  {isExpanded ? "Show less" : `+${detail.moreCount}`}
+                                </button>
+                              </>
+                            ) : null}
+                          </span>
+                        </p>
+                      );
+                    })}
+                  </div>
+
+                  <div className="pt-0.5 font-figtree text-[18px] font-semibold text-[#222]">
+                    {formatPrice(setup.price)}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
-        )}
+
+              <button
+                type="button"
+                onClick={() => setActiveSetupId(setup.id)}
+                className="flex w-fit items-center gap-1.5 rounded-full border border-[#F0596F] px-3 py-2 font-figtree text-[12px] font-medium text-[#F0596F]"
+              >
+                <span
+                  aria-hidden
+                  className="h-3.5 w-3.5 bg-current"
+                  style={{
+                    WebkitMask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                    mask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                  }}
+                />
+                View setup
+              </button>
+
+              {liveItems.length > 0 && (
+                <>
+                  <hr className="border-dashed border-black/10" />
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <p className="font-figtree text-[12px] tracking-[0.06em] text-[#71717B]">ITEMS</p>
+                      {requestCount > 0 && (
+                        <span className="rounded-full bg-[#FEF3E2] px-2.5 py-1.5 font-figtree text-[11px] font-medium text-[#C2410C]">
+                          {requestCount} customisation{requestCount === 1 ? "" : "s"} requested
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {liveItems.map((line) => (
+                        <div
+                          key={line.id}
+                          className={`flex items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
+                        >
+                          <CheckCircle2
+                            className={`h-3.5 w-3.5 shrink-0 ${line.removalRequested ? "text-neutral-tertiary" : "text-success-700"}`}
+                            strokeWidth={1.5}
+                          />
+                          <span className={`font-figtree text-[14px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}>
+                            {line.label}
+                            {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
+                          </span>
+                          {line.isNew && (
+                            <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
+                              New
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
+
+      {flatExclusions.length > 0 && (
+        <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4E4E7]">
+          <button
+            type="button"
+            onClick={() => setIsExclusionsOpen((open) => !open)}
+            className="flex h-10 w-full items-center justify-start gap-2 bg-[#FAFAFA] px-7 py-2"
+          >
+            <span className="font-figtree text-[14px] leading-[20px] font-medium text-[#B4112A]">
+              Check Exclusions
+            </span>
+            <ArrowRight
+              className={`h-4 w-4 shrink-0 text-[#B4112A] transition-transform ${
+                isExclusionsOpen ? "rotate-90" : ""
+              }`}
+            />
+          </button>
+
+          {isExclusionsOpen && (
+            <div className="border-t border-[#E4E4E7] bg-[#FAFAFA] px-7 py-4">
+              <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
+                EXCLUSIONS ({flatExclusions.length})
+              </p>
+              <div className="flex flex-col gap-2">
+                {flatExclusions.map((exclusion, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
+                    <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {activeSetup && (
         <CustomizeWorkshopModal

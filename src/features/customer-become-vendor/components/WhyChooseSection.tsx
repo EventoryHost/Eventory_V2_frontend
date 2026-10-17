@@ -39,14 +39,7 @@ const STEPS = [
 
 export default function WhyChooseSection() {
   return (
-    // The section's own background still starts flush against the Hero
-    // section above (no gap there), but its content ("Why Choose Eventory")
-    // sits 48px below that background's top edge. Rounded bottom corners
-    // only (not top, which would leave a visible gap at the flush edge
-    // against Hero) — this cream block is its own self-contained section,
-    // distinct from Grow Your Business right after it, which sits on a
-    // plain white background, not this same cream.
-    <section className="w-full rounded-b-[44px] bg-[#FFF8EB] px-4 pt-12 pb-16 sm:px-6 lg:px-16">
+    <section className="w-full bg-white px-4 pt-12 pb-16 sm:px-6 lg:px-16">
       <div className="mx-auto max-w-[1320px]">
         <p className="font-figtree text-[13px] leading-[18px] font-semibold tracking-[0.05em] text-[#EA1D3B] uppercase">
           Why Choose Eventory

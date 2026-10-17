@@ -29,7 +29,9 @@ function ItemDetailCard({
   onSelectColour: (colourId: string) => void;
 }) {
   const displayType = item.originalType ?? item.type;
-  const displayVolume = item.originalVolume ?? item.volume;
+  // Volume (Low/Medium/High density) only makes sense for Flowers — real
+  // bug fixed 2026-10-04 (PM-reported: "volume field only for flowers").
+  const displayVolume = item.category === "Flowers" ? (item.originalVolume ?? item.volume) : undefined;
 
   return (
     <div className={`rounded-2xl border border-black/10 p-4 ${item.removalRequested ? "opacity-50" : ""}`}>
@@ -38,11 +40,6 @@ function ItemDetailCard({
           className={`font-figtree text-[15px] font-bold text-brand-950 ${item.removalRequested ? "line-through" : ""}`}
         >
           {item.label}
-          {item.isNew && (
-            <span className="ml-2 rounded-full bg-amber-100 px-1.5 py-0.5 align-middle text-[10px] font-semibold text-amber-700">
-              New
-            </span>
-          )}
         </h4>
         {item.price != null && (
           <span className="shrink-0 font-figtree text-[15px] font-bold text-brand-950">{formatPrice(item.price)}</span>
@@ -73,13 +70,15 @@ function ItemDetailCard({
           <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">
             Color <span className="text-neutral-tertiary/70">· pick the one you&apos;d like</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Color">
             {item.colourOptions.map((colour) => {
               const selected = item.colours?.includes(colour.id);
               return (
                 <button
                   key={colour.id}
                   type="button"
+                  role="radio"
+                  aria-checked={selected}
                   disabled={item.removalRequested}
                   onClick={() => onSelectColour(colour.id)}
                   className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-figtree text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -204,13 +203,21 @@ export default function SetupDetailPanel({
         </div>
 
         <div className="mt-4 space-y-3">
-          {items.map((item) => (
-            <ItemDetailCard
-              key={item.id}
-              item={item}
-              onSelectColour={(colourId) => onSelectVendorColour(item.id, colourId)}
-            />
-          ))}
+          {/* Items added via "Add an item" in the customize modal are NOT
+              part of the vendor's real setup — showing them here (even with
+              a "New" badge) duplicated them against their own entry in
+              "Your requests" below. Real bug fixed 2026-10-04 (PM-reported:
+              "do not show it in item details, just have it as a request at
+              the bottom"). */}
+          {items
+            .filter((item) => !item.isNew)
+            .map((item) => (
+              <ItemDetailCard
+                key={item.id}
+                item={item}
+                onSelectColour={(colourId) => onSelectVendorColour(item.id, colourId)}
+              />
+            ))}
         </div>
 
         <YourRequestsPanel requests={requests} onDismiss={onDismissRequest} />

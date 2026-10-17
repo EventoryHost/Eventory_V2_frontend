@@ -22,7 +22,7 @@ export default function BecomeVendorPageContent() {
       <HowItWorksSection />
       <VendorTestimonialsSection />
       <PricingComparisonSection />
-      <LocalitiesSection />
+      <LocalitiesSection variant="pink" />
       <FAQSection />
     </div>
   );

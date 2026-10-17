@@ -56,8 +56,8 @@ export interface IncludedItemLine {
   type?: string;
   originalType?: string;
   colourOptions?: ColourOption[];
-  /** Selected colour ids — the vendor's own palette (colourOptions). Multi-
-   * select, freely changeable (item-details section, SetupDetailPanel.tsx)
+  /** Selected colour id — the vendor's own palette (colourOptions). Single-
+   * select (radio group), freely changeable (item-details section, SetupDetailPanel.tsx)
    * and NEVER a request: "these are the options the vendor already provides." */
   colours?: string[];
   originalColours?: string[];
@@ -255,6 +255,13 @@ export interface PackagePricing {
   overtimeBillingUnit?: string;
 }
 
+export interface PaymentMilestone {
+  title: string;
+  percentage: number;
+  /** Human timing, e.g. "2 days before the event", "on the event day". */
+  dueLabel: string;
+}
+
 export interface PackageDetail {
   id: string;
   categoryLabel: string;
@@ -281,6 +288,8 @@ export interface PackageDetail {
   locationSummary: string;
   /** Same city + service-area composition as locationSummary, uncapped — what the header's "See the location" expands to. */
   fullLocationSummary: string;
+  /** Same city + service-area composition as fullLocationSummary, but as an array — what the header renders as individual pill chips (Figma node 2404:22954), rather than the plain comma-joined text locationSummary/fullLocationSummary are for other spots (ShareModal, etc). */
+  locationList: string[];
   gallery: GalleryImage[];
   variants: PackageVariant[];
   defaultVariantId: string;
@@ -304,6 +313,8 @@ export interface PackageDetail {
   addons: AddonItem[];
   paymentProtection: { points: string[]; footnote: string };
   policies: PolicyItem[];
+  /** Balance schedule after the token — empty when the vendor set none. */
+  paymentMilestones: PaymentMilestone[];
   vendor: VendorInfo;
   reviews: ReviewsSummary;
   pricing: PackagePricing;

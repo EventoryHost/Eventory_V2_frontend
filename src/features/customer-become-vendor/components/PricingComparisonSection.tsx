@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2 } from "lucide-react";
 
 type FeatureRow = {
   label: string;
@@ -81,7 +80,11 @@ export default function PricingComparisonSection() {
                 <div className="flex items-center justify-center border-t border-r border-[#FCDEE2] px-5 py-4">
                   {row.eventoryHighlighted ? (
                     <span className="flex h-8 items-center gap-1.5 rounded-full border border-[#F9BDC5] bg-[#FFFAFA] px-2.5">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-brand-primary" />
+                      <img
+                        src="/images/customer/become/pricing-check-filled.svg"
+                        alt=""
+                        className="h-4 w-4 shrink-0"
+                      />
                       <span className="font-figtree text-[14px] leading-[20px] font-medium whitespace-nowrap text-[#030303]">
                         {row.eventory}
                       </span>
@@ -108,7 +111,7 @@ export default function PricingComparisonSection() {
             <div className="relative overflow-visible rounded-[20px] bg-[#FDECEF] p-5">
               <p className="font-figtree">
                 <span className="text-[40px] leading-[48px] font-normal text-[#030303] line-through">30%</span>{" "}
-                <span className="text-[40px] leading-[48px] font-normal text-brand-primary sm:text-[48px] sm:leading-[56px]">
+                <span className="text-[40px] leading-[48px] font-bold text-brand-primary sm:text-[48px] sm:leading-[56px]">
                   Only 1-5%
                 </span>
               </p>

@@ -67,7 +67,10 @@ export default function BookingSuccessPage() {
         </div>
 
         <div className="w-full lg:sticky lg:top-6 lg:flex-1">
-          <BookingSuccessSidebar changeDeadlineLabel={data.changeDeadlineLabel} />
+          <BookingSuccessSidebar
+            changeDeadlineLabel={data.changeDeadlineLabel}
+            bookingIdLabel={data.bookingIdLabel}
+          />
         </div>
       </div>
     </div>

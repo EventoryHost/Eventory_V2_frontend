@@ -7,7 +7,6 @@ import type {
 import { mockPackagesPageData } from "../data/mockPackagesPageData";
 import { browsePackages, getPackageImage, getPackageStartingPrice, type RawPackage } from "@/lib/customerDiscoveryApi";
 import { CATEGORY_TO_VENDOR_TYPE } from "@/lib/vendorType";
-import { filterHiddenEventCategories } from "@/lib/eventCategories";
 
 const PRODUCT_SECTION_LIMIT = 8;
 // Each category has two "product" packageCategorySection blocks in the mock
@@ -32,7 +31,9 @@ function toPackageCategoryItem(pkg: RawPackage): PackageCategoryItem {
  * name is never blank: what the package is for, else who runs it.
  */
 function toBudgetSuggestion(pkg: RawPackage): BudgetEstimatorSuggestion {
-  const eventTypes = filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []);
+  // PM reversal (2026-10-14): show every category the vendor set, including
+  // ones previously merged/hidden as duplicates.
+  const eventTypes = pkg.step1_eventAndCrew?.eventCategories ?? [];
   return {
     id: pkg._id,
     title: pkg.step1_eventAndCrew?.packageName ?? "Package",

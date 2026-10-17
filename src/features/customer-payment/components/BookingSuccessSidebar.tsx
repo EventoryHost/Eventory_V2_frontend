@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { MessageCircle, Pencil } from "lucide-react";
+import { buildWhatsAppLink } from "@/lib/whatsapp";
 
 export type BookingSuccessSidebarProps = {
   changeDeadlineLabel: string;
+  /** Shown to the customer elsewhere on this page as "Booking ID" — included in the WhatsApp message so the event manager knows which booking this is about. */
+  bookingIdLabel?: string;
   onChangeBookingDetails?: () => void;
 };
 
 export default function BookingSuccessSidebar({
   changeDeadlineLabel,
+  bookingIdLabel,
   onChangeBookingDetails,
 }: BookingSuccessSidebarProps) {
   return (
@@ -21,13 +25,19 @@ export default function BookingSuccessSidebar({
         >
           Go to My Bookings
         </Link>
-        <button
-          type="button"
+        <a
+          href={buildWhatsAppLink(
+            bookingIdLabel
+              ? `Hi, I'd like help with my booking ${bookingIdLabel}.`
+              : "Hi, I'd like help with my booking."
+          )}
+          target="_blank"
+          rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-full border border-[#D4D4D8] bg-white py-[15px] font-figtree text-[16px] font-semibold text-[#09090B]"
         >
           <MessageCircle size={18} />
           Chat with Event manager
-        </button>
+        </a>
       </div>
 
       <div className="flex flex-col gap-4 rounded-[12px] bg-[#FAFAFA] p-5">

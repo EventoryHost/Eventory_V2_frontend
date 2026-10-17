@@ -15,8 +15,6 @@ export type PriceBreakdownAddon = {
 export type PriceBreakdownContentProps = {
   items: PriceBreakdownItem[];
   addons: PriceBreakdownAddon[];
-  /** Real, separate flat charge (step3_policiesAndCharges.teamAndEquipment) — shown as its own line, same as PDP's PriceBreakdownDialog, rather than folded silently into subtotal. */
-  teamAndEquipmentCharge?: string;
   subtotal: string;
   gstPercent: number;
   gstAmount: string;
@@ -32,7 +30,6 @@ const BOLD = "font-figtree text-[14px] leading-[22.75px] font-semibold text-[#3F
 export default function PriceBreakdownContent({
   items,
   addons,
-  teamAndEquipmentCharge,
   subtotal,
   gstPercent,
   gstAmount,
@@ -59,13 +56,6 @@ export default function PriceBreakdownContent({
             <span className={`shrink-0 ${BOLD}`}>{addon.price}</span>
           </div>
         ))}
-
-        {teamAndEquipmentCharge && (
-          <div className="flex items-start justify-between gap-3">
-            <span className={NORMAL}>Team &amp; equipment</span>
-            <span className={`shrink-0 ${BOLD}`}>{teamAndEquipmentCharge}</span>
-          </div>
-        )}
       </div>
 
       <div className="mt-4 flex flex-col gap-2 border-t border-[#E4E4E7] pt-4">

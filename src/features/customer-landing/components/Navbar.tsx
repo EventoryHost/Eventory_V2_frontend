@@ -154,6 +154,21 @@ export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Same click-outside pattern as CitySelect above — the hamburger dropdown
+  // previously only closed via its own toggle button or the scroll-down
+  // auto-close, never by clicking elsewhere on the page.
+  useEffect(() => {
+    if (!isMenuOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (headerRef.current && !headerRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isMenuOpen]);
 
   useEffect(() => {
     lastScrollY.current = window.scrollY;
@@ -180,6 +195,7 @@ export default function Navbar() {
   return (
     <>
     <header
+      ref={headerRef}
       className={`fixed top-[0.61px] inset-x-0 z-50 w-full border-b border-black/5 bg-white transition-transform duration-300 ${
         isVisible ? "translate-y-0" : "-translate-y-full"
       }`}
