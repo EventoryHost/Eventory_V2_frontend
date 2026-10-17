@@ -4,7 +4,7 @@ export default function CorporateEventsBanner() {
   return (
     <section className="relative mx-auto mt-16 min-h-[320px] w-full max-w-[1320px] overflow-hidden rounded-[44px]">
       <Image
-        src="/images/customer/planningcorp.jpg"
+        src="/images/customer/plcorporate.png"
         alt="Corporate event"
         fill
         className="object-cover"
