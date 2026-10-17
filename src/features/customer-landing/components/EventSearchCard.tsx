@@ -8,6 +8,7 @@ import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { toEventTypeDisplay, allowedServicesFor, ALL_SERVICE_OPTIONS } from "../data/eventSearchTaxonomy";
 import SearchFieldTrigger from "./SearchFieldTrigger";
 import SearchDropdownPanel from "./SearchDropdownPanel";
+import VendorServiceDropdownPanel from "./VendorServiceDropdownPanel";
 import SearchDatePicker from "./SearchDatePicker";
 
 type OpenField = "eventType" | "vendorService" | "date" | null;
@@ -204,8 +205,7 @@ export default function EventSearchCard() {
           onFocus={() => setOpenField("vendorService")}
         />
         {openField === "vendorService" && (
-          <SearchDropdownPanel
-            header={eventTypeLabel ? `Services for ${eventTypeLabel}` : "All services"}
+          <VendorServiceDropdownPanel
             rows={filteredServiceOptions}
             selectedId={vendorService}
             onSelect={selectVendorService}
