@@ -1,7 +1,9 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Calendar, Users } from "lucide-react";
 
 export type TrendingEventCardProps = {
+  image: string;
   badge: string;
   title: string;
   subtitle: string;
@@ -41,6 +43,7 @@ function TrendingTagIcon({
 }
 
 export default function TrendingEventCard({
+  image,
   badge,
   title,
   subtitle,
@@ -53,11 +56,20 @@ export default function TrendingEventCard({
       href="/packages"
       className="relative block h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-[#FFE5E9] bg-[#FFF6F7] sm:w-[420px] lg:h-[326px] lg:w-[868px]"
     >
-      <div className="absolute top-0 left-6">
+      {/* Event photo now fills the whole card — left-to-right gradient (the
+          card's own background colour, not a generic black scrim) keeps the
+          left side solid enough for the text to stay readable while still
+          showing the photo through on the right. */}
+      <div className="absolute inset-0 z-0">
+        <Image src={image} alt="" fill className="object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FFF6F7] via-[#FFF6F7]/85 to-[#FFF6F7]/10 lg:to-transparent" />
+      </div>
+
+      <div className="absolute top-0 left-6 z-10">
         <TrendingTagIcon label={badge} />
       </div>
 
-      <div className="flex w-full flex-col gap-3 px-6 pt-12 lg:absolute lg:top-16 lg:left-8 lg:w-[358px] lg:px-0 lg:pt-0">
+      <div className="relative z-10 flex w-full flex-col gap-3 px-6 pt-12 lg:absolute lg:top-16 lg:left-8 lg:w-[358px] lg:px-0 lg:pt-0">
         <h3 className="font-figtree text-[28px] lg:text-[40px] font-bold leading-[1.1] tracking-[-0.04em] text-[#3C060D]">
           {title}
         </h3>
@@ -66,7 +78,7 @@ export default function TrendingEventCard({
         </p>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-center gap-4 px-6 sm:gap-6 lg:absolute lg:top-[220px] lg:left-8 lg:mt-0 lg:px-0">
+      <div className="relative z-10 mt-4 flex flex-wrap items-center gap-4 px-6 sm:gap-6 lg:absolute lg:top-[220px] lg:left-8 lg:mt-0 lg:px-0">
         <span className="flex items-center gap-2 font-figtree text-[14px] font-medium text-body-secondary">
           <Calendar size={16} />
           {date}
@@ -77,20 +89,9 @@ export default function TrendingEventCard({
         </span>
       </div>
 
-      <span className="mx-6 mt-6 mb-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white lg:absolute lg:bottom-8 lg:left-8 lg:m-0">
+      <span className="relative z-10 mx-6 mt-6 mb-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white lg:absolute lg:bottom-8 lg:left-8 lg:m-0">
         {ctaLabel}
       </span>
-
-      {/* Placeholder for the event photo/gradient artwork (desktop only) */}
-      <div className="absolute inset-y-0 right-0 hidden w-[300px] items-center justify-center overflow-hidden lg:flex">
-        <span className="font-figtree text-[40px] font-bold leading-[1.1] text-[#FFE5E9] select-none">
-          Gradient
-          <br />
-          photo
-          <br />
-          here
-        </span>
-      </div>
     </Link>
   );
 }
