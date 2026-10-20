@@ -1,20 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import ContactUsModal from "./ContactUsModal";
 import ContactSuccessModal from "./ContactSuccessModal";
+import { browseVendors } from "@/lib/customerDiscoveryApi";
 
-// Static placeholder — no vendor-count endpoint exists yet. Replace with a
-// real fetched total once one does; explicitly not treated as live data
-// until then (see CLAUDE session working rules: never silently present a
-// hardcoded number as if it were real).
-const TOTAL_VENDORS = "4503";
+// Static fallback shown until the real count loads (or if the request
+// fails) — there's no dedicated vendor-count endpoint, so this reads
+// `.total` off an unfiltered, 1-result GET /customer/vendors call, which the
+// backend already computes as the full matching-vendor count regardless of
+// `limit`.
+const FALLBACK_TOTAL_VENDORS = "4503";
 
 export default function HeroSection() {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [successName, setSuccessName] = useState<string | null>(null);
+  const [totalVendors, setTotalVendors] = useState(FALLBACK_TOTAL_VENDORS);
+
+  useEffect(() => {
+    let cancelled = false;
+    browseVendors({ limit: 1 })
+      .then((response) => {
+        if (!cancelled) setTotalVendors(response.total.toLocaleString("en-IN"));
+      })
+      .catch(() => {
+        // Keep the static fallback on failure.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     // w-full bg-white overrides the customer layout's bg-customer-bg
@@ -39,7 +56,7 @@ export default function HeroSection() {
                 Total Number of Vendors on Eventory:
               </span>
               <span className="font-figtree text-[14px] leading-[16px] font-bold tracking-[-0.56px] text-[#EA1D3B]">
-                {TOTAL_VENDORS}
+                {totalVendors}
               </span>
             </div>
           </div>

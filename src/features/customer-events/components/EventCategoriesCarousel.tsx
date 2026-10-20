@@ -7,7 +7,7 @@ import EventCategoryCard, {
 
 const CATEGORIES: EventCategoryCardProps[] = [
   {
-    image: "/images/customer/events/explore-packages.png",
+    image: "/images/customer/events/birthdayaesthetics.png",
     title: "Birthday Aesthetics, Delivered Flawlessly.",
     subtitle: "Book Top-Tier Decorators & Curated Party Packages",
     ctaLabel: "Explore Packages",
@@ -15,7 +15,7 @@ const CATEGORIES: EventCategoryCardProps[] = [
     accentTo: "#B45309",
   },
   {
-    image: "/images/customer/events/explore-packages.png",
+    image: "/images/customer/events/celebrationsmade.png",
     title: "Celebrations Made Effortless, Every Detail.",
     subtitle: "Book Top-Tier Vendors & Curated Celebration Packages",
     ctaLabel: "Explore Packages",
@@ -23,7 +23,7 @@ const CATEGORIES: EventCategoryCardProps[] = [
     accentTo: "#EC4899",
   },
   {
-    image: "/images/customer/events/explore-packages.png",
+    image: "/images/customer/events/coporateevents.png",
     title: "Corporate Events, Handled End to End.",
     subtitle: "Book Top-Tier Vendors & Curated Corporate Packages",
     ctaLabel: "Explore Packages",

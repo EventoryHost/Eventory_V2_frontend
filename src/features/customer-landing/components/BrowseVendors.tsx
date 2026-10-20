@@ -4,13 +4,12 @@ import Link from "next/link";
 // categoryId matches the ids VENDOR_CATEGORIES uses in
 // customer-vendors/data/filterConfig.ts, so each card deep-links straight
 // into that category's tab on /vendors.
+//
+// Decorator listed FIRST (PM instruction) — it's the only category with
+// real package depth right now, so it leads, and every other category
+// renders dimmed (see `dimmed` below) rather than competing for the same
+// attention until they have comparable package volume.
 const VENDOR_CATEGORIES = [
-  {
-    label: "Caterer",
-    categoryId: "caterer",
-    image: "/images/customer/caterers.png",
-    color: "#FFCCD3",
-  },
   {
     label: "Decorator",
     categoryId: "decorator",
@@ -18,28 +17,39 @@ const VENDOR_CATEGORIES = [
     color: "#FFEFC2",
   },
   {
+    label: "Caterer",
+    categoryId: "caterer",
+    image: "/images/customer/caterers.png",
+    color: "#FFCCD3",
+    dimmed: true,
+  },
+  {
     label: "DJ Artist",
     categoryId: "dj-artist",
     image: "/images/customer/dj.png",
     color: "#E0CCFF",
+    dimmed: true,
   },
   {
     label: "Makeup Artist",
     categoryId: "makeup-artist",
     image: "/images/customer/makeup.png",
     color: "#FFDFB2",
+    dimmed: true,
   },
   {
     label: "Venue provider",
     categoryId: "venue-provider",
     image: "/images/customer/venue.png",
     color: "#C2E3FF",
+    dimmed: true,
   },
   {
     label: "Photographer & Videographer",
     categoryId: "photographer",
     image: "/images/customer/video.png",
     color: "#CCFFE2",
+    dimmed: true,
   },
 ];
 
@@ -64,7 +74,9 @@ export default function BrowseVendors() {
             style={{
               background: `radial-gradient(circle at 100% 100%, ${category.color} 0%, #ffffff 65%)`,
             }}
-            className="relative mx-auto h-[108px] w-full max-w-[202px] overflow-hidden rounded-[14px] border border-black/5 text-left sm:h-[172px] sm:rounded-[20px]"
+            className={`relative mx-auto h-[108px] w-full max-w-[202px] overflow-hidden rounded-[14px] border border-black/5 text-left transition-opacity sm:h-[172px] sm:rounded-[20px] ${
+              category.dimmed ? "opacity-45 hover:opacity-75" : ""
+            }`}
           >
             <span className="absolute top-2.5 left-2.5 right-2.5 z-10 font-figtree font-semibold text-brand-950 text-[11px] leading-[1.2] sm:top-6 sm:left-5 sm:right-5 sm:text-[16px]">
               {category.label}

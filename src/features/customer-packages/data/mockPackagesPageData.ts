@@ -26,7 +26,7 @@ const EVENT_SCENE_IMAGES = [
   "/images/customer/expo.jpg",
   "/images/customer/tech.jpg",
   "/images/customer/corporate.jpg",
-  "/images/customer/planningcorp.jpg",
+  "/images/customer/plcorporate.png",
   "/images/customer/packages-pics.png",
   "/images/customer/hero-explore-events.png",
   "/images/customer/ready-1.png",

@@ -23,6 +23,7 @@ import VendorSection from "./VendorSection";
 import ReviewsSection from "./ReviewsSection";
 import StickyBookingCard from "./StickyBookingCard";
 import MobileBookingBar from "./MobileBookingBar";
+import RecommendedPackagesSection from "./RecommendedPackagesSection";
 
 function scrollToBookingCard() {
   document.getElementById("booking-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -297,6 +298,8 @@ export default function PackageDetailPage({
           />
         </div>
       </div>
+
+      <RecommendedPackagesSection currentPackageId={data.id} categorySlug={data.categorySlug} />
 
       <MobileBookingBar
         form={bookingForm}
