@@ -19,7 +19,7 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
     data.vendorGroups.find((group) => group.categoryId === activeGroupId) ?? data.vendorGroups[0];
 
   return (
-    <section className="mx-4 sm:mx-6 lg:mx-8">
+    <section className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
       <div className="mb-6 text-center sm:mb-8">
         <h2 className="font-figtree text-[20px] font-bold text-brand-950 sm:text-[28px]">{data.heading}</h2>
         <p className="mt-1 font-figtree text-[13px] font-medium text-neutral-tertiary sm:text-[14px]">

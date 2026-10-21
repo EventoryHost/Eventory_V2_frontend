@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import EventPackageCarousel from "./EventPackageCarousel";
 import { type EventPackageCardProps } from "./EventPackageCard";
-import { getPopularPackages, type RawPackage } from "@/lib/customerDiscoveryApi";
+import { getPackageImage, getPopularPackages, type RawPackage } from "@/lib/customerDiscoveryApi";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { PDF_EVENT_CATEGORIES, toPdfEventCategory, type PdfEventCategory } from "@/lib/eventCategoryPdfTaxonomy";
@@ -21,8 +21,15 @@ const FALLBACK_IMAGE = "/images/customer/events/upcoming.jpg";
  * popularity-ranked package list already fetched elsewhere, rather than
  * inventing fake per-category stats.
  */
-function computeTopServicePerCategory(packages: RawPackage[]): Map<PdfEventCategory, string> {
+type CategoryInsights = {
+  topService: Map<PdfEventCategory, string>;
+  /** First (i.e. most popular, since the feed is already popularity-ranked) package image seen for each category — used as that card's real cover photo instead of one shared fallback. */
+  image: Map<PdfEventCategory, string>;
+};
+
+function computeCategoryInsights(packages: RawPackage[]): CategoryInsights {
   const counts = new Map<PdfEventCategory, Map<string, number>>();
+  const image = new Map<PdfEventCategory, string>();
 
   for (const pkg of packages) {
     const eventCategories = pkg.step1_eventAndCrew?.eventCategories ?? [];
@@ -35,6 +42,11 @@ function computeTopServicePerCategory(packages: RawPackage[]): Map<PdfEventCateg
       const byVendorType = counts.get(pdfCategory) ?? new Map<string, number>();
       byVendorType.set(pkg.vendorType, (byVendorType.get(pkg.vendorType) ?? 0) + 1);
       counts.set(pdfCategory, byVendorType);
+
+      if (!image.has(pdfCategory)) {
+        const pkgImage = getPackageImage(pkg);
+        if (pkgImage) image.set(pdfCategory, pkgImage);
+      }
     }
   }
 
@@ -50,7 +62,7 @@ function computeTopServicePerCategory(packages: RawPackage[]): Map<PdfEventCateg
     }
     if (best) topService.set(pdfCategory, best);
   }
-  return topService;
+  return { topService, image };
 }
 
 function serviceLabelFor(vendorType: string): string {
@@ -58,12 +70,12 @@ function serviceLabelFor(vendorType: string): string {
   return VENDOR_CATEGORIES.find((c) => c.id === categoryId)?.label ?? vendorType;
 }
 
-function buildCards(topServicePerCategory: Map<PdfEventCategory, string>): EventPackageCardProps[] {
+function buildCards({ topService, image }: CategoryInsights): EventPackageCardProps[] {
   return PDF_EVENT_CATEGORIES.map((category) => {
-    const topVendorType = topServicePerCategory.get(category);
+    const topVendorType = topService.get(category);
     const serviceLabel = topVendorType ? serviceLabelFor(topVendorType) : null;
     return {
-      image: FALLBACK_IMAGE,
+      image: image.get(category) ?? FALLBACK_IMAGE,
       // Figma node 148:584 — the same ribbon-shaped "Trending" tag
       // EventPackageCard already renders (TrendingTagIcon) when a `badge`
       // is passed; this section just wasn't passing one yet.
@@ -81,13 +93,18 @@ function buildCards(topServicePerCategory: Map<PdfEventCategory, string>): Event
 }
 
 export default function FeaturedUpcomingEvents() {
-  const [cards, setCards] = useState<EventPackageCardProps[]>(() => buildCards(new Map()));
+  const [cards, setCards] = useState<EventPackageCardProps[]>(() =>
+    buildCards({ topService: new Map(), image: new Map() })
+  );
 
   useEffect(() => {
     let cancelled = false;
-    getPopularPackages({ limit: 50 })
+    // GET /customer/packages/popular caps `limit` at 30 server-side — passing
+    // 50 fails Zod validation every time and silently falls through to the
+    // generic fallback copy/image below (the catch swallows it).
+    getPopularPackages({ limit: 30 })
       .then((response) => {
-        if (!cancelled) setCards(buildCards(computeTopServicePerCategory(response.packages)));
+        if (!cancelled) setCards(buildCards(computeCategoryInsights(response.packages)));
       })
       .catch(() => {
         // Keep the generic fallback copy (no computed top service) on failure.
