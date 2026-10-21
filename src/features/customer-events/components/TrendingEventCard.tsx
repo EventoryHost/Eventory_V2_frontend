@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Calendar, Users } from "lucide-react";
+import { Calendar } from "lucide-react";
 
 export type TrendingEventCardProps = {
   image: string;
@@ -8,7 +8,6 @@ export type TrendingEventCardProps = {
   title: string;
   subtitle: string;
   date: string;
-  peopleBooked: string;
   ctaLabel: string;
 };
 
@@ -48,21 +47,19 @@ export default function TrendingEventCard({
   title,
   subtitle,
   date,
-  peopleBooked,
   ctaLabel,
 }: TrendingEventCardProps) {
   return (
     <Link
       href="/packages"
-      className="relative block h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-[#FFE5E9] bg-[#FFF6F7] sm:w-[420px] lg:h-[326px] lg:w-[868px]"
+      className="relative block h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#1E0306] sm:w-[420px] lg:h-[326px] lg:w-[868px]"
     >
-      {/* Event photo now fills the whole card — left-to-right gradient (the
-          card's own background colour, not a generic black scrim) keeps the
-          left side solid enough for the text to stay readable while still
-          showing the photo through on the right. */}
+      {/* Event photo now fills the whole card — left-to-right dark scrim
+          keeps the left side solid enough for the white text to stay
+          readable while still showing the photo through on the right. */}
       <div className="absolute inset-0 z-0">
         <Image src={image} alt="" fill className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#FFF6F7] via-[#FFF6F7]/85 to-[#FFF6F7]/10 lg:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/10 lg:to-transparent" />
       </div>
 
       <div className="absolute top-0 left-6 z-10">
@@ -70,22 +67,18 @@ export default function TrendingEventCard({
       </div>
 
       <div className="relative z-10 flex w-full flex-col gap-3 px-6 pt-12 lg:absolute lg:top-16 lg:left-8 lg:w-[358px] lg:px-0 lg:pt-0">
-        <h3 className="font-figtree text-[28px] lg:text-[40px] font-bold leading-[1.1] tracking-[-0.04em] text-[#3C060D]">
+        <h3 className="font-figtree text-[28px] lg:text-[40px] font-bold leading-[1.1] tracking-[-0.04em] text-white">
           {title}
         </h3>
-        <p className="font-figtree text-[16px] font-normal text-body-secondary">
+        <p className="font-figtree text-[16px] font-normal text-white/80">
           {subtitle}
         </p>
       </div>
 
       <div className="relative z-10 mt-4 flex flex-wrap items-center gap-4 px-6 sm:gap-6 lg:absolute lg:top-[220px] lg:left-8 lg:mt-0 lg:px-0">
-        <span className="flex items-center gap-2 font-figtree text-[14px] font-medium text-body-secondary">
+        <span className="flex items-center gap-2 font-figtree text-[14px] font-medium text-white/80">
           <Calendar size={16} />
           {date}
-        </span>
-        <span className="flex items-center gap-2 font-figtree text-[14px] font-medium text-body-secondary">
-          <Users size={16} />
-          {peopleBooked}
         </span>
       </div>
 

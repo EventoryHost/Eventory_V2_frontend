@@ -159,11 +159,15 @@ function buildCategoryBlocks(
           id: `${categoryId}-sub-${i}`,
           title,
           image: pickPopularCategoryImage(i),
-          // The filterable package listing, this category preselected.
-          // These are package SUBCATEGORIES ("Balloons", "Table Decoration")
-          // with no backend facet of their own, so the category is as
-          // narrow as the destination can honestly get.
-          href: `/packages/browse?category=${categoryId}`,
+          // The filterable package listing, this category preselected AND
+          // the subcategory's own title forwarded as the listing's real
+          // free-text search (`q`, PackageListingContent.tsx line 41/129) —
+          // these are package SUBCATEGORIES ("Balloons", "Table Decoration")
+          // with no dedicated backend facet of their own, but `q` already
+          // does a real server-side search, so this is a real, working
+          // filter rather than the previous category-only link that
+          // silently dropped which subcategory was actually clicked.
+          href: `/packages/browse?category=${categoryId}&q=${encodeURIComponent(title)}`,
         })),
       },
     },

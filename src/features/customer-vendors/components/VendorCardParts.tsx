@@ -64,7 +64,7 @@ export function VendorCategoryChip({ vendor }: { vendor: Vendor }) {
 
   return (
     <div
-      className="flex shrink-0 items-center gap-2 rounded-[52px] py-0.5 pr-2 pl-1"
+      className="flex min-w-0 max-w-full shrink items-center gap-2 rounded-[52px] py-0.5 pr-2 pl-1"
       style={{
         background: `linear-gradient(to right, #ffffff, ${vendor.categoryGradientFrom ?? "#FFE5E9"} 80%)`,
       }}
@@ -74,9 +74,9 @@ export function VendorCategoryChip({ vendor }: { vendor: Vendor }) {
         alt=""
         width={16}
         height={16}
-        className="size-4 rounded-full object-contain"
+        className="size-4 shrink-0 rounded-full object-contain"
       />
-      <span className="font-figtree text-[11px] leading-[16px] font-bold whitespace-nowrap text-[#3c060d] uppercase">
+      <span className="min-w-0 truncate font-figtree text-[11px] leading-[16px] font-bold text-[#3c060d] uppercase">
         {vendor.categoryLabel}
       </span>
     </div>

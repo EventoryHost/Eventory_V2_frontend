@@ -122,7 +122,7 @@ export default function VendorCard({
           {/* Wishlisted always shows, including "0". Experience is skipped
               when the vendor never entered one — there is no sensible
               zero for it. */}
-          <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center gap-4">
             {experience && <Stat value={experience} label="Year Experience" />}
             <Stat value={wishlistCount} label="Wishlisted" />
           </div>

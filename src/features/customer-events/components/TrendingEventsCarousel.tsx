@@ -5,23 +5,27 @@ import TrendingEventCard, {
   type TrendingEventCardProps,
 } from "./TrendingEventCard";
 
+// Dates line up with the real festival calendar in
+// src/lib/eventCalendarData.ts (Navratri leads into that file's "Dusshera"
+// entry — 2026-10-20 — so the 9 nights before it fall 2026-10-11 to 10-20;
+// "Corporate Event" uses that file's seasonal "Corporate Annual Day" /
+// "Product Launch" window, April-Sep, rather than a single fixed date,
+// since corporate events aren't tied to one calendar day).
 const EVENTS: TrendingEventCardProps[] = [
   {
     image: "/images/customer/events/megaholibash.png",
     badge: "TRENDING",
-    title: "Mega Holi Bash 2026",
-    subtitle: "Its time to book your holi party",
-    date: "14 March 2026",
-    peopleBooked: "2K+ People booked",
+    title: "Navratri Garba Nights",
+    subtitle: "Decorators, DJs and dandiya setups for all 9 nights of celebration",
+    date: "11 - 20 October 2026",
     ctaLabel: "Book Your Package",
   },
   {
     image: "/images/customer/events/winterfestive.png",
     badge: "TRENDING",
-    title: "Winter Festive Fair",
-    subtitle: "Book your dream winter fest",
-    date: "20 December 2026",
-    peopleBooked: "1.5K+ People booked",
+    title: "Corporate Events & Launches",
+    subtitle: "Offsites, annual days and product launches — planned end to end",
+    date: "April - September 2026",
     ctaLabel: "Book Your Package",
   },
   {
@@ -30,7 +34,6 @@ const EVENTS: TrendingEventCardProps[] = [
     title: "New Year Bash 2027",
     subtitle: "Ring in the new year in style",
     date: "31 December 2026",
-    peopleBooked: "3K+ People booked",
     ctaLabel: "Book Your Package",
   },
 ];

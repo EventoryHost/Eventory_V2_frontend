@@ -37,6 +37,7 @@ export const FIXED_DATE_EVENTS: FixedDateEvent[] = [
   { name: "Haryali Teej", month: 8, day: 15, vendorServices: [] },
   { name: "Janmashtami", month: 9, day: 4, vendorServices: ["Decoration", "Audio Visual", "Small Artist", "DJ"] },
   { name: "Ganesh Chaturthi", month: 9, day: 14, vendorServices: ["Decoration", "Audio Visual", "Small Artist", "DJ"] },
+  { name: "Navratri", month: 10, day: 11, vendorServices: ["Decoration", "Audio Visual", "Small Artist", "DJ"] },
   { name: "Dusshera", month: 10, day: 20, vendorServices: ["Decoration", "Audio Visual", "Small Artist", "DJ", "Crackers"] },
   { name: "Karwa Chauth", month: 10, day: 29, vendorServices: ["Mendhi Artist", "Decoration", "DJ"] },
   { name: "Halloween", month: 10, day: 31, vendorServices: ["Venue", "Theme Decoration", "Audio Visuals", "DJ", "Games"] },
@@ -120,7 +121,7 @@ const IMAGE_KEYWORD_RULES: { match: RegExp; image: string }[] = [
   { match: /christmas|winter|republic day|lohri|makar sankranti/i, image: "/images/customer/events/winterfestive.png" },
   { match: /corporate|product launch|networking|annual day|office party/i, image: "/images/customer/events/coporateevents.png" },
   { match: /birthday|fresher|farewell|college|cultural fest|school/i, image: "/images/customer/events/birthdayaesthetics.png" },
-  { match: /diwali|festival|celebration|janmashtami|ganesh|dusshera|eid|bakrid|teej|karwa|chhath|yoga/i, image: "/images/customer/events/celebrationsmade.png" },
+  { match: /diwali|festival|celebration|janmashtami|ganesh|navratri|dusshera|eid|bakrid|teej|karwa|chhath|yoga/i, image: "/images/customer/events/celebrationsmade.png" },
 ];
 
 const FALLBACK_EVENT_IMAGE = "/images/customer/events/upcoming.jpg";
