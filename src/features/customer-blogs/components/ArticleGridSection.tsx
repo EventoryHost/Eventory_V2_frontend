@@ -124,11 +124,17 @@ export default function ArticleGridSection({ articles, total }: { articles: Arti
         Showing {articles.length} of {total} articles
       </p>
 
-      <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2">
-        {articles.map((article) => (
-          <BlogCard key={article.id} article={article} />
-        ))}
-      </div>
+      {articles.length === 0 ? (
+        <p className="w-full py-10 text-center font-figtree text-[16px] text-[#71717B]">
+          No articles match your search — try a different keyword.
+        </p>
+      ) : (
+        <div className="grid w-full grid-cols-1 gap-5 sm:grid-cols-2">
+          {articles.map((article) => (
+            <BlogCard key={article.id} article={article} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

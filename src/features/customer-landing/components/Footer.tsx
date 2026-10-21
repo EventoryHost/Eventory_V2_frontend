@@ -27,10 +27,10 @@ const LINK_GROUPS = [
 // see the files themselves), not the previous hand-drawn currentColor
 // glyphs — so these render as plain <img>s, no extra circle wrapper.
 const SOCIALS = [
-  { icon: "/images/customer/facebook.svg", label: "Facebook" },
-  { icon: "/images/customer/linkedin.svg", label: "LinkedIn" },
-  { icon: "/images/customer/insta.svg", label: "Instagram" },
-  { icon: "/images/customer/youtube.svg", label: "YouTube" },
+  { icon: "/images/customer/facebook.svg", label: "Facebook", href: "https://www.facebook.com/people/Eventory/61567220426885/" },
+  { icon: "/images/customer/linkedin.svg", label: "LinkedIn", href: "https://www.linkedin.com/company/inventoryforevents/" },
+  { icon: "/images/customer/insta.svg", label: "Instagram", href: "https://www.instagram.com/eventoryofficial/" },
+  { icon: "/images/customer/youtube.svg", label: "YouTube", href: "https://www.youtube.com/@Eventory-platform" },
 ];
 
 const BOTTOM_LINKS = [
@@ -106,8 +106,15 @@ export default function Footer() {
               Follow Us
             </h3>
             <div className="flex space-x-3">
-              {SOCIALS.map(({ icon, label }) => (
-                <a key={label} href="#" aria-label={label} className="block transition-opacity hover:opacity-80">
+              {SOCIALS.map(({ icon, label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="block transition-opacity hover:opacity-80"
+                >
                   {/* Plain <img>, same reasoning as the navbar logo above — these are local SVGs. */}
                   <img src={icon} alt="" width={40} height={40} />
                 </a>

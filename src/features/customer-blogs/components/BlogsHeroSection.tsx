@@ -1,7 +1,15 @@
+"use client";
+
 import Image from "next/image";
 
 // Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2679-31051
-export default function BlogsHeroSection() {
+export default function BlogsHeroSection({
+  query,
+  onQueryChange,
+}: {
+  query: string;
+  onQueryChange: (value: string) => void;
+}) {
   return (
     <section className="w-full bg-gradient-to-b from-[#FFFBEB] to-white px-4 pt-12 pb-8 sm:px-6 lg:px-16 lg:pt-20 lg:pb-12">
       <div className="mx-auto flex max-w-[1312px] flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
@@ -21,7 +29,7 @@ export default function BlogsHeroSection() {
           </p>
         </div>
 
-        <div className="flex h-[48px] w-full max-w-[400px] shrink-0 items-center gap-3 rounded-full border border-[#F4F4F5] bg-white px-5">
+        <label className="flex h-[48px] w-full max-w-[400px] shrink-0 items-center gap-3 rounded-full border border-[#F4F4F5] bg-white px-5 transition-colors focus-within:border-[#F0596F]/40">
           <Image
             src="/images/customer/blogs/search-icon.svg"
             alt=""
@@ -29,10 +37,14 @@ export default function BlogsHeroSection() {
             height={18}
             className="shrink-0"
           />
-          <span className="font-figtree text-[14px] font-medium text-[#9F9FA9]">
-            Search articles, themes or vendors
-          </span>
-        </div>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => onQueryChange(e.target.value)}
+            placeholder="Search articles, themes or vendors"
+            className="w-full min-w-0 bg-transparent font-figtree text-[14px] font-medium text-[#1E0306] outline-none placeholder:text-[#9F9FA9]"
+          />
+        </label>
       </div>
     </section>
   );
