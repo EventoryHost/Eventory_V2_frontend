@@ -19,14 +19,14 @@ const NAV_LINKS = [
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2">
+    <Link href="/" className="flex items-center gap-1">
       {/* next/image blocks local SVGs by default (dangerouslyAllowSVG isn't
           set) — plain img sidesteps that, same as hero-bg.svg elsewhere. */}
       <img
         src="/images/customer/logo-mark-navbar.svg"
         alt="Eventory"
-        width={40}
-        height={40}
+        width={36}
+        height={36}
         className="opacity-90"
       />
       <span
