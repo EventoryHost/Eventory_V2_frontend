@@ -43,14 +43,14 @@ const BOTTOM_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#F5EFE1] px-6 pt-16 pb-8 text-brand-950 lg:px-8">
+    <footer className="w-full bg-[#FFFAF1] px-6 pt-16 pb-8 text-brand-950 lg:px-8">
       <div className="mx-auto mb-16 flex max-w-7xl flex-col justify-between gap-12 md:flex-row lg:gap-24">
         {/* Logo and Tagline — centered at every breakpoint per the design */}
         <Link href="/" className="flex max-w-[220px] flex-col items-center gap-4">
           {/* Same source as the navbar's own logo (Navbar.tsx's Logo()) — a
               plain <img>, not next/image: local SVGs are blocked by
               next/image by default (dangerouslyAllowSVG isn't set). */}
-          <img src="/nav-logo.svg" alt="Eventory" width={96} height={96} className="opacity-90" />
+          <img src="/images/customer/logo-mark-footer.svg" alt="Eventory" width={96} height={96} className="opacity-90" />
           <h2
             className="text-center text-[40px] leading-[100%] font-semibold tracking-[-1.2px] text-brand-primary"
             style={{ fontFamily: "var(--font-lora)" }}
@@ -116,7 +116,7 @@ export default function Footer() {
 
             {/* Startup India recognition badge */}
             <Image
-              src="/images/customer/startup_india.png"
+              src="/images/customer/footer-startup-india.png"
               alt="Startup India"
               width={188}
               height={45}
@@ -131,7 +131,7 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 font-figtree text-sm font-medium md:flex-row">
-        <p className="text-brand-primary/70">
+        <p className="text-brand-primary">
           ©Eventory 2026 - 2028 - All Rights Reserved
         </p>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
@@ -139,7 +139,7 @@ export default function Footer() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-brand-950 transition-colors hover:text-brand-primary"
+              className="text-[#030303] transition-colors hover:text-brand-primary"
             >
               {link.label}
             </Link>

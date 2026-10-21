@@ -5,11 +5,12 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import ReelCard, { type ReelCardProps } from "./ReelCard";
 
 /**
- * Each reel embeds via Instagram's public, no-auth `instagram.com/reel/<id>/embed/`
- * iframe (same technique as the v1 site's trending-reels.tsx) — no backend
- * endpoint, API key, or env var is needed for this. The iframe itself shows
- * the reel's real cover frame with Instagram's own play button baked in,
- * and only starts loading/playing the video once that's clicked.
+ * Each card shows a local video (downloaded once from Instagram's public,
+ * no-auth `instagram.com/reel/<id>/embed/` page — see
+ * `public/images/customer/reels/`) with the matching cover-frame image as
+ * its poster, and plays in place on hover — no click-through to Instagram,
+ * no Instagram iframe chrome ("View more on Instagram", like/comment
+ * counts, etc.), since that chrome is cross-origin and can't be styled away.
  *
  * This list is NOT auto-fetched from Instagram — it's a manually maintained
  * shortcode list, same as v1. Truly automatic "latest N reels" would require
@@ -20,68 +21,69 @@ import ReelCard, { type ReelCardProps } from "./ReelCard";
  */
 
 
-// reelId/caption — real posts from the @eventory account, supplied directly
-// as instagram.com/reel/<id>/ links. Captions/likes/comments are still
-// decorative placeholders (pulling real caption text/engagement counts needs
-// the Instagram Graph API — see ReelsCarousel's doc comment above). This list
-// needs manual upkeep to stay "latest" — swap in new reel shortcodes as
-// Eventory posts new reels.
+// reelId/caption — real posts from the @eventory account. Captions are still
+// decorative placeholders (pulling real caption text needs the Instagram
+// Graph API — see ReelsCarousel's doc comment above). This list needs manual
+// upkeep to stay "latest": adding a new reel means dropping in its shortcode
+// AND downloading its cover-frame thumbnail + video into
+// public/images/customer/reels/ (grab the `thumbnail_src` and `video_url`
+// fields from a curl of its /embed/ page).
 const REELS: ReelCardProps[] = [
   {
     handle: "@eventory",
     reelId: "DScrLUEk6sA",
+    thumbnail: "/images/customer/reels/DScrLUEk6sA.jpg",
+    video: "/images/customer/reels/DScrLUEk6sA.mp4",
     caption: "Are you ready to truly enjoy a New Year party?",
-    likes: "22k",
-    comments: "20",
   },
   {
     handle: "@eventory",
     reelId: "DSH9C7tjSmw",
+    thumbnail: "/images/customer/reels/DSH9C7tjSmw.jpg",
+    video: "/images/customer/reels/DSH9C7tjSmw.mp4",
     caption: "Planning a New Year Party? Just Eventory it!",
-    likes: "18k",
-    comments: "15",
   },
   {
     handle: "@eventory",
     reelId: "DQ6zsxRk71C",
+    thumbnail: "/images/customer/reels/DQ6zsxRk71C.jpg",
+    video: "/images/customer/reels/DQ6zsxRk71C.mp4",
     caption: "Discover the best vendor network for any event",
-    likes: "12k",
-    comments: "10",
   },
   {
     handle: "@eventory",
     reelId: "DQwfzLaEzQB",
+    thumbnail: "/images/customer/reels/DQwfzLaEzQB.jpg",
+    video: "/images/customer/reels/DQwfzLaEzQB.mp4",
     caption: "Creating premium party experiences for every occasion",
-    likes: "14k",
-    comments: "12",
   },
   {
     handle: "@eventory",
     reelId: "DV_ai9lk4lH",
+    thumbnail: "/images/customer/reels/DV_ai9lk4lH.jpg",
+    video: "/images/customer/reels/DV_ai9lk4lH.mp4",
     caption: "Check out our latest reel!",
-    likes: "22k",
-    comments: "20",
   },
   {
     handle: "@eventory",
     reelId: "DVOoLpak6xK",
+    thumbnail: "/images/customer/reels/DVOoLpak6xK.jpg",
+    video: "/images/customer/reels/DVOoLpak6xK.mp4",
     caption: "Check out our latest reel!",
-    likes: "18k",
-    comments: "15",
   },
   {
     handle: "@eventory",
     reelId: "DUYbhv5Exv_",
+    thumbnail: "/images/customer/reels/DUYbhv5Exv_.jpg",
+    video: "/images/customer/reels/DUYbhv5Exv_.mp4",
     caption: "Check out our latest reel!",
-    likes: "12k",
-    comments: "10",
   },
   {
     handle: "@eventory",
     reelId: "DUFjFwpClvo",
+    thumbnail: "/images/customer/reels/DUFjFwpClvo.jpg",
+    video: "/images/customer/reels/DUFjFwpClvo.mp4",
     caption: "Check out our latest reel!",
-    likes: "14k",
-    comments: "12",
   },
 ];
 
