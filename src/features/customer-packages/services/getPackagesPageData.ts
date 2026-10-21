@@ -5,7 +5,13 @@ import type {
   PackagesPageData,
 } from "../types";
 import { mockPackagesPageData } from "../data/mockPackagesPageData";
-import { browsePackages, getPackageImage, getPackageStartingPrice, type RawPackage } from "@/lib/customerDiscoveryApi";
+import {
+  browsePackages,
+  getPackagesFilters,
+  getPackageImage,
+  getPackageStartingPrice,
+  type RawPackage,
+} from "@/lib/customerDiscoveryApi";
 import { CATEGORY_TO_VENDOR_TYPE } from "@/lib/vendorType";
 
 const PRODUCT_SECTION_LIMIT = 8;
@@ -73,11 +79,24 @@ async function fetchRealPackagesForCategory(categoryId: string): Promise<RawPack
  * have no backend facet to source them from and stay mocked, same reasoning
  * as the dropped vendor "Service" filter.
  */
+/** Real min/max starting price across every live package, for the budget estimator's pre-search default — never a fabricated number. Falls back to the mock's seed values if the fetch fails. */
+async function fetchOverallPriceRange(): Promise<{ min: number; max: number } | null> {
+  try {
+    const response = await getPackagesFilters();
+    return response.filters.priceRange;
+  } catch {
+    return null;
+  }
+}
+
 export async function getPackagesPageData(): Promise<PackagesPageData> {
   const categoryIds = mockPackagesPageData.vendorCategories.map((category) => category.id);
-  const realPackagesEntries = await Promise.all(
-    categoryIds.map(async (categoryId) => [categoryId, await fetchRealPackagesForCategory(categoryId)] as const)
-  );
+  const [realPackagesEntries, overallPriceRange] = await Promise.all([
+    Promise.all(
+      categoryIds.map(async (categoryId) => [categoryId, await fetchRealPackagesForCategory(categoryId)] as const)
+    ),
+    fetchOverallPriceRange(),
+  ]);
   const realPackagesByCategory = new Map(realPackagesEntries);
   const realItemsByCategory = new Map(
     [...realPackagesByCategory].map(([categoryId, lists]) => [
@@ -104,7 +123,15 @@ export async function getPackagesPageData(): Promise<PackagesPageData> {
             if (groupPackages.length === 0) return group;
             return { ...group, suggestions: groupPackages.map(toBudgetSuggestion) };
           });
-          return { ...block, data: { ...block.data, vendorGroups } };
+          return {
+            ...block,
+            data: {
+              ...block.data,
+              vendorGroups,
+              estimatedMin: overallPriceRange?.min ?? block.data.estimatedMin,
+              estimatedMax: overallPriceRange?.max ?? block.data.estimatedMax,
+            },
+          };
         }
 
         // Magical Moments is a package carousel too, and its mock tiles

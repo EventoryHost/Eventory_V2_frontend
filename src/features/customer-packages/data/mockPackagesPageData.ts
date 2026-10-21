@@ -82,14 +82,13 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
   id: "budget-estimator",
   heading: "Estimate your events budget",
   subheading: "Budget estimator",
-  eventTypeOptions: ["Celebration", "Birthday", "Corporate", "Anniversary"],
-  guestOptions: ["10 - 25", "25 - 50", "50 - 100", "100+"],
-  locationOptions: ["Ghaziabad", "Delhi", "Noida", "Gurugram"],
-  vendorOptions: ["Celebration", "All Vendors"],
-  estimatedMin: 50000,
-  estimatedMax: 75000,
-  tags: ["Celebration", "Ghaziabad"],
-  marketInsight: "Market insight: Most grand celebration spend around (50K-60K)",
+  // Overwritten in getPackagesPageData.ts with a real min/max off the live
+  // catalog's own price range (GET /customer/packages/filters) — these are
+  // just the shape's fallback if that fetch ever fails.
+  estimatedMin: 5000,
+  estimatedMax: 300000,
+  tags: [],
+  marketInsight: "Pick your event details above and tap \"Get your Budget\" for a real estimate.",
   vendorGroups: [
     {
       categoryId: "decorator",
@@ -115,6 +114,16 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
         { id: "budget-cat-6", title: "Caterer", description: "Tea & coffee station", priceFrom: 199, image: pickImage("caterer", 5, 0), href: "/packages/budget-cat-6" },
       ],
     },
+    // The remaining 4 vendor categories — getPackagesPageData.ts fills each
+    // from its own real GET /customer/packages?vendorType=... results (see
+    // fetchRealPackagesForCategory), same as decorator/caterer above. Left
+    // empty here on purpose: no mock placeholder packages, since an empty
+    // array already renders a real "not enough live packages yet" state
+    // rather than a fake one.
+    { categoryId: "venue-provider", categoryLabel: "Venue Provider", suggestions: [] },
+    { categoryId: "dj-artist", categoryLabel: "Dj Artist", suggestions: [] },
+    { categoryId: "makeup-artist", categoryLabel: "Makeup Artist", suggestions: [] },
+    { categoryId: "photographer", categoryLabel: "Photographer", suggestions: [] },
   ],
 };
 
