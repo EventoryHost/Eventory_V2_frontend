@@ -15,28 +15,29 @@ export default function BudgetSuggestionCard({
   return (
     <Link
       href={suggestion.href}
-      className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white p-3 transition-shadow hover:shadow-[0px_4px_16px_rgba(0,0,0,0.06)]"
+      className="flex items-center gap-4 rounded-[20px] border border-[#FCDEE2] bg-white py-4 pr-5 pl-4 transition-shadow hover:shadow-[0px_4px_16px_rgba(0,0,0,0.06)]"
     >
-      <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+      <div className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl">
         {suggestion.image ? (
-          <Image src={suggestion.image} alt="" fill sizes="56px" className="object-cover" />
+          <Image src={suggestion.image} alt="" fill sizes="72px" className="object-cover" />
         ) : (
           <PlaceholderMedia seed={seed} className="absolute inset-0" />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="font-figtree text-[13px] font-bold text-brand-950">{suggestion.title}</p>
-        <p className="truncate font-figtree text-[11px] text-neutral-tertiary">{suggestion.description}</p>
-        <p className="font-figtree text-[12px] font-medium text-brand-950/70">
-          {formatStartingPackagePrice(suggestion.priceFrom)}
-        </p>
+        <p className="font-figtree text-[14px] font-semibold text-[#333]">{suggestion.title}</p>
+        <p className="truncate font-figtree text-[14px] text-[#808080]">{suggestion.description}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="font-figtree text-[16px] font-semibold whitespace-nowrap text-black">
+            {formatStartingPackagePrice(suggestion.priceFrom)}
+          </p>
+          <span className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold whitespace-nowrap text-[#EA1D3B]">
+            Explore Packages
+            <ArrowRight className="h-4 w-4" />
+          </span>
+        </div>
       </div>
-
-      <span className="flex shrink-0 items-center gap-1 font-figtree text-[12px] font-semibold whitespace-nowrap text-brand-primary">
-        Explore
-        <ArrowRight className="h-3.5 w-3.5" />
-      </span>
     </Link>
   );
 }

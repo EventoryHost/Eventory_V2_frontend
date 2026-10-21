@@ -12,18 +12,34 @@ const PAGE_SIZE = 6;
 
 export default function BlogsPageContent() {
   const [activeCategory, setActiveCategory] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  const filteredArticles = useMemo(
-    () => (activeCategory === "All" ? ARTICLES : ARTICLES.filter((article) => article.category === activeCategory)),
-    [activeCategory]
-  );
+  const filteredArticles = useMemo(() => {
+    const byCategory =
+      activeCategory === "All" ? ARTICLES : ARTICLES.filter((article) => article.category === activeCategory);
+
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return byCategory;
+
+    return byCategory.filter((article) =>
+      [article.title, article.excerpt, article.authorName, article.category].some((field) =>
+        field.toLowerCase().includes(q)
+      )
+    );
+  }, [activeCategory, searchQuery]);
 
   const visibleArticles = filteredArticles.slice(0, visibleCount);
 
   return (
     <div className="w-full bg-white">
-      <BlogsHeroSection />
+      <BlogsHeroSection
+        query={searchQuery}
+        onQueryChange={(value) => {
+          setSearchQuery(value);
+          setVisibleCount(PAGE_SIZE);
+        }}
+      />
       <FeaturedStorySection />
       <BlogsFilterBar
         activeCategory={activeCategory}

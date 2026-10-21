@@ -38,6 +38,26 @@ function pickImage(categoryId: string, index: number, offset: number) {
   return EVENT_SCENE_IMAGES[(index + offset) % EVENT_SCENE_IMAGES.length];
 }
 
+// "Popular Package Categories" chip art — every vendor category lists
+// exactly 8 subcategories, so these 8 generic celebration-decor renders are
+// cycled by position rather than reusing the per-category hero/event-scene
+// photography (pickImage above), which is for the "Trending Packages" /
+// "Handpicked For You" / "Magical Moments" product cards instead.
+const POPULAR_CATEGORY_IMAGES = [
+  "/images/customer/packages/popular-categories/ceiling-decor.png",
+  "/images/customer/packages/popular-categories/balloon-arch.png",
+  "/images/customer/packages/popular-categories/photo-backdrop.png",
+  "/images/customer/packages/popular-categories/floral-mandap.png",
+  "/images/customer/packages/popular-categories/floral-arch.png",
+  "/images/customer/packages/popular-categories/entrance-decor.png",
+  "/images/customer/packages/popular-categories/dessert-table.png",
+  "/images/customer/packages/popular-categories/entertainer.png",
+];
+
+function pickPopularCategoryImage(index: number) {
+  return POPULAR_CATEGORY_IMAGES[index % POPULAR_CATEGORY_IMAGES.length];
+}
+
 const FESTIVE_OFFER: FestiveOffer = {
   id: "festive-offer",
   image: "/images/customer/packages/festive-packages-banner-1.png",
@@ -62,14 +82,13 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
   id: "budget-estimator",
   heading: "Estimate your events budget",
   subheading: "Budget estimator",
-  eventTypeOptions: ["Celebration", "Birthday", "Corporate", "Anniversary"],
-  guestOptions: ["10 - 25", "25 - 50", "50 - 100", "100+"],
-  locationOptions: ["Ghaziabad", "Delhi", "Noida", "Gurugram"],
-  vendorOptions: ["Celebration", "All Vendors"],
-  estimatedMin: 50000,
-  estimatedMax: 75000,
-  tags: ["Celebration", "Ghaziabad"],
-  marketInsight: "Market insight: Most grand celebration spend around (50K-60K)",
+  // Overwritten in getPackagesPageData.ts with a real min/max off the live
+  // catalog's own price range (GET /customer/packages/filters) — these are
+  // just the shape's fallback if that fetch ever fails.
+  estimatedMin: 5000,
+  estimatedMax: 300000,
+  tags: [],
+  marketInsight: "Pick your event details above and tap \"Get your Budget\" for a real estimate.",
   vendorGroups: [
     {
       categoryId: "decorator",
@@ -95,6 +114,16 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
         { id: "budget-cat-6", title: "Caterer", description: "Tea & coffee station", priceFrom: 199, image: pickImage("caterer", 5, 0), href: "/packages/budget-cat-6" },
       ],
     },
+    // The remaining 4 vendor categories — getPackagesPageData.ts fills each
+    // from its own real GET /customer/packages?vendorType=... results (see
+    // fetchRealPackagesForCategory), same as decorator/caterer above. Left
+    // empty here on purpose: no mock placeholder packages, since an empty
+    // array already renders a real "not enough live packages yet" state
+    // rather than a fake one.
+    { categoryId: "venue-provider", categoryLabel: "Venue Provider", suggestions: [] },
+    { categoryId: "dj-artist", categoryLabel: "Dj Artist", suggestions: [] },
+    { categoryId: "makeup-artist", categoryLabel: "Makeup Artist", suggestions: [] },
+    { categoryId: "photographer", categoryLabel: "Photographer", suggestions: [] },
   ],
 };
 
@@ -129,7 +158,7 @@ function buildCategoryBlocks(
         items: subcategories.map((title, i) => ({
           id: `${categoryId}-sub-${i}`,
           title,
-          image: pickImage(categoryId, i, 0),
+          image: pickPopularCategoryImage(i),
           // The filterable package listing, this category preselected.
           // These are package SUBCATEGORIES ("Balloons", "Table Decoration")
           // with no backend facet of their own, so the category is as

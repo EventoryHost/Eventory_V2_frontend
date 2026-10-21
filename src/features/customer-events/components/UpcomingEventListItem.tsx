@@ -6,7 +6,8 @@ export type UpcomingEventListItemProps = {
   image: string;
   title: string;
   description: string;
-  priceLabel: string;
+  /** Omit when there's no real stat to back it (e.g. a calendar festival with no known vendor services) — never a fabricated price. */
+  priceLabel?: string;
 };
 
 export default function UpcomingEventListItem({
@@ -29,9 +30,11 @@ export default function UpcomingEventListItem({
           <p className="truncate font-figtree text-[14px] font-normal text-body-secondary">
             {description}
           </p>
-          <p className="font-figtree text-[16px] font-semibold leading-[20px] tracking-[-0.01em] text-black">
-            {priceLabel}
-          </p>
+          {priceLabel && (
+            <p className="font-figtree text-[16px] font-semibold leading-[20px] tracking-[-0.01em] text-black">
+              {priceLabel}
+            </p>
+          )}
         </div>
       </div>
 

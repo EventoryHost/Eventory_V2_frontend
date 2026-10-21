@@ -22,7 +22,13 @@ function Logo() {
     <Link href="/" className="flex items-center gap-2">
       {/* next/image blocks local SVGs by default (dangerouslyAllowSVG isn't
           set) — plain img sidesteps that, same as hero-bg.svg elsewhere. */}
-      <img src="/nav-logo.svg" alt="Eventory" width={28} height={28} />
+      <img
+        src="/images/customer/logo-mark-navbar.svg"
+        alt="Eventory"
+        width={40}
+        height={40}
+        className="opacity-90"
+      />
       <span
         className="text-brand-primary font-semibold text-[22px] sm:text-[26px] leading-[20px] tracking-[-0.03em]"
         style={{ fontFamily: "var(--font-lora)" }}
