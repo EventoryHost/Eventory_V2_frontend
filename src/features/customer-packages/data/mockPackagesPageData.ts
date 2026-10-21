@@ -38,6 +38,26 @@ function pickImage(categoryId: string, index: number, offset: number) {
   return EVENT_SCENE_IMAGES[(index + offset) % EVENT_SCENE_IMAGES.length];
 }
 
+// "Popular Package Categories" chip art — every vendor category lists
+// exactly 8 subcategories, so these 8 generic celebration-decor renders are
+// cycled by position rather than reusing the per-category hero/event-scene
+// photography (pickImage above), which is for the "Trending Packages" /
+// "Handpicked For You" / "Magical Moments" product cards instead.
+const POPULAR_CATEGORY_IMAGES = [
+  "/images/customer/packages/popular-categories/ceiling-decor.png",
+  "/images/customer/packages/popular-categories/balloon-arch.png",
+  "/images/customer/packages/popular-categories/photo-backdrop.png",
+  "/images/customer/packages/popular-categories/floral-mandap.png",
+  "/images/customer/packages/popular-categories/floral-arch.png",
+  "/images/customer/packages/popular-categories/entrance-decor.png",
+  "/images/customer/packages/popular-categories/dessert-table.png",
+  "/images/customer/packages/popular-categories/entertainer.png",
+];
+
+function pickPopularCategoryImage(index: number) {
+  return POPULAR_CATEGORY_IMAGES[index % POPULAR_CATEGORY_IMAGES.length];
+}
+
 const FESTIVE_OFFER: FestiveOffer = {
   id: "festive-offer",
   image: "/images/customer/packages/festive-packages-banner-1.png",
@@ -129,7 +149,7 @@ function buildCategoryBlocks(
         items: subcategories.map((title, i) => ({
           id: `${categoryId}-sub-${i}`,
           title,
-          image: pickImage(categoryId, i, 0),
+          image: pickPopularCategoryImage(i),
           // The filterable package listing, this category preselected.
           // These are package SUBCATEGORIES ("Balloons", "Table Decoration")
           // with no backend facet of their own, so the category is as
