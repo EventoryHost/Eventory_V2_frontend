@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { addCustomizeRequests } from "@/lib/customerBookingApi";
 import { useCustomizeWorkshop } from "@/features/customer-package-detail/hooks/useCustomizeWorkshop";
@@ -18,11 +18,15 @@ const ICON = "/images/customer/proposal";
 
 /** Image, title, facts and price — the head of every setup card in this flow. */
 function SetupSummary({ entry, itemCount }: { entry: IncludedItemEntry; itemCount: number }) {
+  // A stand-in setup (the package no longer lists it) has no art to show.
+  const hasArt = Boolean(entry.image) || entry.details.length > 0;
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-      <div className="relative h-[178px] w-full shrink-0 overflow-hidden rounded-xl bg-[#F4F4F5] sm:w-[216px]">
-        {entry.image && <Image src={entry.image} alt={entry.title} fill sizes="216px" className="object-cover" />}
-      </div>
+      {hasArt && (
+        <div className="relative h-[178px] w-full shrink-0 overflow-hidden rounded-xl bg-[#F4F4F5] sm:w-[216px]">
+          {entry.image && <Image src={entry.image} alt={entry.title} fill sizes="216px" className="object-cover" />}
+        </div>
+      )}
       <div className="flex min-w-0 flex-1 flex-col gap-2 self-stretch sm:justify-center">
         <h3 className="text-[20px] font-medium leading-7 text-[#3F3F47]">{entry.title}</h3>
         <dl className="flex flex-col gap-1.5 text-[14px] leading-5">
@@ -85,7 +89,12 @@ function PendingRequest({ request, onDelete }: { request: CustomizeRequest; onDe
  * decisions so far; picking one opens the same "Customize items" editor the
  * PDP uses (node 2276:17137). Edits start from the agreed state — accepted
  * requests already applied — and collect under "Your requests" until
- * Continue sends them to the vendor.
+ * "Update Package" sends them to the vendor (the design's footer reads
+ * "Continue" until there is something to send).
+ *
+ * Sending moves the booking to InDiscussion. On a Confirmed booking that
+ * reopens it (the date stays held) until the customer accepts the vendor's
+ * next proposal, so the picker says so before they send.
  */
 export default function ChangeRequestFlow({
   view,
@@ -104,6 +113,9 @@ export default function ChangeRequestFlow({
   const [editingSetupId, setEditingSetupId] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  // A ref, not just state: two taps in the same frame both see isSending false.
+  const sendingRef = useRef(false);
+  const isConfirmed = view.status === "Confirmed";
 
   const decisionsBySetup = useMemo(() => {
     const map: Record<string, PanelRequest[]> = {};
@@ -114,7 +126,9 @@ export default function ChangeRequestFlow({
   const editingSetup = baseline.find((entry) => entry.id === editingSetupId) ?? null;
   const requestCount = workshop.requests.length;
 
-  async function handleContinue() {
+  async function handleUpdatePackage() {
+    if (requestCount === 0 || sendingRef.current) return;
+    sendingRef.current = true;
     setIsSending(true);
     setSendError(null);
     try {
@@ -122,6 +136,7 @@ export default function ChangeRequestFlow({
       onSubmitted();
     } catch (err: unknown) {
       setSendError(err instanceof Error ? err.message : "Couldn't send your requests. Please try again.");
+      sendingRef.current = false;
       setIsSending(false);
     }
   }
@@ -157,6 +172,13 @@ export default function ChangeRequestFlow({
         </header>
 
         <div className="flex flex-1 flex-col gap-4 overflow-y-auto px-7 py-4">
+          {baseline.length === 0 && (
+            <p className="py-4 text-[14px] leading-5 text-[#71717B]">
+              This package no longer lists its setups, so changes can&apos;t be picked here. Use Help &amp; Support to
+              tell us what you need and we&apos;ll pass it on to the vendor.
+            </p>
+          )}
+
           <ul className="flex flex-col">
             {baseline.map((entry) => {
               const decided = decisionsBySetup[entry.id] ?? [];
@@ -236,7 +258,9 @@ export default function ChangeRequestFlow({
                   </span>
                 </div>
                 <p className="text-[12px] leading-[18px] text-[#71717B]">
-                  The vendor will see these requests and get back to you with an updated proposal.
+                  {isConfirmed
+                    ? "Your booking is confirmed. Sending these reopens it: the vendor will reply with an updated proposal for you to accept, and your date stays held meanwhile."
+                    : "The vendor will see these requests and get back to you with an updated proposal."}
                 </p>
               </div>
 
@@ -274,12 +298,12 @@ export default function ChangeRequestFlow({
             </button>
             <button
               type="button"
-              onClick={handleContinue}
+              onClick={handleUpdatePackage}
               disabled={requestCount === 0 || isSending}
               title={requestCount === 0 ? "Pick a setup and make a change first" : undefined}
               className="flex-1 rounded-xl bg-brand-primary px-7 py-3 text-[16px] font-semibold leading-6 text-white transition-colors hover:bg-[#E14E64] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSending ? "Sending…" : "Continue"}
+              {isSending ? "Sending…" : requestCount > 0 ? "Update Package" : "Continue"}
             </button>
           </div>
         </footer>

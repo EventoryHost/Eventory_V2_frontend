@@ -46,11 +46,15 @@ export interface BookingPackageRow {
   vendorType?: string;
   statusLabel: string;
   statusTone: "pending" | "confirmed" | "cancelled" | "completed";
+  /** Confirmed once, then reopened by new customer requests (InDiscussion with a confirmedAt). */
+  reopened: boolean;
 }
 
 export interface BookingDetailView {
   /** Human reference of the booking this page was opened with. */
   reference: string;
+  /** That booking's Mongo _id — what the milestone payment endpoint is keyed on. */
+  bookingObjectId: string;
   eventTitle: string;
   /** ISO date of the event. */
   eventDate: string;
@@ -70,7 +74,10 @@ export interface BookingDetailView {
   respondedCount: number;
   /** Booking references whose vendor has answered every request and is waiting on the customer (Review Proposal). */
   proposalsAwaitingReview: string[];
+  /** Booking references the customer reopened with new requests after confirmation, still with the vendor. */
+  reopenedReferences: string[];
   journey: BookingJourneyStep[];
+  /** The opened booking's milestones — what "Pay" in the sidebar and the banner charge. */
   paymentTimeline: RawBookingMilestone[];
   cancellationPolicy: { title?: string; text?: string; fileUrl?: string; note: string };
 }

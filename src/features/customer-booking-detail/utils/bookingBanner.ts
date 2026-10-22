@@ -16,6 +16,8 @@ export interface BookingBanner {
     href?: string;
     /** The booking whose Review Proposal panel the "proposal" banner opens. */
     bookingReference?: string;
+    /** The booking whose package panel a "View" CTA opens, when it's about one booking. */
+    packageReference?: string;
   };
 }
 
@@ -23,6 +25,9 @@ export interface BookingBanner {
  * Picks the banner for a booking, following the component set's five states
  * (node 1644:10229). Only one shows at a time, most urgent first: a finished
  * event, then money due, then vendors still to answer.
+ *
+ * A reopened booking (changes asked for after confirmation) comes next, then
+ * money due.
  *
  * "proposal" shows once a vendor has answered every request and the
  * customer hasn't answered back (Booking.proposalResponse — see
@@ -58,6 +63,23 @@ export function buildBookingBanner(view: BookingDetailView): BookingBanner | nul
           : `${proposals.length} vendors have responded to your requests`,
       description: "See what they accepted and the updated price, then accept the proposal or ask for more changes.",
       action: { label: "Review Proposal", style: "primary", bookingReference: proposals[0] },
+    };
+  }
+
+  // A confirmed booking the customer reopened with new requests: back with
+  // the vendor until their updated proposal comes in. Outranks money due for
+  // the same reason a proposal does — the price and schedule may move.
+  const reopened = view.reopenedReferences;
+  if (reopened.length > 0) {
+    return {
+      variant: "requests-open",
+      title:
+        reopened.length === 1
+          ? "Changes requested after confirmation"
+          : `Changes requested on ${reopened.length} confirmed packages`,
+      description:
+        "Waiting for the vendor to respond with an updated proposal. Your date stays held, and you'll be asked to accept the new proposal.",
+      action: { label: "View", style: "secondary", packageReference: reopened.length === 1 ? reopened[0] : undefined },
     };
   }
 

@@ -1,20 +1,35 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { acceptProposal, type RawPricingBreakdown, type RawPricingRow } from "@/lib/customerBookingApi";
+import {
+  acceptProposal,
+  PROPOSAL_CHANGED,
+  SLOT_TAKEN,
+  type RawChangeRequest,
+  type RawPricingBreakdown,
+  type RawPricingRow,
+} from "@/lib/customerBookingApi";
+import { ApiError } from "@/lib/apiClient";
 import { formatPrice } from "@/features/customer-package-detail/utils/formatPrice";
 import { getPackagePanelView, type PackagePanelView, type PanelRequest, type PanelSetup } from "../services/getPackagePanelView";
-import ProposalRequestCard, { type ProposalRequestField } from "./ProposalRequestCard";
+import ProposalRequestCard, { ChangeRequestCard, type ProposalRequestField } from "./ProposalRequestCard";
 import ChangeRequestFlow from "./ChangeRequestFlow";
 
-/** The design's own row labels; the vendor's custom discount label is kept as-is. */
+/**
+ * The design's own row labels; the vendor's custom discount / additional
+ * charges labels are kept as-is.
+ */
 const PRICE_ROW_LABEL: Partial<Record<RawPricingRow["key"], string>> = {
   itemsAdded: "Items added",
+  substituteItemsAdded: "Substitute Items Added",
   addonsAdded: "Add-ons added",
   itemsRemoved: "Items Removed",
   addonsRemoved: "Add-ons removed",
 };
+
+/** How the customer answered, for the page behind to reload and say so. */
+export type ProposalOutcome = "accepted" | "changes-sent";
 
 function plural(count: number, word: string) {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -56,12 +71,13 @@ function DecidedRequest({ request }: { request: PanelRequest }) {
       removedLabel={isRemoval ? request.label : undefined}
       tag={request.requestType}
       decision={request.status === "Rejected" ? "Rejected" : "Accepted"}
+      vendorNote={request.vendorNote}
     />
   );
 }
 
-function DecisionBox({ tone, requests }: { tone: "accepted" | "rejected"; requests: PanelRequest[] }) {
-  if (requests.length === 0) return null;
+function DecisionBox({ tone, children }: { tone: "accepted" | "rejected"; children: React.ReactNode[] }) {
+  if (children.length === 0) return null;
   const isAccepted = tone === "accepted";
 
   return (
@@ -73,11 +89,19 @@ function DecisionBox({ tone, requests }: { tone: "accepted" | "rejected"; reques
       >
         {isAccepted ? "Accepted Requests" : "Rejected Requests"}
       </span>
-      <div className="flex flex-col gap-2">
-        {requests.map((request, index) => (
-          <DecidedRequest key={request._id ?? `${request.itemId}-${index}`} request={request} />
-        ))}
-      </div>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  );
+}
+
+function DecidedRequests({ accepted, rejected }: { accepted: PanelRequest[]; rejected: PanelRequest[] }) {
+  const card = (request: PanelRequest, index: number) => (
+    <DecidedRequest key={request._id ?? `${request.itemId}-${index}`} request={request} />
+  );
+  return (
+    <div className="flex flex-col gap-3">
+      <DecisionBox tone="accepted">{accepted.map(card)}</DecisionBox>
+      <DecisionBox tone="rejected">{rejected.map(card)}</DecisionBox>
     </div>
   );
 }
@@ -105,25 +129,30 @@ function ProposalSetup({ setup }: { setup: PanelSetup }) {
       </p>
 
       <article className="flex flex-col gap-4 rounded-3xl border border-[#E4E4E7] p-[21px]">
-        <div className="flex flex-col gap-4 sm:flex-row">
-          <div className="relative h-[134px] w-full shrink-0 overflow-hidden rounded-2xl bg-[#F4F4F5] sm:w-[179px]">
-            {entry.image && <Image src={entry.image} alt={entry.title} fill sizes="179px" className="object-cover" />}
+        {/* A stand-in setup (the package no longer lists it) has only a name. */}
+        {!entry.image && entry.details.length === 0 ? (
+          <h4 className="text-[16px] font-semibold leading-6 text-[#030303]">{entry.title}</h4>
+        ) : (
+          <div className="flex flex-col gap-4 sm:flex-row">
+            <div className="relative h-[134px] w-full shrink-0 overflow-hidden rounded-2xl bg-[#F4F4F5] sm:w-[179px]">
+              {entry.image && <Image src={entry.image} alt={entry.title} fill sizes="179px" className="object-cover" />}
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2">
+              <h4 className="text-[16px] font-semibold leading-6 text-[#030303]">{entry.title}</h4>
+              <dl className="flex flex-col gap-0.5">
+                {entry.details.map((detail) => (
+                  <div key={detail.label} className="flex flex-wrap items-baseline gap-1 text-[14px] leading-6">
+                    <dt className="text-[#71717B]">{detail.label}:</dt>
+                    <dd className="text-[#3F3F47]">
+                      {detail.value}
+                      {detail.moreCount ? <span className="underline">, +{detail.moreCount} more</span> : null}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col gap-2">
-            <h4 className="text-[16px] font-semibold leading-6 text-[#030303]">{entry.title}</h4>
-            <dl className="flex flex-col gap-0.5">
-              {entry.details.map((detail) => (
-                <div key={detail.label} className="flex flex-wrap items-baseline gap-1 text-[14px] leading-6">
-                  <dt className="text-[#71717B]">{detail.label}:</dt>
-                  <dd className="text-[#3F3F47]">
-                    {detail.value}
-                    {detail.moreCount ? <span className="underline">, +{detail.moreCount} more</span> : null}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        </div>
+        )}
 
         {entry.items.length > 0 && (
           <div className="flex flex-col gap-2 border-t border-[#E4E4E7] pt-[9px]">
@@ -146,13 +175,58 @@ function ProposalSetup({ setup }: { setup: PanelSetup }) {
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
-          <DecisionBox tone="accepted" requests={accepted} />
-          <DecisionBox tone="rejected" requests={rejected} />
-        </div>
+        <DecidedRequests accepted={accepted} rejected={rejected} />
       </article>
     </section>
   );
+}
+
+/** The older add/remove requests (Booking.changeRequests), decided the same way. */
+function ProposalChangeRequests({ requests }: { requests: RawChangeRequest[] }) {
+  const decided = requests.filter((request) => request.status !== "Pending");
+  if (decided.length === 0) return null;
+  const card = (request: RawChangeRequest, index: number) => (
+    <ChangeRequestCard key={request._id ?? `change-${index}`} request={request} />
+  );
+
+  return (
+    <section className="flex flex-col">
+      <p className="flex min-h-12 items-center gap-2 py-4 text-[15px] leading-[22.5px]">
+        <span className="font-semibold text-[#030303]">Item requests</span>
+        <span className="text-[#71717B]">({plural(decided.length, "request")})</span>
+      </p>
+      <div className="flex flex-col gap-3 rounded-3xl border border-[#E4E4E7] p-[21px]">
+        <DecisionBox tone="accepted">{decided.filter((r) => r.status !== "Rejected").map(card)}</DecisionBox>
+        <DecisionBox tone="rejected">{decided.filter((r) => r.status === "Rejected").map(card)}</DecisionBox>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * The footer line when there's nothing for the customer to answer — worded
+ * for where the booking actually stands rather than always "the vendor is
+ * still working".
+ */
+function footerStatus(view: PackagePanelView): string {
+  const respondedOn = formatDate(view.proposal.response?.respondedAt ?? null);
+  const { total, pending } = view.requestCounts;
+
+  if (view.status === "Declined") return "The vendor declined this booking, so there's no proposal to answer.";
+  if (view.status === "Cancelled") return "This booking was cancelled, so there's no proposal to answer.";
+  if (view.status === "Completed") return "This event is complete.";
+  if (total === 0) return "There are no requests on this booking.";
+
+  if (pending > 0) {
+    const reviewing = `The vendor is reviewing ${plural(pending, "request")}. You'll get an updated proposal to accept once they respond.`;
+    if (view.reopened) return `You asked for changes after your booking was confirmed. ${reviewing} Your date stays held.`;
+    return view.proposal.response?.status === "ChangesRequested" ? `You asked for more changes. ${reviewing}` : reviewing;
+  }
+
+  if (view.proposal.response?.status === "Accepted") {
+    return `You accepted this proposal${respondedOn ? ` on ${respondedOn}` : ""}.`;
+  }
+  return "You asked for more changes. The vendor will get back to you with an updated proposal.";
 }
 
 function PriceRow({ label, amount, tone = "default" }: { label: string; amount: number; tone?: "default" | "deduction" }) {
@@ -231,36 +305,56 @@ export default function ReviewProposalPanel({
   bookingReference,
   onClose,
   onResolved,
+  onStale,
 }: {
   bookingReference: string;
   onClose: () => void;
   /** The customer answered — the page behind should reload its booking. */
-  onResolved: () => void;
+  onResolved: (outcome: ProposalOutcome) => void;
+  /** The booking changed under the customer (a revised proposal) — the page behind should reload too. */
+  onStale?: () => void;
 }) {
   const [view, setView] = useState<PackagePanelView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasSettled, setHasSettled] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  /** Shown above the footer after a refetch: what changed and why. */
+  const [notice, setNotice] = useState<string | null>(null);
   const [isChanging, setIsChanging] = useState(false);
   const [copied, setCopied] = useState(false);
+  /** Bumped to refetch the proposal (after a 409 says it moved on). */
+  const [reloadKey, setReloadKey] = useState(0);
+  /** True while that refetch is in flight — accepting the stale version would only 409 again. */
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  // A ref, not just state: two taps in the same frame both see isAccepting false.
+  const acceptingRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
     getPackagePanelView(bookingReference)
       .then((next) => {
-        if (!cancelled) setView(next);
+        if (cancelled) return;
+        setView(next);
+        setError(null);
       })
       .catch((err: unknown) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Could not load this proposal");
       })
       .finally(() => {
-        if (!cancelled) setHasSettled(true);
+        if (cancelled) return;
+        setHasSettled(true);
+        setIsRefreshing(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [bookingReference]);
+  }, [bookingReference, reloadKey]);
+
+  function refetch() {
+    setIsRefreshing(true);
+    setReloadKey((key) => key + 1);
+  }
 
   // Escape closes (unless the change flow, which has its own, is open), and
   // the page behind shouldn't scroll while this is open.
@@ -285,13 +379,35 @@ export default function ReviewProposalPanel({
   }, [bookingReference]);
 
   async function handleAccept() {
+    if (!view || acceptingRef.current || isRefreshing) return;
+    acceptingRef.current = true;
     setIsAccepting(true);
     setActionError(null);
+    setNotice(null);
     try {
-      await acceptProposal(bookingReference);
-      onResolved();
+      // The version on screen — the backend refuses it if the vendor has
+      // revised the proposal since this panel loaded.
+      await acceptProposal(view.reference, view.proposal.version);
+      onResolved("accepted");
     } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : "Couldn't accept this proposal. Please try again.");
+      if (err instanceof ApiError && err.code === PROPOSAL_CHANGED) {
+        setNotice("The vendor updated this proposal while you were looking at it. Here's the latest version. Please review it again before accepting.");
+        refetch();
+        onStale?.();
+      } else if (err instanceof ApiError && err.code === SLOT_TAKEN) {
+        setActionError(
+          "This vendor has just confirmed another booking for this date, so this proposal can't be accepted. Please contact Help & Support and we'll help you sort it out."
+        );
+      } else if (err instanceof ApiError && err.status === 409) {
+        // Something else moved on (new requests from another tab, the
+        // booking was cancelled) — show where it stands now.
+        setActionError(err.message);
+        refetch();
+        onStale?.();
+      } else {
+        setActionError(err instanceof Error ? err.message : "Couldn't accept this proposal. Please try again.");
+      }
+      acceptingRef.current = false;
       setIsAccepting(false);
     }
   }
@@ -301,14 +417,13 @@ export default function ReviewProposalPanel({
       <ChangeRequestFlow
         view={view}
         onBack={() => setIsChanging(false)}
-        onSubmitted={onResolved}
+        onSubmitted={() => onResolved("changes-sent")}
       />
     );
   }
 
   const setupsWithRequests = view?.setups.filter((setup) => decidedRequestsOf(setup).length > 0) ?? [];
-  const response = view?.proposal.response;
-  const respondedOn = formatDate(response?.respondedAt ?? null);
+  const decidedChangeRequests = view?.proposal.changeRequests.filter((request) => request.status !== "Pending") ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/40" role="dialog" aria-modal="true" aria-label="Review Proposal">
@@ -346,10 +461,23 @@ export default function ReviewProposalPanel({
             <p className="pt-6 text-[14px] leading-5 text-[#C81E0D]">{error ?? "Could not load this proposal"}</p>
           ) : (
             <>
-              {setupsWithRequests.length === 0 ? (
-                <p className="pt-6 text-[14px] leading-5 text-[#71717B]">There are no customization requests on this booking.</p>
+              {!view.packageAvailable && (
+                <p className="pt-4 text-[12px] leading-[18px] text-[#71717B]">
+                  This package is no longer listed, so your requests are shown without its setup details.
+                </p>
+              )}
+
+              {setupsWithRequests.length === 0 && decidedChangeRequests.length === 0 ? (
+                <p className="pt-6 text-[14px] leading-5 text-[#71717B]">
+                  {view.requestCounts.total === 0
+                    ? "There are no customization requests on this booking."
+                    : "The vendor hasn't answered your requests yet."}
+                </p>
               ) : (
-                setupsWithRequests.map((setup) => <ProposalSetup key={setup.entry.id} setup={setup} />)
+                <>
+                  {setupsWithRequests.map((setup) => <ProposalSetup key={setup.entry.id} setup={setup} />)}
+                  <ProposalChangeRequests requests={view.proposal.changeRequests} />
+                </>
               )}
 
               {view.addOns.length > 0 && (
@@ -397,13 +525,22 @@ export default function ReviewProposalPanel({
 
         {view && (
           <footer className="flex flex-col gap-2 border-t border-[#E4E4E7] px-7 py-4">
-            {actionError && <p className="text-[12px] leading-4 text-[#C81E0D]">{actionError}</p>}
+            {notice && (
+              <p role="status" className="rounded-lg bg-[#FFFBEB] px-3 py-2 text-[12px] leading-[18px] text-[#973C00]">
+                {notice}
+              </p>
+            )}
+            {actionError && (
+              <p role="alert" className="text-[12px] leading-4 text-[#C81E0D]">
+                {actionError}
+              </p>
+            )}
             {view.proposal.awaitingReview ? (
               <div className="flex gap-3">
                 <button
                   type="button"
                   onClick={() => setIsChanging(true)}
-                  disabled={isAccepting}
+                  disabled={isAccepting || isRefreshing}
                   className="flex-1 rounded-xl border border-[#EA1D3B] px-7 py-3 text-[16px] leading-6 text-[#EA1D3B] transition-colors hover:bg-[#FEF2F3] disabled:opacity-60"
                 >
                   Still Needs Changes
@@ -411,20 +548,14 @@ export default function ReviewProposalPanel({
                 <button
                   type="button"
                   onClick={handleAccept}
-                  disabled={isAccepting}
+                  disabled={isAccepting || isRefreshing}
                   className="flex-1 rounded-xl bg-brand-primary px-7 py-3 text-[16px] font-semibold leading-6 text-white transition-colors hover:bg-[#E14E64] disabled:opacity-60"
                 >
-                  {isAccepting ? "Accepting…" : "Accept Proposal"}
+                  {isAccepting ? "Accepting…" : isRefreshing ? "Updating…" : "Accept Proposal"}
                 </button>
               </div>
             ) : (
-              <p className="text-[14px] leading-5 text-[#71717B]">
-                {response?.status === "Accepted"
-                  ? `You accepted this proposal${respondedOn ? ` on ${respondedOn}` : ""}.`
-                  : response?.status === "ChangesRequested"
-                    ? "You asked for more changes. The vendor will get back to you."
-                    : "The vendor is still working on your requests."}
-              </p>
+              <p className="text-[14px] leading-5 text-[#71717B]">{footerStatus(view)}</p>
             )}
           </footer>
         )}

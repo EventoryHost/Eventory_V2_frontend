@@ -12,7 +12,7 @@ import { buildBookingBanner } from "../utils/bookingBanner";
 import type { BookingDetailView } from "../types";
 import BookingJourney from "./BookingJourney";
 import BookingPackagePanel from "./BookingPackagePanel";
-import ReviewProposalPanel from "./ReviewProposalPanel";
+import ReviewProposalPanel, { type ProposalOutcome } from "./ReviewProposalPanel";
 import BookingPackagesList from "./BookingPackagesList";
 import BookingSidebar from "./BookingSidebar";
 import BookingStatusBanner from "./BookingStatusBanner";
@@ -51,8 +51,13 @@ export default function BookingDetailContent({
   const [reviewingProposal, setReviewingProposal] = useState<string | null>(openProposal ? bookingId : null);
   /** Bumped after the customer answers a proposal, to reload the page's booking. */
   const [reloadKey, setReloadKey] = useState(0);
-  const [bannerBusy, setBannerBusy] = useState(false);
-  const [bannerError, setBannerError] = useState<string | null>(null);
+  /** The milestone whose Cashfree checkout is starting (banner or sidebar). */
+  const [payingMilestoneId, setPayingMilestoneId] = useState<string | null>(null);
+  const [payError, setPayError] = useState<string | null>(null);
+  /** Where the payment was started from — its error shows there. */
+  const [paySource, setPaySource] = useState<"banner" | "sidebar">("banner");
+  /** One-line confirmation after the customer answers a proposal. */
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isHydrated) return;
@@ -84,9 +89,30 @@ export default function BookingDetailContent({
   const banner = view ? buildBookingBanner(view) : null;
 
   /**
-   * The banner's CTA. "Pay advance N" starts a real Cashfree order for that
-   * milestone and hands off to their hosted page, exactly as checkout does;
-   * the "View" banners just open the packages tab.
+   * Starts a real Cashfree order for one milestone of the opened booking and
+   * hands off to their hosted page, exactly as checkout does. Keyed on the
+   * booking's Mongo _id — the payment endpoint's own lookup.
+   */
+  async function payMilestone(milestoneId: string, source: "banner" | "sidebar") {
+    if (!view || payingMilestoneId) return;
+    setPayingMilestoneId(milestoneId);
+    setPaySource(source);
+    setPayError(null);
+    try {
+      const payment = await createMilestonePayment(view.bookingObjectId || view.reference, milestoneId);
+      const cashfree = await loadCashfree();
+      // Navigates away entirely — nothing after this runs.
+      await cashfree.checkout({ paymentSessionId: payment.paymentSessionId, redirectTarget: "_self" });
+    } catch (err: unknown) {
+      setPayError(err instanceof Error ? err.message : "Couldn't start that payment. Please try again.");
+      setPayingMilestoneId(null);
+    }
+  }
+
+  /**
+   * The banner's CTA. "Pay advance N" pays that milestone; "Review Proposal"
+   * opens the panel; the "View" banners open the one package they're about,
+   * or the packages tab.
    */
   async function handleBannerAction() {
     if (!banner || !view) return;
@@ -96,22 +122,26 @@ export default function BookingDetailContent({
       return;
     }
 
-    if (banner.variant !== "advance-due" || !banner.action.milestoneId) {
-      setTab("packages");
+    if (banner.variant === "advance-due" && banner.action.milestoneId) {
+      await payMilestone(banner.action.milestoneId, "banner");
       return;
     }
 
-    setBannerBusy(true);
-    setBannerError(null);
-    try {
-      const payment = await createMilestonePayment(view.reference, banner.action.milestoneId);
-      const cashfree = await loadCashfree();
-      // Navigates away entirely — nothing after this runs.
-      await cashfree.checkout({ paymentSessionId: payment.paymentSessionId, redirectTarget: "_self" });
-    } catch (err: unknown) {
-      setBannerError(err instanceof Error ? err.message : "Couldn't start that payment. Please try again.");
-      setBannerBusy(false);
+    if (banner.action.packageReference) {
+      setOpenPackage(banner.action.packageReference);
+      return;
     }
+    setTab("packages");
+  }
+
+  function handleProposalResolved(outcome: ProposalOutcome) {
+    setReviewingProposal(null);
+    setNotice(
+      outcome === "accepted"
+        ? "Proposal accepted. Your booking is confirmed."
+        : "Your requests were sent to the vendor. We'll let you know when their updated proposal is ready."
+    );
+    setReloadKey((key) => key + 1);
   }
 
   return (
@@ -152,11 +182,27 @@ export default function BookingDetailContent({
         <>
           <EventSummaryHeader view={view} />
 
+          {notice && (
+            <div
+              role="status"
+              className="flex items-start justify-between gap-3 rounded-2xl border border-[#B9F8CF] bg-[#F0FDF4] px-4 py-3 text-[14px] leading-5 text-[#016630]"
+            >
+              <span>{notice}</span>
+              <button
+                type="button"
+                onClick={() => setNotice(null)}
+                className="shrink-0 text-[12px] font-medium text-[#016630] hover:underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           <BookingStatusBanner
             banner={banner}
             onAction={handleBannerAction}
-            isBusy={bannerBusy}
-            error={bannerError}
+            isBusy={Boolean(payingMilestoneId) && paySource === "banner"}
+            error={paySource === "banner" ? payError : null}
           />
 
           <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
@@ -193,21 +239,31 @@ export default function BookingDetailContent({
               )}
             </div>
 
-            <BookingSidebar view={view} />
+            <BookingSidebar
+              view={view}
+              onPay={(milestoneId) => payMilestone(milestoneId, "sidebar")}
+              payingMilestoneId={payingMilestoneId}
+              payError={paySource === "sidebar" ? payError : null}
+            />
           </div>
 
           {openPackage && (
-            <BookingPackagePanel bookingReference={openPackage} onClose={() => setOpenPackage(null)} />
+            <BookingPackagePanel
+              bookingReference={openPackage}
+              onClose={() => setOpenPackage(null)}
+              onReviewProposal={(reference) => {
+                setOpenPackage(null);
+                setReviewingProposal(reference);
+              }}
+            />
           )}
 
           {reviewingProposal && (
             <ReviewProposalPanel
               bookingReference={reviewingProposal}
               onClose={() => setReviewingProposal(null)}
-              onResolved={() => {
-                setReviewingProposal(null);
-                setReloadKey((key) => key + 1);
-              }}
+              onResolved={handleProposalResolved}
+              onStale={() => setReloadKey((key) => key + 1)}
             />
           )}
         </>

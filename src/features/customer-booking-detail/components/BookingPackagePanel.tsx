@@ -6,6 +6,7 @@ import { CalendarDays, ChevronDown, Clock, MapPin, Tag, X } from "lucide-react";
 import { formatAmount } from "@/features/customer-account/utils/groupBookings";
 import { getPackagePanelView, type PackagePanelView } from "../services/getPackagePanelView";
 import PackageSetupCard from "./PackageSetupCard";
+import { ChangeRequestCard } from "./ProposalRequestCard";
 
 /** The stepper across the top of the panel, and where each status sits on it. */
 const JOURNEY = ["Booking confirmed", "Additional request pending", "Proposal", "Event Locked"] as const;
@@ -25,15 +26,19 @@ function plural(count: number, word: string) {
 }
 
 /**
- * Where this package sits on JOURNEY. Status alone can't say: a booking stays
- * "Confirmed" while the vendor works through the customer's requests, so the
- * request decisions move it along — the same "accepted everything, not merely
- * Confirmed" rule as the page's own timeline (vendorAcceptedEverything).
- * Nothing on the journey counts as reached before the vendor confirms.
+ * Where this package sits on JOURNEY. Status alone can't say: the request
+ * decisions and the customer's own answer move it along — the same
+ * "accepted everything, not merely Confirmed" rule as the page's own
+ * timeline (vendorAcceptedEverything).
+ *
+ * The customer's turn comes first: a proposal waiting on their review is
+ * what this booking needs, whatever its status says (InDiscussion while the
+ * vendor's revised proposal is out). Then a reopened booking — confirmed
+ * once, now back with the vendor over new requests.
  */
 function journeyProgress(view: PackagePanelView): { step: number; callout?: { title: string; description: string } } {
   if (view.status === "Completed") return { step: JOURNEY.length - 1, callout: STATUS_CALLOUT.Completed };
-  if (view.status !== "Confirmed") return { step: -1, callout: STATUS_CALLOUT[view.status] };
+  if (view.terminal) return { step: -1, callout: STATUS_CALLOUT[view.status] };
 
   const { total, pending } = view.requestCounts;
   const decided = total - pending;
@@ -47,6 +52,33 @@ function journeyProgress(view: PackagePanelView): { step: number; callout?: { ti
       },
     };
   }
+
+  if (view.reopened) {
+    return {
+      step: 1,
+      callout: {
+        title: "Changes requested after confirmation",
+        description:
+          pending > 0
+            ? `The vendor is reviewing your ${plural(pending, "new request")}. You'll get an updated proposal to accept, and your date stays held.`
+            : "Waiting for the vendor's updated proposal. Your date stays held.",
+      },
+    };
+  }
+
+  if (view.status !== "Confirmed") {
+    if (view.status === "InDiscussion" && pending > 0) {
+      return {
+        step: decided === 0 ? 1 : 2,
+        callout:
+          decided === 0
+            ? { title: "Additional request pending", description: `The vendor is reviewing your ${plural(total, "request")}.` }
+            : { title: "Proposal in progress", description: `The vendor has responded to ${decided} of ${plural(total, "request")}.` },
+      };
+    }
+    return { step: -1, callout: STATUS_CALLOUT[view.status] };
+  }
+
   if (pending === 0) {
     return {
       step: JOURNEY.length - 1,
@@ -134,9 +166,12 @@ function formatEventDate(iso: string) {
 export default function BookingPackagePanel({
   bookingReference,
   onClose,
+  onReviewProposal,
 }: {
   bookingReference: string;
   onClose: () => void;
+  /** Opens this booking's Review Proposal panel — offered when the proposal is waiting on the customer. */
+  onReviewProposal?: (bookingReference: string) => void;
 }) {
   const [view, setView] = useState<PackagePanelView | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -272,10 +307,19 @@ export default function BookingPackagePanel({
                       <span className="mt-1 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border-2 border-brand-primary">
                         <span className="h-1 w-1 rounded-full bg-brand-primary" />
                       </span>
-                      <div className="flex flex-col">
+                      <div className="flex min-w-0 flex-1 flex-col">
                         <p className="text-[16px] font-semibold leading-6 text-[#030303]">{callout.title}</p>
                         <p className="text-[14px] leading-5 text-[#71717B]">{callout.description}</p>
                       </div>
+                      {view.proposal.awaitingReview && onReviewProposal && (
+                        <button
+                          type="button"
+                          onClick={() => onReviewProposal(view.reference)}
+                          className="shrink-0 self-center rounded-full bg-brand-primary px-3 py-2 text-[14px] font-medium leading-5 text-white transition-colors hover:bg-[#E14E64]"
+                        >
+                          Review Proposal
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -287,15 +331,32 @@ export default function BookingPackagePanel({
                 defaultOpen
               >
                 <div className="flex flex-col gap-4">
+                  {!view.packageAvailable && (
+                    <p className="text-[12px] leading-[18px] text-[#71717B]">
+                      This package is no longer listed, so only the changes you asked for are shown here.
+                    </p>
+                  )}
                   {view.setups.length === 0 ? (
                     <p className="text-[14px] leading-5 text-[#71717B]">
-                      This package doesn&apos;t list individual setups.
+                      {view.packageAvailable
+                        ? "This package doesn\u2019t list individual setups."
+                        : "There are no setup changes on this booking."}
                     </p>
                   ) : (
                     view.setups.map((setup) => <PackageSetupCard key={setup.entry.id} setup={setup} />)
                   )}
                 </div>
               </Section>
+
+              {view.proposal.changeRequests.length > 0 && (
+                <Section title="Item requests" count={String(view.proposal.changeRequests.length)} defaultOpen>
+                  <div className="flex flex-col gap-2">
+                    {view.proposal.changeRequests.map((request, index) => (
+                      <ChangeRequestCard key={request._id ?? `change-${index}`} request={request} />
+                    ))}
+                  </div>
+                </Section>
+              )}
 
               {view.addOns.length > 0 && (
                 <Section title="Add-ons" count={String(view.addOns.length)} defaultOpen>

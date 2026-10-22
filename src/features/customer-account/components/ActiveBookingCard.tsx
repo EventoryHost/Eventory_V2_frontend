@@ -32,6 +32,27 @@ function plural(count: number, singular: string, pluralForm: string) {
 }
 
 /**
+ * "by you" only for the customer's own cancellations (Booking.cancelledBy);
+ * a vendor or Eventory cancelling reads differently, and older rows that
+ * never recorded who did it say neither.
+ */
+function cancelledChips(order: BookingOrderGroup, total: number): StatusChip[] {
+  const { customer, vendor, admin, unknown } = order.cancelledBy;
+  // Every package cancelled the same way reads as one plain line, as designed.
+  const line = (count: number, by: string) =>
+    count === total ? `Cancelled${by}` : `${count} cancelled${by}`;
+
+  return [
+    { id: "cancelled-you", count: customer, text: line(customer, " by you") },
+    { id: "cancelled-vendor", count: vendor, text: line(vendor, " by vendor") },
+    { id: "cancelled-admin", count: admin, text: line(admin, " by Eventory") },
+    { id: "cancelled-other", count: unknown, text: line(unknown, "") },
+  ]
+    .filter((entry) => entry.count > 0)
+    .map(({ id, text }) => ({ id, icon: "cancelled" as const, tone: "danger" as const, text }));
+}
+
+/**
  * The booking card's status line, per the card's five designed states
  * (component set 1545:7339): Response for proposal, Booking pending,
  * Advance pending, canceled, compelted.
@@ -46,7 +67,7 @@ function statusChips(order: BookingOrderGroup): StatusChip[] {
 
   // Terminal states — the design gives each of these a single line of its own.
   if (total > 0 && order.cancelledCount === total) {
-    return [{ id: "cancelled", icon: "cancelled", tone: "danger", text: "Cancelled by you" }];
+    return cancelledChips(order, total);
   }
   if (total > 0 && order.completedCount === total) {
     return [{ id: "completed", icon: "completed", tone: "neutral", text: "Completed successfully" }];
@@ -69,14 +90,34 @@ function statusChips(order: BookingOrderGroup): StatusChip[] {
     });
   }
 
-  if (order.allConfirmed && proposals === 0) {
+  // Locked in only when nothing is left open: no proposal to answer, no
+  // request still with a vendor, nothing reopened after confirmation.
+  const isLockedIn =
+    order.allConfirmed && proposals === 0 && order.openRequestCount === 0 && order.reopenedCount === 0;
+
+  if (order.reopenedCount > 0) {
+    chips.push({
+      id: "reopened",
+      icon: "pending",
+      tone: "pending",
+      text:
+        order.reopenedCount === 1
+          ? "Changes requested · waiting for vendor"
+          : `${order.reopenedCount} packages reopened · waiting for vendors`,
+    });
+  }
+
+  // Reopened rows are back with the vendor too, but have their own chip above.
+  const awaitingVendor = order.needsResponseCount - order.reopenedCount;
+
+  if (isLockedIn) {
     chips.push({
       id: "locked",
       icon: "locked",
       tone: "success",
       text: "Event Locked in for all packages",
     });
-  } else if (total > 0 && order.needsResponseCount === total) {
+  } else if (total > 0 && awaitingVendor === total) {
     // Nothing accepted yet — the whole booking is still sitting with vendors.
     chips.push({
       id: "pending",
@@ -85,12 +126,20 @@ function statusChips(order: BookingOrderGroup): StatusChip[] {
       text: "Booking pending at Vendors",
     });
   } else {
-    if (order.needsResponseCount > 0) {
+    if (awaitingVendor > 0) {
       chips.push({
         id: "needs-response",
         icon: "pending",
         tone: "pending",
-        text: `${order.needsResponseCount} ${plural(order.needsResponseCount, "package needs", "packages need")} response`,
+        text: `${awaitingVendor} ${plural(awaitingVendor, "package needs", "packages need")} response`,
+      });
+    }
+    if (order.allConfirmed && order.openRequestCount > 0) {
+      chips.push({
+        id: "requests-open",
+        icon: "pending",
+        tone: "pending",
+        text: "Requests pending at vendor",
       });
     }
     if (order.confirmedCount > 0) {
@@ -114,12 +163,7 @@ function statusChips(order: BookingOrderGroup): StatusChip[] {
 
   // Leftovers from a mixed group — no designed state covers these.
   if (order.cancelledCount > 0 && order.cancelledCount < total) {
-    chips.push({
-      id: "cancelled-some",
-      icon: "cancelled",
-      tone: "danger",
-      text: `${order.cancelledCount} cancelled by you`,
-    });
+    chips.push(...cancelledChips(order, total));
   }
   // A vendor declining reads differently from a self-cancel.
   if (order.declinedCount > 0) {

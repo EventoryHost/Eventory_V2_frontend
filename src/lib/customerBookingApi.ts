@@ -63,6 +63,8 @@ export interface RawCustomizeRequest {
   respondedAt?: string | null;
   /** Set on follow-up requests sent from Review Proposal; null on ones carried from checkout. */
   requestedAt?: string | null;
+  /** The vendor's optional reason, only set while the request is Rejected. */
+  vendorNote?: string | null;
 }
 
 /**
@@ -86,7 +88,12 @@ export interface RawChangeRequest {
   changeType?: "Add" | "Remove";
   category?: string;
   item?: string;
+  qty?: number;
   status?: RawRequestStatus;
+  requestedAt?: string | null;
+  respondedAt?: string | null;
+  /** The vendor's optional reason, only set while the request is Rejected. */
+  vendorNote?: string | null;
 }
 
 /**
@@ -139,8 +146,20 @@ export interface RawBooking {
   selectedAddOns?: RawSelectedAddOn[];
   /** Absent on bookings stored before the field existed — read as unanswered. */
   proposalResponse?: RawProposalResponse | null;
+  /**
+   * Bumped every time the vendor saves a change to decisions, pricing or
+   * milestones. Accept Proposal sends back the version the customer saw, so
+   * a proposal the vendor revised meanwhile can't be accepted blind.
+   */
+  proposalVersion?: number;
+  /** When the vendor last sent (revised) the proposal. */
+  proposalSentAt?: string | null;
+  cancelledBy?: RawCancelledBy;
   createdAt: string;
 }
+
+/** Who cancelled a Cancelled booking; null/absent on older rows. */
+export type RawCancelledBy = "Customer" | "Vendor" | "Admin" | null;
 
 /** One vendor-authored policy slot (models/schemas/policySchema.js). */
 export interface RawPolicySlot {
@@ -172,7 +191,14 @@ export interface RawPriceCharge {
 
 /** One keyed row of the vendor's pricing (utils/pricingBreakdown.js). Deductions carry negative amounts. */
 export interface RawPricingRow {
-  key: "itemsAdded" | "addonsAdded" | "itemsRemoved" | "addonsRemoved" | "discountAllowed";
+  key:
+    | "itemsAdded"
+    | "substituteItemsAdded"
+    | "addonsAdded"
+    | "additionalCharges"
+    | "itemsRemoved"
+    | "addonsRemoved"
+    | "discountAllowed";
   label: string;
   amount: number;
 }
@@ -217,20 +243,44 @@ export async function getBookingDetail(bookingId: string) {
   return apiFetch<RawBookingDetailResponse>(`/customer/bookings/${bookingId}`, { auth: true });
 }
 
-/** Review Proposal → "Accept Proposal". 409s while any request is still Pending. */
-export async function acceptProposal(bookingId: string) {
-  return apiFetch<{ status: "SUCCESS"; proposalResponse: RawProposalResponse }>(
-    `/customer/bookings/${bookingId}/proposal/accept`,
-    { method: "POST", auth: true }
-  );
+/** 409 codes Accept Proposal can come back with (ApiError.code). */
+export const PROPOSAL_CHANGED = "PROPOSAL_CHANGED";
+export const SLOT_TAKEN = "SLOT_TAKEN";
+
+/**
+ * Review Proposal → "Accept Proposal". Confirms the booking. Sends the
+ * proposalVersion the customer was looking at: the backend 409s with
+ * PROPOSAL_CHANGED if the vendor revised it since, SLOT_TAKEN if the vendor's
+ * date went to another booking, and plainly while any request is Pending.
+ */
+export async function acceptProposal(bookingId: string, proposalVersion?: number) {
+  return apiFetch<{
+    status: "SUCCESS";
+    proposalResponse: RawProposalResponse;
+    bookingStatus?: RawBooking["status"];
+    booking?: RawBooking;
+  }>(`/customer/bookings/${bookingId}/proposal/accept`, {
+    method: "POST",
+    auth: true,
+    body: proposalVersion === undefined ? {} : { proposalVersion },
+  });
 }
 
 /** A follow-up "Customize items" request — the same shape the cart sends (toCustomizeRequestPayload). */
 export type NewCustomizeRequest = CartCustomizeRequest;
 
-/** Review Proposal → "Still Needs Changes" → Continue. Appended as Pending for the vendor to decide. */
+/**
+ * Review Proposal → "Still Needs Changes" → Update Package. Appended as
+ * Pending for the vendor to decide; the booking moves to InDiscussion — a
+ * Confirmed one included (it reopens, keeping confirmedAt and its date).
+ */
 export async function addCustomizeRequests(bookingId: string, requests: NewCustomizeRequest[]) {
-  return apiFetch<{ status: "SUCCESS"; customizeRequests: RawCustomizeRequest[]; proposalResponse: RawProposalResponse }>(
+  return apiFetch<{
+    status: "SUCCESS";
+    customizeRequests: RawCustomizeRequest[];
+    proposalResponse: RawProposalResponse;
+    bookingStatus?: RawBooking["status"];
+  }>(
     `/customer/bookings/${bookingId}/customize-requests`,
     { method: "POST", auth: true, body: { requests } }
   );
@@ -276,8 +326,9 @@ export interface RawBookingListItem {
   totalReceived: number;
   amountDue: number;
   createdAt: string;
-  /** Only set once the vendor confirms — the one status timestamp the model keeps. */
+  /** Set once the booking is confirmed; kept when a confirmed booking is reopened (status back to InDiscussion). */
   confirmedAt?: string | null;
+  cancelledBy?: RawCancelledBy;
   /** Both request lists, so the timeline can require "vendor accepted everything". */
   changeRequests?: RawChangeRequest[];
   customizeRequests?: RawCustomizeRequest[];
