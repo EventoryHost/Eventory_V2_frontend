@@ -16,6 +16,8 @@ export interface BookingBanner {
     href?: string;
     /** The booking whose Review Proposal panel the "proposal" banner opens. */
     bookingReference?: string;
+    /** The booking whose package panel a "View" CTA opens, when it's about one booking. */
+    packageReference?: string;
   };
 }
 
@@ -23,6 +25,9 @@ export interface BookingBanner {
  * Picks the banner for a booking, following the component set's five states
  * (node 1644:10229). Only one shows at a time, most urgent first: a finished
  * event, then money due, then vendors still to answer.
+ *
+ * A reopened booking (changes asked for after confirmation) comes next, then
+ * money due.
  *
  * "proposal" shows once a vendor has answered every request and the
  * customer hasn't answered back (Booking.proposalResponse — see
@@ -61,15 +66,34 @@ export function buildBookingBanner(view: BookingDetailView): BookingBanner | nul
     };
   }
 
+  // A confirmed booking the customer reopened with new requests: back with
+  // the vendor until their updated proposal comes in. Outranks money due for
+  // the same reason a proposal does — the price and schedule may move.
+  const reopened = view.reopenedReferences;
+  if (reopened.length > 0) {
+    return {
+      variant: "requests-open",
+      title:
+        reopened.length === 1
+          ? "Changes requested after confirmation"
+          : `Changes requested on ${reopened.length} confirmed packages`,
+      description:
+        "Waiting for the vendor to respond with an updated proposal. Your date stays held, and you'll be asked to accept the new proposal.",
+      action: { label: "View", style: "secondary", packageReference: reopened.length === 1 ? reopened[0] : undefined },
+    };
+  }
+
   const dueIndex = view.paymentTimeline.findIndex((milestone) => milestone.status === "PaymentDue");
   if (dueIndex >= 0) {
     const milestone = view.paymentTimeline[dueIndex];
     const remainingAfter = Math.max(0, view.remaining - milestone.amount);
     return {
       variant: "advance-due",
-      title: `Advance ${dueIndex + 1} of ${view.paymentTimeline.length} is due`,
+      // Named by the vendor's own title: the instalment due may be the final
+      // payment (e.g. requested on the event day), not an "advance".
+      title: `${milestone.title || `Payment ${dueIndex + 1} of ${view.paymentTimeline.length}`} is due`,
       description: `Pay ${formatAmount(milestone.amount)} to stay on track. ${formatAmount(remainingAfter)} remaining after this.`,
-      action: { label: `Pay advance ${dueIndex + 1}`, style: "primary", milestoneId: milestone._id },
+      action: { label: `Pay ${formatAmount(milestone.amount)}`, style: "primary", milestoneId: milestone._id },
     };
   }
 

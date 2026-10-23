@@ -11,7 +11,7 @@ const REQUEST_BADGE: Record<PanelRequest["requestType"], string> = {
 const STATUS_BADGE: Record<NonNullable<PanelRequest["status"]>, { label: string; className: string }> = {
   Pending: { label: "Awaiting vendor", className: "bg-[#FEF3C6] text-[#973C00]" },
   Accepted: { label: "Accepted", className: "bg-[#DCFCE7] text-[#016630]" },
-  Rejected: { label: "Declined", className: "bg-[#FFE2E2] text-[#9F0712]" },
+  Rejected: { label: "Rejected", className: "bg-[#FFE2E2] text-[#9F0712]" },
 };
 
 /** "Colour: ~~White~~ Maroon" — the old value struck out, the new one bold. */
@@ -32,25 +32,34 @@ function RequestCard({ request }: { request: PanelRequest }) {
   const colours = request.colours?.join(", ");
   const previousColours = request.previous?.colours?.join(", ");
   const isRemoval = request.requestType === "remove";
+  const vendorNote = request.status === "Rejected" ? request.vendorNote?.trim() : undefined;
 
   return (
     <div className="flex items-start justify-between gap-3 rounded-xl border border-[#E4E4E7] bg-white px-3 py-2">
-      {isRemoval ? (
-        <p className="flex-1 px-1 text-[14px] leading-5 text-[#9F9FA9] line-through">{request.label}</p>
-      ) : (
-        <div className="flex flex-1 flex-col gap-1 py-[3px]">
-          {/* The label leads when the request isn't about one named attribute. */}
-          {request.requestType === "add" && (
-            <p className="text-[12px] font-semibold leading-[18px] text-[#030303]">{request.label}</p>
-          )}
-          <RequestLine label="Type" was={request.previous?.type} now={request.type ?? undefined} />
-          <RequestLine label="Colour" was={previousColours} now={colours || undefined} />
-          <RequestLine label="Volume" was={request.previous?.volume} now={request.volume ?? undefined} />
-          {request.quantity != null && (
-            <RequestLine label="Quantity" now={String(request.quantity)} />
-          )}
-        </div>
-      )}
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        {isRemoval ? (
+          <p className="flex-1 px-1 text-[14px] leading-5 text-[#9F9FA9] line-through">{request.label}</p>
+        ) : (
+          <div className="flex flex-1 flex-col gap-1 py-[3px]">
+            {/* The label leads when the request isn't about one named attribute. */}
+            {request.requestType === "add" && (
+              <p className="text-[12px] font-semibold leading-[18px] text-[#030303]">{request.label}</p>
+            )}
+            <RequestLine label="Type" was={request.previous?.type} now={request.type ?? undefined} />
+            <RequestLine label="Colour" was={previousColours} now={colours || undefined} />
+            <RequestLine label="Volume" was={request.previous?.volume} now={request.volume ?? undefined} />
+            {request.quantity != null && (
+              <RequestLine label="Quantity" now={String(request.quantity)} />
+            )}
+          </div>
+        )}
+        {/* No design for the vendor's reason — one muted line, as on Review Proposal. */}
+        {vendorNote && (
+          <p className="px-1 text-[12px] leading-[18px] text-[#71717B]">
+            <span className="font-medium text-[#3F3F47]">Vendor&apos;s note:</span> {vendorNote}
+          </p>
+        )}
+      </div>
 
       <div className="flex shrink-0 flex-col items-end gap-1">
         <span className="rounded-full bg-[#F4F4F5] px-2 py-0.5 text-[9px] font-medium uppercase leading-[18px] text-[#3F3F47]">
@@ -146,11 +155,14 @@ export default function PackageSetupCard({ setup }: { setup: PanelSetup }) {
               );
             })}
 
-            {/* Requests the package's current items no longer account for. */}
-            <RequestsBox requests={looseRequests} />
           </div>
         </>
       )}
+
+      {/* Requests the package's current items no longer account for — shown
+          even when the setup lists no items (a stand-in for a setup the
+          package no longer has). */}
+      <RequestsBox requests={looseRequests} />
     </article>
   );
 }

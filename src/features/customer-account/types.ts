@@ -28,8 +28,13 @@ export interface BookingOrderGroup {
   location: string | null;
   needsResponseCount: number;
   confirmedCount: number;
-  /** Customer-cancelled rows — the design's "Cancelled by you". */
+  /** Cancelled rows, whoever cancelled them. */
   cancelledCount: number;
+  /**
+   * Cancelled rows split by Booking.cancelledBy — only the customer's own
+   * read "Cancelled by you". `unknown` is older rows that never recorded it.
+   */
+  cancelledBy: { customer: number; vendor: number; admin: number; unknown: number };
   /** Vendor-declined rows, which read differently from a self-cancel. */
   declinedCount: number;
   completedCount: number;
@@ -43,6 +48,10 @@ export interface BookingOrderGroup {
   /** True when every package in the group is confirmed — the design collapses
       that to a single "All packages confirmed" row instead of a count. */
   allConfirmed: boolean;
+  /** Rows with at least one request the vendor hasn't decided yet. */
+  openRequestCount: number;
+  /** Confirmed rows the customer reopened with new requests (InDiscussion with a confirmedAt). */
+  reopenedCount: number;
   /** Bookings whose vendor has answered every request and awaits the customer's review — "Response for proposal". */
   proposalReferences: string[];
   /** Underlying rows, newest first — "View Booking" links to the first. */

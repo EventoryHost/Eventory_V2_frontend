@@ -1,6 +1,10 @@
 import type { RawBookingListItem } from "@/lib/customerBookingApi";
 import type { BookingOrderGroup } from "../types";
-import { isProposalAwaitingReview } from "@/features/customer-booking-detail/utils/proposal";
+import {
+  isProposalAwaitingReview,
+  isReopened,
+  pendingRequestCount,
+} from "@/features/customer-booking-detail/utils/proposal";
 
 /** Statuses the vendor hasn't acted on yet — the backend's PRE_ACCEPTANCE set. */
 const NEEDS_RESPONSE_STATUSES: RawBookingListItem["status"][] = ["NewBooking", "Viewed", "InDiscussion"];
@@ -63,9 +67,19 @@ export function groupBookingsByEvent(bookings: RawBookingListItem[]): BookingOrd
         first.createdAt
       ),
       location: sorted.find((row) => row.location)?.location ?? null,
-      needsResponseCount: sorted.filter((row) => NEEDS_RESPONSE_STATUSES.includes(row.status)).length,
+      // A row whose proposal is waiting on the customer is not pending at the
+      // vendor — it shows as "Response for proposal" instead.
+      needsResponseCount: sorted.filter(
+        (row) => NEEDS_RESPONSE_STATUSES.includes(row.status) && !isProposalAwaitingReview(row)
+      ).length,
       confirmedCount: sorted.filter((row) => row.status === "Confirmed").length,
       cancelledCount: sorted.filter((row) => row.status === "Cancelled").length,
+      cancelledBy: {
+        customer: sorted.filter((row) => row.status === "Cancelled" && row.cancelledBy === "Customer").length,
+        vendor: sorted.filter((row) => row.status === "Cancelled" && row.cancelledBy === "Vendor").length,
+        admin: sorted.filter((row) => row.status === "Cancelled" && row.cancelledBy === "Admin").length,
+        unknown: sorted.filter((row) => row.status === "Cancelled" && !row.cancelledBy).length,
+      },
       declinedCount: sorted.filter((row) => row.status === "Declined").length,
       completedCount: sorted.filter((row) => row.status === "Completed").length,
       // amountDue is computed per row by the controller (totalAmount -
@@ -80,6 +94,8 @@ export function groupBookingsByEvent(bookings: RawBookingListItem[]): BookingOrd
       ).length,
       allConfirmed:
         sorted.length > 0 && sorted.every((row) => row.status === "Confirmed"),
+      openRequestCount: sorted.filter((row) => pendingRequestCount(row) > 0).length,
+      reopenedCount: sorted.filter((row) => isReopened(row) && !isProposalAwaitingReview(row)).length,
       proposalReferences: sorted.filter(isProposalAwaitingReview).map((row) => row.bookingId),
       bookings: sorted,
     };
