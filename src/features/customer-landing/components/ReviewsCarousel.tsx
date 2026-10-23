@@ -29,7 +29,7 @@ export default function ReviewsCarousel() {
   };
 
   return (
-    <section className="mx-auto mt-16 w-full max-w-[1320px]">
+    <section className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <div className="flex items-start justify-between gap-4">
         <div>
           <span className="font-figtree text-[13px] font-bold uppercase tracking-wider text-[#F0596F]">

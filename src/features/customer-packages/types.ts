@@ -92,13 +92,17 @@ export interface BudgetEstimator {
   id: string;
   heading: string;
   subheading: string;
-  eventTypeOptions: string[];
-  guestOptions: string[];
-  locationOptions: string[];
-  vendorOptions: string[];
+  /**
+   * Default estimate shown before the customer searches — a real min/max
+   * starting-price range across every live package (GET
+   * /customer/packages/filters' priceRange), not a fabricated number. Once
+   * the customer picks filters and taps "Get your Budget", the section
+   * recomputes this client-side from GET /customer/packages with those
+   * filters applied.
+   */
   estimatedMin: number;
   estimatedMax: number;
-  /** Chips shown on the result card, e.g. ["Celebration", "Ghaziabad"]. */
+  /** Chips shown on the result card, e.g. ["Birthday", "Ghaziabad"]. Empty before a search. */
   tags: string[];
   marketInsight: string;
   vendorGroups: BudgetEstimatorVendorGroup[];

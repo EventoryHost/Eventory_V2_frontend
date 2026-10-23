@@ -1,51 +1,61 @@
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
+// Real data for the 5 blog article pages built under
+// src/features/customer-blogs/components/article/ — kept in sync with
+// ArticleGridSection.tsx's own ARTICLES (not imported directly, to avoid
+// this landing-page section depending on the customer-blogs feature).
 const FEATURED_POST = {
-  image: "/images/customer/haldi.jpg",
-  title: "Winter Haldi ceremony decorations",
+  image: "/images/customer/blogs/article-diwali-office/hero-image.png",
+  title: "Diwali Office Decoration Ideas for 2026 (and How to Get It Done Without Last-Minute Chaos)",
   description:
-    "Transform your Winter Haldi ceremony into a magical event with warm, vibrant decorations. Think cozy marigold garlands intertwined with fairy lights, rich mustard yellow drapes, and rustic wooden accents. Add traditional brass lamps and fresh flower arrangements to create an inviting and festive atmosphere that celebrates the season and the joyous occasion.",
-  author: "Sardar Khan",
-  date: "June 2026",
-  avatar: "/images/customer/user-review.png",
+    "Zone-by-zone decor ideas for your office, plus the approvals, timeline and vendor questions most guides skip.",
+  author: "Prathmesh",
+  date: "Oct 10, 2026",
+  avatar: "/images/customer/blogs/article-diwali-office/author-prathmesh.png",
+  href: "/blogs/diwali-office-decoration-ideas-2026",
 };
 
 const TOP_RIGHT_POST = {
-  image: "/images/customer/holi.jpg",
-  title: "Top 10 Holi Party Ideas for 2026",
-  description: "Make your Holi celebration unforgettable with these creative ideas...",
-  author: "Archi Deval",
-  date: "June 2026",
+  image: "/images/customer/blogs/article-decoration-cost-delhi-ncr/hero-image.png",
+  title: "Decoration Cost in Delhi NCR (2026)",
+  description:
+    "What each type of celebration setup costs, what pushes the price up, and how to compare two packages without getting caught by extras.",
+  author: "Anishka",
+  date: "Oct 10, 2026",
+  href: "/blogs/decoration-cost-delhi-ncr-2026",
 };
 
 const GRID_POSTS = [
   {
-    image: "/images/customer/corporate.jpg",
-    title: "Corporate event",
-    description: "subtext for the event gehadling",
-    author: "Archi Deval",
-    date: "June 2026",
+    image: "/images/customer/blogs/article-decorator-questions/hero-image.png",
+    title: "15 Questions to Ask Before You Book a Decorator",
+    description: "A copy-and-send checklist, plus the red flags to walk away from.",
+    author: "Keshav",
+    date: "Oct 10, 2026",
+    href: "/blogs/decorator-questions-checklist",
   },
   {
-    image: "/images/customer/tech.jpg",
-    title: "Global Tech Conference",
-    description: "Innovative solutions for a digital future",
-    author: "Rajesh",
-    date: "September 2025",
+    image: "/images/customer/blogs/article-surprise-decoration/hero-image.png",
+    title: "Surprise Decoration for Your Partner",
+    description: "Seven setups for a birthday, an anniversary or the big question.",
+    author: "Ruchi",
+    date: "Oct 10, 2026",
+    href: "/blogs/surprise-decoration-for-partner",
   },
   {
-    image: "/images/customer/expo.jpg",
-    title: "Sustainable Living Expo",
-    description: "Empowering eco-friendly practices",
-    author: "Ravi",
-    date: "April 2025",
+    image: "/images/customer/blogs/article-baby-shower-welcome/hero-image.png",
+    title: "Baby Shower and Welcome Baby Decoration",
+    description: "Decor ideas for the godh bharai and the homecoming.",
+    author: "Amit Rai",
+    date: "Oct 10, 2026",
+    href: "/blogs/baby-shower-welcome-baby-decoration",
   },
 ];
 
 export default function BlogsSection() {
   return (
-    <section className="mx-auto mt-16 w-full max-w-[1320px]">
+    <section className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <div className="flex items-end justify-between gap-4">
         <div>
           <span className="font-figtree text-[13px] font-bold uppercase tracking-wider text-[#EA1D3B]">
@@ -57,17 +67,20 @@ export default function BlogsSection() {
         </div>
 
         <a
-          href="#"
+          href="/blogs"
           className="flex shrink-0 items-center gap-2 font-figtree text-[14px] font-semibold text-[#F0596F]"
         >
-          Real all articles
+          Read all articles
           <ArrowRight size={16} />
         </a>
       </div>
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[868fr_424fr] gap-6">
         {/* Large featured card */}
-        <div className="flex flex-col sm:flex-row h-full min-h-[396px] overflow-hidden rounded-[20px] border border-black/5 bg-[#FAF9F6]">
+        <a
+          href={FEATURED_POST.href}
+          className="flex flex-col sm:flex-row h-full min-h-[396px] overflow-hidden rounded-[20px] border border-black/5 bg-[#FAF9F6] transition-colors hover:border-[#F0596F]/30"
+        >
           <div className="relative h-[240px] sm:h-auto sm:w-[424px] shrink-0">
             <Image
               src={FEATURED_POST.image}
@@ -84,12 +97,7 @@ export default function BlogsSection() {
               <p className="font-figtree text-[15px] font-normal leading-[1.5] text-body-secondary">
                 {FEATURED_POST.description}
               </p>
-              <a
-                href="#"
-                className="font-figtree text-[14px] font-semibold text-[#F0596F]"
-              >
-                Read more
-              </a>
+              <span className="font-figtree text-[14px] font-semibold text-[#F0596F]">Read more</span>
             </div>
 
             <div className="flex items-center gap-3">
@@ -111,10 +119,13 @@ export default function BlogsSection() {
               </div>
             </div>
           </div>
-        </div>
+        </a>
 
         {/* Top-right card */}
-        <div className="flex flex-col overflow-hidden rounded-[20px] border border-black/5 bg-white">
+        <a
+          href={TOP_RIGHT_POST.href}
+          className="flex flex-col overflow-hidden rounded-[20px] border border-black/5 bg-white transition-colors hover:border-[#F0596F]/30"
+        >
           <div className="relative h-[220px] w-full shrink-0">
             <Image
               src={TOP_RIGHT_POST.image}
@@ -136,15 +147,16 @@ export default function BlogsSection() {
               {TOP_RIGHT_POST.author} - {TOP_RIGHT_POST.date}
             </p>
           </div>
-        </div>
+        </a>
       </div>
 
       {/* Bottom row */}
       <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-6">
         {GRID_POSTS.map((post) => (
-          <div
+          <a
             key={post.title}
-            className="flex flex-col overflow-hidden rounded-[20px] border border-black/5 bg-white"
+            href={post.href}
+            className="flex flex-col overflow-hidden rounded-[20px] border border-black/5 bg-white transition-colors hover:border-[#F0596F]/30"
           >
             <div className="relative h-[220px] w-full shrink-0">
               <Image
@@ -167,7 +179,7 @@ export default function BlogsSection() {
                 {post.author} - {post.date}
               </p>
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </section>

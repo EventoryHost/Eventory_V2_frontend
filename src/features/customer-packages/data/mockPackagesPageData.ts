@@ -26,7 +26,7 @@ const EVENT_SCENE_IMAGES = [
   "/images/customer/expo.jpg",
   "/images/customer/tech.jpg",
   "/images/customer/corporate.jpg",
-  "/images/customer/planningcorp.jpg",
+  "/images/customer/plcorporate.png",
   "/images/customer/packages-pics.png",
   "/images/customer/hero-explore-events.png",
   "/images/customer/ready-1.png",
@@ -36,6 +36,26 @@ const EVENT_SCENE_IMAGES = [
 function pickImage(categoryId: string, index: number, offset: number) {
   if (index === 0 && offset === 0) return CATEGORY_HERO_IMAGE[categoryId];
   return EVENT_SCENE_IMAGES[(index + offset) % EVENT_SCENE_IMAGES.length];
+}
+
+// "Popular Package Categories" chip art — every vendor category lists
+// exactly 8 subcategories, so these 8 generic celebration-decor renders are
+// cycled by position rather than reusing the per-category hero/event-scene
+// photography (pickImage above), which is for the "Trending Packages" /
+// "Handpicked For You" / "Magical Moments" product cards instead.
+const POPULAR_CATEGORY_IMAGES = [
+  "/images/customer/packages/popular-categories/ceiling-decor.png",
+  "/images/customer/packages/popular-categories/balloon-arch.png",
+  "/images/customer/packages/popular-categories/photo-backdrop.png",
+  "/images/customer/packages/popular-categories/floral-mandap.png",
+  "/images/customer/packages/popular-categories/floral-arch.png",
+  "/images/customer/packages/popular-categories/entrance-decor.png",
+  "/images/customer/packages/popular-categories/dessert-table.png",
+  "/images/customer/packages/popular-categories/entertainer.png",
+];
+
+function pickPopularCategoryImage(index: number) {
+  return POPULAR_CATEGORY_IMAGES[index % POPULAR_CATEGORY_IMAGES.length];
 }
 
 const FESTIVE_OFFER: FestiveOffer = {
@@ -62,14 +82,13 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
   id: "budget-estimator",
   heading: "Estimate your events budget",
   subheading: "Budget estimator",
-  eventTypeOptions: ["Celebration", "Birthday", "Corporate", "Anniversary"],
-  guestOptions: ["10 - 25", "25 - 50", "50 - 100", "100+"],
-  locationOptions: ["Ghaziabad", "Delhi", "Noida", "Gurugram"],
-  vendorOptions: ["Celebration", "All Vendors"],
-  estimatedMin: 50000,
-  estimatedMax: 75000,
-  tags: ["Celebration", "Ghaziabad"],
-  marketInsight: "Market insight: Most grand celebration spend around (50K-60K)",
+  // Overwritten in getPackagesPageData.ts with a real min/max off the live
+  // catalog's own price range (GET /customer/packages/filters) — these are
+  // just the shape's fallback if that fetch ever fails.
+  estimatedMin: 5000,
+  estimatedMax: 300000,
+  tags: [],
+  marketInsight: "Pick your event details above and tap \"Get your Budget\" for a real estimate.",
   vendorGroups: [
     {
       categoryId: "decorator",
@@ -95,6 +114,16 @@ const BUDGET_ESTIMATOR: BudgetEstimator = {
         { id: "budget-cat-6", title: "Caterer", description: "Tea & coffee station", priceFrom: 199, image: pickImage("caterer", 5, 0), href: "/packages/budget-cat-6" },
       ],
     },
+    // The remaining 4 vendor categories — getPackagesPageData.ts fills each
+    // from its own real GET /customer/packages?vendorType=... results (see
+    // fetchRealPackagesForCategory), same as decorator/caterer above. Left
+    // empty here on purpose: no mock placeholder packages, since an empty
+    // array already renders a real "not enough live packages yet" state
+    // rather than a fake one.
+    { categoryId: "venue-provider", categoryLabel: "Venue Provider", suggestions: [] },
+    { categoryId: "dj-artist", categoryLabel: "Dj Artist", suggestions: [] },
+    { categoryId: "makeup-artist", categoryLabel: "Makeup Artist", suggestions: [] },
+    { categoryId: "photographer", categoryLabel: "Photographer", suggestions: [] },
   ],
 };
 
@@ -129,12 +158,16 @@ function buildCategoryBlocks(
         items: subcategories.map((title, i) => ({
           id: `${categoryId}-sub-${i}`,
           title,
-          image: pickImage(categoryId, i, 0),
-          // The filterable package listing, this category preselected.
-          // These are package SUBCATEGORIES ("Balloons", "Table Decoration")
-          // with no backend facet of their own, so the category is as
-          // narrow as the destination can honestly get.
-          href: `/packages/browse?category=${categoryId}`,
+          image: pickPopularCategoryImage(i),
+          // The filterable package listing, this category preselected AND
+          // the subcategory's own title forwarded as the listing's real
+          // free-text search (`q`, PackageListingContent.tsx line 41/129) —
+          // these are package SUBCATEGORIES ("Balloons", "Table Decoration")
+          // with no dedicated backend facet of their own, but `q` already
+          // does a real server-side search, so this is a real, working
+          // filter rather than the previous category-only link that
+          // silently dropped which subcategory was actually clicked.
+          href: `/packages/browse?category=${categoryId}&q=${encodeURIComponent(title)}`,
         })),
       },
     },

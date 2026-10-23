@@ -7,10 +7,13 @@ export default function ScrollableRow({
   children,
   className = "",
   contentClassName = "",
+  gapClassName = "gap-3 sm:gap-5",
 }: {
   children: React.ReactNode;
   className?: string;
   contentClassName?: string;
+  /** Overrides the track's default responsive gap (12px/20px) when a caller needs an exact, non-responsive value. */
+  gapClassName?: string;
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -45,7 +48,7 @@ export default function ScrollableRow({
     <div className={`group relative ${className}`}>
       <div
         ref={trackRef}
-        className={`flex gap-3 overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 ${contentClassName}`}
+        className={`flex ${gapClassName} overflow-x-auto scroll-smooth pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${contentClassName}`}
       >
         {children}
       </div>

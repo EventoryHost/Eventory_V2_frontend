@@ -2,14 +2,20 @@ import Image from "next/image";
 
 export default function PlanningSomethingSpecialBanner() {
   return (
-    <section className="relative mx-auto mt-16 min-h-[312px] w-full max-w-[1320px] overflow-hidden rounded-[44px] bg-[#FFF0F2]">
-      <div className="absolute inset-y-0 right-0 hidden w-[820px] lg:block">
+    <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+    <section className="relative min-h-[312px] w-full overflow-hidden rounded-[44px] bg-[#FFF0F2]">
+      {/* Photo now fills the whole banner — left-to-right gradient (the
+          banner's own background colour, not a generic black scrim) keeps
+          the left side solid enough for the text to stay readable while
+          still showing the photo through on the right. */}
+      <div className="absolute inset-0 z-0">
         <Image
-          src="/images/customer/needhelp.png"
+          src="/images/customer/events/planningsomething.png"
           alt="Friends celebrating with confetti"
           fill
-          className="object-cover scale-x-[-1]"
+          className="object-cover"
         />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#FFF0F2] via-[#FFF0F2]/85 to-[#FFF0F2]/10 lg:to-transparent" />
       </div>
 
       <div className="relative z-10 flex h-full max-w-full lg:max-w-[656px] flex-col items-start justify-center gap-8 lg:gap-12 p-8 lg:p-12 text-left">
@@ -29,5 +35,6 @@ export default function PlanningSomethingSpecialBanner() {
         </button>
       </div>
     </section>
+    </div>
   );
 }

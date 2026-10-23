@@ -1,6 +1,9 @@
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Bookmark, Star, Clock, Users, Map } from "lucide-react";
+
+const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
 export type ProductCardProps = {
   image: string;
@@ -60,16 +63,27 @@ export default function ProductCard({
   isBookmarked = false,
   onToggleBookmark,
 }: ProductCardProps) {
+  // Some real package images are stale CloudFront URLs that now 404 — rather
+  // than showing a broken-image icon, swap to the same fallback a missing
+  // `image` already uses once the real URL fails to load.
+  const [imgSrc, setImgSrc] = useState(image);
+
   return (
     <Link
       href={href}
-      className={`block overflow-hidden rounded-2xl border border-black/5 bg-white ${
+      className={`block overflow-hidden rounded-2xl border border-black/5 bg-white transition-transform duration-200 ease-out hover:scale-[1.02] ${
         fullWidth ? "w-full" : "w-[316px]"
       }`}
     >
       {/* Image */}
       <div className="relative h-[191px] w-full">
-        <Image src={image} alt={title} fill className="object-cover" />
+        <Image
+          src={imgSrc}
+          alt={title}
+          fill
+          className="object-cover"
+          onError={() => setImgSrc(FALLBACK_IMAGE)}
+        />
         <button
           type="button"
           aria-label={isBookmarked ? `Remove ${title} from saved` : `Save ${title}`}
@@ -79,12 +93,9 @@ export default function ProductCard({
             event.stopPropagation();
             onToggleBookmark?.();
           }}
-          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-white/20 backdrop-blur-md"
+          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 backdrop-blur-[5.6px]"
         >
-          <Bookmark
-            className="h-4 w-4 text-white backdrop-blur-sm"
-            fill={isBookmarked ? "currentColor" : "none"}
-          />
+          <Bookmark className="h-5 w-5 text-white" fill={isBookmarked ? "currentColor" : "none"} />
         </button>
       </div>
 

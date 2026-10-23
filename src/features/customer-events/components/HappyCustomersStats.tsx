@@ -20,7 +20,8 @@ const STATS = [
 
 export default function HappyCustomersStats() {
   return (
-    <section className="relative mx-auto mt-16 w-full max-w-[1312px] overflow-hidden rounded-[44px]">
+    <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+    <section className="relative w-full overflow-hidden rounded-[44px]">
       <Image
         src="/images/customer/events/confetti.jpg"
         alt=""
@@ -60,5 +61,6 @@ export default function HappyCustomersStats() {
         </div>
       </div>
     </section>
+    </div>
   );
 }

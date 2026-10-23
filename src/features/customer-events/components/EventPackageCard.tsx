@@ -4,8 +4,9 @@ import { ArrowRight } from "lucide-react";
 
 export type EventPackageCardProps = {
   image: string;
-  avatars: string[];
-  bookedLabel: string;
+  /** Omit along with bookedLabel to hide the bottom-left avatar+stat overlay entirely — used by FeaturedUpcomingEvents, which has no real "people booked" stat to back it. */
+  avatars?: string[];
+  bookedLabel?: string;
   badge?: string;
   title: string;
   description: string;
@@ -71,20 +72,22 @@ export default function EventPackageCard({
           </div>
         )}
 
-        <div className="absolute bottom-3 left-4 flex items-center">
-          {avatars.map((avatar, i) => (
-            <span
-              key={i}
-              className="relative h-6 w-6 overflow-hidden rounded-[47px] border border-white"
-              style={i === 0 ? undefined : { marginLeft: "-12px" }}
-            >
-              <Image src={avatar} alt="" fill className="object-cover" />
+        {bookedLabel && (
+          <div className="absolute bottom-3 left-4 flex items-center">
+            {avatars?.map((avatar, i) => (
+              <span
+                key={i}
+                className="relative h-6 w-6 overflow-hidden rounded-[47px] border border-white"
+                style={i === 0 ? undefined : { marginLeft: "-12px" }}
+              >
+                <Image src={avatar} alt="" fill className="object-cover" />
+              </span>
+            ))}
+            <span className="ml-2 font-figtree text-[13px] font-medium text-white">
+              {bookedLabel}
             </span>
-          ))}
-          <span className="ml-2 font-figtree text-[13px] font-medium text-white">
-            {bookedLabel}
-          </span>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2 px-4 py-4">

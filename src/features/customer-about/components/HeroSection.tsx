@@ -1,4 +1,4 @@
-// Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2438-22169
+// Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2706-25322
 export default function HeroSection() {
   return (
     // Full-bleed: no max-width cap, so the image spans edge-to-edge with no
@@ -15,8 +15,8 @@ export default function HeroSection() {
     // further 60px pulled up on top of that (PM request, 2026-10-13).
     <section className="relative w-full aspect-[1672/941]">
       <img
-        src="/images/customer/about-us-hero-bg.png"
-        alt="Eventory vendors setting up a lakeside wedding — florists, a photographer, and a catering team at work"
+        src="/images/customer/about-us-hero-event.png"
+        alt="An outdoor corporate event at dusk — a stage reading 'Building What's Next' with string lights, lanterns and guests mingling at cocktail tables"
         className="absolute inset-0 h-full w-full object-cover"
       />
 

@@ -6,7 +6,10 @@ export type UpcomingEventListItemProps = {
   image: string;
   title: string;
   description: string;
-  priceLabel: string;
+  /** Omit when there's no real stat to back it (e.g. a calendar festival with no known vendor services) — never a fabricated price. */
+  priceLabel?: string;
+  /** Where "Explore Packages" goes — the package listing page, with this event forwarded as a real search term (`q`). */
+  href: string;
 };
 
 export default function UpcomingEventListItem({
@@ -14,6 +17,7 @@ export default function UpcomingEventListItem({
   title,
   description,
   priceLabel,
+  href,
 }: UpcomingEventListItemProps) {
   return (
     <div className="flex w-full items-center justify-between gap-4 rounded-[20px] border border-[#F1F1F1] py-4 pr-5 pl-4">
@@ -29,14 +33,16 @@ export default function UpcomingEventListItem({
           <p className="truncate font-figtree text-[14px] font-normal text-body-secondary">
             {description}
           </p>
-          <p className="font-figtree text-[16px] font-semibold leading-[20px] tracking-[-0.01em] text-black">
-            {priceLabel}
-          </p>
+          {priceLabel && (
+            <p className="font-figtree text-[16px] font-semibold leading-[20px] tracking-[-0.01em] text-black">
+              {priceLabel}
+            </p>
+          )}
         </div>
       </div>
 
       <Link
-        href="/packages"
+        href={href}
         className="flex shrink-0 items-center gap-2 font-figtree text-[14px] font-semibold text-brand-primary"
       >
         Explore Packages

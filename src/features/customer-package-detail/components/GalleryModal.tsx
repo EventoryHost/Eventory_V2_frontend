@@ -24,6 +24,11 @@ export default function GalleryModal({
   // image) so the zoomed view's prev/next arrows have something to step.
   const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
   const zoomedImage = zoomedIndex != null ? images[zoomedIndex] : null;
+  // Some real package photos are stale CloudFront URLs that now 404 — fall
+  // back to PlaceholderMedia (the same branch a missing `image` already
+  // uses) rather than showing a broken-image icon.
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  const markFailed = (id: string) => setFailedIds((prev) => new Set(prev).add(id));
 
   if (typeof document === "undefined") return null;
 
@@ -68,8 +73,15 @@ export default function GalleryModal({
                   onClick={() => setZoomedIndex(index)}
                   className="relative aspect-square overflow-hidden rounded-xl"
                 >
-                  {image.image ? (
-                    <Image src={image.image} alt={image.alt} fill sizes="300px" className="object-cover" />
+                  {image.image && !failedIds.has(image.id) ? (
+                    <Image
+                      src={image.image}
+                      alt={image.alt}
+                      fill
+                      sizes="300px"
+                      className="object-cover"
+                      onError={() => markFailed(image.id)}
+                    />
                   ) : (
                     <PlaceholderMedia seed={index} className="absolute inset-0" />
                   )}

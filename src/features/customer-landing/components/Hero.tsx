@@ -16,7 +16,7 @@ import ReadyToPlanBanner from "./ReadyToPlanBanner";
 
 const Hero = () => {
   return (
-    <section className="relative isolate w-full overflow-hidden px-4 pb-10">
+    <section className="relative isolate w-full overflow-hidden pb-10">
       {/*
         Design team's pre-composed gradient-spot background — see
         hero-bg.svg. The server markup has this flush at inset-x-0/top-0
@@ -35,7 +35,7 @@ const Hero = () => {
         className="pointer-events-none absolute inset-x-0 -top-20 -z-10 w-full object-cover"
       />
 
-      <div className="pt-6 sm:pt-8 lg:pt-10">
+      <div className="px-4 pt-6 sm:px-6 sm:pt-8 lg:px-16 lg:pt-10">
         <div className="relative z-10">
           <HeroHeading />
           <HeroSubtext />
@@ -55,7 +55,9 @@ const Hero = () => {
       <ReelsCarousel />
       <div className="h-[100px] w-full" />
       <BlogsSection />
-      <ReadyToPlanBanner />
+      <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+        <ReadyToPlanBanner />
+      </div>
     </section>
   );
 };

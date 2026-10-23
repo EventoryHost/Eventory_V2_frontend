@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertTriangle, X } from "lucide-react";
+import { X } from "lucide-react";
 import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
@@ -125,13 +125,6 @@ export default function AddonDetailsModal({
                     <div className="mt-0.5 font-figtree text-[16px] leading-[24px] font-semibold text-[#030303]">{detail.value}</div>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {addon.warning && (
-              <div className="mt-4 flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 font-figtree text-[13px] text-amber-800">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                {addon.warning}
               </div>
             )}
 

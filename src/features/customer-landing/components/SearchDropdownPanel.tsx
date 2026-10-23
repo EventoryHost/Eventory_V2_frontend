@@ -23,6 +23,8 @@ export default function SearchDropdownPanel({
     subtitle?: string;
     icon?: string;
     IconComponent?: LucideIcon;
+    /** Per-row icon-tile background (data/eventSearchTaxonomy.ts gives each event-type family its own color) — falls back to the shared neutral tile when a row doesn't set one (e.g. "Choose vendor service" rows). */
+    iconBg?: string;
     /** Figma node 2250:9764 — "Choose vendor service"'s non-Decorator rows (data/eventSearchTaxonomy.ts's ALL_SERVICE_OPTIONS). Still clickable, just visually flagged as not live yet. */
     comingSoon?: boolean;
   }[];
@@ -33,7 +35,7 @@ export default function SearchDropdownPanel({
   return (
     <div
       role="listbox"
-      className={`absolute top-[calc(100%+8px)] left-0 z-20 w-[360px] origin-top-left animate-[dropdown-enter_200ms_ease-out] rounded-[20px] border border-[#E4E4E8] bg-white p-2.5 shadow-[0px_10px_40px_0px_rgba(0,0,0,0.1)] ${className}`}
+      className={`absolute top-[calc(100%+8px)] left-0 z-20 w-full origin-top-left animate-[dropdown-enter_200ms_ease-out] rounded-[20px] border border-[#E4E4E8] bg-white p-2.5 shadow-[0px_10px_40px_0px_rgba(0,0,0,0.1)] ${className}`}
     >
       <div className="px-2.5 pt-2 pb-1.5">
         <span className="font-figtree text-[12px] font-medium tracking-[0.04em] text-[#8E8E96] uppercase">
@@ -55,7 +57,10 @@ export default function SearchDropdownPanel({
                 row.id === selectedId ? "bg-[#FDE7EB]" : "hover:bg-[#F6F6F7]"
               }`}
             >
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F4F4F5]">
+              <span
+                className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                style={{ backgroundColor: row.iconBg ?? "#F4F4F5" }}
+              >
                 {row.IconComponent ? (
                   <row.IconComponent className="h-5 w-5 text-brand-primary" strokeWidth={1.75} />
                 ) : (

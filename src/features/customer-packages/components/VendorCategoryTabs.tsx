@@ -1,7 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import type { VendorCategory } from "../types";
+import { CATEGORY_META } from "@/lib/categoryMeta";
 
+// Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=116-799
+// Real per-category icon art (CATEGORY_META — the same icons the landing
+// page's "Browse our Vendors" and ProductCard's category badge already use)
+// in place of the plain emoji glyph this previously rendered; every label
+// now stays solid black regardless of active state, with only the pink
+// underline bar (now 6px, rounded top corners only) marking which tab is
+// selected, matching the Figma states exactly.
 export default function VendorCategoryTabs({
   categories,
   activeId,
@@ -16,24 +25,35 @@ export default function VendorCategoryTabs({
       <div className="flex gap-5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-center sm:gap-10 sm:px-2 lg:gap-12">
         {categories.map((category) => {
           const isActive = category.id === activeId;
+          const icon = CATEGORY_META[category.id]?.icon;
+          // Same "lead with what actually has real package depth" treatment
+          // as the landing page's Browse our Vendors section — Decorator is
+          // the only category with real Live packages right now, so every
+          // other tab renders dimmed (still fully clickable) until they have
+          // comparable volume. A dimmed tab that's actually being viewed
+          // stays at full opacity — dimming is about which tab to lead with,
+          // not about hiding the one the customer is currently looking at.
+          const isDimmed = category.id !== "decorator" && !isActive;
           return (
             <button
               key={category.id}
               type="button"
               onClick={() => onSelect(category.id)}
               aria-pressed={isActive}
-              className="flex shrink-0 cursor-pointer flex-col items-center gap-2"
+              className={`flex shrink-0 cursor-pointer flex-col items-center gap-2 transition-opacity ${
+                isDimmed ? "opacity-45 hover:opacity-75" : ""
+              }`}
             >
-              <span className="text-[22px] leading-none sm:text-[28px]">{category.icon}</span>
-              <span
-                className={`font-figtree text-[12px] font-semibold whitespace-nowrap transition-colors sm:text-[14px] ${
-                  isActive ? "text-brand-950" : "text-brand-950/60"
-                }`}
-              >
+              {icon ? (
+                <Image src={icon} alt="" width={56} height={56} className="size-[36px] object-contain sm:size-[56px]" />
+              ) : (
+                <span className="text-[22px] leading-none sm:text-[28px]">{category.icon}</span>
+              )}
+              <span className="font-figtree text-[12px] font-semibold whitespace-nowrap text-brand-950 sm:text-[18px]">
                 {category.label}
               </span>
               <span
-                className={`h-[3px] w-full rounded-full transition-colors ${
+                className={`h-[6px] w-full rounded-t-[6px] transition-colors ${
                   isActive ? "bg-brand-primary" : "bg-transparent"
                 }`}
               />

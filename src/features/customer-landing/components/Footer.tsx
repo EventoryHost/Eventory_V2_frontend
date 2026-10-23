@@ -27,10 +27,10 @@ const LINK_GROUPS = [
 // see the files themselves), not the previous hand-drawn currentColor
 // glyphs — so these render as plain <img>s, no extra circle wrapper.
 const SOCIALS = [
-  { icon: "/images/customer/facebook.svg", label: "Facebook" },
-  { icon: "/images/customer/linkedin.svg", label: "LinkedIn" },
-  { icon: "/images/customer/insta.svg", label: "Instagram" },
-  { icon: "/images/customer/youtube.svg", label: "YouTube" },
+  { icon: "/images/customer/facebook.svg", label: "Facebook", href: "https://www.facebook.com/people/Eventory/61567220426885/" },
+  { icon: "/images/customer/linkedin.svg", label: "LinkedIn", href: "https://www.linkedin.com/company/inventoryforevents/" },
+  { icon: "/images/customer/insta.svg", label: "Instagram", href: "https://www.instagram.com/eventoryofficial/" },
+  { icon: "/images/customer/youtube.svg", label: "YouTube", href: "https://www.youtube.com/@Eventory-platform" },
 ];
 
 const BOTTOM_LINKS = [
@@ -43,20 +43,22 @@ const BOTTOM_LINKS = [
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#F5EFE1] px-6 pt-16 pb-8 text-brand-950 lg:px-8">
+    <footer className="w-full bg-[#FFFAF1] px-6 pt-16 pb-8 text-brand-950 lg:px-8">
       <div className="mx-auto mb-16 flex max-w-7xl flex-col justify-between gap-12 md:flex-row lg:gap-24">
         {/* Logo and Tagline — centered at every breakpoint per the design */}
         <Link href="/" className="flex max-w-[220px] flex-col items-center gap-4">
-          {/* Same source as the navbar's own logo (Navbar.tsx's Logo()) — a
-              plain <img>, not next/image: local SVGs are blocked by
-              next/image by default (dangerouslyAllowSVG isn't set). */}
-          <img src="/nav-logo.svg" alt="Eventory" width={96} height={96} className="opacity-90" />
-          <h2
-            className="text-center text-[40px] leading-[100%] font-semibold tracking-[-1.2px] text-brand-primary"
-            style={{ fontFamily: "var(--font-lora)" }}
-          >
-            Eventory
-          </h2>
+          <div className="flex flex-col items-center gap-1">
+            {/* Same source as the navbar's own logo (Navbar.tsx's Logo()) — a
+                plain <img>, not next/image: local SVGs are blocked by
+                next/image by default (dangerouslyAllowSVG isn't set). */}
+            <img src="/images/customer/logo-mark-footer.svg" alt="Eventory" width={96} height={96} className="opacity-90" />
+            <h2
+              className="text-center text-[40px] leading-[100%] font-semibold tracking-[-1.2px] text-brand-primary"
+              style={{ fontFamily: "var(--font-lora)" }}
+            >
+              Eventory
+            </h2>
+          </div>
           <p className="text-center font-figtree text-[20px] leading-[20px] font-medium whitespace-nowrap text-[#030303]">
             Make it Happen
           </p>
@@ -106,8 +108,15 @@ export default function Footer() {
               Follow Us
             </h3>
             <div className="flex space-x-3">
-              {SOCIALS.map(({ icon, label }) => (
-                <a key={label} href="#" aria-label={label} className="block transition-opacity hover:opacity-80">
+              {SOCIALS.map(({ icon, label, href }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="block transition-opacity hover:opacity-80"
+                >
                   {/* Plain <img>, same reasoning as the navbar logo above — these are local SVGs. */}
                   <img src={icon} alt="" width={40} height={40} />
                 </a>
@@ -116,7 +125,7 @@ export default function Footer() {
 
             {/* Startup India recognition badge */}
             <Image
-              src="/images/customer/startup_india.png"
+              src="/images/customer/footer-startup-india.png"
               alt="Startup India"
               width={188}
               height={45}
@@ -131,7 +140,7 @@ export default function Footer() {
 
       {/* Bottom Bar */}
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 font-figtree text-sm font-medium md:flex-row">
-        <p className="text-brand-primary/70">
+        <p className="text-brand-primary">
           ©Eventory 2026 - 2028 - All Rights Reserved
         </p>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
@@ -139,7 +148,7 @@ export default function Footer() {
             <Link
               key={link.label}
               href={link.href}
-              className="text-brand-950 transition-colors hover:text-brand-primary"
+              className="text-[#030303] transition-colors hover:text-brand-primary"
             >
               {link.label}
             </Link>

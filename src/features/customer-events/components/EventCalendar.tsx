@@ -2,18 +2,31 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { getFixedEventsInMonth } from "@/lib/eventCalendarData";
 
 const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
-export default function EventCalendar() {
-  const [currentDate, setCurrentDate] = useState(new Date());
+function isSameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
-  const monthLabel = currentDate.toLocaleString("default", { month: "long" });
+export type EventCalendarProps = {
+  selectedDate: Date;
+  onSelectDate: (date: Date) => void;
+};
+
+export default function EventCalendar({ selectedDate, onSelectDate }: EventCalendarProps) {
+  // The displayed month can be navigated independently of the selected day
+  // (e.g. browsing ahead), starting on whichever month the selected day is in.
+  const [viewDate, setViewDate] = useState(selectedDate);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const monthLabel = viewDate.toLocaleString("default", { month: "long" });
 
   const firstWeekday = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const eventDaysInMonth = new Set(getFixedEventsInMonth(month + 1).map((e) => e.day));
 
   const cells: (number | null)[] = [
     ...Array.from({ length: firstWeekday }, () => null),
@@ -21,14 +34,7 @@ export default function EventCalendar() {
   ];
 
   const changeMonth = (direction: "prev" | "next") => {
-    setCurrentDate(
-      (prev) =>
-        new Date(
-          prev.getFullYear(),
-          prev.getMonth() + (direction === "prev" ? -1 : 1),
-          1
-        )
-    );
+    setViewDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + (direction === "prev" ? -1 : 1), 1));
   };
 
   return (
@@ -73,18 +79,31 @@ export default function EventCalendar() {
       </div>
 
       <div className="mt-3 grid grid-cols-7 gap-3">
-        {cells.map((day, i) =>
-          day === null ? (
-            <div key={i} className="h-[52px] w-full" />
-          ) : (
-            <div
+        {cells.map((day, i) => {
+          if (day === null) return <div key={i} className="h-[52px] w-full" />;
+
+          const cellDate = new Date(year, month, day);
+          const isSelected = isSameDay(cellDate, selectedDate);
+          const hasEvent = eventDaysInMonth.has(day);
+
+          return (
+            <button
               key={i}
-              className="flex h-[52px] w-full items-center justify-center rounded-[12px] border border-[#E6E6E6] bg-[#FAFAFA] font-figtree text-[15px] font-semibold text-brand-950"
+              type="button"
+              onClick={() => onSelectDate(cellDate)}
+              className={`relative flex h-[52px] w-full items-center justify-center rounded-[12px] border font-figtree text-[15px] font-semibold transition-colors ${
+                isSelected
+                  ? "border-brand-primary bg-brand-primary text-white"
+                  : "border-[#E6E6E6] bg-[#FAFAFA] text-brand-950 hover:border-brand-primary/40"
+              }`}
             >
               {day}
-            </div>
-          )
-        )}
+              {hasEvent && !isSelected && (
+                <span className="absolute bottom-1.5 h-1.5 w-1.5 rounded-full bg-brand-primary" />
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

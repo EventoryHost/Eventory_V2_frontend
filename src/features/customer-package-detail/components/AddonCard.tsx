@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { AlertTriangle, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
@@ -72,13 +72,6 @@ export default function AddonCard({
             {addon.category} · {addon.qtyLabel || "Qty"}
           </p>
 
-          {addon.warning && (
-            <div className="mt-3 flex items-start gap-1.5 rounded-lg bg-amber-50 px-3 py-2 font-figtree text-[11px] text-amber-800">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              {addon.warning}
-            </div>
-          )}
-
           <div className="mt-3 border-t border-dashed border-black/15 pt-3">
             <span className="font-figtree text-[16px] font-bold text-brand-950">{formatPrice(addon.price)}</span>
             <span className="font-figtree text-[12px] text-neutral-tertiary">/{priceUnit}</span>
@@ -131,13 +124,6 @@ export default function AddonCard({
               {addon.category} · {addon.qtyLabel || "Qty"}
             </p>
           </div>
-
-          {addon.warning && (
-            <div className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 font-figtree text-[11px] text-amber-800">
-              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              {addon.warning}
-            </div>
-          )}
 
           <hr className="border-dashed border-black/15" />
 
