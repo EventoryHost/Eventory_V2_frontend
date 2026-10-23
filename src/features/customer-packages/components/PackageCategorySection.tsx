@@ -22,7 +22,7 @@ export default function PackageCategorySection({
       : null;
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-16">
+    <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <section className="rounded-3xl bg-white px-4 py-6 sm:px-6 sm:py-8">
         <div className="mb-4 flex flex-wrap items-center gap-2 sm:mb-5 sm:gap-3">
           <h2 className="font-figtree text-[18px] font-bold text-brand-950 sm:text-[22px]">{section.heading}</h2>

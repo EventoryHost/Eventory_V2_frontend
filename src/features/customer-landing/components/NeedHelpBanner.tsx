@@ -3,7 +3,8 @@ import { ArrowRight } from "lucide-react";
 
 export default function NeedHelpBanner() {
   return (
-    <section className="relative mx-auto mt-16 min-h-[312px] w-full max-w-[1320px] overflow-hidden rounded-[44px] bg-[#FFF0F2]">
+    <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+    <section className="relative min-h-[312px] w-full overflow-hidden rounded-[44px] bg-[#FFF0F2]">
       <div className="absolute inset-y-0 right-0 hidden w-[820px] lg:block">
         <Image
           src="/images/customer/needhelp.png"
@@ -38,5 +39,6 @@ export default function NeedHelpBanner() {
         </div>
       </div>
     </section>
+    </div>
   );
 }

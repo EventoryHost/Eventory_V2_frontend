@@ -5,7 +5,7 @@ import PlaceholderMedia from "./PlaceholderMedia";
 
 export default function FestiveOfferBanner({ offer }: { offer: FestiveOffer }) {
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-16">
+    <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <div className="relative h-[300px] w-full overflow-hidden rounded-[28px] text-center sm:h-[320px] sm:rounded-[40px] sm:text-left">
         {offer.image ? (
           <Image src={offer.image} alt="" fill sizes="100vw" className="object-cover" />

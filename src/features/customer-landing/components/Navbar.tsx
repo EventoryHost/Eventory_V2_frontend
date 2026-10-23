@@ -215,7 +215,7 @@ export default function Navbar() {
         height on <header> itself would make the border-bottom cut through
         the middle of that open panel instead of sitting at its true bottom.
       */}
-      <div className="relative mx-auto flex h-[71px] max-w-[1600px] items-center px-4 sm:px-6 lg:px-16">
+      <div className="relative mx-auto flex h-[71px] max-w-[1440px] items-center px-4 sm:px-6 lg:px-16">
         {/* First div: logo + location — Figma node 221:589's gap-[20px]
             between the logo group and the city selector. */}
         <div className="flex items-center gap-5">

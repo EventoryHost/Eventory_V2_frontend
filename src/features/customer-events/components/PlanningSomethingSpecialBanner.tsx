@@ -2,7 +2,8 @@ import Image from "next/image";
 
 export default function PlanningSomethingSpecialBanner() {
   return (
-    <section className="relative mx-auto mt-16 min-h-[312px] w-full max-w-[1320px] overflow-hidden rounded-[44px] bg-[#FFF0F2]">
+    <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+    <section className="relative min-h-[312px] w-full overflow-hidden rounded-[44px] bg-[#FFF0F2]">
       {/* Photo now fills the whole banner — left-to-right gradient (the
           banner's own background colour, not a generic black scrim) keeps
           the left side solid enough for the text to stay readable while
@@ -34,5 +35,6 @@ export default function PlanningSomethingSpecialBanner() {
         </button>
       </div>
     </section>
+    </div>
   );
 }

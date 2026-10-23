@@ -29,7 +29,7 @@ export default function EventPackageCarousel({
   };
 
   return (
-    <section className="mx-auto w-full max-w-[1320px] px-4 py-10 sm:px-6 lg:px-16">
+    <section className="mx-auto w-full max-w-[1440px] px-4 py-10 sm:px-6 lg:px-16">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="font-figtree font-bold text-brand-950 text-[28px] sm:text-[32px] leading-[1.2] tracking-[-0.02em]">
