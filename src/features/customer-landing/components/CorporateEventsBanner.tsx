@@ -13,11 +13,12 @@ export default function CorporateEventsBanner() {
       <div
         className="absolute inset-0"
         style={{
-          background: "linear-gradient(to right, #3C060D, transparent)",
+          background:
+            "linear-gradient(to bottom, rgba(61,5,13,0.05) 0%, rgba(61,5,13,0.35) 45%, rgba(61,5,13,0.92) 100%)",
         }}
       />
 
-      <div className="relative z-10 flex h-full max-w-xl flex-col items-start gap-4 p-8 lg:p-12 text-left">
+      <div className="relative z-10 flex h-full max-w-[692px] flex-col items-start gap-4 p-8 lg:p-12 text-left">
         <h2 className="font-figtree font-bold text-white text-[28px] sm:text-[32px] leading-[1.2] tracking-[-0.02em]">
           Planning Corporate Events?
         </h2>
@@ -29,13 +30,13 @@ export default function CorporateEventsBanner() {
         <div className="mt-2 flex flex-wrap items-center gap-4">
           <button
             type="button"
-            className="rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
+            className="w-[202px] rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
           >
             Know More
           </button>
           <button
             type="button"
-            className="rounded-full bg-white px-8 py-3 text-[15px] font-semibold text-brand-950"
+            className="w-[202px] rounded-full bg-white px-8 py-3 text-[15px] font-semibold text-brand-950"
           >
             Talk to Our Team
           </button>

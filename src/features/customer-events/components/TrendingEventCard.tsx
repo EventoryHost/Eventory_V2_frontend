@@ -52,14 +52,16 @@ export default function TrendingEventCard({
   return (
     <Link
       href="/packages"
-      className="relative block h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#1E0306] sm:w-[420px] lg:h-[326px] lg:w-[868px]"
+      className="relative block h-auto w-[300px] shrink-0 overflow-hidden rounded-[24px] border border-[#FFE5E9] bg-[#1E0306] sm:w-[420px] lg:h-[326px] lg:w-[868px]"
     >
       {/* Event photo now fills the whole card — left-to-right dark scrim
           keeps the left side solid enough for the white text to stay
-          readable while still showing the photo through on the right. */}
+          readable while still showing the photo through on the right.
+          Figma node 2948:30789 — a warm maroon-tinted scrim (matching the
+          card's own background color) instead of flat black. */}
       <div className="absolute inset-0 z-0">
         <Image src={image} alt="" fill className="object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/10 lg:to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[rgba(61,5,13,0.92)] via-[45%] via-[rgba(61,5,13,0.35)] to-[rgba(61,5,13,0.05)] lg:to-transparent" />
       </div>
 
       <div className="absolute top-0 left-6 z-10">
@@ -82,7 +84,7 @@ export default function TrendingEventCard({
         </span>
       </div>
 
-      <span className="relative z-10 mx-6 mt-6 mb-8 inline-block rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white lg:absolute lg:bottom-8 lg:left-8 lg:m-0">
+      <span className="relative z-10 mx-6 mt-6 mb-8 inline-block rounded-2xl bg-white px-8 py-3 text-[15px] font-bold text-brand-primary lg:absolute lg:bottom-8 lg:left-8 lg:m-0">
         {ctaLabel}
       </span>
     </Link>

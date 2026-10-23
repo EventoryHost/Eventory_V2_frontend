@@ -8,27 +8,21 @@ import EventCategoryCard, {
 const CATEGORIES: EventCategoryCardProps[] = [
   {
     image: "/images/customer/events/birthdayaesthetics.png",
-    title: "Birthday Aesthetics, Delivered Flawlessly.",
-    subtitle: "Book Top-Tier Decorators & Curated Party Packages",
+    title: "Birthday aesthetics, delivered flawlessly.",
+    subtitle: "Book top-tier decorators & curated party packages",
     ctaLabel: "Explore Packages",
-    accentFrom: "#92400E",
-    accentTo: "#B45309",
   },
   {
     image: "/images/customer/events/celebrationsmade.png",
-    title: "Celebrations Made Effortless, Every Detail.",
-    subtitle: "Book Top-Tier Vendors & Curated Celebration Packages",
+    title: "Celebrations made effortless, every detail.",
+    subtitle: "Book top-tier vendors & curated celebration packages",
     ctaLabel: "Explore Packages",
-    accentFrom: "#BE185D",
-    accentTo: "#EC4899",
   },
   {
     image: "/images/customer/events/coporateevents.png",
-    title: "Corporate Events, Handled End to End.",
-    subtitle: "Book Top-Tier Vendors & Curated Corporate Packages",
+    title: "Corporate events, handled end to end.",
+    subtitle: "Book top-tier vendors & curated corporate packages",
     ctaLabel: "Explore Packages",
-    accentFrom: "#1D4ED8",
-    accentTo: "#3B82F6",
   },
 ];
 

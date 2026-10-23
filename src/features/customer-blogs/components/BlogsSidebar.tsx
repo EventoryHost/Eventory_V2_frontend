@@ -84,8 +84,8 @@ export default function BlogsSidebar() {
         <div className="absolute inset-0 bg-gradient-to-b from-[rgba(61,5,13,0.05)] via-[45%] via-[rgba(61,5,13,0.35)] to-[rgba(61,5,13,0.92)]" />
 
         <div className="relative flex items-center justify-between">
-          <span className="rounded-full bg-[#FFD230] px-3 py-1.5 font-figtree text-[12px] font-bold tracking-normal text-[#3C060D] uppercase">
-            Festive offer
+          <span className="rounded-full bg-[#790B1A] px-3 py-1.5 font-figtree text-[12px] font-bold tracking-normal text-white uppercase">
+            Up to 20% off
           </span>
           <span className="rounded-full bg-white px-2.5 py-1 font-figtree text-[12px] font-medium text-[#3C060D]">
             Ad
@@ -93,9 +93,6 @@ export default function BlogsSidebar() {
         </div>
 
         <div className="relative flex flex-col gap-3.5">
-          <p className="font-figtree text-[12px] font-bold tracking-normal text-[#FFD230] uppercase">
-            Up to 20% off
-          </p>
           <h3 className="font-figtree text-[26px] leading-[32px] font-semibold text-white sm:text-[32px] sm:leading-[36px]">
             Diwali packages for{" "}
             <span className="italic" style={{ fontFamily: "var(--font-lora)", color: "#FCDEE2" }}>
