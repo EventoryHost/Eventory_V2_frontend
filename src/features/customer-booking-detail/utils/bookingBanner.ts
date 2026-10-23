@@ -89,9 +89,11 @@ export function buildBookingBanner(view: BookingDetailView): BookingBanner | nul
     const remainingAfter = Math.max(0, view.remaining - milestone.amount);
     return {
       variant: "advance-due",
-      title: `Advance ${dueIndex + 1} of ${view.paymentTimeline.length} is due`,
+      // Named by the vendor's own title: the instalment due may be the final
+      // payment (e.g. requested on the event day), not an "advance".
+      title: `${milestone.title || `Payment ${dueIndex + 1} of ${view.paymentTimeline.length}`} is due`,
       description: `Pay ${formatAmount(milestone.amount)} to stay on track. ${formatAmount(remainingAfter)} remaining after this.`,
-      action: { label: `Pay advance ${dueIndex + 1}`, style: "primary", milestoneId: milestone._id },
+      action: { label: `Pay ${formatAmount(milestone.amount)}`, style: "primary", milestoneId: milestone._id },
     };
   }
 

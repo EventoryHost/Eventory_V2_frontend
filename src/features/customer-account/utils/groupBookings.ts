@@ -67,7 +67,11 @@ export function groupBookingsByEvent(bookings: RawBookingListItem[]): BookingOrd
         first.createdAt
       ),
       location: sorted.find((row) => row.location)?.location ?? null,
-      needsResponseCount: sorted.filter((row) => NEEDS_RESPONSE_STATUSES.includes(row.status)).length,
+      // A row whose proposal is waiting on the customer is not pending at the
+      // vendor — it shows as "Response for proposal" instead.
+      needsResponseCount: sorted.filter(
+        (row) => NEEDS_RESPONSE_STATUSES.includes(row.status) && !isProposalAwaitingReview(row)
+      ).length,
       confirmedCount: sorted.filter((row) => row.status === "Confirmed").length,
       cancelledCount: sorted.filter((row) => row.status === "Cancelled").length,
       cancelledBy: {
@@ -91,7 +95,7 @@ export function groupBookingsByEvent(bookings: RawBookingListItem[]): BookingOrd
       allConfirmed:
         sorted.length > 0 && sorted.every((row) => row.status === "Confirmed"),
       openRequestCount: sorted.filter((row) => pendingRequestCount(row) > 0).length,
-      reopenedCount: sorted.filter(isReopened).length,
+      reopenedCount: sorted.filter((row) => isReopened(row) && !isProposalAwaitingReview(row)).length,
       proposalReferences: sorted.filter(isProposalAwaitingReview).map((row) => row.bookingId),
       bookings: sorted,
     };

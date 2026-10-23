@@ -111,6 +111,43 @@ function journeyVendors(group: RawBookingListItem[]): BookingJourneyVendor[] {
   });
 }
 
+const IST_OFFSET_MS = 330 * 60 * 1000;
+
+const slotMinutes = (time: string | null | undefined) => {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(String(time ?? "").trim());
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null;
+};
+
+/**
+ * When the event ends, as the backend reckons it (models/Booking.js
+ * eventEndOf): the end of the booked slot on the event's IST calendar day, a
+ * slot ending at or before its start running past midnight, or the end of
+ * that day when no slot was booked.
+ */
+function eventEndMs(eventDate: string, slot: { startTime?: string | null; endTime?: string | null }) {
+  const ist = new Date(new Date(eventDate).getTime() + IST_OFFSET_MS);
+  const [y, m, d] = [ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate()];
+  const start = slotMinutes(slot.startTime);
+  const end = slotMinutes(slot.endTime);
+  const overnight = end != null && start != null && end <= start;
+  return Date.UTC(y, m, d + (overnight ? 1 : 0), 0, end ?? 23 * 60 + 59) - IST_OFFSET_MS;
+}
+
+/** The confirmation step of an event whose every booking was declined or cancelled. */
+function endedTitle(ended: RawBookingListItem[]): string {
+  if (ended.every((row) => row.status === "Declined")) return "Booking declined";
+  return "Booking cancelled";
+}
+
+function endedDescription(ended: RawBookingListItem[]): string {
+  if (ended.every((row) => row.status === "Declined")) {
+    return ended.length === 1 ? "The vendor declined this booking." : "The vendors declined this booking.";
+  }
+  if (ended.every((row) => row.cancelledBy === "Customer")) return "You cancelled this booking.";
+  if (ended.every((row) => row.cancelledBy === "Vendor")) return "The vendor cancelled this booking.";
+  return "This booking was cancelled.";
+}
+
 /**
  * Builds the journey down the left of the page across the design's four
  * states: booking started, vendor confirmation, event-ready/payments, and
@@ -124,7 +161,8 @@ function buildJourney(
   group: RawBookingListItem[],
   bookedOn: string,
   eventDate: string,
-  confirmedAt: string | null
+  confirmedAt: string | null,
+  slot: { startTime?: string | null; endTime?: string | null } = {}
 ): BookingJourneyStep[] {
   const total = group.length;
   const settled = group.filter(vendorAcceptedEverything).length;
@@ -133,7 +171,9 @@ function buildJourney(
 
   // "Accepted everything", not merely "status is Confirmed".
   const allSettled = total > 0 && settled === total;
-  const eventPassed = new Date(eventDate).getTime() < Date.now();
+  // Over once the booked slot has ended, not at the start of the event date —
+  // otherwise the whole event day already read "Event completed".
+  const eventPassed = eventEndMs(eventDate, slot) < Date.now();
   const allCompleted = total > 0 && group.every((row) => row.status === "Completed");
 
   // Decisions across every vendor's requests, for the settled step's copy —
@@ -141,7 +181,9 @@ function buildJourney(
   const decisions = group.flatMap((row) => [...(row.customizeRequests ?? []), ...(row.changeRequests ?? [])]);
   const rejectedCount = decisions.filter((request) => request.status === "Rejected").length;
   const acceptedCount = decisions.length - rejectedCount;
-  const reopenedCount = group.filter(isReopened).length;
+  const awaitingReviewCount = group.filter(isProposalAwaitingReview).length;
+  const reopenedCount = group.filter((row) => isReopened(row) && !isProposalAwaitingReview(row)).length;
+  const ended = group.filter((row) => row.status === "Declined" || row.status === "Cancelled");
 
   const settledTitle =
     decisions.length === 0
@@ -156,17 +198,24 @@ function buildJourney(
         ? "All the requests made to the vendor were accepted."
         : `${acceptedCount} accepted, ${rejectedCount} rejected.`;
 
+  // Whose turn it is, most urgent first: a proposal waiting on the customer
+  // beats anything still with a vendor.
   const inFlightDescription =
-    reopenedCount > 0
-      ? `${settled} of ${total} confirmed. You asked for changes after confirmation, so we're waiting for the vendor's updated proposal. Your date stays held.`
-      : `${settled} of ${total} confirmed. Waiting on the rest to accept every request.`;
+    ended.length === total
+      ? endedDescription(ended)
+      : awaitingReviewCount > 0
+        ? `${settled} of ${total} confirmed. Your vendor has responded to your requests — review the proposal and accept it to confirm.`
+        : reopenedCount > 0
+          ? `${settled} of ${total} confirmed. You asked for changes after confirmation, so we're waiting for the vendor's updated proposal. Your date stays held.`
+          : `${settled} of ${total} confirmed. Waiting on the rest to accept every request.`;
 
   const steps: Omit<BookingJourneyStep, "state">[] = [
     {
       id: "started",
       title: "Booking started",
+      // Everything received so far — the checkout token plus any milestones.
       description: tokenPaid
-        ? `Token of ${formatAmount(tokenPaid)} paid. Your event is underway.`
+        ? `${formatAmount(tokenPaid)} paid. Your event is underway.`
         : "Your event is underway.",
       date: bookedOn,
     },
@@ -174,7 +223,11 @@ function buildJourney(
       id: "confirmed",
       // Titled by progress while in flight, by outcome once every request
       // has been accepted — as the design does.
-      title: allSettled ? settledTitle : `${settled} of ${total} ${total === 1 ? "Vendor" : "Vendors"} confirmed`,
+      title: allSettled
+        ? settledTitle
+        : ended.length === total
+          ? endedTitle(ended)
+          : `${settled} of ${total} ${total === 1 ? "Vendor" : "Vendors"} confirmed`,
       date: allSettled && confirmedAt ? confirmedAt : undefined,
       description: allSettled ? settledDescription : inFlightDescription,
       // Expanded per-vendor list, as in the vendor-confirmation state.
@@ -306,7 +359,10 @@ export async function getBookingDetailView(bookingId: string): Promise<BookingDe
     respondedCount: group.filter((row) => !AWAITING_STATUSES.includes(row.status)).length,
     proposalsAwaitingReview: group.filter(isProposalAwaitingReview).map((row) => row.bookingId),
     reopenedReferences: group.filter(isReopened).map((row) => row.bookingId),
-    journey: buildJourney(booking.bookingId, group, bookedOn, booking.eventDate, booking.confirmedAt),
+    journey: buildJourney(booking.bookingId, group, bookedOn, booking.eventDate, booking.confirmedAt, {
+      startTime: booking.startTime,
+      endTime: booking.endTime,
+    }),
     paymentTimeline: detail.paymentTimeline,
     cancellationPolicy: {
       ...policyOf(detail.cancellationPolicy?.cancellationPolicy ?? null),
