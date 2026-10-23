@@ -281,7 +281,7 @@ const COLOUR_SWATCH_MAP: Record<string, string> = {
 };
 
 function mapColourOptions(names: string[]): ColourOption[] {
-  return names.map((name) => ({
+  return names.filter((name) => !!name && name.trim().length > 0).map((name) => ({
     id: slugifyColourName(name),
     label: name,
     swatch: COLOUR_SWATCH_MAP[slugifyColourName(name)] ?? "#D0D0D0",
@@ -639,9 +639,10 @@ function mapAddons(pkg: RawFullPackage): AddonItem[] {
     // materialOptions is `{material, price}[]`, not plain strings — pull out
     // the material names before reusing the same name->swatch mapper as
     // setup items' plain `colors: string[]`.
-    const colourOptions = addon.materialOptions?.length
-      ? mapColourOptions(addon.materialOptions.map((option) => option.material))
-      : undefined;
+    const materialNames = (addon.materialOptions ?? [])
+      .map((option) => option.material)
+      .filter((material): material is string => !!material && material.trim().length > 0);
+    const colourOptions = materialNames.length ? mapColourOptions(materialNames) : undefined;
     if (!colourOptions && addon.physicalSpec?.color) {
       details.push({ label: "Color", value: addon.physicalSpec.color });
     }
