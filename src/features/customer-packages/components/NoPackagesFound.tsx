@@ -57,7 +57,7 @@ export default function NoPackagesFound({
   const whatsappText = `Hi, I'm interested in booking ${categoryLabel} services on Eventory.`;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1440px] flex-col items-center gap-[10px] px-4 py-10 text-center">
+    <div className="mx-auto flex w-full max-w-7xl flex-col items-center gap-[10px] px-4 py-10 text-center sm:px-6 lg:px-16">
       {image && (
         <Image
           src={image.src}

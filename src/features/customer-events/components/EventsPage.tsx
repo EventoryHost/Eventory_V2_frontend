@@ -14,7 +14,7 @@ export default function EventsPage() {
         <TrendingEventsCarousel />
       </div>
       <FeaturedUpcomingEvents />
-      <div className="w-full py-10 pl-4 sm:pl-6 lg:pl-16">
+      <div className="w-full py-10 pr-4 pl-4 sm:pr-6 sm:pl-6 lg:pr-16 lg:pl-16">
         <EventCategoriesCarousel />
       </div>
       {/* Social & Community Events — hidden for now, PM request. */}

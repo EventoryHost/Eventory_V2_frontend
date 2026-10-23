@@ -5,7 +5,7 @@ import PlaceholderMedia from "./PlaceholderMedia";
 
 export default function PromoBannerCard({ banner, seed = 0 }: { banner: PromoBanner; seed?: number }) {
   return (
-    <div className="relative h-[210px] w-[82vw] shrink-0 snap-start overflow-hidden rounded-2xl sm:h-[250px] sm:w-[420px]">
+    <div className="relative h-[206.75px] w-full overflow-hidden rounded-2xl sm:w-[424.808px]">
       {banner.image ? (
         <Image
           src={banner.image}
