@@ -246,11 +246,13 @@ export default function PackageDetailPage({
 
       <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
         <div className="space-y-10 lg:col-span-2">
-          <VariantSelector
-            variants={data.variants}
-            selectedId={selectedVariantId}
-            onSelect={setSelectedVariantId}
-          />
+          {data.variants.length > 1 && (
+            <VariantSelector
+              variants={data.variants}
+              selectedId={selectedVariantId}
+              onSelect={setSelectedVariantId}
+            />
+          )}
 
           <PackageSummary summary={data.summary} />
           <AboutPackage text={data.aboutText} />
