@@ -80,33 +80,83 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
   async function handleEstimate() {
     setLoading(true);
     try {
-      const params: Parameters<typeof browsePackages>[0] = { sort: "price_asc", limit: 50 };
-      if (eventTypeId) params.eventCategory = eventTypeId;
-      if (vendorTypeId) params.vendorType = CATEGORY_TO_VENDOR_TYPE[vendorTypeId];
-      if (location.trim()) params.city = location.trim();
-      const guestsNum = Number(guests);
-      if (guests.trim() && Number.isFinite(guestsNum) && guestsNum > 0) params.guests = guestsNum;
-
-      const response = await browsePackages(params);
-      const prices = response.packages.map(getPackageStartingPrice).filter((price) => price > 0);
       const tags = [eventTypeLabel, vendorTypeLabel, location.trim()].filter(Boolean);
+      const guestsNum = Number(guests);
+      const hasGuests = guests.trim() !== "" && Number.isFinite(guestsNum) && guestsNum > 0;
 
-      if (prices.length === 0) {
-        setEstimate({
-          min: 0,
-          max: 0,
-          tags,
-          insight: "No live packages match this combination yet — try widening your filters.",
-          empty: true,
-        });
-      } else {
-        setEstimate({
-          min: Math.min(...prices),
-          max: Math.max(...prices),
-          tags,
-          insight: `Based on ${prices.length} real package${prices.length === 1 ? "" : "s"} matching your filters.`,
-          empty: false,
-        });
+      // GET /customer/packages' `city` filter is an exact, case-sensitive
+      // match against whatever free-text a vendor typed at onboarding — real
+      // data is messy ("sec 45 noida ") and almost never matches a clean
+      // locality name like "Noida", so an exact-match attempt on location
+      // routinely comes back empty even though real packages DO exist
+      // nearby. Rather than call that "no packages" outright, this tries
+      // progressively broader real queries (dropping city, then guests, then
+      // event type, then vendor type) until one returns real packages,
+      // being honest in the copy about which filter had to be relaxed.
+      const tiers: { params: Partial<Parameters<typeof browsePackages>[0]>; describe: () => string }[] = [
+        {
+          params: {
+            ...(eventTypeId && { eventCategory: eventTypeId }),
+            ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }),
+            ...(location.trim() && { city: location.trim() }),
+            ...(hasGuests && { guests: guestsNum }),
+          },
+          describe: () => "matching your filters",
+        },
+        {
+          params: {
+            ...(eventTypeId && { eventCategory: eventTypeId }),
+            ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }),
+            ...(hasGuests && { guests: guestsNum }),
+          },
+          describe: () =>
+            location.trim()
+              ? `elsewhere — none of our live packages are tagged for ${location.trim()} yet`
+              : "matching your filters",
+        },
+        {
+          params: {
+            ...(eventTypeId && { eventCategory: eventTypeId }),
+            ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }),
+          },
+          describe: () => "for your event and vendor type, regardless of guest count or location",
+        },
+        {
+          params: { ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }) },
+          describe: () => "for your chosen vendor type, across every event and location",
+        },
+        {
+          params: {},
+          describe: () => "across the whole Eventory catalog — no exact matches for your filters yet",
+        },
+      ];
+
+      for (const tier of tiers) {
+        // Skip a tier that's identical to one already tried (e.g. no filters
+        // were set at all, so every tier is the same unfiltered query).
+        const response = await browsePackages({ ...tier.params, sort: "price_asc", limit: 50 });
+        const prices = response.packages.map(getPackageStartingPrice).filter((price) => price > 0);
+        if (prices.length > 0) {
+          setEstimate({
+            min: Math.min(...prices),
+            max: Math.max(...prices),
+            tags,
+            insight: `Based on ${prices.length} real package${prices.length === 1 ? "" : "s"} ${tier.describe()}.`,
+            empty: false,
+          });
+          break;
+        }
+        if (tier === tiers[tiers.length - 1]) {
+          // Only reachable if the entire catalog is empty — a real,
+          // honest state, not a fabricated one.
+          setEstimate({
+            min: 0,
+            max: 0,
+            tags,
+            insight: "No live packages on Eventory yet — check back soon.",
+            empty: true,
+          });
+        }
       }
 
       if (vendorTypeId) setActiveGroupId(vendorTypeId);
@@ -118,7 +168,7 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
   }
 
   return (
-    <section className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8">
+    <section className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <div className="mb-6 sm:mb-8">
         <h2 className="font-figtree text-[20px] font-bold text-brand-950 sm:text-[28px]">{data.heading}</h2>
         <p className="mt-1 font-figtree text-[13px] font-medium text-neutral-tertiary sm:text-[14px]">

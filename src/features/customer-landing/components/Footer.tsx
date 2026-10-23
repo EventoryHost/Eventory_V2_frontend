@@ -47,16 +47,18 @@ export default function Footer() {
       <div className="mx-auto mb-16 flex max-w-7xl flex-col justify-between gap-12 md:flex-row lg:gap-24">
         {/* Logo and Tagline — centered at every breakpoint per the design */}
         <Link href="/" className="flex max-w-[220px] flex-col items-center gap-4">
-          {/* Same source as the navbar's own logo (Navbar.tsx's Logo()) — a
-              plain <img>, not next/image: local SVGs are blocked by
-              next/image by default (dangerouslyAllowSVG isn't set). */}
-          <img src="/images/customer/logo-mark-footer.svg" alt="Eventory" width={96} height={96} className="opacity-90" />
-          <h2
-            className="text-center text-[40px] leading-[100%] font-semibold tracking-[-1.2px] text-brand-primary"
-            style={{ fontFamily: "var(--font-lora)" }}
-          >
-            Eventory
-          </h2>
+          <div className="flex flex-col items-center gap-1">
+            {/* Same source as the navbar's own logo (Navbar.tsx's Logo()) — a
+                plain <img>, not next/image: local SVGs are blocked by
+                next/image by default (dangerouslyAllowSVG isn't set). */}
+            <img src="/images/customer/logo-mark-footer.svg" alt="Eventory" width={96} height={96} className="opacity-90" />
+            <h2
+              className="text-center text-[40px] leading-[100%] font-semibold tracking-[-1.2px] text-brand-primary"
+              style={{ fontFamily: "var(--font-lora)" }}
+            >
+              Eventory
+            </h2>
+          </div>
           <p className="text-center font-figtree text-[20px] leading-[20px] font-medium whitespace-nowrap text-[#030303]">
             Make it Happen
           </p>

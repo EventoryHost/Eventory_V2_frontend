@@ -1,11 +1,11 @@
-// Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2635-24369
+// Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2706-25322
 export default function HeroSection() {
   return (
     // Full-bleed: no max-width cap, so the image spans edge-to-edge with no
     // side gaps at any viewport width. Text overlays the top of the
     // illustration (where it has its own built-in blank space) rather than
     // sitting above it on plain white. The container is locked to the
-    // image's real aspect ratio (2752x1536) so the image is NEVER cropped
+    // image's real aspect ratio (1672x941) so the image is NEVER cropped
     // (object-cover only crops when the container's ratio differs from the
     // image's own — here they always match). The text's top offset is a
     // PERCENTAGE of that height — matching the proportion between Figma's
@@ -13,10 +13,10 @@ export default function HeroSection() {
     // so it stays correctly placed at every viewport width instead of
     // fixed pixels drifting off position as the image scales, with a
     // further 60px pulled up on top of that (PM request, 2026-10-13).
-    <section className="relative w-full aspect-[2752/1536]">
+    <section className="relative w-full aspect-[1672/941]">
       <img
-        src="/images/customer/about-us-hero-vendors.png"
-        alt="Six Eventory vendors — a chef, an event planner, a DJ, a makeup artist, a florist, and a photographer — each holding tools of their trade"
+        src="/images/customer/about-us-hero-event.png"
+        alt="An outdoor corporate event at dusk — a stage reading 'Building What's Next' with string lights, lanterns and guests mingling at cocktail tables"
         className="absolute inset-0 h-full w-full object-cover"
       />
 

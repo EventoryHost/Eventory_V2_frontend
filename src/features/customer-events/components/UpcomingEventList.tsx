@@ -30,11 +30,13 @@ export default function UpcomingEventList({ date }: UpcomingEventListProps) {
       image: getEventImage(e.name),
       title: e.name,
       description: vendorServicesDescription(e.name, e.vendorServices),
+      href: `/packages/browse?q=${encodeURIComponent(e.name)}`,
     })),
     ...seasonalEvents.map((e) => ({
       image: getEventImage(e.name),
       title: e.name,
       description: `Typically happens ${e.rangeLabel} — explore vendors who specialize in ${e.name.toLowerCase()} planning.`,
+      href: `/packages/browse?q=${encodeURIComponent(e.name)}`,
     })),
   ];
 
@@ -55,6 +57,7 @@ export default function UpcomingEventList({ date }: UpcomingEventListProps) {
           image="/images/customer/events/upcoming.jpg"
           title="Plan something anyway"
           description="Browse packages from verified vendors near you for this date."
+          href="/packages/browse"
         />
       )}
     </div>

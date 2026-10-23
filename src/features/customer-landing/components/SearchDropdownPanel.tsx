@@ -23,6 +23,8 @@ export default function SearchDropdownPanel({
     subtitle?: string;
     icon?: string;
     IconComponent?: LucideIcon;
+    /** Per-row icon-tile background (data/eventSearchTaxonomy.ts gives each event-type family its own color) — falls back to the shared neutral tile when a row doesn't set one (e.g. "Choose vendor service" rows). */
+    iconBg?: string;
     /** Figma node 2250:9764 — "Choose vendor service"'s non-Decorator rows (data/eventSearchTaxonomy.ts's ALL_SERVICE_OPTIONS). Still clickable, just visually flagged as not live yet. */
     comingSoon?: boolean;
   }[];
@@ -55,7 +57,10 @@ export default function SearchDropdownPanel({
                 row.id === selectedId ? "bg-[#FDE7EB]" : "hover:bg-[#F6F6F7]"
               }`}
             >
-              <span className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#F4F4F5]">
+              <span
+                className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl"
+                style={{ backgroundColor: row.iconBg ?? "#F4F4F5" }}
+              >
                 {row.IconComponent ? (
                   <row.IconComponent className="h-5 w-5 text-brand-primary" strokeWidth={1.75} />
                 ) : (

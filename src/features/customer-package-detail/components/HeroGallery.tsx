@@ -19,6 +19,11 @@ export default function HeroGallery({
 }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Some real package photos are stale CloudFront URLs that now 404 — track
+  // which ones failed to load and fall back to the same PlaceholderMedia a
+  // missing `image` already uses, rather than showing a broken-image icon.
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set());
+  const markFailed = (id: string) => setFailedIds((prev) => new Set(prev).add(id));
 
   const active = images[activeIndex];
   const sideImages = images.filter((_, i) => i !== activeIndex).slice(0, 2);
@@ -28,7 +33,7 @@ export default function HeroGallery({
       {/* Desktop/tablet layout — unchanged. */}
       <div className="hidden gap-4 md:grid md:grid-cols-3">
         <div className="relative h-[450px] md:col-span-2">
-          {active?.image ? (
+          {active?.image && !failedIds.has(active.id) ? (
             <Image
               src={active.image}
               alt={active.alt}
@@ -36,6 +41,7 @@ export default function HeroGallery({
               priority
               sizes="66vw"
               className="object-cover"
+              onError={() => markFailed(active.id)}
             />
           ) : (
             <PlaceholderMedia seed={activeIndex} className="absolute inset-0" />
@@ -52,8 +58,15 @@ export default function HeroGallery({
                 onClick={() => setActiveIndex(realIndex)}
                 className="relative h-[calc(50%-8px)] w-full overflow-hidden rounded-xl"
               >
-                {image.image ? (
-                  <Image src={image.image} alt={image.alt} fill sizes="33vw" className="object-cover" />
+                {image.image && !failedIds.has(image.id) ? (
+                  <Image
+                    src={image.image}
+                    alt={image.alt}
+                    fill
+                    sizes="33vw"
+                    className="object-cover"
+                    onError={() => markFailed(image.id)}
+                  />
                 ) : (
                   <PlaceholderMedia seed={realIndex} className="absolute inset-0" />
                 )}
@@ -86,8 +99,16 @@ export default function HeroGallery({
         )}
 
         <div className="relative h-[240px] w-full overflow-hidden rounded-[20px] bg-[#f4f4f5]">
-          {active?.image ? (
-            <Image src={active.image} alt={active.alt} fill priority sizes="100vw" className="object-cover" />
+          {active?.image && !failedIds.has(active.id) ? (
+            <Image
+              src={active.image}
+              alt={active.alt}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover"
+              onError={() => markFailed(active.id)}
+            />
           ) : (
             <PlaceholderMedia seed={activeIndex} className="absolute inset-0" />
           )}
@@ -112,8 +133,15 @@ export default function HeroGallery({
                 i === activeIndex ? "border-2 border-[#f0596f]" : ""
               }`}
             >
-              {image.image ? (
-                <Image src={image.image} alt={image.alt} fill sizes="56px" className="object-cover" />
+              {image.image && !failedIds.has(image.id) ? (
+                <Image
+                  src={image.image}
+                  alt={image.alt}
+                  fill
+                  sizes="56px"
+                  className="object-cover"
+                  onError={() => markFailed(image.id)}
+                />
               ) : (
                 <PlaceholderMedia seed={i} className="absolute inset-0" />
               )}

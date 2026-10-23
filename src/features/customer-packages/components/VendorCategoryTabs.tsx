@@ -26,13 +26,23 @@ export default function VendorCategoryTabs({
         {categories.map((category) => {
           const isActive = category.id === activeId;
           const icon = CATEGORY_META[category.id]?.icon;
+          // Same "lead with what actually has real package depth" treatment
+          // as the landing page's Browse our Vendors section — Decorator is
+          // the only category with real Live packages right now, so every
+          // other tab renders dimmed (still fully clickable) until they have
+          // comparable volume. A dimmed tab that's actually being viewed
+          // stays at full opacity — dimming is about which tab to lead with,
+          // not about hiding the one the customer is currently looking at.
+          const isDimmed = category.id !== "decorator" && !isActive;
           return (
             <button
               key={category.id}
               type="button"
               onClick={() => onSelect(category.id)}
               aria-pressed={isActive}
-              className="flex shrink-0 cursor-pointer flex-col items-center gap-2"
+              className={`flex shrink-0 cursor-pointer flex-col items-center gap-2 transition-opacity ${
+                isDimmed ? "opacity-45 hover:opacity-75" : ""
+              }`}
             >
               {icon ? (
                 <Image src={icon} alt="" width={56} height={56} className="size-[36px] object-contain sm:size-[56px]" />

@@ -13,7 +13,7 @@ export type ReelCardProps = {
   caption: string;
 };
 
-export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCardProps) {
+export default function ReelCard({ reelId, thumbnail, video }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const play = () => {
@@ -37,10 +37,10 @@ export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCard
       href={`https://www.instagram.com/reel/${reelId}/`}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex w-[203px] flex-col gap-4"
+      className="block w-[203px]"
     >
       <div
-        className="relative h-[381px] w-full overflow-hidden rounded-2xl border border-black/5 bg-black"
+        className="relative h-[381px] w-full overflow-hidden rounded-2xl border border-[#FFE5E9] bg-[#FFF6F7]"
         onMouseEnter={play}
         onMouseLeave={stop}
       >
@@ -56,10 +56,6 @@ export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCard
           <source src={video} type="video/mp4" />
         </video>
       </div>
-
-      <p className="font-figtree text-[14px] font-semibold leading-[1.3] text-brand-950 line-clamp-2">
-        {caption}
-      </p>
     </a>
   );
 }
