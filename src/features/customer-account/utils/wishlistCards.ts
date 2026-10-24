@@ -4,7 +4,7 @@ import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { formatPrice } from "@/features/customer-vendors/utils/currency";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
-import { sanitizeCityName } from "@/lib/vendorLocation";
+import { getServiceAreaNames, sanitizeCityName } from "@/lib/vendorLocation";
 
 /** How many event tags the card shows before collapsing the rest into "+N more". */
 const MAX_EVENT_TAGS = 3;
@@ -48,10 +48,10 @@ function categoryLabelFor(slug: string, fallback: string) {
   return VENDOR_CATEGORIES.find((category) => category.id === slug)?.label ?? fallback;
 }
 
-function locationOf(city?: string, serviceAreas?: string[]) {
+function locationOf(city?: string, serviceAreas?: Array<string | { area?: string }>) {
   // Same composition as the PDP header and the vendor cards: city, then
   // service areas.
-  return [sanitizeCityName(city), ...(serviceAreas ?? [])].filter(Boolean).join(", ");
+  return [sanitizeCityName(city), ...getServiceAreaNames(serviceAreas)].filter(Boolean).join(", ");
 }
 
 function splitTags(tags: string[]) {
