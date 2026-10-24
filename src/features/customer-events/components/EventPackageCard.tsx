@@ -10,6 +10,8 @@ export type EventPackageCardProps = {
   badge?: string;
   title: string;
   description: string;
+  /** Where "Explore Packages" goes — defaults to the generic packages landing page for callers (e.g. SocialCommunityEvents' static placeholder cards) that have no real event type/location to scope it to. */
+  href?: string;
 };
 
 function TrendingTagIcon({
@@ -49,10 +51,11 @@ export default function EventPackageCard({
   badge,
   title,
   description,
+  href = "/packages",
 }: EventPackageCardProps) {
   return (
     <Link
-      href="/packages"
+      href={href}
       className="flex h-[399px] w-[313px] shrink-0 flex-col overflow-hidden rounded-[24px] border border-[#F1F1F1] bg-white"
     >
       <div className="relative h-[256px] w-[313px]">
