@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Star, Clock, Users, Map } from "lucide-react";
+import { Bookmark, Check, Star, Clock, Users, Map } from "lucide-react";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
@@ -34,6 +34,18 @@ export type ProductCardProps = {
    */
   isBookmarked?: boolean;
   onToggleBookmark?: () => void;
+  /**
+   * Package listing's "Compare Packages" mode (customer-package-listing's
+   * PackageListingContent) — same checkbox styling as the wishlist's own
+   * compare checkbox (WishlistItemCard.tsx, node 1541:6257), reused here so
+   * the control looks identical wherever a package can join a comparison.
+   * Only rendered when a handler is passed, so every other caller of this
+   * card (landing carousels, vendor profile) is unaffected.
+   */
+  isCompareSelected?: boolean;
+  onToggleCompare?: () => void;
+  /** Greyed out, non-interactive — comparison is full (3) or locked to a different category and this card doesn't qualify. */
+  compareDisabled?: boolean;
 };
 
 function formatTags(tags: string[]) {
@@ -62,11 +74,24 @@ export default function ProductCard({
   fullWidth = false,
   isBookmarked = false,
   onToggleBookmark,
+  isCompareSelected = false,
+  onToggleCompare,
+  compareDisabled = false,
 }: ProductCardProps) {
   // Some real package images are stale CloudFront URLs that now 404 — rather
   // than showing a broken-image icon, swap to the same fallback a missing
   // `image` already uses once the real URL fails to load.
   const [imgSrc, setImgSrc] = useState(image);
+  // REAL BUG FIXED 2026-10-24: callers like PackagesCarousel render a fixed
+  // number of these cards with static placeholder data first, then swap in
+  // real packages once the API resolves — same array length/keys, so React
+  // reuses these exact component instances rather than remounting them.
+  // useState(image) only captures the prop on that FIRST render, so every
+  // card stayed stuck on the original placeholder image forever once real
+  // data arrived. Re-sync whenever the `image` prop actually changes.
+  useEffect(() => {
+    setImgSrc(image);
+  }, [image]);
 
   return (
     <Link
@@ -84,6 +109,28 @@ export default function ProductCard({
           className="object-cover"
           onError={() => setImgSrc(FALLBACK_IMAGE)}
         />
+        {onToggleCompare && (
+          <button
+            type="button"
+            disabled={compareDisabled && !isCompareSelected}
+            aria-pressed={isCompareSelected}
+            aria-label={isCompareSelected ? `Remove ${title} from comparison` : `Add ${title} to comparison`}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onToggleCompare();
+            }}
+            className="absolute left-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-[0_0_2px_rgba(0,0,0,0.25)] transition-colors hover:bg-[#FAFAFA] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span
+              className={`flex h-4 w-4 items-center justify-center rounded-[4px] border ${
+                isCompareSelected ? "border-brand-primary bg-brand-primary" : "border-[#71717B]"
+              }`}
+            >
+              {isCompareSelected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+            </span>
+          </button>
+        )}
         <button
           type="button"
           aria-label={isBookmarked ? `Remove ${title} from saved` : `Save ${title}`}

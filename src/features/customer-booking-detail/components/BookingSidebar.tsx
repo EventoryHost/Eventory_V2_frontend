@@ -22,8 +22,24 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Price summary + payment timeline + cancellation policy (node 1629:6476). */
-export default function BookingSidebar({ view }: { view: BookingDetailView }) {
+/**
+ * Price summary + payment timeline + cancellation policy (node 1629:6476).
+ * A milestone that's due gets its own Pay button — the same Cashfree hand-off
+ * as the banner's "Pay advance N" (onPay). The timeline carries
+ * id="payment-timeline" for the journey's "Pay now" link.
+ */
+export default function BookingSidebar({
+  view,
+  onPay,
+  payingMilestoneId,
+  payError,
+}: {
+  view: BookingDetailView;
+  onPay?: (milestoneId: string) => void;
+  /** The milestone whose payment is starting — its button shows progress and every Pay button is held. */
+  payingMilestoneId?: string | null;
+  payError?: string | null;
+}) {
   const { cancellationPolicy: policy } = view;
   const hasPolicyText = Boolean(policy.title || policy.text || policy.fileUrl);
 
@@ -58,7 +74,7 @@ export default function BookingSidebar({ view }: { view: BookingDetailView }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 px-[18px] pb-[18px] pt-[17px]">
+        <div id="payment-timeline" className="flex scroll-mt-6 flex-col gap-3 px-[18px] pb-[18px] pt-[17px]">
           <SectionTitle>PAYMENT TIMELINE</SectionTitle>
 
           {view.paymentTimeline.length > 0 ? (
@@ -75,9 +91,21 @@ export default function BookingSidebar({ view }: { view: BookingDetailView }) {
                         {milestone.status === "Received" ? "Paid" : due ? `Due ${due}` : "Not scheduled yet"}
                       </span>
                     </div>
-                    <span className="shrink-0 text-[14px] font-semibold leading-5 text-[#09090B]">
-                      {formatAmount(milestone.amount)}
-                    </span>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <span className="text-[14px] font-semibold leading-5 text-[#09090B]">
+                        {formatAmount(milestone.amount)}
+                      </span>
+                      {milestone.status === "PaymentDue" && onPay && (
+                        <button
+                          type="button"
+                          onClick={() => onPay(milestone._id)}
+                          disabled={Boolean(payingMilestoneId)}
+                          className="rounded-full bg-brand-primary px-3 py-1 text-[12px] font-medium leading-[18px] text-white transition-colors hover:bg-[#E14E64] disabled:opacity-60"
+                        >
+                          {payingMilestoneId === milestone._id ? "Opening…" : "Pay"}
+                        </button>
+                      )}
+                    </div>
                   </li>
                 );
               })}
@@ -93,6 +121,12 @@ export default function BookingSidebar({ view }: { view: BookingDetailView }) {
               </div>
               <LockKeyhole className="h-6 w-6 shrink-0 text-[#9F9FA9]" />
             </div>
+          )}
+
+          {payError && (
+            <p role="alert" className="text-[12px] leading-4 text-[#C81E0D]">
+              {payError}
+            </p>
           )}
         </div>
       </section>

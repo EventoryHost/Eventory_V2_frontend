@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { SlidersHorizontal } from "lucide-react";
-import { browsePackages, getPackagesFilters } from "@/lib/customerDiscoveryApi";
+import { ArrowLeftRight, SlidersHorizontal } from "lucide-react";
+import { browsePackages, getPackagesFilters, type BrowsePackagesParams } from "@/lib/customerDiscoveryApi";
 import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
+import { addCompareItem, clearCompare, MAX_COMPARE_PACKAGES } from "@/lib/customerCompareApi";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import SearchBar from "@/features/customer-vendors/components/SearchBar";
@@ -21,17 +22,85 @@ import LoadMoreButton from "@/features/customer-vendors/components/LoadMoreButto
 import SortMenu from "./PackageSortMenu";
 import PackageEmptyState from "./PackageEmptyState";
 import PackageGrid from "./PackageGrid";
+import ComparePackagesTray from "./ComparePackagesTray";
 import { getPackageFilterSections, PACKAGES_PAGE_SIZE } from "../data/filterConfig";
 import { filterPackages, packageFilterLabel } from "../utils/filterPackages";
 import { mapPackageToListItem } from "../mappers";
 import {
   EMPTY_PACKAGE_FILTERS,
   type PackageListingData,
+  type PackageListItem,
   type PackageSelectedFilters,
   type PackageSortOption,
 } from "../types";
 
 const NO_BOOKMARKS: ReadonlySet<string> = new Set<string>();
+
+/**
+ * Progressive-relaxation search used by two entry points into this page:
+ *   - "Popular Package Categories" chips (packages page) — category + q,
+ *     where q is a package SETUP's contents ("Balloons"), not a title.
+ *   - "Explore Packages" (events page's Featured Upcoming Events) —
+ *     eventCategory + city, a real event type + its most-booked area.
+ * Tries the full filter set first; if that finds nothing, drops `city` (the
+ * narrowest, most specific signal) and retries; if still nothing, drops `q`
+ * too and retries. `category`/`vendorType` is never auto-dropped — the tab
+ * the customer is actually looking at stays selected throughout. Returns the
+ * first non-empty result, or the final (possibly still empty) attempt along
+ * with a one-line explanation of what had to be dropped to get there.
+ */
+async function fetchPackagesWithFallback(
+  params: BrowsePackagesParams
+): Promise<{
+  response: Awaited<ReturnType<typeof browsePackages>>;
+  notice: string | null;
+  /** Whichever filter combination actually produced `response` — callers (e.g. "Load more") reuse this instead of the originally-requested params, so pagination stays consistent with a fallback that already happened on page 1. */
+  effectiveParams: BrowsePackagesParams;
+}> {
+  const full = await browsePackages(params);
+  if (full.packages.length > 0 || (!params.city && !params.q)) {
+    return { response: full, notice: null, effectiveParams: params };
+  }
+
+  if (params.city) {
+    const { city: _city, ...withoutCity } = params;
+    const withoutCityResponse = await browsePackages(withoutCity);
+    if (withoutCityResponse.packages.length > 0 || !params.q) {
+      return {
+        response: withoutCityResponse,
+        notice:
+          withoutCityResponse.packages.length > 0
+            ? `No packages found in "${params.city}" — showing results for every location instead.`
+            : null,
+        effectiveParams: withoutCity,
+      };
+    }
+    // City dropped and still empty, and there's also a `q` to drop — fall
+    // through to the final attempt below with both dropped.
+    const { q: _q, ...withoutCityOrQ } = withoutCity;
+    const finalResponse = await browsePackages(withoutCityOrQ);
+    return {
+      response: finalResponse,
+      notice:
+        finalResponse.packages.length > 0
+          ? `No packages found for "${params.q}" in "${params.city}" — showing all packages instead.`
+          : null,
+      effectiveParams: withoutCityOrQ,
+    };
+  }
+
+  // No city, but q didn't match anything — drop q only.
+  const { q: _q, ...withoutQ } = params;
+  const withoutQResponse = await browsePackages(withoutQ);
+  return {
+    response: withoutQResponse,
+    notice:
+      withoutQResponse.packages.length > 0
+        ? `No packages found matching "${params.q}" — showing all packages instead.`
+        : null,
+    effectiveParams: withoutQ,
+  };
+}
 
 export default function PackageListingContent({ data }: { data: PackageListingData }) {
   const router = useRouter();
@@ -49,6 +118,12 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // it). Landing's EventSearchCard is the first thing that actually sets
   // this URL param.
   const [date, setDate] = useState(searchParams.get("date") ?? "");
+  // "Explore Packages" from Featured Upcoming Events (events page) links here
+  // with a real event type + its most-booked service area. Not a sidebar
+  // filter and not kept in the URL-sync effect below — it's a one-time entry
+  // param consumed by the cascading fetch below, same spirit as the
+  // eventType seed two lines down.
+  const [cityFilter] = useState(searchParams.get("city") ?? "");
   // Event type from the landing search reuses the sidebar's OWN existing
   // "eventType" filter section/state (already wired to chips, clearFilters,
   // filterPackages()) rather than a second, parallel mechanism — same ids
@@ -59,6 +134,23 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     return eventType ? { ...EMPTY_PACKAGE_FILTERS, eventType: [eventType] } : EMPTY_PACKAGE_FILTERS;
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
+  // "Compare Packages" — same /customer/compare session the wishlist's own
+  // compare flow builds (WishlistContent.tsx), entered from this page's
+  // header button instead. compareCategory locks the selection to one
+  // vendor category client-side (the backend's own 409 is the same rule,
+  // surfaced via compareMessage if it's somehow still hit).
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareCategory, setCompareCategory] = useState<string | null>(null);
+  const [compareBusy, setCompareBusy] = useState(false);
+  const [compareMessage, setCompareMessage] = useState<string | null>(null);
+  // Captured at the moment each package is ticked, NOT looked up from
+  // `packages` when rendering the tray — changing the category tab/sort
+  // refetches `packages` and a selected package can drop out of that array
+  // entirely while still being part of the comparison, which would silently
+  // make its tray slot (and the "Comparing N of 3" count) go wrong.
+  const [compareDetails, setCompareDetails] = useState<Record<string, { image?: string; title: string }>>({});
 
   // Event Type options scoped to the active category tab (2026-10-14 —
   // PM-reported: the Decorator tab used to still offer "Workshop", a
@@ -73,6 +165,15 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   const [totalPages, setTotalPages] = useState(data.totalPages);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // Set only when the cascading fallback below had to drop a filter to find
+  // any results at all — cleared on every fetch that doesn't need it.
+  const [fallbackNotice, setFallbackNotice] = useState<string | null>(null);
+  // The filter combination that actually produced the current `packages` —
+  // may be narrower than what category/sort/search/city/date currently ask
+  // for, if the fallback above had to drop something. "Load more" reuses
+  // this so page 2+ stays consistent with page 1 instead of re-widening or
+  // re-narrowing mid-scroll.
+  const effectiveParamsRef = useRef<BrowsePackagesParams>({});
 
   const { isLoggedIn } = useCustomerSession();
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
@@ -121,24 +222,27 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (category === "all" && sort === "newest" && !debouncedSearch && !date && !eventTypeParam) return;
+      if (category === "all" && sort === "newest" && !debouncedSearch && !date && !eventTypeParam && !cityFilter) return;
     }
     let cancelled = false;
     setIsLoading(true);
-    browsePackages({
+    fetchPackagesWithFallback({
       q: debouncedSearch || undefined,
       eventCategory: eventTypeParam || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
+      city: cityFilter || undefined,
       sort: SORT_UI_TO_API[sort],
       date: date || undefined,
       page: 1,
       limit: PACKAGES_PAGE_SIZE,
     })
-      .then((response) => {
+      .then(({ response, notice, effectiveParams }) => {
         if (cancelled) return;
         setPackages(response.packages.map(mapPackageToListItem));
         setPage(1);
         setTotalPages(response.totalPages);
+        setFallbackNotice(notice);
+        effectiveParamsRef.current = effectiveParams;
       })
       .catch(() => {
         if (!cancelled) setPackages([]);
@@ -149,6 +253,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, sort, debouncedSearch, date, eventTypeParam]);
 
   // Re-fetch the Event Type options scoped to whichever category tab is now
@@ -243,6 +348,73 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     }
   }
 
+  function activeCategoryLabelFor(categorySlug: string): string {
+    return data.categories.find((item) => item.id === categorySlug)?.label ?? categorySlug;
+  }
+
+  function toggleCompareMode() {
+    setCompareMode((isOn) => !isOn);
+    setCompareMessage(null);
+  }
+
+  /**
+   * Same "one category at a time" rule the compare session API enforces
+   * server-side (409) — checked here first so the card's checkbox can
+   * disable itself instead of letting the customer pick, then fail, on
+   * "Compare now". The first selection decides the locked category; it
+   * clears once the tray empties.
+   */
+  function toggleCompare(pkg: PackageListItem) {
+    setCompareMessage(null);
+    setCompareIds((selected) => {
+      if (selected.includes(pkg.id)) {
+        const next = selected.filter((id) => id !== pkg.id);
+        if (next.length === 0) setCompareCategory(null);
+        return next;
+      }
+      if (selected.length >= MAX_COMPARE_PACKAGES) return selected;
+      if (compareCategory && pkg.category !== compareCategory) {
+        setCompareMessage(`You can only compare ${activeCategoryLabelFor(compareCategory)} packages together — clear the tray to start a new comparison.`);
+        return selected;
+      }
+      if (selected.length === 0) setCompareCategory(pkg.category);
+      setCompareDetails((details) => ({ ...details, [pkg.id]: { image: pkg.image, title: pkg.name } }));
+      return [...selected, pkg.id];
+    });
+  }
+
+  function removeFromCompare(packageId: string) {
+    setCompareMessage(null);
+    setCompareIds((selected) => {
+      const next = selected.filter((id) => id !== packageId);
+      if (next.length === 0) setCompareCategory(null);
+      return next;
+    });
+  }
+
+  function clearCompareSelection() {
+    setCompareIds([]);
+    setCompareCategory(null);
+    setCompareMessage(null);
+    setCompareDetails({});
+  }
+
+  /** Builds the same server-side comparison session the wishlist's "Compare Packages" flow does (clearCompare, then add each id), then opens /compare. */
+  async function handleCompareNow() {
+    setCompareBusy(true);
+    setCompareMessage(null);
+    try {
+      await clearCompare();
+      for (const packageId of compareIds) {
+        await addCompareItem(packageId);
+      }
+      router.push("/compare");
+    } catch (err: unknown) {
+      setCompareBusy(false);
+      setCompareMessage(err instanceof Error ? err.message : "Could not build that comparison");
+    }
+  }
+
   // Sections depend on the active category: the design's Makeup Service /
   // Style / Hair sections belong to Makeup Artist only.
   const filterSections = useMemo(
@@ -252,6 +424,17 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
 
   const visiblePackages = useMemo(() => filterPackages(packages, selected), [packages, selected]);
   const hasMore = page < totalPages;
+
+  const compareIdSet = useMemo(() => new Set(compareIds), [compareIds]);
+  const compareItems = useMemo(
+    () =>
+      compareIds.map((id) => ({
+        id,
+        image: compareDetails[id]?.image,
+        title: compareDetails[id]?.title ?? "Package",
+      })),
+    [compareIds, compareDetails]
+  );
 
   function toggleOption(sectionId: string, optionId: string) {
     setSelected((prev) => {
@@ -277,12 +460,12 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     setIsLoadingMore(true);
     try {
       const nextPage = page + 1;
+      // Reuses whatever filter combination page 1 actually resolved to
+      // (effectiveParamsRef), not the raw current state — if the fallback
+      // above had to drop `city` or `q` to find results, page 2+ must keep
+      // matching page 1's results, not re-apply a filter that found nothing.
       const response = await browsePackages({
-        q: debouncedSearch || undefined,
-        eventCategory: eventTypeParam || undefined,
-        vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
-        sort: SORT_UI_TO_API[sort],
-        date: date || undefined,
+        ...effectiveParamsRef.current,
         page: nextPage,
         limit: PACKAGES_PAGE_SIZE,
       });
@@ -349,11 +532,32 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
 
             <CategoryTabs categories={data.categories} activeId={category} onSelect={setCategory} />
 
+            {fallbackNotice && (
+              <div className="rounded-[14px] border border-[#FFE1A8] bg-[#FFF8EB] px-4 py-3 font-figtree text-[13px] font-medium text-[#8A5A00]">
+                {fallbackNotice}
+              </div>
+            )}
+
             {chips.length > 0 && <ActiveFilterChips chips={chips} onClearAll={clearAll} />}
 
             <div className="flex flex-wrap items-center justify-between gap-4">
               <ResultsHeader heading={heading} resultCount={visiblePackages.length} />
-              <SortMenu value={sort} onChange={setSort} />
+              <div className="flex items-center gap-4">
+                <SortMenu value={sort} onChange={setSort} />
+                <button
+                  type="button"
+                  onClick={toggleCompareMode}
+                  aria-pressed={compareMode}
+                  className={`flex shrink-0 items-center gap-1.5 rounded-[10px] py-1.5 pl-2 pr-3 text-[14px] font-semibold transition-colors ${
+                    compareMode
+                      ? "bg-[#1E0306] text-white"
+                      : "bg-brand-primary text-white hover:opacity-90"
+                  }`}
+                >
+                  <ArrowLeftRight className="size-5" />
+                  {compareMode ? "Exit Compare" : "Compare Packages"}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -375,11 +579,25 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
                   packages={visiblePackages}
                   bookmarkedIds={savedIds}
                   onToggleBookmark={toggleBookmark}
+                  compareMode={compareMode}
+                  compareIds={compareIdSet}
+                  onToggleCompare={toggleCompare}
                 />
                 {hasMore && <LoadMoreButton onClick={handleLoadMore} isLoading={isLoadingMore} />}
               </>
             )}
           </div>
+
+          {compareMode && (
+            <ComparePackagesTray
+              items={compareItems}
+              onRemove={removeFromCompare}
+              onClear={clearCompareSelection}
+              onCompare={handleCompareNow}
+              busy={compareBusy}
+              message={compareMessage}
+            />
+          )}
 
           {/* "Recommendation" — a separate rating-sorted read, so it isn't
               the first page of results shown twice. */}

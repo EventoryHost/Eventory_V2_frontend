@@ -20,6 +20,15 @@ type ViewState =
   | { kind: "terminal-failed"; status: PaymentStatus; reason: string | null; checkoutSessionId: string }
   | { kind: "error"; message: string };
 
+/**
+ * Where "Back to your booking" goes. A milestone payment ("Pay advance N" on
+ * Booking Details) belongs to an existing booking, so it goes back there; a
+ * token payment is still mid-checkout, so it goes back to the summary.
+ */
+function backHref(milestoneBookingId: string | null) {
+  return milestoneBookingId ? `/bookings/${milestoneBookingId}` : "/booking-summary";
+}
+
 function PaymentReturnContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -27,6 +36,8 @@ function PaymentReturnContent() {
 
   const [view, setView] = useState<ViewState>(paymentId ? { kind: "polling" } : { kind: "missing-id" });
   const [retrying, setRetrying] = useState(false);
+  /** Set once a poll says this was a milestone payment — the booking it pays toward. */
+  const [milestoneBookingId, setMilestoneBookingId] = useState<string | null>(null);
   const stopRef = useRef(false);
 
   useEffect(() => {
@@ -38,10 +49,19 @@ function PaymentReturnContent() {
       if (stopRef.current) return;
       try {
         const result = await getPaymentStatus(paymentId!);
+        // A milestone payment pays toward one existing booking (bookingId,
+        // its Mongo _id — the booking page resolves either id); a token
+        // payment creates bookings (bookingIds).
+        const milestoneBooking = result.paymentType === "Milestone" ? result.bookingId : null;
+        if (milestoneBooking) setMilestoneBookingId(milestoneBooking);
 
         if (result.paymentStatus === "PAID") {
           stopRef.current = true;
-          router.replace(`/booking-success?bookingIds=${result.bookingIds.join(",")}`);
+          router.replace(
+            milestoneBooking
+              ? `/bookings/${milestoneBooking}`
+              : `/booking-success?bookingIds=${result.bookingIds.join(",")}`
+          );
           return;
         }
 
@@ -102,7 +122,7 @@ function PaymentReturnContent() {
           <p className="font-figtree text-[16px] font-semibold text-[#030303]">
             We couldn&apos;t find a payment to check here.
           </p>
-          <Link href="/booking-summary" className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
+          <Link href={backHref(milestoneBookingId)} className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
             Back to your booking
           </Link>
         </>
@@ -130,7 +150,7 @@ function PaymentReturnContent() {
             Your payment is taking longer than expected to confirm. Check your bookings again in a
             few minutes — you&apos;ll see it there once it clears.
           </p>
-          <Link href="/booking-summary" className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
+          <Link href={backHref(milestoneBookingId)} className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
             Back to your booking
           </Link>
         </>
@@ -145,17 +165,30 @@ function PaymentReturnContent() {
           {view.reason && (
             <p className="font-figtree text-[14px] text-[#71717B]">{view.reason}</p>
           )}
-          <button
-            type="button"
-            disabled={retrying}
-            onClick={() => handleRetry(view.checkoutSessionId)}
-            className="mt-2 flex h-11 items-center justify-center rounded-full bg-[#F0596F] px-6 font-figtree text-[14px] font-semibold text-white disabled:opacity-60"
-          >
-            {retrying ? "Starting…" : "Try again"}
-          </button>
-          <Link href="/booking-summary" className="font-figtree text-[13px] font-medium text-[#71717B] underline">
-            Back to your booking
-          </Link>
+          {/* A token retry restarts the checkout session's payment; a milestone
+              has no session, so it's paid again from its booking page. */}
+          {milestoneBookingId ? (
+            <Link
+              href={backHref(milestoneBookingId)}
+              className="mt-2 flex h-11 items-center justify-center rounded-full bg-[#F0596F] px-6 font-figtree text-[14px] font-semibold text-white"
+            >
+              Try again from your booking
+            </Link>
+          ) : (
+            <button
+              type="button"
+              disabled={retrying}
+              onClick={() => handleRetry(view.checkoutSessionId)}
+              className="mt-2 flex h-11 items-center justify-center rounded-full bg-[#F0596F] px-6 font-figtree text-[14px] font-semibold text-white disabled:opacity-60"
+            >
+              {retrying ? "Starting…" : "Try again"}
+            </button>
+          )}
+          {!milestoneBookingId && (
+            <Link href={backHref(milestoneBookingId)} className="font-figtree text-[13px] font-medium text-[#71717B] underline">
+              Back to your booking
+            </Link>
+          )}
         </>
       )}
 
@@ -163,7 +196,7 @@ function PaymentReturnContent() {
         <>
           <XCircle size={40} className="text-[#E7000B]" />
           <p className="font-figtree text-[16px] font-semibold text-[#030303]">{view.message}</p>
-          <Link href="/booking-summary" className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
+          <Link href={backHref(milestoneBookingId)} className="font-figtree text-[14px] font-semibold text-[#F0596F] underline">
             Back to your booking
           </Link>
         </>

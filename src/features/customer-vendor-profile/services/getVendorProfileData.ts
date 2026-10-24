@@ -5,7 +5,7 @@ import { mapPackageToVendor } from "@/features/customer-vendors/mappers";
 import { resolveVendorCategory } from "@/lib/vendorType";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { filterHiddenEventCategories } from "@/lib/eventCategories";
-import { sanitizeCityName } from "@/lib/vendorLocation";
+import { getServiceAreaNames, sanitizeCityName } from "@/lib/vendorLocation";
 import type { VendorProfileData } from "../types";
 
 /** How many of the vendor's packages the "Event Packages" grid shows. */
@@ -46,7 +46,7 @@ export async function getVendorProfileData(vendorId: string): Promise<VendorProf
   // the listing card's location strip and the PDP header. sanitizeCityName
   // drops city if it looks like a street address rather than a city name —
   // see vendorLocation.ts.
-  const serviceAreas = [sanitizeCityName(raw.city), ...(raw.serviceAreas ?? [])].filter(
+  const serviceAreas = [sanitizeCityName(raw.city), ...getServiceAreaNames(raw.serviceAreas)].filter(
     (area): area is string => Boolean(area)
   );
 
