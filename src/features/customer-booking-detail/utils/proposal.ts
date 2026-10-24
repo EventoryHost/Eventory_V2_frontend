@@ -7,24 +7,49 @@ const TERMINAL: RawBooking["status"][] = ["Declined", "Cancelled", "Completed"];
 
 type ProposalSource = Pick<RawBooking, "status" | "customizeRequests" | "changeRequests" | "proposalResponse">;
 
+export function isTerminalStatus(status: RawBooking["status"]): boolean {
+  return TERMINAL.includes(status);
+}
+
+/** Both request lists — workshop (customizeRequests) and the older add/remove changeRequests. */
+export function allRequestsOf(booking: Pick<RawBooking, "customizeRequests" | "changeRequests">): { status?: string }[] {
+  return [...(booking.customizeRequests ?? []), ...(booking.changeRequests ?? [])];
+}
+
+/** How many requests (either list) the vendor hasn't decided yet. */
+export function pendingRequestCount(booking: Pick<RawBooking, "customizeRequests" | "changeRequests">): number {
+  return allRequestsOf(booking).filter((request) => request.status === "Pending").length;
+}
+
 /**
  * True when the vendor has answered every request and the customer hasn't
  * answered back — the Review Proposal screen is waiting on them.
  *
- * The backend clears proposalResponse whenever the vendor decides a request,
- * so a second round of decisions asks again. At least one workshop request
- * must carry a real decision: older bookings whose requests predate the
- * status field have nothing to review.
+ * The agreed contract, derived identically by the vendor app: a non-terminal
+ * booking with at least one request (either list), none of them Pending, and
+ * no customer answer (proposalResponse.status null). The backend resets that
+ * answer whenever the vendor saves new decisions, so every revised proposal
+ * asks again. Requests that predate the status field have no status, so they
+ * count as answered — Review Proposal lists them rather than leaving the
+ * customer with nothing to act on.
  */
 export function isProposalAwaitingReview(booking: ProposalSource): boolean {
-  if (TERMINAL.includes(booking.status)) return false;
+  if (isTerminalStatus(booking.status)) return false;
 
-  const workshop = booking.customizeRequests ?? [];
-  const all = [...workshop, ...(booking.changeRequests ?? [])];
+  const all = allRequestsOf(booking);
+  if (all.length === 0) return false;
   if (all.some((request) => request.status === "Pending")) return false;
-  if (!workshop.some((request) => request.status === "Accepted" || request.status === "Rejected")) return false;
 
   return !booking.proposalResponse?.status;
+}
+
+/**
+ * A confirmed booking the customer has asked for more changes on: it goes
+ * back to InDiscussion but keeps confirmedAt (and its date) until the
+ * customer accepts the vendor's next proposal.
+ */
+export function isReopened(booking: Pick<RawBooking, "status"> & { confirmedAt?: string | null }): boolean {
+  return booking.status === "InDiscussion" && Boolean(booking.confirmedAt);
 }
 
 /**
