@@ -15,7 +15,7 @@ import {
 import { CATEGORY_TO_VENDOR_TYPE, VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { CATEGORY_META } from "@/lib/categoryMeta";
-import { sanitizeCityName } from "@/lib/vendorLocation";
+import { getServiceAreaNames, sanitizeCityName } from "@/lib/vendorLocation";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 const RECOMMENDED_COUNT = 5;
@@ -25,7 +25,7 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
   const categoryId = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType];
   const meta = categoryId ? CATEGORY_META[categoryId] : undefined;
   const categoryLabel = VENDOR_CATEGORIES.find((c) => c.id === categoryId)?.label ?? pkg.vendorType;
-  const locationList = [sanitizeCityName(pkg.vendorId?.city), ...(pkg.vendorId?.serviceAreas ?? [])].filter(
+  const locationList = [sanitizeCityName(pkg.vendorId?.city), ...getServiceAreaNames(pkg.vendorId?.serviceAreas)].filter(
     (location): location is string => Boolean(location)
   );
 

@@ -866,11 +866,11 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     rating: vendor?.rating ?? reviews.average,
     reviewCount: reviews.total,
     locationSummary:
-      [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas?.slice(0, 2) ?? [])].filter(Boolean).join(", ") || "—",
+      [sanitizeCityName(vendor?.city), ...getServiceAreaNames(vendor?.serviceAreas).slice(0, 2)].filter(Boolean).join(", ") || "—",
     // Same composition as locationSummary, just uncapped — what "See the
     // location" expands to (city + every service area, not just the first 2).
     fullLocationSummary:
-      [sanitizeCityName(vendor?.city), ...(vendor?.serviceAreas ?? [])].filter(Boolean).join(", ") || "—",
+      [sanitizeCityName(vendor?.city), ...getServiceAreaNames(vendor?.serviceAreas)].filter(Boolean).join(", ") || "—",
     // What the header's pill-chip row (Figma node 2404:22954) maps over —
     // deliberately ONLY the vendor's own serviceAreas field, no city mixed
     // in (PM's explicit instruction, 2026-10-12). Not the same composition
@@ -887,9 +887,9 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       setupsLabel: setups.length
         ? `${setups.length} — ${setups.map((s) => s.name).filter(Boolean).slice(0, 3).join(", ")}`
         : "—",
-      serviceArea: vendor?.serviceAreas?.join(", ") || sanitizeCityName(vendor?.city) || "—",
-      serviceAreaList: vendor?.serviceAreas?.length
-        ? vendor.serviceAreas
+      serviceArea: getServiceAreaNames(vendor?.serviceAreas).join(", ") || sanitizeCityName(vendor?.city) || "—",
+      serviceAreaList: getServiceAreaNames(vendor?.serviceAreas).length
+        ? getServiceAreaNames(vendor?.serviceAreas)
         : sanitizeCityName(vendor?.city)
           ? [sanitizeCityName(vendor?.city)!]
           : undefined,
