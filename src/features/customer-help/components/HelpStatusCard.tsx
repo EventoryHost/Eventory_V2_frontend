@@ -8,6 +8,8 @@ export type HelpStatusCardState = "sent" | "late" | "night" | "call-back";
 
 type HelpStatusCardProps = {
   state: HelpStatusCardState;
+  /** On a booking page: the Event Manager's first name (or the team). */
+  who?: string;
   /** "Call back" promise, e.g. "by 5:50 PM" or "this evening, 6–9 PM". */
   callBackWhen?: string;
   onRequestCallBack?: () => void;
@@ -39,6 +41,7 @@ const COPY: Record<
 };
 
 export default function HelpStatusCard({
+  who,
   state,
   callBackWhen = "",
   onRequestCallBack,
@@ -46,7 +49,21 @@ export default function HelpStatusCard({
 }: HelpStatusCardProps) {
   const isLate = state === "late";
   const isCallBack = state === "call-back";
-  const copy = isCallBack ? null : COPY[state];
+  // On a booking page the card speaks for the booking's Event Manager.
+  const copy = isCallBack
+    ? null
+    : who && state === "sent"
+      ? {
+          ...COPY.sent,
+          title: `Sent to ${who}`,
+          body: `${who} usually replies within 30 min. You can close this. We’ll reply here and send you a notification.`,
+        }
+      : who && state === "night"
+        ? {
+            ...COPY.night,
+            body: `${who === "the Event Manager team" ? "Our Event Managers are" : `${who} is`} back at 9 AM, and the first person in will reply by 9:30 AM.`,
+          }
+        : COPY[state];
 
   return (
     <div

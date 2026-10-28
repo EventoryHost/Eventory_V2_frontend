@@ -54,9 +54,12 @@ function readIsFirstSession() {
 
 type HelpFloaterDockProps = {
   onOpen: () => void;
+  /** A reply waits in Your chats. */
+  unread?: boolean;
+  label?: string;
 };
 
-export default function HelpFloaterDock({ onOpen }: HelpFloaterDockProps) {
+export default function HelpFloaterDock({ onOpen, unread = false, label }: HelpFloaterDockProps) {
   const pathname = usePathname();
   const isDesktop = useIsDesktop();
   const usesEdgeTab = !isDesktop && PACKAGE_DETAIL_PATH.test(pathname);
@@ -116,6 +119,7 @@ export default function HelpFloaterDock({ onOpen }: HelpFloaterDockProps) {
             >
               <HelpFloater
                 variant="edge-tab"
+                unread={unread}
                 onClick={() => setUntuckedPath(pathname)}
               />
             </motion.div>
@@ -128,7 +132,7 @@ export default function HelpFloaterDock({ onOpen }: HelpFloaterDockProps) {
               exit={{ x: "110%" }}
               transition={{ type: "spring", stiffness: 420, damping: 36 }}
             >
-              <HelpFloater variant="default" onClick={onOpen} />
+              <HelpFloater variant="default" unread={unread} label={label} onClick={onOpen} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -140,6 +144,8 @@ export default function HelpFloaterDock({ onOpen }: HelpFloaterDockProps) {
     <div className="fixed bottom-6 right-4 z-40 lg:right-6">
       <HelpFloater
         variant={isDesktop && isCompact ? "compact" : "default"}
+        unread={unread}
+        label={label}
         onClick={onOpen}
       />
     </div>

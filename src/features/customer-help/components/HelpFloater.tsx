@@ -13,9 +13,13 @@ export type HelpFloaterVariant = "default" | "compact" | "edge-tab";
 type HelpFloaterProps = {
   variant: HelpFloaterVariant;
   onClick: () => void;
+  /** An Event Manager replied and it hasn't been read: a brand dot. */
+  unread?: boolean;
+  /** "Need help?", or "Help for today" on the event day. */
+  label?: string;
 };
 
-export default function HelpFloater({ variant, onClick }: HelpFloaterProps) {
+export default function HelpFloater({ variant, onClick, unread = false, label = "Need help?" }: HelpFloaterProps) {
   if (variant === "edge-tab") {
     return (
       <button
@@ -36,6 +40,7 @@ export default function HelpFloater({ variant, onClick }: HelpFloaterProps) {
           height={196}
           className="pointer-events-none absolute left-[-62px] top-[-48px] block max-w-none"
         />
+        {unread && <span className="absolute left-[10px] top-2 size-2 rounded-full bg-[#f0596f]" />}
       </button>
     );
   }
@@ -47,9 +52,9 @@ export default function HelpFloater({ variant, onClick }: HelpFloaterProps) {
       layout
       type="button"
       onClick={onClick}
-      aria-label="Need help?"
+      aria-label={unread ? `${label} New reply` : label}
       transition={{ type: "spring", stiffness: 500, damping: 40 }}
-      className={`flex items-center gap-2 overflow-hidden rounded-full bg-[#04222d] py-3.5 ${
+      className={`relative flex items-center gap-2 overflow-hidden rounded-full bg-[#04222d] py-3.5 ${
         isCompact ? "px-3.5" : "px-4"
       } ${ELEVATION_MD}`}
     >
@@ -68,8 +73,11 @@ export default function HelpFloater({ variant, onClick }: HelpFloaterProps) {
           animate={{ opacity: 1 }}
           className="whitespace-nowrap font-figtree text-[14px] font-normal leading-[20px] text-[#e6e9ea]"
         >
-          Need help?
+          {label}
         </motion.span>
+      )}
+      {unread && (
+        <span className="absolute right-2.5 top-2 size-2.5 rounded-full border-2 border-[#04222d] bg-[#f0596f]" />
       )}
     </motion.button>
   );

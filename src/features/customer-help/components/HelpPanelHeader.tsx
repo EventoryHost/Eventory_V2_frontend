@@ -7,7 +7,9 @@ export type HelpPanelHeaderType =
   | "assistant"
   | "event-manager"
   | "form"
-  | "whatsapp";
+  | "whatsapp"
+  | "callback"
+  | "topic";
 
 export type HelpPanelTab = "home" | "chats";
 
@@ -16,12 +18,18 @@ const COPY: Record<HelpPanelHeaderType, { title: string; subtitle: string }> =
     root: { title: "Help", subtitle: "Ask our assistant or an Event Manager" },
     assistant: {
       title: "Eventory assistant",
-      subtitle: "AI · answers from Eventory’s package data",
+      subtitle: "AI · answers from Eventory’s package and booking data",
     },
     "event-manager": {
-      title: "Event Manager",
+      title: "Event Manager team",
       subtitle: "Usually replies within 30 min · 9 AM–9 PM",
     },
+    callback: {
+      title: "Request a call back",
+      subtitle: "An Event Manager calls you",
+    },
+    // Booking help screens: title, subtitle and icon come from the screen.
+    topic: { title: "", subtitle: "" },
     whatsapp: {
       title: "WhatsApp the Eventory team",
       subtitle: "Replies 9 AM–9 PM",
@@ -45,6 +53,12 @@ type HelpPanelHeaderProps = {
   onTabChange?: (tab: HelpPanelTab) => void;
   /** Overrides the default subtitle, e.g. night hours. */
   subtitle?: string;
+  /** Overrides the default title, e.g. the Event Manager who replied. */
+  title?: string;
+  /** Open tickets, on the "Your chats" tab. */
+  chatsBadge?: number;
+  /** "topic" screens: their own icon. */
+  icon?: string;
 };
 
 export default function HelpPanelHeader({
@@ -54,6 +68,9 @@ export default function HelpPanelHeader({
   activeTab = "home",
   onTabChange,
   subtitle,
+  title,
+  chatsBadge = 0,
+  icon,
 }: HelpPanelHeaderProps) {
   const isRoot = type === "root";
   const copy = COPY[type];
@@ -70,15 +87,17 @@ export default function HelpPanelHeader({
             />
             <span
               className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
-                type === "assistant" ? "bg-[#fdeef0]" : "bg-[#04222d]"
+                type === "assistant" || type === "callback" || type === "topic" ? "bg-[#f4f4f5]" : "bg-[#04222d]"
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={
-                  type === "assistant"
+                  icon ? icon : type === "assistant"
                     ? "/images/customer/help/stars.svg"
-                    : "/images/customer/help/user-rounded.svg"
+                    : type === "callback"
+                      ? "/images/customer/help/phone.svg"
+                      : "/images/customer/help/user-rounded.svg"
                 }
                 alt=""
                 width={18}
@@ -96,7 +115,7 @@ export default function HelpPanelHeader({
                 : "text-[16px] leading-[24px]"
             }`}
           >
-            {copy.title}
+            {title ?? copy.title}
           </p>
           <p className="text-[12px] font-normal leading-[18px] text-[#71717b]">
             {subtitle ?? copy.subtitle}
@@ -127,7 +146,14 @@ export default function HelpPanelHeader({
                       : "bg-transparent text-[#71717b]"
                   }`}
                 >
-                  {tab.label}
+                  <span className="flex items-center gap-1.5">
+                    {tab.label}
+                    {tab.id === "chats" && chatsBadge > 0 && (
+                      <span className="min-w-4 rounded-full bg-[#030303] px-1 text-center text-[11px] leading-[16px] text-white tabular-nums">
+                        {chatsBadge}
+                      </span>
+                    )}
+                  </span>
                   {selected && (
                     <span className="absolute inset-x-4 bottom-0 h-[3px] rounded-t-[2px] bg-[#09090b]" />
                   )}
