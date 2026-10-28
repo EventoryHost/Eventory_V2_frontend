@@ -51,9 +51,7 @@ const Hero = () => {
       <CorporateEventsBanner />
       <BrandsBar />
       <ReviewsCarousel />
-      <div className="h-[100px] w-full" />
       <ReelsCarousel />
-      <div className="h-[100px] w-full" />
       <BlogsSection />
       <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
         <ReadyToPlanBanner />

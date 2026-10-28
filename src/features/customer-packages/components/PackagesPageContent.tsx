@@ -63,25 +63,47 @@ export default function PackagesPageContent({ data }: { data: PackagesPageData }
           categoryLabel={activeCategory?.label ?? "These"}
         />
       ) : (
-        blocks.map((block) => {
-          switch (block.type) {
-            case "packageCategorySection":
-              return (
-                <PackageCategorySection
-                  key={block.data.id}
-                  section={block.data}
-                  categoryId={activeCategoryId}
-                />
-              );
-            case "festiveOffer":
-              return <FestiveOfferBanner key={block.data.id} offer={block.data} />;
-            case "magicalMoments":
-              return <MagicalMomentsSection key={block.data.id} data={block.data} />;
-            case "budgetEstimator":
-              return <BudgetEstimatorSection key={block.data.id} data={block.data} />;
-            default:
-              return null;
-          }
+        blocks.map((block, index) => {
+          const content = (() => {
+            switch (block.type) {
+              case "packageCategorySection":
+                return (
+                  <PackageCategorySection
+                    section={block.data}
+                    categoryId={activeCategoryId}
+                  />
+                );
+              case "festiveOffer":
+                return <FestiveOfferBanner offer={block.data} />;
+              case "magicalMoments":
+                return <MagicalMomentsSection data={block.data} />;
+              case "budgetEstimator":
+                return <BudgetEstimatorSection data={block.data} />;
+              default:
+                return null;
+            }
+          })();
+          if (!content) return null;
+
+          // Alternating #FFFAF1 / white full-bleed stripe behind each
+          // section, so the page reads as distinct bands rather than one
+          // flat white surface — same full-bleed trick BrandsBar.tsx
+          // already uses (negative margin + viewport width) since this
+          // page's own container doesn't span the full browser width.
+          // Magical Moments already carries its own background + vertical
+          // rhythm (py-12/16/20 on bg-campaign-blue), so it gets the
+          // alternation with no extra padding rather than doubling up.
+          const hasOwnVerticalRhythm = block.type === "magicalMoments";
+          return (
+            <div
+              key={block.data.id}
+              className={`relative left-1/2 -mx-[50vw] w-screen ${hasOwnVerticalRhythm ? "" : "py-6 sm:py-8"} ${
+                index % 2 === 0 ? "bg-white" : "bg-[#FFFAF1]"
+              }`}
+            >
+              {content}
+            </div>
+          );
         })
       )}
     </div>

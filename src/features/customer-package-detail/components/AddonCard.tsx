@@ -7,7 +7,6 @@ import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
 import AddonDetailsModal from "./AddonDetailsModal";
-import IncludedItemImageModal from "./IncludedItemImageModal";
 
 export default function AddonCard({
   addon,
@@ -20,7 +19,6 @@ export default function AddonCard({
   seed?: number;
 }) {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isZoomed, setIsZoomed] = useState(false);
   const priceUnit = addon.unitLabel.replace(/^\//, "") || "flat";
 
   return (
@@ -28,14 +26,14 @@ export default function AddonCard({
       {/* Desktop/tablet layout — unchanged. */}
       <div className="hidden overflow-hidden rounded-2xl border border-black/10 md:block">
         <div
-          role={addon.image ? "button" : undefined}
-          tabIndex={addon.image ? 0 : undefined}
-          onClick={() => addon.image && setIsZoomed(true)}
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsDetailsOpen(true)}
           onKeyDown={(e) => {
-            if (addon.image && (e.key === "Enter" || e.key === " ")) setIsZoomed(true);
+            if (e.key === "Enter" || e.key === " ") setIsDetailsOpen(true);
           }}
-          aria-label={addon.image ? `View larger image of ${addon.title}` : undefined}
-          className={`relative aspect-[4/3] w-full ${addon.image ? "cursor-pointer" : ""}`}
+          aria-label={`View details for ${addon.title}`}
+          className="relative aspect-[4/3] w-full cursor-pointer"
         >
           {addon.image ? (
             <Image src={addon.image} alt={addon.title} fill sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" className="object-cover" />
@@ -86,14 +84,14 @@ export default function AddonCard({
           inside the body instead of as an image overlay. */}
       <div className="w-[170px] shrink-0 overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white md:hidden">
         <div
-          role={addon.image ? "button" : undefined}
-          tabIndex={addon.image ? 0 : undefined}
-          onClick={() => addon.image && setIsZoomed(true)}
+          role="button"
+          tabIndex={0}
+          onClick={() => setIsDetailsOpen(true)}
           onKeyDown={(e) => {
-            if (addon.image && (e.key === "Enter" || e.key === " ")) setIsZoomed(true);
+            if (e.key === "Enter" || e.key === " ") setIsDetailsOpen(true);
           }}
-          aria-label={addon.image ? `View larger image of ${addon.title}` : undefined}
-          className={`relative h-[112px] w-[170px] bg-[#F4F4F5] ${addon.image ? "cursor-pointer" : ""}`}
+          aria-label={`View details for ${addon.title}`}
+          className="relative h-[112px] w-[170px] cursor-pointer bg-[#F4F4F5]"
         >
           {addon.image ? (
             <Image src={addon.image} alt={addon.title} fill sizes="170px" className="object-cover" />
@@ -143,15 +141,6 @@ export default function AddonCard({
         onAdd={onAdd}
         seed={seed}
       />
-
-      {addon.image && (
-        <IncludedItemImageModal
-          isOpen={isZoomed}
-          onClose={() => setIsZoomed(false)}
-          image={addon.image}
-          alt={addon.title}
-        />
-      )}
     </>
   );
 }

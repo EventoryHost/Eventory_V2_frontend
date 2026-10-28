@@ -27,7 +27,9 @@ export default function EventsPage() {
       </div>
       <PlanningSomethingSpecialBanner />
       <MoreEventsToExplore />
-      <HappyCustomersStats />
+      <div className="pb-16">
+        <HappyCustomersStats />
+      </div>
     </div>
   );
 }

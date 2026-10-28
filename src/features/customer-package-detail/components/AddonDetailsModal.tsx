@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 import type { AddonItem } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import PlaceholderMedia from "./PlaceholderMedia";
@@ -116,6 +116,18 @@ export default function AddonDetailsModal({
                 )}
               </div>
             </div>
+
+            {/* Real, per-addon cancellation note (never the generic
+                boilerplate every addon's policy.writtenText otherwise
+                carries — see getPackageDetail.ts's GENERIC_ADDON_POLICY_TEXT
+                filter). Previously shown directly on the card; moved here,
+                full width, since the card itself is tight on space. */}
+            {addon.warning && (
+              <div className="mt-5 flex w-full items-start gap-2 rounded-xl bg-amber-50 px-4 py-3">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <p className="font-figtree text-[13px] leading-[18px] text-amber-800">{addon.warning}</p>
+              </div>
+            )}
 
             {addon.details && addon.details.length > 0 && (
               <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">

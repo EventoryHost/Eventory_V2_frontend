@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search } from "lucide-react";
 import { getPackagesFilters } from "@/lib/customerDiscoveryApi";
 import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { toEventTypeDisplay, allowedServicesFor, ALL_SERVICE_OPTIONS } from "../data/eventSearchTaxonomy";
 import SearchFieldTrigger from "./SearchFieldTrigger";
 import SearchDropdownPanel from "./SearchDropdownPanel";
-import VendorServiceDropdownPanel from "./VendorServiceDropdownPanel";
 import SearchDatePicker from "./SearchDatePicker";
 
 type OpenField = "eventType" | "vendorService" | "date" | null;
@@ -163,9 +161,9 @@ export default function EventSearchCard() {
   return (
     <div
       ref={containerRef}
-      className="flex flex-col items-stretch gap-4 rounded-[20px] bg-white p-4 shadow-[0px_8px_40px_0px_rgba(0,0,0,0.06)] sm:flex-row sm:items-end"
+      className="flex w-full flex-col items-stretch gap-4 rounded-[20px] bg-white p-4 shadow-[0px_8px_40px_0px_rgba(0,0,0,0.06)] sm:w-[954px] sm:flex-row sm:items-end"
     >
-      <div className="relative flex min-w-0 flex-1 flex-col gap-2.5 sm:min-w-[220px]">
+      <div className="relative flex min-w-0 flex-col gap-2.5 sm:w-[314px] sm:shrink-0">
         <span className="font-figtree text-[14px] font-semibold text-[#030303]">Event Type</span>
         <SearchFieldTrigger
           query={eventTypeQuery}
@@ -187,11 +185,12 @@ export default function EventSearchCard() {
             rows={filteredEventTypes}
             selectedId={eventType}
             onSelect={selectEventType}
+            className="w-[330px]"
           />
         )}
       </div>
 
-      <div className="relative flex min-w-0 flex-1 flex-col gap-2.5 sm:min-w-[180px]">
+      <div className="relative flex min-w-0 flex-col gap-2.5 sm:w-[220px] sm:shrink-0">
         <span className="font-figtree text-[14px] font-semibold text-[#030303]">Choose vendor service</span>
         <SearchFieldTrigger
           query={vendorServiceQuery}
@@ -205,15 +204,17 @@ export default function EventSearchCard() {
           onFocus={() => setOpenField("vendorService")}
         />
         {openField === "vendorService" && (
-          <VendorServiceDropdownPanel
+          <SearchDropdownPanel
+            header={eventTypeLabel ? `Services for ${eventTypeLabel}` : "Choose vendor service"}
             rows={filteredServiceOptions}
             selectedId={vendorService}
             onSelect={selectVendorService}
+            className="w-[330px]"
           />
         )}
       </div>
 
-      <div className="min-w-0 flex-1 sm:min-w-[180px]">
+      <div className="min-w-0 sm:w-[220px] sm:shrink-0">
         <SearchDatePicker
           label="Event Date"
           value={date}
@@ -224,14 +225,17 @@ export default function EventSearchCard() {
         />
       </div>
 
+      {/* Figma node 2240:10115's button is text-only at a fixed 120px — the
+          icon this used to grow in for the "ready" state doesn't fit that
+          width alongside "Search", so it's dropped in favor of just the
+          color change (still the one real signal: pink -> brand-pink). */}
       <button
         type="button"
         onClick={handleSearch}
-        className={`flex h-12 shrink-0 items-center justify-center gap-2 rounded-full pr-8 pl-6 font-figtree text-[16px] font-semibold text-white transition-all duration-300 sm:w-auto ${
-          isReady ? "bg-[#F0596F] pl-6" : "bg-[#F6A9B6] pl-8"
+        className={`flex h-12 w-full shrink-0 items-center justify-center rounded-full px-8 font-figtree text-[16px] font-semibold text-white transition-colors duration-300 sm:w-[120px] ${
+          isReady ? "bg-[#F0596F]" : "bg-[#F6A9B6]"
         }`}
       >
-        {isReady && <Search size={18} className="shrink-0" />}
         Search
       </button>
     </div>

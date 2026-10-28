@@ -68,25 +68,40 @@ export default function TrendingEventCard({
         <TrendingTagIcon label={badge} />
       </div>
 
-      <div className="relative z-10 flex w-full flex-col gap-3 px-6 pt-12 lg:absolute lg:top-16 lg:left-8 lg:w-[358px] lg:px-0 lg:pt-0">
-        <h3 className="font-figtree text-[28px] lg:text-[40px] font-bold leading-[1.1] tracking-[-0.04em] text-white">
-          {title}
-        </h3>
-        <p className="font-figtree text-[16px] font-normal text-white/80">
-          {subtitle}
-        </p>
-      </div>
+      {/* REAL BUG FIXED: title/subtitle/date/button used to be three
+          independently absolute-positioned blocks with hardcoded pixel
+          offsets (lg:top-16, lg:top-[196px], lg:bottom-8). That only worked
+          when the subtitle happened to fit on one line — a longer subtitle
+          wraps to two lines, grows past its assumed height, and overlaps
+          the date below it, which is exactly what was reported. Rebuilt as
+          ONE flowing stack (a single flex column, one absolute anchor) so
+          spacing between every piece stays correct regardless of how much
+          any of them wraps. The button is no longer pinned to the card's
+          bottom edge — it now simply follows the content with its own gap,
+          which can never collide with the text above it. */}
+      <div className="relative z-10 flex w-full flex-col items-start gap-5 px-6 py-10 lg:absolute lg:top-16 lg:left-8 lg:w-auto lg:max-w-[600px] lg:px-0 lg:py-0">
+        <div className="flex flex-col gap-3">
+          {/* Kept to one line at the lg breakpoint — the card is wide
+              enough (868px) for every real title, and wrapping to two
+              lines was pushing the button further down than needed,
+              leaving no breathing room below it in the card. */}
+          <h3 className="font-figtree text-[28px] lg:whitespace-nowrap lg:text-[40px] font-bold leading-[1.1] tracking-[-0.04em] text-white">
+            {title}
+          </h3>
+          <p className="font-figtree text-[16px] font-normal text-white/80 lg:max-w-[358px]">
+            {subtitle}
+          </p>
+        </div>
 
-      <div className="relative z-10 mt-4 flex flex-wrap items-center gap-4 px-6 sm:gap-6 lg:absolute lg:top-[220px] lg:left-8 lg:mt-0 lg:px-0">
         <span className="flex items-center gap-2 font-figtree text-[14px] font-medium text-white/80">
           <Calendar size={16} />
           {date}
         </span>
-      </div>
 
-      <span className="relative z-10 mx-6 mt-6 mb-8 inline-block rounded-2xl bg-white px-8 py-3 text-[15px] font-bold text-brand-primary lg:absolute lg:bottom-8 lg:left-8 lg:m-0">
-        {ctaLabel}
-      </span>
+        <span className="inline-block rounded-2xl bg-white px-8 py-3 text-[15px] font-bold text-brand-primary">
+          {ctaLabel}
+        </span>
+      </div>
     </Link>
   );
 }
