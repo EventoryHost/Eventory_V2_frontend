@@ -7,6 +7,13 @@ import { ChevronRight } from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { createMilestonePayment } from "@/lib/customerPaymentApi";
 import { loadCashfree } from "@/lib/cashfree";
+import {
+  BOOKING_CHANGED_EVENT,
+  OPEN_BOOKING_PACKAGE_EVENT,
+  OPEN_BOOKING_PAYMENTS_EVENT,
+  OPEN_BOOKING_PROPOSAL_EVENT,
+  setHelpPageContext,
+} from "@/features/customer-help/helpContext";
 import { getBookingDetailView } from "../services/getBookingDetailView";
 import { buildBookingBanner } from "../utils/bookingBanner";
 import type { BookingDetailView } from "../types";
@@ -86,6 +93,53 @@ export default function BookingDetailContent({
     };
   }, [bookingId, isHydrated, isLoggedIn, router, reloadKey]);
 
+  // The help panel answers about this event (v6f9 "Help with your booking").
+  useEffect(() => {
+    if (!view) return;
+    setHelpPageContext({
+      kind: "booking",
+      reference: view.reference,
+      eventTitle: view.eventTitle,
+      eventDate: view.eventDate,
+      startTime: view.startTime,
+      endTime: view.endTime,
+      location: view.location,
+      guestsLabel: view.guestsLabel,
+      packages: view.packages.map((p) => ({
+        reference: p.reference,
+        name: p.name,
+        vendorName: p.vendorName,
+        variantLabel: p.variantLabel,
+        image: p.image,
+        vendorType: p.vendorType,
+        statusLabel: p.statusLabel,
+        statusTone: p.statusTone,
+      })),
+      proposalsAwaitingReview: view.proposalsAwaitingReview,
+    });
+    return () => setHelpPageContext(null);
+  }, [view]);
+
+  // What the help panel hands back to this page.
+  useEffect(() => {
+    const ref = (e: Event) => (e as CustomEvent<string>).detail;
+    const openPackagePanel = (e: Event) => setOpenPackage(ref(e));
+    const openProposalPanel = (e: Event) => setReviewingProposal(ref(e));
+    const showPayments = () =>
+      document.getElementById("booking-payments")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const reload = () => setReloadKey((key) => key + 1);
+    window.addEventListener(OPEN_BOOKING_PACKAGE_EVENT, openPackagePanel);
+    window.addEventListener(OPEN_BOOKING_PROPOSAL_EVENT, openProposalPanel);
+    window.addEventListener(OPEN_BOOKING_PAYMENTS_EVENT, showPayments);
+    window.addEventListener(BOOKING_CHANGED_EVENT, reload);
+    return () => {
+      window.removeEventListener(OPEN_BOOKING_PACKAGE_EVENT, openPackagePanel);
+      window.removeEventListener(OPEN_BOOKING_PROPOSAL_EVENT, openProposalPanel);
+      window.removeEventListener(OPEN_BOOKING_PAYMENTS_EVENT, showPayments);
+      window.removeEventListener(BOOKING_CHANGED_EVENT, reload);
+    };
+  }, []);
+
   const banner = view ? buildBookingBanner(view) : null;
 
   /**
@@ -137,9 +191,11 @@ export default function BookingDetailContent({
   function handleProposalResolved(outcome: ProposalOutcome) {
     setReviewingProposal(null);
     setNotice(
-      outcome === "accepted"
+      outcome === "confirmed"
         ? "Proposal accepted. Your booking is confirmed."
-        : "Your requests were sent to the vendor. We'll let you know when their updated proposal is ready."
+        : outcome === "accepted"
+          ? "Proposal accepted. We'll let you know as soon as the vendor confirms your booking."
+          : "Your requests were sent to the vendor. We'll let you know when their updated proposal is ready."
     );
     setReloadKey((key) => key + 1);
   }

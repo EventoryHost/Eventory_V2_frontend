@@ -86,6 +86,11 @@ export interface RawPackage {
     guestTiers?: { maxGuests: number; price: number }[];
   };
   step4_sampleMedia?: { media?: RawPackageMedia[] };
+  /** Token/advance settings: "₹X to book" vs "Free to book". */
+  bookingSettings?: {
+    paymentType?: string;
+    token?: { tokenType?: "Fixed" | "Percentage" | string; value?: number | null };
+  };
   createdAt: string;
 }
 

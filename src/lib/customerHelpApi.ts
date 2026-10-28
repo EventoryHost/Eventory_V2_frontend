@@ -11,7 +11,8 @@ export interface HelpRequestPayload {
   occasion: string;
   guests: string;
   budget: string;
-  vendorType: string;
+  /** Optional: left out means "Not sure yet". */
+  vendorType?: string;
   area?: string;
   date?: string;
   replyMode: "reply-here" | "call-me";
@@ -38,8 +39,23 @@ export interface HelpRequestState {
   late: boolean;
   /** An Event Manager has replied at least once. */
   replied: boolean;
-  /** `window` is the brief's call-time chip; null means as soon as possible. */
-  callBack: { requestId: string; ticket: string; window: string | null; callBy: string } | null;
+  /** The team marked it resolved. */
+  resolved: boolean;
+  /** When the customer moved it to WhatsApp (the team was told). */
+  whatsappAt: string | null;
+  /** "report" = an event-day problem report (GRV ref). */
+  kind?: "request" | "report";
+  report?: HelpReport | null;
+  /** The customer said it's sorted; the team closes it after checking. */
+  customerSortedAt?: string | null;
+  /** `window` is the chosen call time; null means as soon as possible. */
+  callBack: {
+    requestId: string;
+    ticket: string;
+    window: string | null;
+    note: string | null;
+    callBy: string;
+  } | null;
   messages: HelpThreadMessage[];
 }
 
@@ -89,9 +105,11 @@ const anonQuery = () => {
   return id ? `?anon_id=${encodeURIComponent(id)}` : "";
 };
 
-export async function getHelpRequest(enquiryId: string) {
+/** `seen`: the chat is open in front of them, so its replies count as read. */
+export async function getHelpRequest(enquiryId: string, { seen = false } = {}) {
+  const q = anonQuery();
   const res = await apiFetch<{ success: true; request: HelpRequestState }>(
-    `/customer/chat/help-request/${encodeURIComponent(enquiryId)}${anonQuery()}`,
+    `/customer/chat/help-request/${encodeURIComponent(enquiryId)}${q}${seen ? `${q ? "&" : "?"}seen=1` : ""}`,
   );
   return res.request;
 }
@@ -105,10 +123,73 @@ export async function sendHelpMessage(enquiryId: string, text: string, clientId?
   return res.message;
 }
 
-export async function requestHelpCallBack(enquiryId: string, phone: string) {
+/** `window` is a call-time option label; left out = as soon as possible. */
+export async function requestHelpCallBack(
+  enquiryId: string,
+  { phone, window, note }: { phone: string; window?: string; note?: string },
+) {
   const res = await apiFetch<{ success: true; request: HelpRequestState }>(
     `/customer/chat/help-request/${encodeURIComponent(enquiryId)}/call-back`,
-    { method: "POST", body: { phone, anon_id: readAnonId() } },
+    { method: "POST", body: { phone, window, note: note || undefined, anon_id: readAnonId() } },
+  );
+  return res.request;
+}
+
+/** The customer opened WhatsApp from this ticket: noted once, team told on Slack. */
+export async function continueHelpOnWhatsApp(enquiryId: string) {
+  const res = await apiFetch<{ success: true; request: HelpRequestState }>(
+    `/customer/chat/help-request/${encodeURIComponent(enquiryId)}/whatsapp`,
+    { method: "POST", body: { anon_id: readAnonId() } },
+  );
+  return res.request;
+}
+
+/** POST /customer/chat/booking-help — a signed-in customer's request about their bookings. */
+export interface BookingHelpPayload {
+  bookingRefs: string[];
+  /** What it's about, e.g. "Change guest count". */
+  topic: string;
+  /** Their own words. */
+  text: string;
+  /** Structured details, one line each. */
+  details?: string[];
+  /** The thread item id of `text`, so it's stored once. */
+  clientId?: string;
+  conversationId?: string;
+  transcript?: string[];
+  pageUrl?: string;
+  /** Event-day problem report (GRV ref) instead of a request. */
+  report?: HelpReport;
+}
+
+export interface HelpReport {
+  issue: string;
+  label: string;
+  /** null = not sure / the venue. */
+  packageRef: string | null;
+  urgent?: boolean;
+  photoUrl?: string;
+  missing?: string[];
+}
+
+/** Event-day report: "It's sorted now". */
+export async function markHelpRequestSorted(enquiryId: string) {
+  const res = await apiFetch<{ success: true; request: HelpRequestState }>(
+    `/customer/chat/help-request/${encodeURIComponent(enquiryId)}/sorted`,
+    { method: "POST", body: {} },
+  );
+  return res.request;
+}
+
+/** Event day: they opened a vendor's on-ground number — the Event Manager is told. */
+export async function noteVendorContact(bookingRef: string) {
+  await apiFetch<{ success: true }>("/customer/chat/booking-help/contact", { method: "POST", body: { bookingRef } });
+}
+
+export async function createBookingHelpRequest(payload: BookingHelpPayload) {
+  const res = await apiFetch<{ success: true; enquiryId: string; request: HelpRequestState }>(
+    "/customer/chat/booking-help",
+    { method: "POST", body: payload },
   );
   return res.request;
 }
@@ -167,6 +248,10 @@ export interface HelpConversationSummary {
   ticket: string | null;
   enquiryId: string | null;
   lastMessageAt: string;
+  /** Open = a ticket the team hasn't resolved; everything else is resolved. */
+  status?: "open" | "resolved";
+  /** An Event Manager replied since the customer last had it open. */
+  unread?: boolean;
 }
 
 export interface HelpConversation<Item = Record<string, unknown>, State = Record<string, unknown>>

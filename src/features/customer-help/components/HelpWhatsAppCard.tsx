@@ -4,8 +4,10 @@ import { useState } from "react";
 import { WHATSAPP_NUMBER } from "@/lib/whatsapp";
 import HelpButton from "./HelpButton";
 
-// Figma "Help / WhatsApp card" (node 2369:10206). The message is pre-filled
-// with the question, page and ticket ID when one exists.
+// Figma "Help / WhatsApp card" (node 2369:10206), v6f9. With a ticket the
+// message carries its ref, request and status, and opening WhatsApp is
+// noted on the ticket so the team knows (onOpen). Without one it starts
+// from the page and question; the WhatsApp team raises the ticket.
 // Same number as every other WhatsApp button on the site (src/lib/whatsapp.ts),
 // shown in the familiar "+91 98180 30600" grouping.
 export const EVENTORY_WHATSAPP_NUMBER = `+${WHATSAPP_NUMBER.slice(0, 2)} ${WHATSAPP_NUMBER.slice(2, 7)} ${WHATSAPP_NUMBER.slice(7)}`;
@@ -20,14 +22,24 @@ export function buildWhatsAppHref(
 }
 
 type HelpWhatsAppCardProps = {
-  /** Pre-filled message lines, e.g. greeting, "Page: …", "My question: …". */
+  /** Pre-filled message lines, e.g. greeting, "Ref: …", "My question: …". */
   messageLines: string[];
   phoneNumber?: string;
+  /** The chat's ticket, when it has one. */
+  ticket?: string;
+  /** Already opened from this ticket (the team was told). */
+  opened?: boolean;
+  isAfterHours?: boolean;
+  onOpen?: () => void;
 };
 
 export default function HelpWhatsAppCard({
   messageLines,
   phoneNumber = EVENTORY_WHATSAPP_NUMBER,
+  ticket,
+  opened = false,
+  isAfterHours = false,
+  onOpen,
 }: HelpWhatsAppCardProps) {
   const [copied, setCopied] = useState(false);
   const waHref = buildWhatsAppHref(messageLines, phoneNumber);
@@ -61,7 +73,7 @@ export default function HelpWhatsAppCard({
             WhatsApp the Eventory team
           </p>
           <p className="text-[12px] font-normal leading-[18px] text-[#71717b]">
-            The team replies 9 AM–9 PM.
+            {isAfterHours ? "We’re offline now. Replies start at 9 AM." : "The team replies 9 AM–9 PM."}
           </p>
         </div>
       </div>
@@ -71,7 +83,7 @@ export default function HelpWhatsAppCard({
           {phoneNumber}
         </p>
         <p className="text-[12px] font-normal leading-[18px] text-[#3f3f47]">
-          We’ll start the message for you
+          {ticket ? "We’ll fill in this message with your request" : "We’ll start the message for you"}
         </p>
         <div className="w-full rounded-[12px] bg-[#fafafa] px-3 py-2.5 text-[12px] font-normal leading-[18px] text-[#3f3f47]">
           {messageLines.map((line, i) => (
@@ -81,20 +93,30 @@ export default function HelpWhatsAppCard({
         <div className="flex w-full flex-col gap-1 rounded-[12px] bg-[#fafafa] px-3 py-2.5 text-[12px] font-normal leading-[18px]">
           <p className="text-[#3f3f47]">What happens next</p>
           <p className="text-[#71717b]">
-            Our team replies on WhatsApp. Once they know what you need, they
-            raise a request and pass it to an Event Manager with everything
-            you’ve shared. It then shows up in Your chats.
+            {ticket
+              ? `Your ticket ${ticket} is registered and recorded. An Event Manager will reach out to you soon on WhatsApp, or here in this chat on Eventory.`
+              : "Our team replies on WhatsApp. Once they know what you need, they raise a request and pass it to an Event Manager with everything you’ve shared. It then shows up in Your chats."}
           </p>
         </div>
         <div className="flex w-full flex-wrap gap-2">
-          <a
-            href={waHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center whitespace-nowrap rounded-full border border-transparent bg-[#f0596f] px-5 py-[7px] text-[14px] font-normal leading-[20px] text-white"
-          >
-            Open WhatsApp
-          </a>
+          {opened ? (
+            <span
+              aria-disabled="true"
+              className="flex items-center justify-center whitespace-nowrap rounded-full border border-transparent bg-[#f0596f] px-5 py-[7px] text-[14px] font-normal leading-[20px] text-white opacity-45"
+            >
+              Opened in WhatsApp
+            </span>
+          ) : (
+            <a
+              href={waHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={onOpen}
+              className="flex items-center justify-center whitespace-nowrap rounded-full border border-transparent bg-[#f0596f] px-5 py-[7px] text-[14px] font-normal leading-[20px] text-white"
+            >
+              Open WhatsApp
+            </a>
+          )}
           <HelpButton variant="secondary" onClick={copyNumber}>
             {copied ? "Copied" : "Copy number"}
           </HelpButton>

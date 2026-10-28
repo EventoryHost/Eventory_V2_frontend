@@ -67,6 +67,17 @@ function journeyProgress(view: PackagePanelView): { step: number; callout?: { ti
   }
 
   if (view.status !== "Confirmed") {
+    // Accepted, now with the vendor to confirm — the last step before the
+    // event is locked.
+    if (view.status === "InDiscussion" && pending === 0 && view.proposal.response?.status === "Accepted") {
+      return {
+        step: 2,
+        callout: {
+          title: "Proposal accepted",
+          description: "Waiting for the vendor to confirm your booking.",
+        },
+      };
+    }
     if (view.status === "InDiscussion" && pending > 0) {
       return {
         step: decided === 0 ? 1 : 2,

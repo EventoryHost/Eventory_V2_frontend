@@ -4,7 +4,6 @@ import {
   type RawPackage,
 } from "@/lib/customerDiscoveryApi";
 import { mapPackageToListItem } from "@/features/customer-package-listing/mappers";
-import { formatPrice } from "@/features/customer-package-detail/utils/formatPrice";
 import { isValidImageSrc } from "@/lib/isValidImageSrc";
 import type { ParsedRequest } from "./parseRequest";
 
@@ -14,12 +13,20 @@ import type { ParsedRequest } from "./parseRequest";
 // and only then budget (the customer's hardest constraint), and say so
 // (Figma 4.4 "No exact match").
 
+// Card shape (v6f4 "Help / Package card"): only what differs between
+// packages. What they all share (occasion, guests, area) is the
+// "understood" line above the cards.
 export type HelpPackageResult = {
   id: string;
   name: string;
   vendor: string;
-  price: string;
-  fits: string;
+  /** Starting price in rupees; the card formats it and compares it to the budget. */
+  price: number;
+  /** The vendor's rating and review count (packages have no own rating). */
+  rating: number;
+  reviewCount: number;
+  /** Token to hold the date; 0 = free to book. */
+  token: number;
   imageUrl?: string;
 };
 
@@ -59,22 +66,23 @@ async function resolveCategory(key: string) {
   );
 }
 
-function toCard(pkg: RawPackage, occasionLabel?: string): HelpPackageResult {
+/** Same rule as the package page (getPackageDetail tokenAmountFor). */
+function tokenOf(pkg: RawPackage, price: number) {
+  const s = pkg.bookingSettings;
+  if (s?.paymentType !== "Token" || !s.token?.tokenType || s.token.value == null) return 0;
+  return s.token.tokenType === "Percentage" ? Math.round((price * s.token.value) / 100) : Math.min(s.token.value, price);
+}
+
+function toCard(pkg: RawPackage): HelpPackageResult {
   const item = mapPackageToListItem(pkg);
-  const places = [...new Set(item.locations)].slice(0, 2);
-  const fits = [
-    occasionLabel ?? item.eventTypes[0] ?? item.categoryLabel,
-    item.guestMax ? `up to ${item.guestMax} guests` : "any size",
-    places.length ? places.join(" & ") : "Delhi NCR",
-  ].filter(Boolean);
   return {
     id: item.id,
     name: item.name,
-    vendor: [pkg.vendorId?.pocName, item.categoryLabel]
-      .filter(Boolean)
-      .join(" · "),
-    price: formatPrice(item.startingPrice),
-    fits: fits.join(" · "),
+    vendor: pkg.vendorId?.pocName ?? item.categoryLabel,
+    price: item.startingPrice,
+    rating: item.rating,
+    reviewCount: item.reviewCount,
+    token: tokenOf(pkg, item.startingPrice),
     imageUrl: isValidImageSrc(item.image) ? item.image : undefined,
   };
 }
@@ -82,10 +90,15 @@ function toCard(pkg: RawPackage, occasionLabel?: string): HelpPackageResult {
 export async function findPackages(
   req: ParsedRequest,
 ): Promise<FindPackagesResult> {
-  const eventCategory = req.occasion
+  const eventCategory = req.occasion && req.occasion.key !== "other"
     ? await resolveCategory(req.occasion.key)
     : undefined;
-  const base = { eventCategory, limit: LIMIT };
+  const base = {
+    eventCategory,
+    vendorType: req.service?.vendorType,
+    date: req.date,
+    limit: LIMIT,
+  };
   const strict = {
     ...base,
     city: req.area?.city,
@@ -98,6 +111,9 @@ export async function findPackages(
     { ...strict, guests: undefined, city: undefined, sort: "rating" as const },
     // Over budget: closest prices first.
     { ...base, sort: "price_asc" as const },
+    // Last: the service and date dropped too (the mock relaxes service
+    // when nothing of that type fits).
+    { eventCategory, limit: LIMIT, sort: "price_asc" as const },
   ];
 
   // Fill up to LIMIT cards, strictest matches first, topping up from each
@@ -132,13 +148,11 @@ export async function findPackages(
     }
   }
 
-  // Only label cards with the customer's occasion when the search was
-  // actually scoped to it — otherwise a DJ package would read "Sangeet".
-  const occasionMatched = !req.occasion || Boolean(eventCategory);
+  // "I couldn't find haldi packages yet" only when the occasion itself
+  // has nothing in the catalogue.
+  const occasionMatched = !req.occasion || req.occasion.key === "other" || Boolean(eventCategory);
   return {
-    cards: rows.map((p) =>
-      toCard(p, eventCategory ? req.occasion?.label : undefined),
-    ),
+    cards: rows.map(toCard),
     exact: exact && occasionMatched,
     exactCount: occasionMatched ? exactCount : 0,
     overBudget,
