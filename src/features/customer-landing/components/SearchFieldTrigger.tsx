@@ -1,14 +1,14 @@
 "use client";
 
 import { forwardRef } from "react";
-import { ChevronDown } from "lucide-react";
 
 /**
  * Shared trigger pill for the Event Type / Choose vendor service fields —
- * Figma node 2240:10004, states 01/02/04/06 etc. Idle: #F4F4F5 fill.
- * Hover: #EAEAEC, 120ms ease-out. Focus (dropdown open): white fill, 1.5px
- * #030303 border, soft drop shadow. Filled (value picked, not focused):
- * same #F4F4F5 fill as idle but dark (#030303) text.
+ * Figma node 2240:10115 ("Search bar"): plain text pill, no trailing
+ * chevron — idle: #F4F4F5 fill. Hover: #EAEAEC, 120ms ease-out. Focus
+ * (dropdown open): white fill, 1.5px #030303 border, soft drop shadow.
+ * Filled (value picked, not focused): same #F4F4F5 fill as idle but dark
+ * (#030303) text.
  *
  * A real text input, not a button — real bug fixed 2026-10-03 (PM-reported:
  * "make them textfields, filter dropdown as you type"). `query` is the
@@ -50,9 +50,6 @@ const SearchFieldTrigger = forwardRef<
         onFocus={onFocus}
         placeholder={placeholder}
         className="min-w-0 flex-1 bg-transparent font-figtree text-[16px] font-medium text-[#030303] outline-none placeholder:text-[#9F9FA9]"
-      />
-      <ChevronDown
-        className={`h-[18px] w-[18px] shrink-0 text-[#71717B] transition-transform ${isOpen ? "rotate-180" : ""}`}
       />
     </div>
   );

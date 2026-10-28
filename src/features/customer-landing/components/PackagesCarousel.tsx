@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProductCard, { type ProductCardProps } from "./ProductCard";
 import {
@@ -115,14 +116,15 @@ export default function PackagesCarousel() {
           >
             <ArrowLeft size={18} />
           </button>
-          <button
-            type="button"
-            aria-label="Scroll right"
-            onClick={() => scroll("right")}
+          {/* Right arrow goes to the full, unfiltered listing rather than
+              scrolling the carousel — the left arrow still scrolls back. */}
+          <Link
+            href="/packages/browse"
+            aria-label="See all packages"
             className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 text-brand-950"
           >
             <ArrowRight size={18} />
-          </button>
+          </Link>
         </div>
       </div>
 

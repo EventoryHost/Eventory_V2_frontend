@@ -127,7 +127,7 @@ export default function WhyChooseEventory() {
   }
 
   return (
-    <section className="mx-auto mt-24 grid w-full max-w-[1440px] grid-cols-1 gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-16">
+    <section className="mx-auto mt-16 grid w-full max-w-[1440px] grid-cols-1 gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-16">
       <div className="flex flex-col gap-3">
         <span className="font-figtree text-[13px] font-bold uppercase tracking-wider text-[#F0596F]">
           Why choose eventory

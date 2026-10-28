@@ -55,7 +55,7 @@ const VENDOR_CATEGORIES = [
 
 export default function BrowseVendors() {
   return (
-    <section className="mx-auto mt-6 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+    <section className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <h2 className="font-figtree font-bold text-brand-950 text-[28px] sm:text-[32px] leading-[1.2] tracking-[-0.02em]">
         Browse our Vendors
       </h2>

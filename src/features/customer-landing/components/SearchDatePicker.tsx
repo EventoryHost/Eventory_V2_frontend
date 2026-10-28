@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 const MONTH_LABELS = [
@@ -205,10 +205,6 @@ export default function SearchDatePicker({
           >
             {value ? formatDisplayDate(value) : placeholder}
           </span>
-          <ChevronDown
-            size={18}
-            className={`shrink-0 text-[#71717B] transition-transform ${isOpen ? "rotate-180" : ""}`}
-          />
         </button>
       )}
 

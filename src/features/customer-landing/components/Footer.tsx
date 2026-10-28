@@ -67,8 +67,8 @@ export default function Footer() {
         {/* Links Grid */}
         <div className="grid flex-1 grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
           {LINK_GROUPS.map((group) => (
-            <div key={group.title} className="flex flex-col space-y-4">
-              <h3 className="mb-2 font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
+            <div key={group.title} className="flex flex-col gap-3">
+              <h3 className="font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
                 {group.title}
               </h3>
               {group.links.map((link) => (
@@ -84,8 +84,8 @@ export default function Footer() {
           ))}
 
           {/* Contacts Column */}
-          <div className="flex flex-col space-y-4">
-            <h3 className="mb-2 font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
+          <div className="flex flex-col gap-3">
+            <h3 className="font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
               Contacts
             </h3>
             <a
@@ -103,8 +103,8 @@ export default function Footer() {
           </div>
 
           {/* Follow Us Column */}
-          <div className="flex flex-col space-y-4">
-            <h3 className="mb-2 font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
+          <div className="flex flex-col gap-3">
+            <h3 className="font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
               Follow Us
             </h3>
             <div className="flex space-x-3">
