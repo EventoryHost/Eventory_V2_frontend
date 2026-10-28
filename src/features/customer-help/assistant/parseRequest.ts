@@ -7,11 +7,17 @@ export type Guests = { label: string; count: number };
 export type Budget = { label: string; max: number };
 export type Area = { label: string; city: string; fromLocation?: boolean };
 
+/** A service from the requirements card; `vendorType` is the search filter. */
+export type Service = { label: string; vendorType?: string };
+
 export type ParsedRequest = {
   occasion?: Occasion;
   guests?: Guests;
   budget?: Budget;
   area?: Area;
+  service?: Service;
+  /** Event date, "2026-12-14". */
+  date?: string;
 };
 
 // Order matters: specific events before the generic birthday fallbacks.
@@ -105,6 +111,9 @@ export function parseRequest(text: string): ParsedRequest {
   const area = AREAS.find((a) => a.re.test(s));
   if (area) out.area = { label: area.label, city: area.city };
 
+  const service = SERVICES.find((x) => x.re?.test(s));
+  if (service) out.service = { label: service.label, vendorType: service.vendorType };
+
   return out;
 }
 
@@ -144,6 +153,32 @@ export const OCCASION_OPTIONS: Occasion[] = OCCASIONS.filter((o) =>
     "baby shower",
   ].includes(o.key),
 ).map(({ key, label }) => ({ key, label }));
+
+/** The requirements card's Occasion chips: the follow-up ones plus "Other". */
+export const REQUIREMENT_OCCASIONS: Occasion[] = [...OCCASION_OPTIONS, { key: "other", label: "Other" }];
+
+// Requirements card "Service" chips → the package search's vendorType.
+const SERVICES: (Service & { re?: RegExp })[] = [
+  { label: "Decorator", vendorType: "Decorator", re: /\b(decor|décor|decoration|decorator|backdrop|balloons?)\b/ },
+  { label: "Caterer", vendorType: "Caterer", re: /\b(cater|caterer|catering|food)\b/ },
+  { label: "Photographer & videographer", vendorType: "PAV", re: /\b(photographer|photography|photoshoot|videographer)\b/ },
+  { label: "Makeup artist", vendorType: "MakeupArtist", re: /\b(makeup|make-up|mua)\b/ },
+  { label: "DJ", vendorType: "DJArtist", re: /\b(dj|music)\b/ },
+  { label: "Venue", vendorType: "VenueProvider", re: /\b(venue|banquet|hall)\b/ },
+  { label: "Not sure yet" },
+];
+export const SERVICE_OPTIONS: Service[] = SERVICES.map(({ label, vendorType }) => ({ label, vendorType }));
+
+/** Requirements card "Area" chips (after the location tag) → search city. */
+export const AREA_OPTIONS: Area[] = [
+  { label: "South Delhi", city: "Delhi" },
+  { label: "West Delhi", city: "Delhi" },
+  { label: "Central Delhi", city: "Delhi" },
+  { label: "Gurugram", city: "Gurugram" },
+  { label: "Noida", city: "Noida" },
+  { label: "Ghaziabad", city: "Ghaziabad" },
+  { label: "Faridabad", city: "Faridabad" },
+];
 
 // Words that follow "in"/"at" but aren't places.
 const NOT_PLACES =

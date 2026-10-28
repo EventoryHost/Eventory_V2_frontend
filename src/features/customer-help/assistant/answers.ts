@@ -1,5 +1,5 @@
 import { formatPrice } from "@/features/customer-package-detail/utils/formatPrice";
-import type { HelpPageContext } from "../helpContext";
+import type { HelpPackageContext as HelpPageContext } from "../helpContext";
 
 // Answers to common questions (Figma "05 — Learner", node 2369:11258).
 // Package-page answers come from that package's own data — token, balance
