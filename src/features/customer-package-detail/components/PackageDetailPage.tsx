@@ -254,7 +254,7 @@ export default function PackageDetailPage({
             />
           )}
 
-          <PackageSummary summary={data.summary} />
+          <PackageSummary summary={data.summary} showTopDivider={data.variants.length > 1} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && (
             <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} workshop={workshop} />
