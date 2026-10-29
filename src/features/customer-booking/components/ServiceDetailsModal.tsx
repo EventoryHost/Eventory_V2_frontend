@@ -7,7 +7,6 @@ import CollapsibleSection from "./CollapsibleSection";
 import SetupArticleCard, { type SetupArticleCardProps, type SetupRequest } from "./SetupArticleCard";
 import AddOnRow from "./AddOnRow";
 import AllPoliciesContent from "./AllPoliciesContent";
-import VendorNoteSection from "./VendorNoteSection";
 import PriceBreakdownContent from "./PriceBreakdownContent";
 import type { BookingAddon } from "../types";
 import { getPackageDetail } from "@/features/customer-package-detail/services/getPackageDetail";
@@ -334,18 +333,6 @@ export default function ServiceDetailsModal({
                   ))}
                 </div>
               </CollapsibleSection>
-
-              {sessionId && lineId && (
-                <CollapsibleSection label="Vendor Notes">
-                  <VendorNoteSection
-                    sessionId={sessionId}
-                    lineId={lineId}
-                    initialNote={note}
-                    initialAttachments={noteAttachments}
-                    onSaved={onNoteSaved}
-                  />
-                </CollapsibleSection>
-              )}
 
               <CollapsibleSection label="Price breakdown">
                 <PriceBreakdownContent

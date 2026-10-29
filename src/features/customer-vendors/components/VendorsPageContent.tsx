@@ -151,19 +151,35 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   // hence refetching from the server, same as category/sort/search below,
   // instead of a client-only refinement.
   const eventTypeParam = (selected.eventType ?? []).join(",");
+  // Same reasoning, same server-side fix (2026-10-29) — the "Service
+  // Localities" sidebar used to be a client-only narrowing of whatever page
+  // was already loaded (filterVendors.ts's old locality check), which could
+  // just as easily miss a real match sitting on a different page. Comma-
+  // joined and sent as `city`, which the backend now expands from a curated
+  // area name into that area + all its real localities (see
+  // customerDiscoveryController.js).
+  const localityParam = (selected.locality ?? []).join(",");
 
   // Refetch page 1 from the real API whenever category, sort, event type,
-  // or the debounced search term changes. Skips the very first run when
-  // category/sort/search/eventType all match what the server already
-  // fetched into `data` ("all"/"newest"/""/none) — refetching immediately
-  // would just flash a skeleton over data we already have. A deep link like
-  // /vendors?category=caterer or ?q=... differs from that default, so it
-  // still fetches on mount to actually apply the requested filter.
+  // locality, or the debounced search term changes. Skips the very first
+  // run when category/sort/search/eventType/locality all match what the
+  // server already fetched into `data` ("all"/"newest"/""/none) —
+  // refetching immediately would just flash a skeleton over data we already
+  // have. A deep link like /vendors?category=caterer or ?q=... differs from
+  // that default, so it still fetches on mount to actually apply the
+  // requested filter.
   const isFirstRun = useRef(true);
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (category === "all" && sort === "newest" && !debouncedSearch && !eventTypeParam && !initialDate.current)
+      if (
+        category === "all" &&
+        sort === "newest" &&
+        !debouncedSearch &&
+        !eventTypeParam &&
+        !localityParam &&
+        !initialDate.current
+      )
         return;
     }
     let cancelled = false;
@@ -172,6 +188,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
       q: debouncedSearch || undefined,
       vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
       eventCategory: eventTypeParam || undefined,
+      city: localityParam || undefined,
       sort: VENDOR_SORT_UI_TO_API[sort],
       page: 1,
       limit: VENDORS_PAGE_SIZE,
@@ -191,7 +208,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
     return () => {
       cancelled = true;
     };
-  }, [category, sort, debouncedSearch, eventTypeParam]);
+  }, [category, sort, debouncedSearch, eventTypeParam, localityParam]);
 
   // Re-fetch the Event Type options scoped to whichever category tab is now
   // active (unscoped for "All"). Any currently-selected event type that
@@ -234,6 +251,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
         q: debouncedSearch || undefined,
         vendorType: category === "all" ? undefined : CATEGORY_TO_VENDOR_TYPE[category],
         eventCategory: eventTypeParam || undefined,
+        city: localityParam || undefined,
         sort: VENDOR_SORT_UI_TO_API[sort],
         page: nextPage,
         limit: VENDORS_PAGE_SIZE,
@@ -249,12 +267,8 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   }
 
   const filterSections = useMemo(
-    () =>
-      getFilterSections({
-        eventCategoryOptions,
-        cityOptions: data.cityOptions,
-      }),
-    [eventCategoryOptions, data.cityOptions]
+    () => getFilterSections({ eventCategoryOptions }),
+    [eventCategoryOptions]
   );
 
   // Search, category and sort are applied by the endpoint; only the

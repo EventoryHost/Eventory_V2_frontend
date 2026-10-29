@@ -1,4 +1,18 @@
 import type { FilterOption, FilterSectionConfig, VendorCategory } from "../types";
+import { SERVICE_AREAS } from "@/features/customer-become-vendor/data/serviceAreas";
+
+// The vendor listing's "Service Localities" filter — real bug (reported):
+// this used to be raw Vendor.city facet values (often full addresses a
+// vendor typed, not clean locality names). Now the same 9 curated main
+// areas the Become a Vendor page's "We are live in 200+ Localities" section
+// shows — id === label since the backend's `city` param already accepts
+// these exact area names (see customerDiscoveryController.js's
+// isKnownServiceArea/findServiceArea expansion). Comma-separated multi-
+// select, same OR convention eventCategory already uses.
+export const SERVICE_LOCALITY_OPTIONS: FilterOption[] = SERVICE_AREAS.map((entry) => ({
+  id: entry.area,
+  label: entry.area,
+}));
 
 export const VENDORS_PAGE_SIZE = 9;
 
@@ -70,23 +84,22 @@ export const OFFER_OPTIONS: FilterOption[] = [
 /**
  * Filter sections for the sidebar/drawer, in the Figma's order.
  *
- * Event-type and locality options are REAL facet values from
- * GET /customer/packages/filters rather than the design's hardcoded lists,
- * so the sidebar only ever offers filters that can actually match something
- * in the current inventory. (For event categories id === label, since the
- * backend's values are already human-readable strings.)
+ * Event-type options are REAL facet values from GET /customer/packages/filters
+ * rather than the design's hardcoded lists, so the sidebar only ever offers
+ * event types that can actually match something in the current inventory.
+ * (id === label since the backend's values are already human-readable
+ * strings.) Locality options are the 9 curated main areas
+ * (SERVICE_LOCALITY_OPTIONS above) — not a backend facet.
  */
 export function getFilterSections({
   eventCategoryOptions,
-  cityOptions,
 }: {
   eventCategoryOptions: FilterOption[];
-  cityOptions: FilterOption[];
 }): FilterSectionConfig[] {
   return [
     { id: "eventType", title: "Event", options: eventCategoryOptions },
     { id: "offer", title: "Special offer", options: OFFER_OPTIONS },
-    { id: "locality", title: "Service Localities", options: cityOptions },
+    { id: "locality", title: "Service Localities", options: SERVICE_LOCALITY_OPTIONS },
     { id: "pricing", title: "Event Pricing", options: PRICE_RANGE_OPTIONS },
     { id: "guests", title: "Guest", options: GUEST_RANGE_OPTIONS },
     { id: "rating", title: "Rating", options: RATING_OPTIONS },
