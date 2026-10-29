@@ -267,8 +267,32 @@ export function useBookingForm({
     slotsState.status === "ready" &&
     slotsState.data.dayAvailable &&
     (slotsState.data.slots.length === 0 || Boolean(startTime && endTime));
+  // REAL BUG FIXED (two layers deep): LocationServiceability only ever
+  // showed a "Not available for your location" warning — nothing stopped
+  // the customer from adding to cart or booking anyway once that came
+  // back. A first fix only blocked on a CONFIRMED non-match
+  // (status === "ready" && !serviceable) and treated "no-pincode" as
+  // "unverified, so allow it" — but the serviceability check ONLY ever
+  // runs when the typed `location` text contains a literal 6-digit pincode
+  // (see the effect above); free-typed text with no pincode in it
+  // (the common case for a manually-typed address) never leaves
+  // "no-pincode" at all, so that first fix still let a booking through
+  // from a location nobody had actually confirmed the vendor serves.
+  // Requiring a genuine "ready" + serviceable: true match closes that —
+  // "idle" (empty location) is already excluded by the `location.trim()`
+  // check below, so this only ever blocks a location that's either
+  // unverifiable (no pincode, still loading, or the check errored) or
+  // confirmed out of the vendor's service area.
+  const locationNotServiceable = Boolean(
+    location.trim() && !(serviceability.status === "ready" && serviceability.data.serviceable)
+  );
   const detailsComplete = Boolean(
-    eventType && validEventDate && timingComplete && location.trim() && guestCountComplete
+    eventType &&
+      validEventDate &&
+      timingComplete &&
+      location.trim() &&
+      guestCountComplete &&
+      !locationNotServiceable
   );
 
   function buildCartPayload(noteOverride?: string, noteAttachmentsOverride?: string[]) {
@@ -451,6 +475,7 @@ export function useBookingForm({
     guestCountComplete,
     timingComplete,
     detailsComplete,
+    locationNotServiceable,
     requestAddToCart,
     requestBookClick,
     handleNotePromptSkip,

@@ -180,7 +180,7 @@ export default function PaymentSummary({
         )}
 
         {ctaDisabled ? (
-          <span className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white opacity-50">
+          <span className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white opacity-50">
             {ctaLabel}
           </span>
         ) : onCtaClick ? (
@@ -188,14 +188,14 @@ export default function PaymentSummary({
             type="button"
             onClick={onCtaClick}
             disabled={ctaLoading}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
           >
             {ctaLabel}
           </button>
         ) : (
           <Link
             href={ctaHref ?? "#"}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full border-t border-[#030303] bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white"
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white"
           >
             {ctaLabel}
           </Link>

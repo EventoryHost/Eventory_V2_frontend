@@ -151,6 +151,4 @@ export interface VendorsPageData {
   totalPages: number;
   /** Real event-category facet values from GET /customer/packages/filters — id and label are the same raw string. */
   eventCategoryOptions: FilterOption[];
-  /** Real city facet values from the same endpoint — backs the "Service Localities" section. */
-  cityOptions: FilterOption[];
 }
