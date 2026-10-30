@@ -48,9 +48,13 @@ export default function PackagesPageContent({ data }: { data: PackagesPageData }
   const activeCategory = data.vendorCategories.find((category) => category.id === activeCategoryId);
 
   return (
-    <div className="flex w-full flex-col gap-6 pt-4 pb-12 sm:gap-8 sm:pt-6 sm:pb-16">
-      <PromoBannerCarousel banners={data.heroBanners} />
+    <div className="flex w-full flex-col pt-4 pb-12 sm:pt-6 sm:pb-16">
+      <div className="mb-6 sm:mb-8">
+        <PromoBannerCarousel banners={data.heroBanners} />
+      </div>
 
+      {/* No gap below the tabs — the first section band (alternating
+          #FFFAF1/white stripe below) sits flush against the tabs card. */}
       <VendorCategoryTabs
         categories={data.vendorCategories}
         activeId={activeCategoryId}

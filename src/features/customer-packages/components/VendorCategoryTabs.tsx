@@ -21,7 +21,7 @@ export default function VendorCategoryTabs({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="mx-4 rounded-3xl bg-white px-3 py-5 sm:mx-6 sm:px-4 sm:py-6 lg:mx-auto lg:w-fit lg:rounded-full lg:border lg:border-black/5 lg:px-12 lg:py-6 lg:shadow-[0px_4px_20px_rgba(0,0,0,0.04)]">
+    <div className="mx-4 rounded-t-3xl bg-white px-3 py-5 sm:mx-6 sm:px-4 sm:py-6 lg:mx-auto lg:w-fit lg:rounded-t-[64px] lg:rounded-b-none lg:border lg:border-b-0 lg:border-black/5 lg:px-12 lg:py-6 lg:shadow-[0px_4px_20px_rgba(0,0,0,0.04)]">
       <div className="flex gap-5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:justify-center sm:gap-10 sm:px-2 lg:gap-12">
         {categories.map((category) => {
           const isActive = category.id === activeId;

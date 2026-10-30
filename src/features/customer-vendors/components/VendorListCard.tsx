@@ -190,7 +190,9 @@ export default function VendorListCard({
             {bookingsPerYear && (
               <Stat icon={Calendar} value={bookingsPerYear} label="Bookings/ Year" />
             )}
-            <Stat icon={Bookmark} value={wishlistCount} label="Wishlisted" />
+            {Boolean(vendor.wishlistCount) && (
+              <Stat icon={Bookmark} value={wishlistCount} label="Wishlisted" />
+            )}
             {experience && <Stat icon={Award} value={experience} label="Experience" />}
           </div>
 

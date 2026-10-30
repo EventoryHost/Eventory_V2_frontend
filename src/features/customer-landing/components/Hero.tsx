@@ -54,7 +54,7 @@ const Hero = () => {
       <ReelsCarousel />
       <BlogsSection />
       <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
-        <ReadyToPlanBanner />
+        <ReadyToPlanBanner primaryHref="/packages/browse" />
       </div>
     </section>
   );

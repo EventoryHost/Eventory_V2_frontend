@@ -27,6 +27,14 @@ export interface Vendor {
   /** Category chip icon/gradient — same per-category look as the landing page's ProductCard (src/lib/categoryMeta.ts). */
   categoryIcon?: string;
   categoryGradientFrom?: string;
+  /**
+   * Every distinct category the vendor actually has a Live package under —
+   * can be more than one (a vendor's Live packages aren't all required to
+   * match their own single `category` above). The card's badge stack
+   * renders from this; `category`/`categoryLabel`/`categoryIcon` above stay
+   * as the vendor's PRIMARY type, for anywhere that only wants one.
+   */
+  categories: { id: string; label: string; icon?: string; gradientFrom?: string }[];
   eventTypes: string[];
   /** Whether this row is a vendor (the listing) or one of their packages (the profile grid). */
   source: "vendor" | "package";

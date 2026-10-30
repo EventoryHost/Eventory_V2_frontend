@@ -1,6 +1,11 @@
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { OPEN_HELP_EVENT } from "@/features/customer-help/helpContext";
 
 export default function CorporateEventsBanner() {
+  const router = useRouter();
   return (
     <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
     <section className="relative min-h-[320px] w-full overflow-hidden rounded-[44px]">
@@ -31,12 +36,14 @@ export default function CorporateEventsBanner() {
         <div className="mt-2 flex flex-wrap items-center gap-4">
           <button
             type="button"
+            onClick={() => router.push("/packages/browse")}
             className="w-[202px] rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
           >
             Know More
           </button>
           <button
             type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_HELP_EVENT))}
             className="w-[202px] rounded-full bg-white px-8 py-3 text-[15px] font-semibold text-brand-950"
           >
             Talk to Our Team

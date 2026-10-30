@@ -1,7 +1,12 @@
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
+import { OPEN_HELP_EVENT } from "@/features/customer-help/helpContext";
 
 export default function NeedHelpBanner() {
+  const router = useRouter();
   return (
     <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
     <section className="relative min-h-[312px] w-full overflow-hidden rounded-[44px] bg-[#FFF0F2]">
@@ -25,12 +30,14 @@ export default function NeedHelpBanner() {
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           <button
             type="button"
+            onClick={() => router.push("/packages/browse")}
             className="rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
           >
             Know More
           </button>
           <button
             type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_HELP_EVENT))}
             className="flex items-center gap-2 text-[15px] font-semibold text-brand-primary"
           >
             Talk to Our Team
