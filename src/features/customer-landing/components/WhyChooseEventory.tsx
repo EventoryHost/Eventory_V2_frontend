@@ -1,9 +1,4 @@
-"use client";
-
-import { useRef, useState } from "react";
-import type { TouchEvent } from "react";
-import { motion, LayoutGroup } from "framer-motion";
-import { Award, ShieldCheck, Headphones, BadgePercent, ChevronLeft, ChevronRight } from "lucide-react";
+import { Award, ShieldCheck, Headphones, BadgePercent } from "lucide-react";
 
 const FEATURES = [
   {
@@ -36,96 +31,43 @@ const FEATURES = [
   },
 ] as const;
 
-// Deck-of-cards interaction (PM request): the first card's slot IS the deck
-// and stays fixed in place — nothing about the row's own position or width
-// moves. Swiping right (or the right arrow) peels the TOP card off the deck
-// and appends it to the right end of the spread row; swiping left (or the
-// left arrow) takes the RIGHTMOST spread card and puts it back on TOP of
-// the deck. One card moves per gesture/click, not an all-or-nothing
-// spread/stack toggle.
-//
-// Implementation note: each card keeps the same `layoutId` whether it's
-// currently rendered inside the deck stack or as its own item in the spread
-// row — framer-motion's shared-layout animation handles the cross-container
-// move (deck -> row or row -> deck) as one continuous slide/rotate rather
-// than a mount/unmount jump cut.
-const CARD_WIDTH = 240;
-const CARD_HEIGHT = 172;
-const SWIPE_THRESHOLD = 40;
-const SPRING = { type: "spring", stiffness: 300, damping: 28 } as const;
-
 type Feature = (typeof FEATURES)[number];
 
-function CardBody({ feature }: { feature: Feature }) {
+// Figma node 1:7626 — a plain static 2x2 grid, no interaction. Replaces the
+// previous swipeable deck-of-cards version (PM request for this specific
+// redesign superseded that earlier one); same 4 features/variant colors, so
+// no data changes, just the layout.
+function FeatureCard({ feature }: { feature: Feature }) {
   const isPink = feature.variant === "pink";
   const Icon = feature.icon;
   return (
-    <>
+    <div
+      className={`relative mt-6 flex flex-col gap-4 rounded-tl-[4px] rounded-tr-2xl rounded-br-2xl rounded-bl-2xl px-6 pt-11 pb-6 ${
+        isPink ? "bg-[#F0596F]" : "bg-[#FFF9F1]"
+      }`}
+    >
       <span
-        className={`absolute -top-6 left-6 flex h-14 w-14 items-center justify-center rounded-full ${
-          isPink ? "bg-white text-[#F0596F] border border-[#F0596F]" : "bg-[#F0596F] text-white"
+        className={`absolute -top-6 left-4 flex h-12 w-12 -rotate-[11.25deg] items-center justify-center rounded-full border-2 ${
+          isPink ? "border-[#F0596F] bg-[#FFF9F1] text-[#F0596F]" : "border-[#FFF9F1] bg-[#F0596F] text-white"
         }`}
       >
-        <Icon size={22} />
+        <Icon size={20} />
       </span>
-      <h3 className={`font-figtree text-[20px] font-bold leading-[1.2] ${isPink ? "text-white" : "text-brand-950"}`}>
+      <h3 className={`font-figtree text-[24px] font-semibold tracking-[-0.02em] ${isPink ? "text-white" : "text-[#3C060D]"}`}>
         {feature.title}
       </h3>
       <p
-        className={`mt-2 font-figtree text-[14px] font-normal leading-[1.4] ${
-          isPink ? "text-white/90" : "text-body-secondary"
+        className={`font-figtree text-[16px] leading-[1.5] font-medium tracking-[-0.01em] ${
+          isPink ? "text-white/90" : "text-[#3C060D]"
         }`}
       >
         {feature.description}
       </p>
-    </>
+    </div>
   );
 }
 
-function cardClassName(feature: Feature) {
-  const isPink = feature.variant === "pink";
-  return `absolute top-0 left-0 rounded-tl-[4px] rounded-tr-2xl rounded-br-2xl rounded-bl-2xl pt-11 pr-6 pb-6 pl-6 shadow-[0_8px_24px_rgba(0,0,0,0.1)] ${
-    isPink ? "bg-[#F0596F]" : "bg-white"
-  }`;
-}
-
 export default function WhyChooseEventory() {
-  // Deck order, bottom -> top (last element is the top/visible card).
-  const [deckOrder, setDeckOrder] = useState<number[]>(() => FEATURES.map((_, i) => i).reverse());
-  // Spread order, left -> right (first spread slot sits right after the deck).
-  const [spreadOrder, setSpreadOrder] = useState<number[]>([]);
-  const touchStartX = useRef<number | null>(null);
-
-  function unstackOne() {
-    setDeckOrder((prev) => {
-      if (prev.length === 0) return prev;
-      const top = prev[prev.length - 1];
-      setSpreadOrder((spread) => [...spread, top]);
-      return prev.slice(0, -1);
-    });
-  }
-
-  function stackOne() {
-    setSpreadOrder((prev) => {
-      if (prev.length === 0) return prev;
-      const rightmost = prev[prev.length - 1];
-      setDeckOrder((deck) => [...deck, rightmost]);
-      return prev.slice(0, -1);
-    });
-  }
-
-  function handleTouchStart(event: TouchEvent<HTMLDivElement>) {
-    touchStartX.current = event.touches[0]?.clientX ?? null;
-  }
-
-  function handleTouchEnd(event: TouchEvent<HTMLDivElement>) {
-    if (touchStartX.current === null) return;
-    const delta = (event.changedTouches[0]?.clientX ?? touchStartX.current) - touchStartX.current;
-    if (delta > SWIPE_THRESHOLD) unstackOne();
-    else if (delta < -SWIPE_THRESHOLD) stackOne();
-    touchStartX.current = null;
-  }
-
   return (
     <section className="mx-auto mt-16 grid w-full max-w-[1440px] grid-cols-1 gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:gap-16 lg:px-16">
       <div className="flex flex-col gap-3">
@@ -135,78 +77,13 @@ export default function WhyChooseEventory() {
         <h2 className="font-figtree font-semibold text-brand-950 text-[36px] leading-[1.1] tracking-[-0.02em]">
           Why smart planners choose Eventory
         </h2>
-
-        <div className="mt-2 flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Stack a card back onto the deck"
-            onClick={stackOne}
-            disabled={spreadOrder.length === 0}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 text-brand-950 transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <button
-            type="button"
-            aria-label="Unstack a card from the deck"
-            onClick={unstackOne}
-            disabled={deckOrder.length === 0}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-black/10 text-brand-950 transition-opacity disabled:cursor-not-allowed disabled:opacity-30"
-          >
-            <ChevronRight size={18} />
-          </button>
-        </div>
       </div>
 
-      <LayoutGroup>
-        <div
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="flex items-start gap-5 overflow-x-auto pt-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        >
-          {/* Deck slot — fixed position, never moves. Holds whatever cards are currently stacked. */}
-          <div className="relative shrink-0" style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-            {deckOrder.map((cardIndex, position) => {
-              const depthFromTop = deckOrder.length - 1 - position;
-              const feature = FEATURES[cardIndex];
-              return (
-                <motion.div
-                  key={cardIndex}
-                  layoutId={`why-card-${cardIndex}`}
-                  className={cardClassName(feature)}
-                  style={{ width: CARD_WIDTH, height: CARD_HEIGHT, zIndex: position + 1 }}
-                  animate={{
-                    x: depthFromTop * 8,
-                    y: depthFromTop * 8,
-                    rotate: depthFromTop === 0 ? 0 : cardIndex % 2 === 0 ? -(4 + depthFromTop) : 4 + depthFromTop,
-                  }}
-                  transition={SPRING}
-                >
-                  <CardBody feature={feature} />
-                </motion.div>
-              );
-            })}
-          </div>
-
-          {/* Spread row — each unstacked card renders here, flat, in the
-              order it was peeled off (left-to-right = oldest to newest). */}
-          {spreadOrder.map((cardIndex) => {
-            const feature = FEATURES[cardIndex];
-            return (
-              <motion.div
-                key={cardIndex}
-                layoutId={`why-card-${cardIndex}`}
-                className={`${cardClassName(feature)} shrink-0`}
-                style={{ position: "relative", width: CARD_WIDTH, height: CARD_HEIGHT }}
-                animate={{ x: 0, y: 0, rotate: 0 }}
-                transition={SPRING}
-              >
-                <CardBody feature={feature} />
-              </motion.div>
-            );
-          })}
-        </div>
-      </LayoutGroup>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2">
+        {FEATURES.map((feature) => (
+          <FeatureCard key={feature.title} feature={feature} />
+        ))}
+      </div>
     </section>
   );
 }

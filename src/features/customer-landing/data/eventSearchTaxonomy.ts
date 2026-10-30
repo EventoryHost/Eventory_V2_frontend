@@ -1,3 +1,14 @@
+import type { LucideIcon } from "lucide-react";
+import {
+  Cake,
+  Briefcase,
+  Gift,
+  Baby,
+  Flame,
+  HeartHandshake,
+  Home,
+  PartyPopper,
+} from "lucide-react";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 
 // The Event Type dropdown shows every REAL, live event category the
@@ -16,24 +27,29 @@ import { CATEGORY_META } from "@/lib/categoryMeta";
 // including "Wedding" and its variants, which used to be excluded via
 // filterHiddenEventCategories before this ever saw them.
 // Figma node 2240:10126 — every row's icon tile is the SAME pink
-// (#FDE7EB background, #F0596F/brand-primary text) with a 2-letter monogram
-// of the label instead of a per-family/per-row Lucide icon or color. This
-// supersedes the earlier per-row color-palette work (ICON_BG_PALETTE,
-// 2026-10-23) — that was fixing a problem (rows sharing one of only 7
-// colors) that a uniform single-color monogram design doesn't have.
+// (#FDE7EB background, #F0596F/brand-primary text). This supersedes the
+// earlier per-row color-palette work (ICON_BG_PALETTE, 2026-10-23) — that was
+// fixing a problem (rows sharing one of only 7 colors) that a uniform
+// single-color tile design doesn't have.
+//
+// Reverted from the 2-letter monogram ("Bi") back to a real per-family
+// LUCIDE ICON (2026-10-30, PM-reported: "show unique logos to each relevant
+// to the event type") — kept the tile's bg/icon color exactly as the
+// monogram version already had, so only the glyph inside the tile changed.
 const MONOGRAM_BG = "#FDE7EB";
 
 export interface EventTypeDisplay {
   id: string;
   label: string;
   subtitle: string;
-  monogram: string;
+  IconComponent: LucideIcon;
   iconBg: string;
 }
 
 interface EventTypeFamily {
   match: RegExp;
   subtitle: string;
+  icon: LucideIcon;
   /** Allowed vendor-category ids for "Choose vendor service" when this family's event type is picked. `null` = show all 6, unfiltered. */
   services: string[] | null;
 }
@@ -45,40 +61,39 @@ const BABY_SERVICES = ["venue-provider", "decorator", "caterer", "photographer"]
 // Order matters — first match wins, so more specific patterns (birthday,
 // corporate) are checked before generic ones (the final catch-all).
 const EVENT_TYPE_FAMILIES: EventTypeFamily[] = [
-  { match: /birthday|kids party/i, subtitle: "Kids and adult parties", services: BIRTHDAY_SERVICES },
+  { match: /birthday|kids party/i, subtitle: "Kids and adult parties", icon: Cake, services: BIRTHDAY_SERVICES },
   {
     match: /corporate|office party|workshop|conference|launch|annual day/i,
     subtitle: "Offsites, launches, conferences",
+    icon: Briefcase,
     services: CORPORATE_SERVICES,
   },
-  { match: /anniversary/i, subtitle: "Milestone celebrations", services: null },
+  { match: /anniversary/i, subtitle: "Milestone celebrations", icon: Gift, services: null },
   {
     match: /baby|shower|annaprashan|rice ceremony/i,
     subtitle: "Welcoming the little one",
+    icon: Baby,
     services: BABY_SERVICES,
   },
   {
     match: /haldi|puja|ganesh|chaturthi|griha|housewarming|mehndi|mehendi|sangeet/i,
     subtitle: "Religious and traditional ceremonies",
+    icon: Flame,
     services: null,
   },
-  { match: /engagement|ring ceremony|roka|proposal/i, subtitle: "Ring ceremony, roka", services: null },
-  { match: /house party|welcome gate|home/i, subtitle: "Celebrations at home", services: null },
+  { match: /engagement|ring ceremony|roka|proposal/i, subtitle: "Ring ceremony, roka", icon: HeartHandshake, services: null },
+  { match: /house party|welcome gate|home/i, subtitle: "Celebrations at home", icon: Home, services: null },
 ];
 
 const DEFAULT_FAMILY: EventTypeFamily = {
   match: /.*/,
   subtitle: "Celebrations and events",
+  icon: PartyPopper,
   services: null,
 };
 
 function familyFor(label: string): EventTypeFamily {
   return EVENT_TYPE_FAMILIES.find((family) => family.match.test(label)) ?? DEFAULT_FAMILY;
-}
-
-/** "Birthday" -> "Bi", "Puja / Griha Pravesh" -> "Pu" — first two characters of the label, same casing the backend/grouped label already has. */
-function monogramFor(label: string): string {
-  return label.trim().slice(0, 2);
 }
 
 /**
@@ -93,7 +108,7 @@ export function toEventTypeDisplay(options: { id: string; label: string }[]): Ev
     id,
     label,
     subtitle: familyFor(label).subtitle,
-    monogram: monogramFor(label),
+    IconComponent: familyFor(label).icon,
     iconBg: MONOGRAM_BG,
   }));
 }

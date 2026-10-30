@@ -18,7 +18,10 @@ export interface RawVendorPublic {
   eventCategories?: string[];
   city?: string;
   state?: string;
-  serviceAreas?: string[];
+  // Legacy flat `string[]` or the newer `[{ area, sublocalities }]` shape
+  // (see src/lib/vendorLocation.ts's getServiceAreaNames) — the public API
+  // passes this field through as-is, whichever shape the vendor last saved.
+  serviceAreas?: Array<string | { area?: string; sublocalities?: string[] }>;
   // STRINGS, not numbers — the Vendor model declares all three as String
   // and the real values are bucketed ranges the vendor picks during
   // onboarding ("8 - 12 years", "0 - 2 years", "1-5"). Typed as number here

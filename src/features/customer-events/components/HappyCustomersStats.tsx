@@ -23,7 +23,7 @@ export default function HappyCustomersStats() {
     <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
     <section className="relative w-full overflow-hidden rounded-[44px]">
       <Image
-        src="/images/customer/events/confetti.jpg"
+        src="/images/customer/events/happy-customers-bg.png"
         alt=""
         fill
         className="object-cover"
