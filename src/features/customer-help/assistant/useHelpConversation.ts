@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/apiClient";
+import { getSnapshot as getCustomerSession } from "@/lib/customerSession";
 import { detectCurrentLocation } from "@/lib/geocoding";
+import { notifyHelpTicketSlack, type HelpTicketSlackInput } from "@/lib/helpTicketSlack";
 import {
   checkHelpArea,
   createHelpRequest,
@@ -916,8 +918,31 @@ export function useHelpConversation({
    * card. From a request card in the chat (cardId), from the composer, or —
    * `fresh` — as a new chat (the change screens).
    */
+  /** The Event Managers' Slack post for a new ticket; `known` (the package's own booking) wins over the defaults. */
+  const notifySlack = (ticket: string, issue: string | undefined, note: string, known: HelpTicketSlackInput = {}) => {
+    if (!booking) return;
+    const me = getCustomerSession().customer;
+    notifyHelpTicketSlack({
+      ticket,
+      issue,
+      note,
+      customerName: known.customerName ?? me?.name,
+      customerPhone: known.customerPhone ?? me?.phone,
+      packageName: known.packageName,
+      packageId: known.packageId,
+      bookingId: known.bookingId ?? booking.refs.join(", "),
+      emName: booking.emName,
+    });
+  };
+
   const sendBookingRequest = async (
-    { topic, text, details = [], report }: { topic: string; text: string; details?: string[]; report?: HelpReport },
+    {
+      topic,
+      text,
+      details = [],
+      report,
+      slack,
+    }: { topic: string; text: string; details?: string[]; report?: HelpReport; slack?: HelpTicketSlackInput },
     cardId?: string,
     { fresh = false }: { fresh?: boolean } = {},
   ) => {
@@ -941,6 +966,7 @@ export function useHelpConversation({
       pageUrl: window.location.href,
       report,
     });
+    notifySlack(r.ticket, report ? report.label : topic, text, slack);
     seen.current = new Set(r.messages.filter((m) => m.from === "event_manager").map((m) => m.messageId));
     const who = booking.emName ?? "the Event Manager team";
     setItems((prev) => [
@@ -981,6 +1007,7 @@ export function useHelpConversation({
     const r = await requestHelpCallBack(first.enquiryId, input);
     const cb = r.callBack;
     if (!cb) throw new Error("Call back not saved");
+    notifySlack(cb.ticket, "Call back request", text, { customerPhone: input.phone });
     const who = booking.emName ?? "the Event Manager team";
     const at = new Date().toISOString();
     setItems([
