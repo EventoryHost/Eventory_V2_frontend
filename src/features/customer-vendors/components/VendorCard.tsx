@@ -119,12 +119,12 @@ export default function VendorCard({
         <div className="h-px w-full bg-[#e4e4e7]" />
 
         <div className="flex items-center justify-between gap-2">
-          {/* Wishlisted always shows, including "0". Experience is skipped
-              when the vendor never entered one — there is no sensible
-              zero for it. */}
+          {/* Both stats are skipped when zero/unset (PM request 2026-10-30:
+              "show ... wishlisted only if greater than 0") — neither has a
+              sensible reason to claim "0" on a card. */}
           <div className="flex shrink-0 items-center gap-4">
             {experience && <Stat value={experience} label="Year Experience" />}
-            <Stat value={wishlistCount} label="Wishlisted" />
+            {Boolean(vendor.wishlistCount) && <Stat value={wishlistCount} label="Wishlisted" />}
           </div>
 
           <VendorCategoryChip vendor={vendor} />

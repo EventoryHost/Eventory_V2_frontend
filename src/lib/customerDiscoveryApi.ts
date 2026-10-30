@@ -15,6 +15,13 @@ export interface RawVendorPublic {
   pocName: string;
   isIndividual?: boolean;
   vendorType: string;
+  /**
+   * Every distinct vendorType the vendor has a LIVE package under —
+   * GET /customer/vendors only (browseVendors), computed from Package.vendorType,
+   * not the single Vendor.vendorType they registered as. Falls back to
+   * `[vendorType]` server-side when they have no Live package yet.
+   */
+  categories?: string[];
   eventCategories?: string[];
   city?: string;
   state?: string;
