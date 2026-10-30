@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { uploadImage } from "@/lib/uploadImage";
 import type { HelpReport } from "@/lib/customerHelpApi";
+import type { HelpTicketSlackInput } from "@/lib/helpTicketSlack";
 import { emFirst, emLabel } from "../../assistant/bookingAnswers";
 import { GROUP_TITLE, ISSUES, bookedItems, issuesFor, vendorStatus, type IssueKey } from "../../assistant/eventDay";
 import type { HelpBookingContext } from "../../helpContext";
@@ -22,7 +23,13 @@ type Props = {
   data: BookingHelpData;
   state: ReportState;
   onChange: (next: ReportState) => void;
-  onSend: (input: { topic: string; text: string; details: string[]; report: HelpReport }) => Promise<void>;
+  onSend: (input: {
+    topic: string;
+    text: string;
+    details: string[];
+    report: HelpReport;
+    slack: HelpTicketSlackInput;
+  }) => Promise<void>;
 };
 
 function Option({ title, sub, selected, onClick }: { title: string; sub: string; selected: boolean; onClick: () => void }) {
@@ -200,6 +207,14 @@ export default function ReportFlow({ ctx, data, state, onChange, onSend }: Props
           urgent: Boolean(issue.urgent),
           photoUrl: photo?.url,
           missing: missing.length ? missing : undefined,
+        },
+        // "Not sure / the venue": no package, but any booking of theirs knows the customer.
+        slack: {
+          customerName: (pkg ?? active[0])?.booking.customer.name,
+          customerPhone: (pkg ?? active[0])?.booking.customer.phone,
+          packageName: pkg?.name,
+          packageId: pkg?.booking.packageId,
+          bookingId: pkg?.booking.bookingId,
         },
       });
     } catch {
