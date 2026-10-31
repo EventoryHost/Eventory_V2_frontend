@@ -16,6 +16,10 @@ export interface HelpTicketSlackInput {
   /** Only when the ticket is about a booking. */
   bookingId?: string | null;
   emName?: string | null;
+  /** No-show / safety report: the duty manager is flagged in the post. */
+  urgent?: boolean;
+  /** Structured lines, newline-separated ("New guest count: 60", "Missing: …", "Photo: …"). */
+  details?: string | null;
 }
 
 const clean = (s?: string | null) => s?.trim() || null;
@@ -51,7 +55,11 @@ export function buildCustomerWhatsAppLink(t: HelpTicketSlackInput) {
 // Slack mrkdwn treats &, < and > as control characters.
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-export function buildSlackPayload(t: HelpTicketSlackInput) {
+/** The "Mark resolved" button's action; /api/slack/interactions handles it. */
+export const RESOLVE_ACTION_ID = "help_ticket_resolve";
+
+/** `resolvable`: show "Mark resolved" — only once Slack interactivity is set up, else the click errors. */
+export function buildSlackPayload(t: HelpTicketSlackInput, { resolvable = false } = {}) {
   const issue = clean(t.issue);
   const name = clean(t.customerName);
   const pkg = clean(t.packageName);
@@ -60,7 +68,8 @@ export function buildSlackPayload(t: HelpTicketSlackInput) {
   const note = clean(t.note);
   const link = buildCustomerWhatsAppLink(t);
   // Header blocks cap plain text at 150 chars.
-  const title = `🆘 New help ticket${issue ? ` — ${issue}` : ""}${clean(t.ticket) ? ` · ${clean(t.ticket)}` : ""}`.slice(0, 150);
+  const title = `${t.urgent ? "🚨 URGENT" : "🆘 New help ticket"}${issue ? ` — ${issue}` : ""}${clean(t.ticket) ? ` · ${clean(t.ticket)}` : ""}`.slice(0, 150);
+  const details = (clean(t.details) ?? "").split("\n").map((d) => d.trim()).filter(Boolean);
   const lines = [
     `*Customer:* ${name ? esc(name) : "—"}`,
     `*Mobile:* ${clean(t.customerPhone) ? esc(t.customerPhone!.trim()) : "Not on file"}`,
@@ -68,21 +77,39 @@ export function buildSlackPayload(t: HelpTicketSlackInput) {
     ...(booking ? [`*Booking:* \`${esc(booking)}\``] : []),
     ...(clean(t.emName) ? [`*Event Manager:* ${esc(t.emName!.trim())}`] : []),
     ...(note && note !== issue ? [`*Note:* ${esc(note)}`] : []),
+    ...details.map((d) => `• ${esc(d)}`),
   ];
   const firstName = name?.split(/\s+/)[0] ?? "the customer";
+  const ticket = clean(t.ticket);
+  const buttons = [
+    ...(link
+      ? [{ type: "button", style: "primary", text: { type: "plain_text", text: `💬 Message ${firstName} on WhatsApp`, emoji: true }, url: link }]
+      : []),
+    ...(resolvable && ticket
+      ? [
+          {
+            type: "button",
+            action_id: RESOLVE_ACTION_ID,
+            value: ticket,
+            text: { type: "plain_text", text: "✅ Mark resolved", emoji: true },
+            confirm: {
+              title: { type: "plain_text", text: "Resolve this ticket?" },
+              text: { type: "mrkdwn", text: `${esc(ticket)} moves to Resolved in the customer's chats.` },
+              confirm: { type: "plain_text", text: "Resolve" },
+              deny: { type: "plain_text", text: "Cancel" },
+            },
+          },
+        ]
+      : []),
+  ];
   return {
     text: title,
     blocks: [
       { type: "header", text: { type: "plain_text", text: title, emoji: true } },
+      ...(t.urgent ? [{ type: "section", text: { type: "mrkdwn", text: "*Duty manager, please pick this up now.*" } }] : []),
       { type: "section", text: { type: "mrkdwn", text: lines.join("\n") } },
-      link
-        ? {
-            type: "actions",
-            elements: [
-              { type: "button", style: "primary", text: { type: "plain_text", text: `💬 Message ${firstName} on WhatsApp`, emoji: true }, url: link },
-            ],
-          }
-        : { type: "context", elements: [{ type: "mrkdwn", text: "No mobile number on file, so there's no WhatsApp link." }] },
+      ...(link ? [] : [{ type: "context", elements: [{ type: "mrkdwn", text: "No mobile number on file, so there's no WhatsApp link." }] }]),
+      ...(buttons.length ? [{ type: "actions", elements: buttons }] : []),
     ],
   };
 }
