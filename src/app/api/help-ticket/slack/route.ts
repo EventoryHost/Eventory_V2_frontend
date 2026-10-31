@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { buildSlackPayload, type HelpTicketSlackInput } from "@/lib/helpTicketSlack";
 
-const FIELDS: (keyof HelpTicketSlackInput)[] = [
+const FIELDS: Exclude<keyof HelpTicketSlackInput, "urgent">[] = [
   "ticket",
   "issue",
   "note",
@@ -11,6 +11,7 @@ const FIELDS: (keyof HelpTicketSlackInput)[] = [
   "packageId",
   "bookingId",
   "emName",
+  "details",
 ];
 
 export async function POST(request: NextRequest) {
@@ -32,14 +33,15 @@ export async function POST(request: NextRequest) {
   const input: HelpTicketSlackInput = {};
   for (const f of FIELDS) {
     const v = body[f];
-    if (typeof v === "string") input[f] = v.slice(0, f === "note" ? 1000 : 200);
+    if (typeof v === "string") input[f] = v.slice(0, f === "note" || f === "details" ? 1000 : 200);
   }
+  if (body.urgent === true) input.urgent = true;
 
   try {
     const res = await fetch(webhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(buildSlackPayload(input)),
+      body: JSON.stringify(buildSlackPayload(input, { resolvable: Boolean(process.env.SLACK_SIGNING_SECRET) })),
     });
     if (!res.ok) {
       console.error("[help-ticket/slack] Slack rejected the post:", res.status, await res.text());

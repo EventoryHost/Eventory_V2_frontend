@@ -449,6 +449,9 @@ export function useHelpConversation({
   const [request, setRequest] = useState<HelpRequestState | null>(null);
   // The saved chat's id ("Your chats" tab); its ticket stays in it.
   const [conversationId, setConversationId] = useState<string | null>(null);
+  // A reopened chat's ticket, known before (or without) its request loading:
+  // messages go to it instead of starting a new request in this chat.
+  const savedEnquiryId = useRef<string | null>(null);
 
   /** This chat's id, made on first need (first save, or the brief). */
   const ensureConversationId = () => {
@@ -639,11 +642,12 @@ export function useHelpConversation({
 
   /** After the brief: messages go to the Event Manager team, not the assistant. */
   const messageEventManager = async (text: string) => {
-    if (!request) return;
+    const enquiryId = request?.enquiryId ?? savedEnquiryId.current;
+    if (!enquiryId) return;
     const id = uid();
     push({ kind: "me", id, time: now(), text });
     try {
-      const sent = await sendHelpMessage(request.enquiryId, text, id);
+      const sent = await sendHelpMessage(enquiryId, text, id);
       seen.current.add(sent.messageId);
     } catch {
       push({
@@ -859,6 +863,7 @@ export function useHelpConversation({
     sharedPhoto.current = null;
     savedJson.current = "";
     directEm.current = false;
+    savedEnquiryId.current = null;
     setConversationId(null);
     try {
       localStorage.removeItem(CONVERSATION_KEY);
@@ -932,6 +937,8 @@ export function useHelpConversation({
       packageId: known.packageId,
       bookingId: known.bookingId ?? booking.refs.join(", "),
       emName: booking.emName,
+      urgent: known.urgent,
+      details: known.details,
     });
   };
 
@@ -966,7 +973,13 @@ export function useHelpConversation({
       pageUrl: window.location.href,
       report,
     });
-    notifySlack(r.ticket, report ? report.label : topic, text, slack);
+    // The structured lines (new guest count, missing items, photo…) and,
+    // for no-shows and safety, the duty-manager flag go on the post too.
+    notifySlack(r.ticket, report ? report.label : topic, text, {
+      ...slack,
+      urgent: report?.urgent,
+      details: details.length ? details.join("\n") : undefined,
+    });
     seen.current = new Set(r.messages.filter((m) => m.from === "event_manager").map((m) => m.messageId));
     const who = booking.emName ?? "the Event Manager team";
     setItems((prev) => [
@@ -1007,7 +1020,8 @@ export function useHelpConversation({
     const r = await requestHelpCallBack(first.enquiryId, input);
     const cb = r.callBack;
     if (!cb) throw new Error("Call back not saved");
-    notifySlack(cb.ticket, "Call back request", text, { customerPhone: input.phone });
+    // The request's own ticket, not the call back's: it's what "Mark resolved" closes.
+    notifySlack(r.ticket, "Call back request", text, { customerPhone: input.phone });
     const who = booking.emName ?? "the Event Manager team";
     const at = new Date().toISOString();
     setItems([
@@ -1071,7 +1085,7 @@ export function useHelpConversation({
   const ask = useCallback(
     async (text: string) => {
       if (!text || busy) return;
-      if (request) {
+      if (request || savedEnquiryId.current) {
         void messageEventManager(text);
         return;
       }
@@ -1820,6 +1834,9 @@ export function useHelpConversation({
         : null;
       sharedPhoto.current = null;
       savedJson.current = "";
+      // A reopened chat isn't the empty "Message {EM}" one, whatever was open before.
+      directEm.current = false;
+      savedEnquiryId.current = c.enquiryId;
       setItems(c.items);
       setRequest(null);
       setConversationId(id);
@@ -1851,6 +1868,7 @@ export function useHelpConversation({
     draft.current = null;
     reqCard.current = null;
     directEm.current = false;
+    savedEnquiryId.current = null;
     seen.current = new Set();
     sharedPhoto.current = null;
     savedJson.current = "";
