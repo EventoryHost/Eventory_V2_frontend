@@ -1028,11 +1028,13 @@ export function useHelpConversation({
       conversationId: conversation,
       pageUrl: window.location.href,
     });
+    // Posted before the call back, so the call back lands in its Slack
+    // thread. The request's own ticket, not the call back's: it's what
+    // "Mark resolved" closes.
+    notifySlack(first.ticket, "Call back request", text, { customerPhone: input.phone });
     const r = await requestHelpCallBack(first.enquiryId, input);
     const cb = r.callBack;
     if (!cb) throw new Error("Call back not saved");
-    // The request's own ticket, not the call back's: it's what "Mark resolved" closes.
-    notifySlack(r.ticket, "Call back request", text, { customerPhone: input.phone });
     const who = booking.emName ?? "the Event Manager team";
     const at = new Date().toISOString();
     setItems([
