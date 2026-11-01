@@ -17,6 +17,7 @@ import {
   continueHelpOnWhatsApp,
   createBookingHelpRequest,
   markHelpRequestSorted,
+  resolveHelpRequest,
   type HelpReport,
   type HelpAreaCheck,
   type HelpConversation,
@@ -479,6 +480,9 @@ export function useHelpConversation({
   const savedJson = useRef("");
   // Booking page, "Message {EM}": what they type is the request itself.
   const directEm = useRef(false);
+  // The ticket's resolved state as last polled (null: not polled yet in
+  // this chat), so the team resolving it adds one line, not one per poll.
+  const resolvedSeen = useRef<boolean | null>(null);
 
   // Area checks by lower-cased text; the brief's warning reads these.
   const areaCache = useRef(new Map<string, HelpAreaCheck>());
@@ -649,6 +653,12 @@ export function useHelpConversation({
     try {
       const sent = await sendHelpMessage(enquiryId, text, id);
       seen.current.add(sent.messageId);
+      // Writing on a resolved ticket reopens it (the backend did too).
+      if (request?.resolved) {
+        resolvedSeen.current = false;
+        setRequest((r) => (r ? { ...r, resolved: false, resolvedBy: null } : r));
+        push({ kind: "system", id: uid(), time: now(), text: "Your request is open again." });
+      }
     } catch {
       push({
         kind: "system",
@@ -864,6 +874,7 @@ export function useHelpConversation({
     savedJson.current = "";
     directEm.current = false;
     savedEnquiryId.current = null;
+    resolvedSeen.current = null;
     setConversationId(null);
     try {
       localStorage.removeItem(CONVERSATION_KEY);
@@ -1046,6 +1057,24 @@ export function useHelpConversation({
       time: now(),
       text: `You said it’s sorted. ${who} will check with the vendor and close it.`,
     });
+  };
+
+  /** "Mark as resolved": closed here and on the team's Slack post; writing again reopens it. */
+  const markResolved = async () => {
+    if (!request || request.resolved) return;
+    const r = await resolveHelpRequest(request.enquiryId);
+    resolvedSeen.current = true;
+    setRequest(r);
+    setItems((prev) => [
+      ...prev.filter((i) => i.kind !== "status"),
+      {
+        kind: "system",
+        id: uid(),
+        time: now(),
+        at: new Date().toISOString(),
+        text: "You marked this resolved. Write here if you need more help.",
+      },
+    ]);
   };
 
   /** Request card "Send to {EM}". */
@@ -1641,6 +1670,9 @@ export function useHelpConversation({
   /** Applies the backend's view: new Event Manager replies, late, call back. */
   const sync = useCallback((r: HelpRequestState) => {
     setRequest(r);
+    const wasResolved = resolvedSeen.current;
+    resolvedSeen.current = r.resolved;
+    const teamResolved = wasResolved === false && r.resolved && r.resolvedBy !== "customer";
     const fresh = r.messages.filter(
       (m) => m.from === "event_manager" && !seen.current.has(m.messageId),
     );
@@ -1667,6 +1699,17 @@ export function useHelpConversation({
               senderName: m.senderName ?? "Event Manager",
             }),
           ),
+        ];
+      if (teamResolved)
+        next = [
+          ...next,
+          {
+            kind: "system",
+            id: uid(),
+            time: now(),
+            at: new Date().toISOString(),
+            text: "The Event Manager team marked this resolved. Write here if you need more help.",
+          },
         ];
       return next;
     });
@@ -1837,6 +1880,7 @@ export function useHelpConversation({
       // A reopened chat isn't the empty "Message {EM}" one, whatever was open before.
       directEm.current = false;
       savedEnquiryId.current = c.enquiryId;
+      resolvedSeen.current = null;
       setItems(c.items);
       setRequest(null);
       setConversationId(id);
@@ -1869,6 +1913,7 @@ export function useHelpConversation({
     reqCard.current = null;
     directEm.current = false;
     savedEnquiryId.current = null;
+    resolvedSeen.current = null;
     seen.current = new Set();
     sharedPhoto.current = null;
     savedJson.current = "";
@@ -1984,6 +2029,7 @@ export function useHelpConversation({
     bookingCallBack,
     bookingAction,
     markSorted,
+    markResolved,
     hasOpenBookingCard: items.some((i) => i.kind === "booking-request" && i.state === "open"),
     confirmRequirements,
     editRequirements,

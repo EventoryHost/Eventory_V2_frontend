@@ -39,8 +39,10 @@ export interface HelpRequestState {
   late: boolean;
   /** An Event Manager has replied at least once. */
   replied: boolean;
-  /** The team marked it resolved. */
+  /** Resolved — by the team, or by the customer themselves. */
   resolved: boolean;
+  /** Who resolved it; null while open. */
+  resolvedBy?: "team" | "customer" | null;
   /** When the customer moved it to WhatsApp (the team was told). */
   whatsappAt: string | null;
   /** "report" = an event-day problem report (GRV ref). */
@@ -177,6 +179,16 @@ export async function markHelpRequestSorted(enquiryId: string) {
   const res = await apiFetch<{ success: true; request: HelpRequestState }>(
     `/customer/chat/help-request/${encodeURIComponent(enquiryId)}/sorted`,
     { method: "POST", body: {} },
+  );
+  return res.request;
+}
+
+/** "Mark as resolved" in the chat. Writing again reopens it. */
+export async function resolveHelpRequest(enquiryId: string) {
+  const res = await apiFetch<{ success: true; request: HelpRequestState }>(
+    `/customer/chat/help-request/${encodeURIComponent(enquiryId)}/resolve`,
+    // Guests' tickets are theirs by this browser's anon id.
+    { method: "POST", body: { anon_id: readAnonId() } },
   );
   return res.request;
 }
