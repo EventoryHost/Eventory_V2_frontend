@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/apiClient";
-import { getSnapshot as getCustomerSession } from "@/lib/customerSession";
 import { detectCurrentLocation } from "@/lib/geocoding";
-import { notifyHelpTicketSlack, type HelpTicketSlackInput } from "@/lib/helpTicketSlack";
 import {
   checkHelpArea,
   createHelpRequest,
@@ -17,6 +15,7 @@ import {
   continueHelpOnWhatsApp,
   createBookingHelpRequest,
   markHelpRequestSorted,
+  resolveHelpRequest,
   type HelpReport,
   type HelpAreaCheck,
   type HelpConversation,
@@ -315,6 +314,9 @@ const timeOf = (d: Date | string) =>
 const now = () => timeOf(new Date());
 
 const POLL_MS = 15000;
+// While the chat is on screen: Event Manager replies (from Slack or the
+// admin panel) show within a few seconds.
+const POLL_VIEWING_MS = 5000;
 // The open chat, so a reload (or another page) picks it up again.
 const CONVERSATION_KEY = "eventory_help_conversation";
 const SAVE_DELAY_MS = 800;
@@ -449,6 +451,9 @@ export function useHelpConversation({
   const [request, setRequest] = useState<HelpRequestState | null>(null);
   // The saved chat's id ("Your chats" tab); its ticket stays in it.
   const [conversationId, setConversationId] = useState<string | null>(null);
+  // A reopened chat's ticket, known before (or without) its request loading:
+  // messages go to it instead of starting a new request in this chat.
+  const savedEnquiryId = useRef<string | null>(null);
 
   /** This chat's id, made on first need (first save, or the brief). */
   const ensureConversationId = () => {
@@ -476,6 +481,9 @@ export function useHelpConversation({
   const savedJson = useRef("");
   // Booking page, "Message {EM}": what they type is the request itself.
   const directEm = useRef(false);
+  // The ticket's resolved state as last polled (null: not polled yet in
+  // this chat), so the team resolving it adds one line, not one per poll.
+  const resolvedSeen = useRef<boolean | null>(null);
 
   // Area checks by lower-cased text; the brief's warning reads these.
   const areaCache = useRef(new Map<string, HelpAreaCheck>());
@@ -639,12 +647,19 @@ export function useHelpConversation({
 
   /** After the brief: messages go to the Event Manager team, not the assistant. */
   const messageEventManager = async (text: string) => {
-    if (!request) return;
+    const enquiryId = request?.enquiryId ?? savedEnquiryId.current;
+    if (!enquiryId) return;
     const id = uid();
     push({ kind: "me", id, time: now(), text });
     try {
-      const sent = await sendHelpMessage(request.enquiryId, text, id);
+      const sent = await sendHelpMessage(enquiryId, text, id);
       seen.current.add(sent.messageId);
+      // Writing on a resolved ticket reopens it (the backend did too).
+      if (request?.resolved) {
+        resolvedSeen.current = false;
+        setRequest((r) => (r ? { ...r, resolved: false, resolvedBy: null } : r));
+        push({ kind: "system", id: uid(), time: now(), text: "Your request is open again." });
+      }
     } catch {
       push({
         kind: "system",
@@ -859,6 +874,8 @@ export function useHelpConversation({
     sharedPhoto.current = null;
     savedJson.current = "";
     directEm.current = false;
+    savedEnquiryId.current = null;
+    resolvedSeen.current = null;
     setConversationId(null);
     try {
       localStorage.removeItem(CONVERSATION_KEY);
@@ -918,31 +935,13 @@ export function useHelpConversation({
    * card. From a request card in the chat (cardId), from the composer, or —
    * `fresh` — as a new chat (the change screens).
    */
-  /** The Event Managers' Slack post for a new ticket; `known` (the package's own booking) wins over the defaults. */
-  const notifySlack = (ticket: string, issue: string | undefined, note: string, known: HelpTicketSlackInput = {}) => {
-    if (!booking) return;
-    const me = getCustomerSession().customer;
-    notifyHelpTicketSlack({
-      ticket,
-      issue,
-      note,
-      customerName: known.customerName ?? me?.name,
-      customerPhone: known.customerPhone ?? me?.phone,
-      packageName: known.packageName,
-      packageId: known.packageId,
-      bookingId: known.bookingId ?? booking.refs.join(", "),
-      emName: booking.emName,
-    });
-  };
-
   const sendBookingRequest = async (
     {
       topic,
       text,
       details = [],
       report,
-      slack,
-    }: { topic: string; text: string; details?: string[]; report?: HelpReport; slack?: HelpTicketSlackInput },
+    }: { topic: string; text: string; details?: string[]; report?: HelpReport },
     cardId?: string,
     { fresh = false }: { fresh?: boolean } = {},
   ) => {
@@ -966,7 +965,7 @@ export function useHelpConversation({
       pageUrl: window.location.href,
       report,
     });
-    notifySlack(r.ticket, report ? report.label : topic, text, slack);
+    // The backend posts the ticket to Slack (its thread's parent message).
     seen.current = new Set(r.messages.filter((m) => m.from === "event_manager").map((m) => m.messageId));
     const who = booking.emName ?? "the Event Manager team";
     setItems((prev) => [
@@ -1007,7 +1006,6 @@ export function useHelpConversation({
     const r = await requestHelpCallBack(first.enquiryId, input);
     const cb = r.callBack;
     if (!cb) throw new Error("Call back not saved");
-    notifySlack(cb.ticket, "Call back request", text, { customerPhone: input.phone });
     const who = booking.emName ?? "the Event Manager team";
     const at = new Date().toISOString();
     setItems([
@@ -1032,6 +1030,24 @@ export function useHelpConversation({
       time: now(),
       text: `You said it’s sorted. ${who} will check with the vendor and close it.`,
     });
+  };
+
+  /** "Mark as resolved": closed here and on the team's Slack post; writing again reopens it. */
+  const markResolved = async () => {
+    if (!request || request.resolved) return;
+    const r = await resolveHelpRequest(request.enquiryId);
+    resolvedSeen.current = true;
+    setRequest(r);
+    setItems((prev) => [
+      ...prev.filter((i) => i.kind !== "status"),
+      {
+        kind: "system",
+        id: uid(),
+        time: now(),
+        at: new Date().toISOString(),
+        text: "You marked this resolved. Write here if you need more help.",
+      },
+    ]);
   };
 
   /** Request card "Send to {EM}". */
@@ -1071,7 +1087,7 @@ export function useHelpConversation({
   const ask = useCallback(
     async (text: string) => {
       if (!text || busy) return;
-      if (request) {
+      if (request || savedEnquiryId.current) {
         void messageEventManager(text);
         return;
       }
@@ -1627,11 +1643,19 @@ export function useHelpConversation({
   /** Applies the backend's view: new Event Manager replies, late, call back. */
   const sync = useCallback((r: HelpRequestState) => {
     setRequest(r);
+    const wasResolved = resolvedSeen.current;
+    resolvedSeen.current = r.resolved;
+    const teamResolved = wasResolved === false && r.resolved && r.resolvedBy !== "customer";
     const fresh = r.messages.filter(
       (m) => m.from === "event_manager" && !seen.current.has(m.messageId),
     );
     fresh.forEach((m) => seen.current.add(m.messageId));
+    // A reply edited or deleted in Slack after it was shown: its line changes in place.
+    const current = new Map(r.messages.filter((m) => m.from === "event_manager").map((m) => [m.messageId, m.text]));
     setItems((prev) => {
+      prev = prev.map((i) =>
+        i.kind === "event-manager" && current.has(i.id) && current.get(i.id) !== i.text ? { ...i, text: current.get(i.id)! } : i,
+      );
       // The status card goes once a person has replied (Figma 6.7).
       let next = r.replied
         ? prev.filter((i) => i.kind !== "status")
@@ -1654,6 +1678,17 @@ export function useHelpConversation({
             }),
           ),
         ];
+      if (teamResolved)
+        next = [
+          ...next,
+          {
+            kind: "system",
+            id: uid(),
+            time: now(),
+            at: new Date().toISOString(),
+            text: "The Event Manager team marked this resolved. Write here if you need more help.",
+          },
+        ];
       return next;
     });
   }, []);
@@ -1674,7 +1709,7 @@ export function useHelpConversation({
       }
     };
     if (viewing) void poll();
-    const timer = window.setInterval(poll, POLL_MS);
+    const timer = window.setInterval(poll, viewing ? POLL_VIEWING_MS : POLL_MS);
     document.addEventListener("visibilitychange", poll);
     return () => {
       stopped = true;
@@ -1820,6 +1855,10 @@ export function useHelpConversation({
         : null;
       sharedPhoto.current = null;
       savedJson.current = "";
+      // A reopened chat isn't the empty "Message {EM}" one, whatever was open before.
+      directEm.current = false;
+      savedEnquiryId.current = c.enquiryId;
+      resolvedSeen.current = null;
       setItems(c.items);
       setRequest(null);
       setConversationId(id);
@@ -1851,6 +1890,8 @@ export function useHelpConversation({
     draft.current = null;
     reqCard.current = null;
     directEm.current = false;
+    savedEnquiryId.current = null;
+    resolvedSeen.current = null;
     seen.current = new Set();
     sharedPhoto.current = null;
     savedJson.current = "";
@@ -1966,6 +2007,7 @@ export function useHelpConversation({
     bookingCallBack,
     bookingAction,
     markSorted,
+    markResolved,
     hasOpenBookingCard: items.some((i) => i.kind === "booking-request" && i.state === "open"),
     confirmRequirements,
     editRequirements,

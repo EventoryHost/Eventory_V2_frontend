@@ -224,8 +224,11 @@ export default function HelpWidget() {
     }
     setView("thread");
   };
+  // "New chat": Home, with an empty chat behind it — whatever they ask
+  // there starts a new one (see `ask`), never the chat that was open.
   const newChat = () => {
     convo.startNewConversation();
+    setView("home");
     setTab("home");
   };
 
@@ -313,15 +316,33 @@ export default function HelpWidget() {
     }
   };
 
+  // Asked from outside a chat (a Home suggestion, the ask box, a photo):
+  // always a new chat. It's sent once the old thread has cleared, so it
+  // can't land in the chat that was open before.
+  const pendingStart = useRef<{ text: string } | { file: File } | null>(null);
+  useEffect(() => {
+    const start = pendingStart.current;
+    if (!start || convo.busy || convo.items.length || convo.request) return;
+    pendingStart.current = null;
+    if ("file" in start) void convo.photo(start.file);
+    else void convo.ask(start.text);
+  }, [convo]);
+  const startFresh = (start: { text: string } | { file: File }) => {
+    pendingStart.current = start;
+    setThreadFrom(view);
+    convo.startNewConversation();
+    setView("thread");
+  };
+
   const ask = (text: string) => {
     if (!text) return;
-    if (view !== "thread") setThreadFrom(view);
-    setView("thread");
-    void convo.ask(text);
+    // The composer, inside a chat: that chat goes on.
+    if (view === "thread") void convo.ask(text);
+    else startFresh({ text });
   };
   const photo = (file: File) => {
-    setView("thread");
-    void convo.photo(file);
+    if (view === "thread") void convo.photo(file);
+    else startFresh({ file });
   };
   const openCustomise = () => {
     close();
@@ -685,6 +706,7 @@ export default function HelpWidget() {
                   }
                 : undefined
             }
+            onMarkResolved={convo.markResolved}
             onAnswerFollowUp={(id, field, option) => void convo.answerFollowUp(id, field, option)}
             onClose={convo.close}
             onChatWithEventManager={convo.openBrief}

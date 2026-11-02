@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { BookingAction } from "../assistant/bookingAnswers";
 import type { FollowUpField, ThreadItem } from "../assistant/useHelpConversation";
 import HelpBriefSentCard from "./HelpBriefSentCard";
@@ -20,6 +20,8 @@ type HelpThreadProps = {
   items: ThreadItem[];
   /** Once the brief is sent: the ticket's summary block, pinned on top. */
   summary?: { title: string; ticket: string; raisedAt: string; resolved: boolean };
+  /** "Mark as resolved" on the summary, while the ticket is open. */
+  onMarkResolved?: () => Promise<void>;
   onAnswerFollowUp: (questionId: string, field: FollowUpField, option: string) => void;
   onClose: (itemId: string) => void;
   onChatWithEventManager: () => void;
@@ -52,6 +54,29 @@ type HelpThreadProps = {
   /** Event-day report (GRV): its tracker replaces the summary and status card. */
   reportStatus?: ReactNode;
 };
+
+/** The summary's "Mark as resolved": one tap, with a retry line if it fails. */
+function MarkResolved({ onMarkResolved }: { onMarkResolved: () => Promise<void> }) {
+  const [state, setState] = useState<"idle" | "saving" | "failed">("idle");
+  return (
+    <button
+      type="button"
+      disabled={state === "saving"}
+      onClick={async () => {
+        setState("saving");
+        try {
+          await onMarkResolved();
+          setState("idle");
+        } catch {
+          setState("failed");
+        }
+      }}
+      className="shrink-0 font-figtree text-[12px] font-medium leading-[18px] text-[#030303] underline underline-offset-2 disabled:text-[#71717b]"
+    >
+      {state === "saving" ? "Saving…" : state === "failed" ? "Couldn’t save. Try again" : "Mark as resolved"}
+    </button>
+  );
+}
 
 const ACTION_LABEL: Record<BookingAction, string> = {
   cancel: "Cancel package(s)",
@@ -123,6 +148,7 @@ function DayChip({ label }: { label: string }) {
 export default function HelpThread({
   items,
   summary,
+  onMarkResolved,
   onAnswerFollowUp,
   onClose,
   onChatWithEventManager,
@@ -171,10 +197,13 @@ export default function HelpThread({
               {summary.resolved ? "Resolved" : "Open"}
             </span>
           </div>
-          <span className="text-[#3f3f47]">
-            <span className="tabular-nums">{summary.ticket}</span> · raised {dayLabel(summary.raisedAt)},{" "}
-            {timeOf(summary.raisedAt)}
-          </span>
+          <div className="flex items-center justify-between gap-2">
+            <span className="min-w-0 truncate text-[#3f3f47]">
+              <span className="tabular-nums">{summary.ticket}</span> · raised {dayLabel(summary.raisedAt)},{" "}
+              {timeOf(summary.raisedAt)}
+            </span>
+            {!summary.resolved && onMarkResolved && <MarkResolved onMarkResolved={onMarkResolved} />}
+          </div>
         </div>
       )}
       <div className="flex w-full flex-col gap-4 px-4 pt-4">
