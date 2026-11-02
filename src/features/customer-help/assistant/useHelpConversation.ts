@@ -2,9 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/apiClient";
-import { getSnapshot as getCustomerSession } from "@/lib/customerSession";
 import { detectCurrentLocation } from "@/lib/geocoding";
-import { notifyHelpTicketSlack, type HelpTicketSlackInput } from "@/lib/helpTicketSlack";
 import {
   checkHelpArea,
   createHelpRequest,
@@ -316,6 +314,9 @@ const timeOf = (d: Date | string) =>
 const now = () => timeOf(new Date());
 
 const POLL_MS = 15000;
+// While the chat is on screen: Event Manager replies (from Slack or the
+// admin panel) show within a few seconds.
+const POLL_VIEWING_MS = 5000;
 // The open chat, so a reload (or another page) picks it up again.
 const CONVERSATION_KEY = "eventory_help_conversation";
 const SAVE_DELAY_MS = 800;
@@ -934,33 +935,13 @@ export function useHelpConversation({
    * card. From a request card in the chat (cardId), from the composer, or —
    * `fresh` — as a new chat (the change screens).
    */
-  /** The Event Managers' Slack post for a new ticket; `known` (the package's own booking) wins over the defaults. */
-  const notifySlack = (ticket: string, issue: string | undefined, note: string, known: HelpTicketSlackInput = {}) => {
-    if (!booking) return;
-    const me = getCustomerSession().customer;
-    notifyHelpTicketSlack({
-      ticket,
-      issue,
-      note,
-      customerName: known.customerName ?? me?.name,
-      customerPhone: known.customerPhone ?? me?.phone,
-      packageName: known.packageName,
-      packageId: known.packageId,
-      bookingId: known.bookingId ?? booking.refs.join(", "),
-      emName: booking.emName,
-      urgent: known.urgent,
-      details: known.details,
-    });
-  };
-
   const sendBookingRequest = async (
     {
       topic,
       text,
       details = [],
       report,
-      slack,
-    }: { topic: string; text: string; details?: string[]; report?: HelpReport; slack?: HelpTicketSlackInput },
+    }: { topic: string; text: string; details?: string[]; report?: HelpReport },
     cardId?: string,
     { fresh = false }: { fresh?: boolean } = {},
   ) => {
@@ -984,13 +965,7 @@ export function useHelpConversation({
       pageUrl: window.location.href,
       report,
     });
-    // The structured lines (new guest count, missing items, photo…) and,
-    // for no-shows and safety, the duty-manager flag go on the post too.
-    notifySlack(r.ticket, report ? report.label : topic, text, {
-      ...slack,
-      urgent: report?.urgent,
-      details: details.length ? details.join("\n") : undefined,
-    });
+    // The backend posts the ticket to Slack (its thread's parent message).
     seen.current = new Set(r.messages.filter((m) => m.from === "event_manager").map((m) => m.messageId));
     const who = booking.emName ?? "the Event Manager team";
     setItems((prev) => [
@@ -1028,10 +1003,6 @@ export function useHelpConversation({
       conversationId: conversation,
       pageUrl: window.location.href,
     });
-    // Posted before the call back, so the call back lands in its Slack
-    // thread. The request's own ticket, not the call back's: it's what
-    // "Mark resolved" closes.
-    notifySlack(first.ticket, "Call back request", text, { customerPhone: input.phone });
     const r = await requestHelpCallBack(first.enquiryId, input);
     const cb = r.callBack;
     if (!cb) throw new Error("Call back not saved");
@@ -1679,7 +1650,12 @@ export function useHelpConversation({
       (m) => m.from === "event_manager" && !seen.current.has(m.messageId),
     );
     fresh.forEach((m) => seen.current.add(m.messageId));
+    // A reply edited or deleted in Slack after it was shown: its line changes in place.
+    const current = new Map(r.messages.filter((m) => m.from === "event_manager").map((m) => [m.messageId, m.text]));
     setItems((prev) => {
+      prev = prev.map((i) =>
+        i.kind === "event-manager" && current.has(i.id) && current.get(i.id) !== i.text ? { ...i, text: current.get(i.id)! } : i,
+      );
       // The status card goes once a person has replied (Figma 6.7).
       let next = r.replied
         ? prev.filter((i) => i.kind !== "status")
@@ -1733,7 +1709,7 @@ export function useHelpConversation({
       }
     };
     if (viewing) void poll();
-    const timer = window.setInterval(poll, POLL_MS);
+    const timer = window.setInterval(poll, viewing ? POLL_VIEWING_MS : POLL_MS);
     document.addEventListener("visibilitychange", poll);
     return () => {
       stopped = true;
