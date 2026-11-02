@@ -25,7 +25,15 @@ export const OCCASIONS = [
   "Other",
 ] as const;
 export const GUEST_RANGES = ["Up to 25", "25–50", "50–100", "100–200", "200+"] as const;
-export const BUDGET_RANGES = ["Under ₹25K", "₹25–50K", "₹50K–1L", "₹1–2L", "₹2L+"] as const;
+export const BUDGET_RANGES = [
+  "₹1999 - ₹4999",
+  "₹5000 - ₹9999",
+  "₹10000 - ₹14999",
+  "₹15000 - ₹19999",
+  "₹20000 - ₹29999",
+  "₹30000 - ₹49999",
+  "₹50000 and above",
+] as const;
 export const VENDOR_TYPES = [
   "Decorator",
   "Caterer",
@@ -75,6 +83,8 @@ type HelpBriefCardProps = {
   initialPhoto?: File;
   /** An area from the chat (typed, or one we don't serve yet). */
   initialArea?: string;
+  /** Area chips: a package page's service areas; else where Eventory serves. */
+  areaOptions?: string[];
   /** The site's location tag; `served` false shows the "don't cover" note. */
   locationTag?: { label: string; served: boolean | undefined } | null;
   /** false = not served (warning note); undefined = not checked yet. */
@@ -110,6 +120,7 @@ export default function HelpBriefCard({
   onEditRequirements,
   initialPhoto,
   initialArea = "",
+  areaOptions = AREA_OPTIONS.map((a) => a.label),
   locationTag,
   isAreaServed,
   accountPhone,
@@ -201,14 +212,12 @@ export default function HelpBriefCard({
   );
 
   // Area chips: the location tag (served), an area from the chat, then
-  // the served regions.
+  // the package's service areas or the served regions.
   const tagChip = tagServed && locationTag ? `${locationTag.label} (your location)` : null;
   const areaChips = [
     ...(tagChip ? [tagChip] : []),
-    ...(initialArea && initialArea !== locationTag?.label && !AREA_OPTIONS.some((a) => a.label === initialArea)
-      ? [initialArea]
-      : []),
-    ...AREA_OPTIONS.map((a) => a.label).filter((l) => !locationTag?.label.includes(l)),
+    ...(initialArea && initialArea !== locationTag?.label && !areaOptions.includes(initialArea) ? [initialArea] : []),
+    ...areaOptions.filter((l) => !locationTag?.label.includes(l)),
   ];
   const chipValue = (chip: string) => (chip === tagChip ? (locationTag?.label ?? "") : chip);
   const areaNotServed =

@@ -237,15 +237,19 @@ export const guestBucket = (n: number) =>
           : "200+";
 /** A budget → the brief's range chip. */
 export const budgetBucket = (n: number) =>
-  n <= 25000
-    ? "Under ₹25K"
-    : n <= 50000
-      ? "₹25–50K"
-      : n <= 100000
-        ? "₹50K–1L"
-        : n <= 200000
-          ? "₹1–2L"
-          : "₹2L+";
+  n < 5000
+    ? "₹1999 - ₹4999"
+    : n < 10000
+      ? "₹5000 - ₹9999"
+      : n < 15000
+        ? "₹10000 - ₹14999"
+        : n < 20000
+          ? "₹15000 - ₹19999"
+          : n < 30000
+            ? "₹20000 - ₹29999"
+            : n < 50000
+              ? "₹30000 - ₹49999"
+              : "₹50000 and above";
 
 /** Package category label → the brief card's vendor-type chip. */
 function briefVendorType(label?: string) {
