@@ -26,6 +26,8 @@ export type HelpPackageContext = {
   vendorType?: string;
   /** This package's own occasions, to pre-fill the brief. */
   eventCategories: string[];
+  /** Where the vendor serves: the brief's area chips on this page. */
+  serviceAreas?: string[];
 };
 
 /**
