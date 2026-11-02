@@ -77,15 +77,18 @@ export default function PackageInfo({
             </Link>
           </div>
 
-          <Link href={cartPackage.href} className="mb-3 flex flex-wrap items-baseline gap-1 hover:underline">
-            <span className="font-figtree text-[16px] leading-none font-medium text-[#030303]">
+          {/* Real bug fixed (PM reported 2026-11-02): an unbounded, very
+              long package name (some run 150+ characters) had nothing to
+              stop it wrapping across many lines and blowing out this
+              card's layout — clamped to 2 lines, same pattern this
+              feature's own addon cards already use (AddonCard, AddedAddonRow). */}
+          <Link href={cartPackage.href} className="mb-3 block hover:underline" title={cartPackage.title}>
+            <span className="line-clamp-2 font-figtree text-[16px] leading-[22px] font-medium text-[#030303]">
               {cartPackage.title}
+              {cartPackage.variantType && (
+                <span className="font-figtree text-[16px] font-medium text-[#71717B]"> &middot; {cartPackage.variantType}</span>
+              )}
             </span>
-            {cartPackage.variantType && (
-              <span className="font-figtree text-[16px] leading-none font-medium text-[#71717B]">
-                &middot; {cartPackage.variantType}
-              </span>
-            )}
           </Link>
 
           <EventDetails details={eventDetails} />

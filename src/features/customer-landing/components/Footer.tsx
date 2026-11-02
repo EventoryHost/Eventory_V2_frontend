@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { OPEN_HELP_EVENT } from "@/features/customer-help/helpContext";
 
 const LINK_GROUPS = [
   {
@@ -8,14 +11,16 @@ const LINK_GROUPS = [
       { label: "About Us", href: "/about-us" },
       { label: "Careers", href: "#" },
       { label: "Become a vendor", href: "/become-a-vendor" },
-      { label: "Corporate Events", href: "#" },
+      // Both point at the package LISTING page (filters/grid), not /packages
+      // (the standalone landing-style page) — PM request 2026-11-02.
+      { label: "Corporate Events", href: "/packages/browse" },
       { label: "Blog", href: "/blogs" },
     ],
   },
   {
     title: "Plan an Event",
     links: [
-      { label: "Explore Packages", href: "/packages" },
+      { label: "Explore Packages", href: "/packages/browse" },
       { label: "Browse Categories", href: "/packages" },
       { label: "Vendors", href: "/vendors" },
       { label: "Events", href: "/events" },
@@ -33,9 +38,11 @@ const SOCIALS = [
   { icon: "/images/customer/youtube.svg", label: "YouTube", href: "https://www.youtube.com/@Eventory-platform" },
 ];
 
+// "Contacts" is handled separately below — it opens the floating Help
+// widget instead of navigating (PM request 2026-11-02), so it isn't a plain
+// href like the rest of these.
 const BOTTOM_LINKS = [
   { label: "Help Center", href: "#" },
-  { label: "Contacts", href: "/contact" },
   { label: "FAQs", href: "#" },
   { label: "Privacy Policy", href: "#" },
   { label: "Terms", href: "#" },
@@ -144,6 +151,13 @@ export default function Footer() {
           ©Eventory 2026 - 2028 - All Rights Reserved
         </p>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_HELP_EVENT))}
+            className="text-[#030303] transition-colors hover:text-brand-primary"
+          >
+            Contacts
+          </button>
           {BOTTOM_LINKS.map((link) => (
             <Link
               key={link.label}

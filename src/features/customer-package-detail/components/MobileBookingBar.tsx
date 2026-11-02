@@ -374,9 +374,14 @@ export default function MobileBookingBar({
                   <div className="flex items-center justify-between">
                     <span>
                       <span className="block font-figtree text-[16px] font-semibold text-[#222]">Total</span>
-                      <span className="block font-figtree text-[11px] text-[#71717B] underline">
-                        incl. {gstPercent}% GST
-                      </span>
+                      {/* Real bug fixed (PM reported 2026-11-02): unlike the desktop
+                          StickyBookingCard, this never checked gstPercent > 0, so a
+                          package with no GST configured still showed "incl. 0% GST". */}
+                      {gstPercent > 0 && (
+                        <span className="block font-figtree text-[11px] text-[#71717B] underline">
+                          incl. {gstPercent}% GST
+                        </span>
+                      )}
                     </span>
                     <span className="font-figtree text-[20px] font-semibold text-[#222]">
                       {formatPrice(estimatedTotal)}

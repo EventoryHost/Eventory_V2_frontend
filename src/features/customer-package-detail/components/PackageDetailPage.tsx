@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
 import { setHelpPageContext } from "@/features/customer-help/helpContext";
@@ -41,7 +42,36 @@ export default function PackageDetailPage({
   /** Where "Save changes" sends the customer back to once editItemId is set — "/cart" from Cart's edit link, "/booking-summary" from the Booking Summary modal's. Defaults to "/cart" in StickyBookingCard if absent (e.g. an old bookmarked edit link from before this existed). */
   returnTo?: string;
 }) {
+  const router = useRouter();
   const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
+
+  /**
+   * Real bug fixed (PM reported 2026-11-02): "ensure that content in the PDP
+   * page changes for a package based on variant type chosen". Each variant
+   * is actually its OWN Package document (same packageGroupId, see
+   * getPackageDetail.ts) — picking one here used to only swap the lightweight
+   * price/label/setupsCount/itemsCount pulled from GET
+   * /packages/group/:groupId's variant list, while everything else on the
+   * page (gallery, About, What's Included, add-ons, policies — all of
+   * `data`) stayed frozen to whichever package id the URL originally loaded,
+   * since nothing ever re-fetched for the newly selected variant.
+   *
+   * Navigating to the variant's own /packages/:id re-runs the server page's
+   * getPackageDetail(packageId) for THAT package and remounts this component
+   * (see src/app/(customer)/packages/[packageId]/page.tsx's `key={packageId}`),
+   * so the whole page's content now actually reflects the chosen variant,
+   * not just its price. `selectedVariantId` is still set immediately too,
+   * so the booking card/price update without waiting on navigation.
+   */
+  function selectVariant(variantId: string) {
+    setSelectedVariantId(variantId);
+    if (variantId === data.id) return;
+    const params = new URLSearchParams();
+    if (editItemId) params.set("editItemId", editItemId);
+    if (returnTo) params.set("returnTo", returnTo);
+    const qs = params.toString();
+    router.push(`/packages/${variantId}${qs ? `?${qs}` : ""}`);
+  }
   // One entry per LINE (addonId + colour combination), not one per addon —
   // real bug fixed 2026-10-01: the old Record<addonId, qty>/Record<addonId,
   // colour> shape could only ever hold ONE colour per addon at a time, so
@@ -250,7 +280,7 @@ export default function PackageDetailPage({
             <VariantSelector
               variants={data.variants}
               selectedId={selectedVariantId}
-              onSelect={setSelectedVariantId}
+              onSelect={selectVariant}
             />
           )}
 

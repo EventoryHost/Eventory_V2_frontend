@@ -32,9 +32,23 @@ export default function MagicalMomentsSection({ data }: { data: MagicalMomentsBl
               <span className="rounded-full bg-white px-5 py-2 font-figtree text-[11px] font-bold tracking-widest text-brand-primary uppercase shadow-lg sm:px-6 sm:text-[12px]">
                 {data.eyebrow}
               </span>
-              <h2 className="-rotate-1 rounded-lg bg-campaign-yellow px-6 py-2 font-figtree text-[28px] font-bold text-brand-950 shadow-lg sm:px-10 sm:py-3 sm:text-[40px] lg:text-[56px]">
-                {data.title}
-              </h2>
+              {/* PM-reported 2026-11-02: the title wasn't reliably readable
+                  over every campaign photo. First fix was a backdrop-blur
+                  chip with a hard rectangular edge — PM follow-up: no
+                  strict boundary, let it fade out instead. The glow layer
+                  behind the text is blurred (filter, not backdrop-filter),
+                  which softens its OWN edges into a feathered halo rather
+                  than a crisp rounded-rect; the text sits on a separate,
+                  unblurred layer on top so it stays sharp. */}
+              <span className="relative -rotate-1 px-6 py-2 sm:px-10 sm:py-3">
+                <span
+                  aria-hidden="true"
+                  className="absolute -inset-5 rounded-[32px] bg-campaign-yellow/85 blur-2xl sm:-inset-7"
+                />
+                <h2 className="relative font-figtree text-[28px] font-bold text-brand-950 sm:text-[40px] lg:text-[56px]">
+                  {data.title}
+                </h2>
+              </span>
             </div>
           </div>
 

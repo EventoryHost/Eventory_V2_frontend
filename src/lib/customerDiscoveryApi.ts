@@ -256,6 +256,16 @@ export async function getVendorFilters(params: { vendorType?: string } = {}) {
   return apiFetch<VendorFiltersResponse>(`/customer/vendors/filters${toQueryString(params)}`, { auth: false });
 }
 
+/**
+ * Every vendor ever registered, UNFILTERED (includes deactivated/Unlive/
+ * incomplete-onboarding ones) — unlike browseVendors' `.total`, which is
+ * narrowed to what a customer can actually browse. Only used for the
+ * Become a Vendor hero's "Total Number of Vendors on Eventory" stat.
+ */
+export async function getVendorsTotalCount() {
+  return apiFetch<{ status: string; total: number }>("/customer/vendors/total-count", { auth: false });
+}
+
 /** `vendorType` scopes `filters.eventCategories` to just that vendor type's own live categories — e.g. the package listing's Decorator tab never offers "Workshop" (a Photographer-only category) that would resolve to zero results for that tab. Omit for the unscoped "All" list. */
 export async function getPackagesFilters(params: { vendorType?: string } = {}) {
   return apiFetch<PackagesFiltersResponse>(`/customer/packages/filters${toQueryString(params)}`, { auth: false });
