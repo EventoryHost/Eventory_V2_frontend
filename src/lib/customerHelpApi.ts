@@ -67,6 +67,10 @@ export interface HelpThreadMessage {
   senderName: string | null;
   text: string;
   sentAt: string;
+  /** An Event Manager's reply changed in Slack after it was sent. */
+  edited?: boolean;
+  /** Deleted in Slack: `text` says so. */
+  deleted?: boolean;
 }
 
 interface HelpRequestResponse {
