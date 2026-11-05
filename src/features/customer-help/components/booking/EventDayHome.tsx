@@ -35,7 +35,7 @@ function Reveal({ number, children }: { number: string; children?: React.ReactNo
     <div className="flex flex-col gap-2.5 rounded-[12px] bg-[#fafafa] p-3">
       <span className="text-[20px] font-semibold leading-[28px] tracking-[0.3px] text-[#030303] tabular-nums">{number}</span>
       <div className="flex flex-wrap gap-2">
-        <a href={tel} className="flex items-center rounded-full bg-[#f0596f] px-5 py-[7px] text-[14px] leading-[20px] text-white">
+        <a href={tel} data-track-location="event_day_help" className="flex items-center rounded-full bg-[#f0596f] px-5 py-[7px] text-[14px] leading-[20px] text-white">
           Call
         </a>
         <HelpButton

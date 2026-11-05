@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/apiClient";
 import { detectCurrentLocation } from "@/lib/geocoding";
+import { trackLead } from "@/lib/analytics";
 import {
   checkHelpArea,
   createHelpRequest,
@@ -816,6 +817,7 @@ export function useHelpConversation({
         requestText: draft.current?.text,
         pageUrl: window.location.href,
       });
+      trackLead({ leadType: "area_waitlist", formLocation: "help_widget", phone });
       replace(
         (i) => i.id === itemId,
         (i) => ({ ...i, state: "saved" }) as ThreadItem,
@@ -1006,6 +1008,7 @@ export function useHelpConversation({
     const r = await requestHelpCallBack(first.enquiryId, input);
     const cb = r.callBack;
     if (!cb) throw new Error("Call back not saved");
+    trackLead({ leadType: "callback_request", formLocation: "help_widget", phone: input.phone });
     const who = booking.emName ?? "the Event Manager team";
     const at = new Date().toISOString();
     setItems([
@@ -1603,6 +1606,7 @@ export function useHelpConversation({
       transcript,
       conversationId: ensureConversationId(),
     });
+    trackLead({ leadType: "event_brief", formLocation: "help_widget", phone: brief.phone });
     const r = res.request;
     const rows: [string, string][] = [
       ["Occasion", brief.occasion],
@@ -1728,6 +1732,7 @@ export function useHelpConversation({
     const cb = r.callBack;
     setRequest(r);
     if (!cb) throw new Error("Call back not saved");
+    trackLead({ leadType: "callback_request", formLocation: "help_widget", phone: input.phone });
     setItems((prev) => [
       ...prev.filter((i) => i.kind !== "status" && i.kind !== "whatsapp"),
       {

@@ -103,6 +103,7 @@ export default function Footer() {
             </a>
             <a
               href="tel:+918800725840"
+              data-track-location="footer"
               className="font-figtree text-[14px] leading-[20px] font-medium text-[#030303] transition-colors hover:text-brand-primary"
             >
               +91 8800725840

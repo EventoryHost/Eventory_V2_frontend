@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { createVendorLead } from "@/lib/customerBecomeVendorApi";
 import { ApiError } from "@/lib/apiClient";
+import { trackLead } from "@/lib/analytics";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { CATEGORY_META } from "@/lib/categoryMeta";
@@ -48,6 +49,7 @@ export default function ContactUsModal({
     setIsSubmitting(true);
     try {
       const lead = await createVendorLead({ name: name.trim(), vendorType, phone: phone.trim() });
+      trackLead({ leadType: "vendor_enquiry", formLocation: "become_a_vendor", phone: phone.trim() });
       onSubmitted(lead.name);
       // Reset so the next time this modal opens (a different lead) it
       // doesn't carry over the previous submission's values.

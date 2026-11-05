@@ -1,5 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Inter, Figtree } from "next/font/google";
+import TrackingScripts from "@/components/analytics/TrackingScripts";
+import RouteChangeTracker from "@/components/analytics/RouteChangeTracker";
+import ContactClickTracker from "@/components/analytics/ContactClickTracker";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,6 +30,11 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${figtree.variable} font-sans antialiased`}>
         {children}
+        <TrackingScripts />
+        <ContactClickTracker />
+        <Suspense fallback={null}>
+          <RouteChangeTracker />
+        </Suspense>
       </body>
     </html>
   );

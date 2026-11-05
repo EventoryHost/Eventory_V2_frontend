@@ -79,12 +79,13 @@ export default function IncludedItems({
         {items.length > 0 && <span> · {items.length} setup{items.length === 1 ? "" : "s"}</span>}
         {hasCustomizableItems && (
           <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[#F0596F]/30 bg-[#FFF0F2] px-2.5 py-1 font-figtree text-[11px] font-semibold text-[#F0596F]">
+            {/* Figma node 3233:25607 — palette icon. */}
             <span
               aria-hidden
-              className="h-3 w-3 bg-current"
+              className="h-3.5 w-3.5 shrink-0 bg-current"
               style={{
-                WebkitMask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
-                mask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                WebkitMask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
+                mask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
               }}
             />
             Customizable

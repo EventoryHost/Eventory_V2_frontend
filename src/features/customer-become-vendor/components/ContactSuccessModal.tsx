@@ -64,6 +64,7 @@ export default function ContactSuccessModal({
               <div className="flex w-full flex-col items-center gap-2">
                 <a
                   href={buildWhatsAppLink(`Hi, I'm ${name} — I just submitted my details to become a vendor on Eventory.`)}
+                  data-track-location="vendor_contact_success"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex w-full items-center justify-center gap-2 rounded-full bg-[#25D366] py-2 pr-6 pl-5 font-figtree text-[14px] font-semibold text-white transition hover:bg-[#1fb956]"

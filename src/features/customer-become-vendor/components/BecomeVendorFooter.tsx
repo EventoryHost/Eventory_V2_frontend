@@ -93,6 +93,7 @@ export default function BecomeVendorFooter() {
             </a>
             <a
               href="tel:+918800725840"
+              data-track-location="become_vendor_footer"
               className="font-figtree text-[14px] leading-[20px] font-medium text-[#030303] transition-colors hover:text-brand-primary"
             >
               +91 8800725840
