@@ -1,10 +1,44 @@
 // src/app/(customer)/packages/[packageId]/page.tsx
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPackageDetail, PackageNotFoundError } from "@/features/customer-package-detail/services/getPackageDetail";
 import PackageDetailPage from "@/features/customer-package-detail/components/PackageDetailPage";
 
 // Live inventory, not build-time content.
 export const dynamic = "force-dynamic";
+
+// One fetch per request, shared by generateMetadata and the page itself.
+const loadPackage = cache(getPackageDetail);
+
+const trim = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
+
+export async function generateMetadata({ params }: { params: Promise<{ packageId: string }> }): Promise<Metadata> {
+  const { packageId } = await params;
+  try {
+    const data = await loadPackage(packageId);
+    // getPackageDetail fills an empty description with this placeholder; it must never become the meta description.
+    const about = data.aboutText
+      .filter((line) => line !== "No description provided yet.")
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+    const title = trim(`${data.title} – ${data.categoryLabel} in Delhi NCR`, 60);
+    const description = about
+      ? trim(about, 155)
+      : `Book ${data.title} from a verified ${data.categoryLabel.toLowerCase()} in Delhi NCR on Eventory.`;
+    const image = data.gallery.find((item) => item.image)?.image;
+    return {
+      title,
+      description,
+      alternates: { canonical: `/packages/${packageId}` },
+      openGraph: { title, description, ...(image && { images: [image] }) },
+    };
+  } catch (error) {
+    if (error instanceof PackageNotFoundError) return { title: "Package not found", robots: { index: false } };
+    throw error;
+  }
+}
 
 export default async function PackageDetail({
   params,
@@ -18,7 +52,7 @@ export default async function PackageDetail({
 
   let data;
   try {
-    data = await getPackageDetail(packageId);
+    data = await loadPackage(packageId);
   } catch (error) {
     if (error instanceof PackageNotFoundError) notFound();
     throw error;

@@ -1,5 +1,10 @@
 // src/app/(customer)/page.tsx
+import type { Metadata } from "next";
 import Hero from "@/features/customer-landing/components/Hero";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function CustomerLandingPage() {
   return (
