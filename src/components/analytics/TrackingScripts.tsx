@@ -3,7 +3,9 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 
-const GTM_ID = process.env.NEXT_PUBLIC_GTM_ID;
+// Amplify rejects blank values, so non-prod branches use a placeholder such as "off" — only a real GTM-XXXXXXX ID loads GTM.
+const rawGtmId = process.env.NEXT_PUBLIC_GTM_ID?.trim();
+const GTM_ID = rawGtmId && /^GTM-[A-Z0-9]+$/i.test(rawGtmId) ? rawGtmId : undefined;
 
 // Only Google Tag Manager is loaded in code; GA4, Google Ads and Meta Pixel are configured inside GTM.
 export default function TrackingScripts() {

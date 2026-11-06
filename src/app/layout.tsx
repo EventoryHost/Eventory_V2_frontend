@@ -27,7 +27,8 @@ export const metadata: Metadata = {
     "Book verified event decorators and curated party, birthday and baby shower packages from trusted vendors across Delhi NCR, all in one place.",
   openGraph: { siteName: SITE_NAME, type: "website", locale: "en_IN" },
   robots: INDEXING_ENABLED ? { index: true, follow: true } : { index: false, follow: false },
-  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+  // A placeholder such as "off" (Amplify rejects blank values) must not render a bogus verification tag.
+  ...(/^[A-Za-z0-9_-]{20,}$/.test(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? "") && {
     verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION },
   }),
 };
