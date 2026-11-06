@@ -7,6 +7,7 @@ import { browsePackages, getPackagesFilters, type BrowsePackagesParams } from "@
 import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
+import { keepTrackingParams } from "@/lib/trackingParams";
 import { addCompareItem, clearCompare, MAX_COMPARE_PACKAGES } from "@/lib/customerCompareApi";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
@@ -196,6 +197,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // Keep the shareable URL in step with the state worth deep-linking.
   useEffect(() => {
     const params = new URLSearchParams();
+    keepTrackingParams(searchParams, params);
     if (search) params.set("q", search);
     if (category !== "all") params.set("category", category);
     if (sort !== "newest") params.set("sort", sort);

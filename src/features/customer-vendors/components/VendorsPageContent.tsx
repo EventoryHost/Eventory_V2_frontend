@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SlidersHorizontal } from "lucide-react";
+import { keepTrackingParams } from "@/lib/trackingParams";
 import type { FilterSectionId, SelectedFilters, SortOption, VendorsPageData, ViewMode } from "../types";
 import { EMPTY_SELECTED_FILTERS } from "../types";
 import { getFilterSections, VENDORS_PAGE_SIZE } from "../data/filterConfig";
@@ -130,6 +131,7 @@ export default function VendorsPageContent({ data }: { data: VendorsPageData }) 
   // (category, search, sort, view). Checkbox filters stay local-only.
   useEffect(() => {
     const params = new URLSearchParams();
+    keepTrackingParams(searchParams, params);
     if (search) params.set("q", search);
     if (category !== "all") params.set("category", category);
     if (sort !== "newest") params.set("sort", sort);

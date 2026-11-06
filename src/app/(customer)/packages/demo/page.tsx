@@ -1,6 +1,10 @@
 // src/app/(customer)/packages/demo/page.tsx
+import type { Metadata } from "next";
 import PackageDetailPage from "@/features/customer-package-detail/components/PackageDetailPage";
 import { mockPackageDetail } from "@/features/customer-package-detail/data/mockPackageDetailData";
+
+// Private/non-public route: never indexable, in any environment.
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 // Fully static preview of the PDP layout — no backend fetch, always renders
 // the same example package regardless of backend availability. This literal

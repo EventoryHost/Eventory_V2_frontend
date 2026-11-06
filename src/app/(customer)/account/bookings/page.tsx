@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import BookingsContent from "@/features/customer-account/components/BookingsContent";
 
 export const metadata: Metadata = {
-  title: "Bookings - Eventory",
+  title: "Bookings",
 };
 
 // Auth gate + sidebar come from the /account layout.

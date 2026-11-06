@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import PaymentDetailsContent from "@/features/customer-account/components/PaymentDetailsContent";
 
 export const metadata: Metadata = {
-  title: "Payment Details - Eventory",
+  title: "Payment Details",
 };
 
 // Auth gate + sidebar come from the /account layout.

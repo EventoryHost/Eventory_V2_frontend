@@ -4,6 +4,7 @@ import { Inter, Figtree } from "next/font/google";
 import TrackingScripts from "@/components/analytics/TrackingScripts";
 import RouteChangeTracker from "@/components/analytics/RouteChangeTracker";
 import ContactClickTracker from "@/components/analytics/ContactClickTracker";
+import { INDEXING_ENABLED, SITE_NAME, SITE_URL } from "@/lib/siteConfig";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -17,8 +18,18 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "Eventory - Premium Event Management",
-  description: "Manage your events and inventory with ease.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Eventory – Book Event Decorators & Party Packages in Delhi NCR",
+    template: "%s | Eventory",
+  },
+  description:
+    "Book verified event decorators and curated party, birthday and baby shower packages from trusted vendors across Delhi NCR, all in one place.",
+  openGraph: { siteName: SITE_NAME, type: "website", locale: "en_IN" },
+  robots: INDEXING_ENABLED ? { index: true, follow: true } : { index: false, follow: false },
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION && {
+    verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION },
+  }),
 };
 
 export default function RootLayout({

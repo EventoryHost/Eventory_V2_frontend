@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import AccountPageContent from "@/features/customer-account/components/AccountPageContent";
 
 export const metadata: Metadata = {
-  title: "My Account - Eventory",
+  title: "My Account",
 };
 
 // Everything on this page is scoped to the signed-in customer, whose bearer
