@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
-import SearchDropdownPanel from "@/features/customer-landing/components/SearchDropdownPanel";
+import VendorServiceDropdownPanel from "@/features/customer-landing/components/VendorServiceDropdownPanel";
 
 // All 6 real vendor categories (VENDOR_CATEGORIES minus its "all" entry),
 // paired with the same icons the landing page's "Choose vendor service"
@@ -77,8 +77,7 @@ export default function BudgetVendorTypeField({
       />
 
       {open && (
-        <SearchDropdownPanel
-          header="Vendor type"
+        <VendorServiceDropdownPanel
           rows={filtered}
           selectedId={selectedId}
           onSelect={(id) => {

@@ -13,7 +13,14 @@ import HelpPanelHeader, { type HelpPanelHeaderType } from "./HelpPanelHeader";
 type HelpPanelProps = {
   open: boolean;
   onClose: () => void;
-  header: { type: HelpPanelHeaderType; onBack?: () => void; tabs?: ReactNode; subtitle?: string };
+  header: {
+    type: HelpPanelHeaderType;
+    onBack?: () => void;
+    tabs?: ReactNode;
+    subtitle?: string;
+    title?: string;
+    icon?: string;
+  };
   /** Changes when the body content changes, to re-apply scrollMode. */
   scrollKey: unknown;
   /** "bottom" pins the newest message, "top" resets, "none" leaves it to the content. */
@@ -113,7 +120,14 @@ export default function HelpPanel({
             className={`fixed inset-x-0 bottom-0 z-50 flex h-[92dvh] flex-col overflow-hidden rounded-t-[24px] bg-white outline-none md:inset-x-auto md:bottom-3 md:right-3 md:top-3 md:h-auto md:w-[440px] md:max-w-[calc(100%-24px)] md:rounded-[24px] ${SHADOW_XL}`}
           >
             <span className="mx-auto mt-2 block h-1 w-9 shrink-0 rounded-full bg-[#d4d4d8] md:hidden" aria-hidden />
-            {header.tabs ?? <HelpPanelHeader type={header.type} onClose={onClose} onBack={header.onBack} subtitle={header.subtitle} />}
+            {header.tabs ?? <HelpPanelHeader
+                type={header.type}
+                onClose={onClose}
+                onBack={header.onBack}
+                subtitle={header.subtitle}
+                title={header.title}
+                icon={header.icon}
+              />}
 
             <div
               ref={bodyRef}

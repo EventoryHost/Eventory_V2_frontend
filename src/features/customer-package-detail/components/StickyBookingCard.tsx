@@ -83,6 +83,7 @@ export default function StickyBookingCard({
     convenienceFee,
     conveniencePreview,
     detailsComplete,
+    locationNotServiceable,
     requestAddToCart,
     requestBookClick,
     handleNotePromptSkip,
@@ -254,9 +255,13 @@ export default function StickyBookingCard({
 
         {!detailsComplete && (
           <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">
-            {requiresGuestCount
-              ? "Fill in event type, date, time, location and guest count to continue"
-              : "Fill in event type, date, time and location to continue"}
+            {locationNotServiceable
+              ? serviceability.status === "ready" && !serviceability.data.serviceable
+                ? "This vendor doesn't serve your location — try a different address"
+                : "Add a 6-digit pincode to your location so we can confirm this vendor serves it"
+              : requiresGuestCount
+                ? "Fill in event type, date, time, location and guest count to continue"
+                : "Fill in event type, date, time and location to continue"}
           </p>
         )}
 

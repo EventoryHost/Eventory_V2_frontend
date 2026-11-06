@@ -6,15 +6,21 @@ import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
 import { createVendorLead } from "@/lib/customerBecomeVendorApi";
 import { ApiError } from "@/lib/apiClient";
+import { trackLead } from "@/lib/analytics";
 import SearchDropdown from "@/features/customer-landing/components/SearchDropdown";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
+import { CATEGORY_META } from "@/lib/categoryMeta";
 
 // Figma: https://www.figma.com/design/fKzA9Z3TJHMEL93WM31azx/Customer-Side---Final-Dev?node-id=2438-23206
 // Same options the public vendor-browsing filter uses (minus "All", which
 // doesn't make sense as a lead's own type) — not a separate hardcoded list.
+// Icons reuse CATEGORY_META, same source the landing page's "Choose vendor
+// service" dropdown already uses for these exact 6 categories, so a vendor
+// sees the same logo here as everywhere else it appears.
 const VENDOR_TYPE_OPTIONS = VENDOR_CATEGORIES.filter((category) => category.id !== "all").map((category) => ({
   value: category.label,
   label: category.label,
+  icon: CATEGORY_META[category.id]?.icon,
 }));
 
 export default function ContactUsModal({
@@ -43,6 +49,7 @@ export default function ContactUsModal({
     setIsSubmitting(true);
     try {
       const lead = await createVendorLead({ name: name.trim(), vendorType, phone: phone.trim() });
+      trackLead({ leadType: "vendor_enquiry", formLocation: "become_a_vendor", phone: phone.trim() });
       onSubmitted(lead.name);
       // Reset so the next time this modal opens (a different lead) it
       // doesn't carry over the previous submission's values.

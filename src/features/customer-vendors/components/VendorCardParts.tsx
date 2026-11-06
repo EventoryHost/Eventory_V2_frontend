@@ -32,12 +32,13 @@ export function VendorNameHeader({ vendor }: { vendor: Vendor }) {
 }
 
 /**
- * Star, average, review count — always rendered, including for a vendor
- * with no reviews yet ("0.0 (0 Reviews)"). Swapping in a "No reviews yet"
- * sentence instead changed the line's shape between cards; a zeroed rating
- * says the same thing and keeps every card aligned.
+ * Star, average, review count — hidden entirely for a vendor with no
+ * reviews yet (PM request 2026-10-30: "show reviews only if greater than
+ * 0"), rather than rendering a hollow "0.0 (0 Reviews)" line.
  */
 export function VendorRatingLine({ vendor }: { vendor: Vendor }) {
+  if (vendor.reviewCount <= 0) return null;
+
   return (
     <div className="flex items-center gap-1.5">
       <Star className="size-4 shrink-0 fill-[#ea1d3b] text-[#ea1d3b]" />
@@ -53,32 +54,45 @@ export function VendorRatingLine({ vendor }: { vendor: Vendor }) {
   );
 }
 
+const MAX_CATEGORY_BADGES = 3;
+
 /**
- * The design stacks up to three of these per row, the extra two icon-only.
- * Only one is rendered: a Vendor carries a single `vendorType`, so there is
- * no second or third category to draw — see VendorListCard.
+ * Figma node 1418:12214 (2026-10-30 refresh) — the labeled pill
+ * ("CATERER" text beside the icon) is gone; the design stacks up to three
+ * plain icon-only gradient badges per row, overlapping with a negative
+ * margin, the frontmost one drawn last/on top. `vendor.categories` is every
+ * distinct category the vendor actually has a LIVE package under (see
+ * browseVendors/mapVendorToCard) — real bug fixed 2026-10-30: this used to
+ * read only the vendor's single self-declared `categoryLabel`, so a vendor
+ * with, say, both Decorator and Caterer packages only ever showed one badge.
  */
 export function VendorCategoryChip({ vendor }: { vendor: Vendor }) {
-  // A vendor who never picked a type has no chip — better than one reading "ALL".
-  if (!vendor.categoryLabel) return null;
+  const categories = vendor.categories.slice(0, MAX_CATEGORY_BADGES);
+  if (categories.length === 0) return null;
 
   return (
-    <div
-      className="flex min-w-0 max-w-full shrink items-center gap-2 rounded-[52px] py-0.5 pr-2 pl-1"
-      style={{
-        background: `linear-gradient(to right, #ffffff, ${vendor.categoryGradientFrom ?? "#FFE5E9"} 80%)`,
-      }}
-    >
-      <Image
-        src={vendor.categoryIcon ?? FALLBACK_CATEGORY_ICON}
-        alt=""
-        width={16}
-        height={16}
-        className="size-4 shrink-0 rounded-full object-contain"
-      />
-      <span className="min-w-0 truncate font-figtree text-[11px] leading-[16px] font-bold text-[#3c060d] uppercase">
-        {vendor.categoryLabel}
-      </span>
+    <div className="isolate flex shrink-0 items-center">
+      {categories.map((category, index) => (
+        <div
+          key={category.id}
+          className={`flex shrink-0 items-center justify-center rounded-[52px] py-0.5 pr-2 pl-1 ${
+            index < categories.length - 1 ? "mr-[-2px]" : ""
+          }`}
+          style={{
+            background: `linear-gradient(to right, #ffffff, ${category.gradientFrom ?? "#FFE5E9"} 80%)`,
+            zIndex: categories.length - index,
+          }}
+          title={category.label}
+        >
+          <Image
+            src={category.icon ?? FALLBACK_CATEGORY_ICON}
+            alt={category.label}
+            width={16}
+            height={16}
+            className="size-4 shrink-0 rounded-full object-contain"
+          />
+        </div>
+      ))}
     </div>
   );
 }

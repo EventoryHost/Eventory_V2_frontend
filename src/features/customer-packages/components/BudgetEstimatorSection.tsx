@@ -5,7 +5,11 @@ import Image from "next/image";
 import { Loader2 } from "lucide-react";
 import type { BudgetEstimator } from "../types";
 import { formatBudgetRange } from "../utils/formatPrice";
-import { browsePackages, getPackagesFilters, getPackageStartingPrice } from "@/lib/customerDiscoveryApi";
+import {
+  browsePackages,
+  getPackagesFilters,
+  getPackageStartingPrice,
+} from "@/lib/customerDiscoveryApi";
 import { CATEGORY_TO_VENDOR_TYPE } from "@/lib/vendorType";
 import { SERVICE_AREAS } from "@/features/customer-become-vendor/data/serviceAreas";
 import BudgetEventTypeField from "./BudgetEventTypeField";
@@ -29,7 +33,11 @@ type Estimate = {
   empty: boolean;
 };
 
-export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator }) {
+export default function BudgetEstimatorSection({
+  data,
+}: {
+  data: BudgetEstimator;
+}) {
   // Real, live data for the two dropdown fields — fetched once on mount,
   // same source (GET /customer/packages/filters) the landing page's own
   // Event Type search uses. Best-effort: a failed fetch just leaves both
@@ -53,7 +61,10 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
   // GET /customer/packages/filters' cities, which right now only reflects 3
   // messy, free-typed strings off the handful of packages already live
   // (e.g. "sec 45 noida "), not the actual service footprint.
-  const cities = useMemo(() => SERVICE_AREAS.map((district) => district.area), []);
+  const cities = useMemo(
+    () => SERVICE_AREAS.map((district) => district.area),
+    [],
+  );
 
   const [eventTypeId, setEventTypeId] = useState("");
   const [eventTypeLabel, setEventTypeLabel] = useState("");
@@ -71,18 +82,25 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
   });
   const [loading, setLoading] = useState(false);
 
-  const [activeGroupId, setActiveGroupId] = useState(data.vendorGroups[0]?.categoryId);
+  const [activeGroupId, setActiveGroupId] = useState(
+    data.vendorGroups[0]?.categoryId,
+  );
   const activeGroup = useMemo(
-    () => data.vendorGroups.find((group) => group.categoryId === activeGroupId) ?? data.vendorGroups[0],
-    [data.vendorGroups, activeGroupId]
+    () =>
+      data.vendorGroups.find((group) => group.categoryId === activeGroupId) ??
+      data.vendorGroups[0],
+    [data.vendorGroups, activeGroupId],
   );
 
   async function handleEstimate() {
     setLoading(true);
     try {
-      const tags = [eventTypeLabel, vendorTypeLabel, location.trim()].filter(Boolean);
+      const tags = [eventTypeLabel, vendorTypeLabel, location.trim()].filter(
+        Boolean,
+      );
       const guestsNum = Number(guests);
-      const hasGuests = guests.trim() !== "" && Number.isFinite(guestsNum) && guestsNum > 0;
+      const hasGuests =
+        guests.trim() !== "" && Number.isFinite(guestsNum) && guestsNum > 0;
 
       // GET /customer/packages' `city` filter is an exact, case-sensitive
       // match against whatever free-text a vendor typed at onboarding — real
@@ -93,11 +111,16 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
       // progressively broader real queries (dropping city, then guests, then
       // event type, then vendor type) until one returns real packages,
       // being honest in the copy about which filter had to be relaxed.
-      const tiers: { params: Partial<Parameters<typeof browsePackages>[0]>; describe: () => string }[] = [
+      const tiers: {
+        params: Partial<Parameters<typeof browsePackages>[0]>;
+        describe: () => string;
+      }[] = [
         {
           params: {
             ...(eventTypeId && { eventCategory: eventTypeId }),
-            ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }),
+            ...(vendorTypeId && {
+              vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId],
+            }),
             ...(location.trim() && { city: location.trim() }),
             ...(hasGuests && { guests: guestsNum }),
           },
@@ -106,7 +129,9 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
         {
           params: {
             ...(eventTypeId && { eventCategory: eventTypeId }),
-            ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }),
+            ...(vendorTypeId && {
+              vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId],
+            }),
             ...(hasGuests && { guests: guestsNum }),
           },
           describe: () =>
@@ -117,25 +142,40 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
         {
           params: {
             ...(eventTypeId && { eventCategory: eventTypeId }),
-            ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }),
+            ...(vendorTypeId && {
+              vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId],
+            }),
           },
-          describe: () => "for your event and vendor type, regardless of guest count or location",
+          describe: () =>
+            "for your event and vendor type, regardless of guest count or location",
         },
         {
-          params: { ...(vendorTypeId && { vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId] }) },
-          describe: () => "for your chosen vendor type, across every event and location",
+          params: {
+            ...(vendorTypeId && {
+              vendorType: CATEGORY_TO_VENDOR_TYPE[vendorTypeId],
+            }),
+          },
+          describe: () =>
+            "for your chosen vendor type, across every event and location",
         },
         {
           params: {},
-          describe: () => "across the whole Eventory catalog — no exact matches for your filters yet",
+          describe: () =>
+            "across the whole Eventory catalog — no exact matches for your filters yet",
         },
       ];
 
       for (const tier of tiers) {
         // Skip a tier that's identical to one already tried (e.g. no filters
         // were set at all, so every tier is the same unfiltered query).
-        const response = await browsePackages({ ...tier.params, sort: "price_asc", limit: 50 });
-        const prices = response.packages.map(getPackageStartingPrice).filter((price) => price > 0);
+        const response = await browsePackages({
+          ...tier.params,
+          sort: "price_asc",
+          limit: 50,
+        });
+        const prices = response.packages
+          .map(getPackageStartingPrice)
+          .filter((price) => price > 0);
         if (prices.length > 0) {
           setEstimate({
             min: Math.min(...prices),
@@ -170,7 +210,9 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
   return (
     <section className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
       <div className="mb-6 sm:mb-8">
-        <h2 className="font-figtree text-[20px] font-bold text-brand-950 sm:text-[28px]">{data.heading}</h2>
+        <h2 className="font-figtree text-[20px] font-bold text-brand-950 sm:text-[28px]">
+          {data.heading}
+        </h2>
         <p className="mt-1 font-figtree text-[13px] font-medium text-neutral-tertiary sm:text-[14px]">
           {data.subheading}
         </p>
@@ -189,7 +231,9 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
           />
 
           <label className="relative block rounded-2xl border border-[#E4E4E7] bg-white px-4 py-3 transition-colors focus-within:border-brand-primary">
-            <span className="block font-figtree text-[13px] text-[#71717B] sm:text-[16px]">How many Guests?</span>
+            <span className="block font-figtree text-[13px] text-[#71717B] sm:text-[16px]">
+              How many Guests?
+            </span>
             <input
               type="number"
               min={1}
@@ -201,7 +245,11 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
             />
           </label>
 
-          <BudgetLocationField cities={cities} value={location} onChange={setLocation} />
+          <BudgetLocationField
+            cities={cities}
+            value={location}
+            onChange={setLocation}
+          />
 
           <BudgetVendorTypeField
             selectedId={vendorTypeId}
@@ -232,7 +280,8 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
             <div
               className="absolute inset-0"
               style={{
-                background: "linear-gradient(103deg, #FF667D 1.75%, #FCDEE2 98.25%)",
+                background:
+                  "linear-gradient(103deg, #FF667D 1.75%, #FCDEE2 98.25%)",
               }}
             />
 
@@ -241,7 +290,7 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
               alt=""
               width={139}
               height={138}
-              className="pointer-events-none absolute top-1/2 right-[-17px] hidden -translate-y-1/2 sm:block"
+              className="pointer-events-none absolute top-[68%] right-[-17px] hidden -translate-y-1/2 sm:block"
             />
             <Image
               src="/images/customer/packages/budget-cash-bill.png"
@@ -271,7 +320,9 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
                   <h3 className="mt-2 font-figtree text-[26px] font-bold text-white sm:text-[36px]">
                     {formatBudgetRange(estimate.min, estimate.max)}
                   </h3>
-                  <p className="mt-1 font-figtree text-[13px] text-white/85">{estimate.insight}</p>
+                  <p className="mt-1 font-figtree text-[13px] text-white/85">
+                    {estimate.insight}
+                  </p>
                 </>
               )}
               {estimate.tags.length > 0 && (
@@ -314,12 +365,17 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
               {activeGroup && activeGroup.suggestions.length > 0 ? (
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {activeGroup.suggestions.map((suggestion, i) => (
-                    <BudgetSuggestionCard key={suggestion.id} suggestion={suggestion} seed={i} />
+                    <BudgetSuggestionCard
+                      key={suggestion.id}
+                      suggestion={suggestion}
+                      seed={i}
+                    />
                   ))}
                 </div>
               ) : (
                 <p className="py-6 text-center font-figtree text-[14px] text-neutral-tertiary">
-                  No live {activeGroup?.categoryLabel.toLowerCase()} packages yet — check back soon.
+                  No live {activeGroup?.categoryLabel.toLowerCase()} packages
+                  yet — check back soon.
                 </p>
               )}
             </div>
@@ -334,11 +390,19 @@ export default function BudgetEstimatorSection({ data }: { data: BudgetEstimator
                 className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full border border-[#D9D9D9] shadow-[0px_0px_4px_0px_rgba(0,0,0,0.1)]"
                 style={i === 0 ? undefined : { marginLeft: "-12px" }}
               >
-                <Image src={avatar} alt="" fill sizes="24px" className="object-cover" />
+                <Image
+                  src={avatar}
+                  alt=""
+                  fill
+                  sizes="24px"
+                  className="object-cover"
+                />
               </span>
             ))}
           </div>
-          <p className="font-figtree text-[14px] font-semibold text-[#3355FF]">{data.marketInsight}</p>
+          <p className="font-figtree text-[14px] font-semibold text-[#3355FF]">
+            {data.marketInsight}
+          </p>
         </div>
       </div>
     </section>

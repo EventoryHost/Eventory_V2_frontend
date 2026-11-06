@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { OPEN_HELP_EVENT } from "@/features/customer-help/helpContext";
 
 const LINK_GROUPS = [
   {
@@ -8,14 +11,16 @@ const LINK_GROUPS = [
       { label: "About Us", href: "/about-us" },
       { label: "Careers", href: "#" },
       { label: "Become a vendor", href: "/become-a-vendor" },
-      { label: "Corporate Events", href: "#" },
+      // Both point at the package LISTING page (filters/grid), not /packages
+      // (the standalone landing-style page) — PM request 2026-11-02.
+      { label: "Corporate Events", href: "/packages/browse" },
       { label: "Blog", href: "/blogs" },
     ],
   },
   {
     title: "Plan an Event",
     links: [
-      { label: "Explore Packages", href: "/packages" },
+      { label: "Explore Packages", href: "/packages/browse" },
       { label: "Browse Categories", href: "/packages" },
       { label: "Vendors", href: "/vendors" },
       { label: "Events", href: "/events" },
@@ -33,9 +38,11 @@ const SOCIALS = [
   { icon: "/images/customer/youtube.svg", label: "YouTube", href: "https://www.youtube.com/@Eventory-platform" },
 ];
 
+// "Contacts" is handled separately below — it opens the floating Help
+// widget instead of navigating (PM request 2026-11-02), so it isn't a plain
+// href like the rest of these.
 const BOTTOM_LINKS = [
   { label: "Help Center", href: "#" },
-  { label: "Contacts", href: "/contact" },
   { label: "FAQs", href: "#" },
   { label: "Privacy Policy", href: "#" },
   { label: "Terms", href: "#" },
@@ -67,8 +74,8 @@ export default function Footer() {
         {/* Links Grid */}
         <div className="grid flex-1 grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-12">
           {LINK_GROUPS.map((group) => (
-            <div key={group.title} className="flex flex-col space-y-4">
-              <h3 className="mb-2 font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
+            <div key={group.title} className="flex flex-col gap-3">
+              <h3 className="font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
                 {group.title}
               </h3>
               {group.links.map((link) => (
@@ -84,8 +91,8 @@ export default function Footer() {
           ))}
 
           {/* Contacts Column */}
-          <div className="flex flex-col space-y-4">
-            <h3 className="mb-2 font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
+          <div className="flex flex-col gap-3">
+            <h3 className="font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
               Contacts
             </h3>
             <a
@@ -96,6 +103,7 @@ export default function Footer() {
             </a>
             <a
               href="tel:+918800725840"
+              data-track-location="footer"
               className="font-figtree text-[14px] leading-[20px] font-medium text-[#030303] transition-colors hover:text-brand-primary"
             >
               +91 8800725840
@@ -103,8 +111,8 @@ export default function Footer() {
           </div>
 
           {/* Follow Us Column */}
-          <div className="flex flex-col space-y-4">
-            <h3 className="mb-2 font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
+          <div className="flex flex-col gap-3">
+            <h3 className="font-figtree text-[14px] leading-[18px] font-medium text-[#790B1A]">
               Follow Us
             </h3>
             <div className="flex space-x-3">
@@ -144,6 +152,13 @@ export default function Footer() {
           ©Eventory 2026 - 2028 - All Rights Reserved
         </p>
         <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(OPEN_HELP_EVENT))}
+            className="text-[#030303] transition-colors hover:text-brand-primary"
+          >
+            Contacts
+          </button>
           {BOTTOM_LINKS.map((link) => (
             <Link
               key={link.label}

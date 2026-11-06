@@ -11,7 +11,7 @@ export default function BlogsHeroSection({
   onQueryChange: (value: string) => void;
 }) {
   return (
-    <section className="w-full bg-gradient-to-b from-[#FFFBEB] to-white px-4 pt-12 pb-8 sm:px-6 lg:px-16 lg:pt-20 lg:pb-12">
+    <section className="w-full bg-gradient-to-b from-[#FFFBEB] to-white px-4 pt-6 pb-8 sm:px-6 lg:px-16 lg:pt-10 lg:pb-12">
       <div className="mx-auto flex max-w-[1312px] flex-col items-start justify-between gap-8 lg:flex-row lg:items-end">
         <div className="flex max-w-[720px] flex-col gap-3.5">
           <p className="font-figtree text-[16px] leading-[18px] font-semibold tracking-normal text-[#EA1D3B] uppercase">

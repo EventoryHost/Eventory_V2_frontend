@@ -204,7 +204,7 @@ function buildJourney(
     ended.length === total
       ? endedDescription(ended)
       : awaitingReviewCount > 0
-        ? `${settled} of ${total} confirmed. Your vendor has responded to your requests — review the proposal and accept it to confirm.`
+        ? `${settled} of ${total} confirmed. Your vendor has responded to your requests — review the proposal and accept it.`
         : reopenedCount > 0
           ? `${settled} of ${total} confirmed. You asked for changes after confirmation, so we're waiting for the vendor's updated proposal. Your date stays held.`
           : `${settled} of ${total} confirmed. Waiting on the rest to accept every request.`;

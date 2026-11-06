@@ -7,6 +7,7 @@ import { browsePackages, getPackagesFilters, type BrowsePackagesParams } from "@
 import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
 import { getWishlist, addWishlistItem, removeWishlistItem } from "@/lib/customerWishlistApi";
+import { keepTrackingParams } from "@/lib/trackingParams";
 import { addCompareItem, clearCompare, MAX_COMPARE_PACKAGES } from "@/lib/customerCompareApi";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
@@ -23,6 +24,7 @@ import SortMenu from "./PackageSortMenu";
 import PackageEmptyState from "./PackageEmptyState";
 import PackageGrid from "./PackageGrid";
 import ComparePackagesTray from "./ComparePackagesTray";
+import CompareModal from "@/features/customer-compare/components/CompareModal";
 import { getPackageFilterSections, PACKAGES_PAGE_SIZE } from "../data/filterConfig";
 import { filterPackages, packageFilterLabel } from "../utils/filterPackages";
 import { mapPackageToListItem } from "../mappers";
@@ -145,6 +147,10 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   const [compareCategory, setCompareCategory] = useState<string | null>(null);
   const [compareBusy, setCompareBusy] = useState(false);
   const [compareMessage, setCompareMessage] = useState<string | null>(null);
+  // Shown in place over this page instead of navigating to /compare (PM
+  // request 2026-11-02, Figma node 2912:26487) once handleCompareNow builds
+  // the session successfully.
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
   // Captured at the moment each package is ticked, NOT looked up from
   // `packages` when rendering the tray — changing the category tab/sort
   // refetches `packages` and a selected package can drop out of that array
@@ -191,6 +197,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // Keep the shareable URL in step with the state worth deep-linking.
   useEffect(() => {
     const params = new URLSearchParams();
+    keepTrackingParams(searchParams, params);
     if (search) params.set("q", search);
     if (category !== "all") params.set("category", category);
     if (sort !== "newest") params.set("sort", sort);
@@ -399,7 +406,13 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     setCompareDetails({});
   }
 
-  /** Builds the same server-side comparison session the wishlist's "Compare Packages" flow does (clearCompare, then add each id), then opens /compare. */
+  /**
+   * Builds the same server-side comparison session the wishlist's "Compare
+   * Packages" flow does (clearCompare, then add each id), then opens the
+   * comparison in a modal over this page — real redirect-to-/compare flow
+   * replaced 2026-11-02 (PM request, Figma node 2912:26487) so comparing
+   * doesn't navigate the customer away from the listing they were browsing.
+   */
   async function handleCompareNow() {
     setCompareBusy(true);
     setCompareMessage(null);
@@ -408,10 +421,11 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
       for (const packageId of compareIds) {
         await addCompareItem(packageId);
       }
-      router.push("/compare");
+      setCompareModalOpen(true);
     } catch (err: unknown) {
-      setCompareBusy(false);
       setCompareMessage(err instanceof Error ? err.message : "Could not build that comparison");
+    } finally {
+      setCompareBusy(false);
     }
   }
 
@@ -631,6 +645,8 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
           if (id) void toggleBookmark(id);
         }}
       />
+
+      <CompareModal open={compareModalOpen} onClose={() => setCompareModalOpen(false)} />
     </div>
   );
 }

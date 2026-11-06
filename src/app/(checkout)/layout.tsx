@@ -1,4 +1,5 @@
 // src/app/(checkout)/layout.tsx
+import type { Metadata } from "next";
 import { Lora } from "next/font/google";
 import CheckoutNavbar from "@/features/customer-checkout/components/CheckoutNavbar";
 import CheckoutStepper from "@/features/customer-checkout/components/CheckoutStepper";
@@ -11,6 +12,9 @@ const lora = Lora({
   style: ["italic", "normal"],
   variable: "--font-lora",
 });
+
+// Private route: never indexable, in any environment (robots.txt alone does not de-index).
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default function CheckoutLayout({
   children,

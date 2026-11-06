@@ -13,7 +13,7 @@ export type ReelCardProps = {
   caption: string;
 };
 
-export default function ReelCard({ reelId, thumbnail, video }: ReelCardProps) {
+export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const play = () => {
@@ -56,6 +56,17 @@ export default function ReelCard({ reelId, thumbnail, video }: ReelCardProps) {
           <source src={video} type="video/mp4" />
         </video>
       </div>
+
+      {/* Figma node 1:7851 — caption only, no handle/avatar row and no
+          like/comment counts: this design's "22k"/"20" stats are mock
+          numbers with no real engagement data behind them in this app, so
+          they're left out rather than shown as fabricated figures. */}
+      <p
+        className="mt-4 line-clamp-2 font-figtree text-[16px] leading-[24px] font-medium tracking-[-0.16px] text-[#1E0306]"
+        style={{ textShadow: "0px 0px 4px rgba(0,0,0,0.1)" }}
+      >
+        {caption}
+      </p>
     </a>
   );
 }

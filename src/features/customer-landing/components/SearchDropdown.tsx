@@ -6,6 +6,8 @@ import { ChevronDown } from "lucide-react";
 export interface SearchDropdownOption {
   value: string;
   label: string;
+  /** Optional per-option icon (e.g. a vendor category's logo, same source as the landing page's "Choose vendor service" rows) — shown on both the trigger (once selected) and the option row. */
+  icon?: string;
 }
 
 /**
@@ -56,8 +58,9 @@ export default function SearchDropdown({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  const hasSelection = options.some((option) => option.value === value);
-  const selectedLabel = options.find((option) => option.value === value)?.label ?? placeholder;
+  const selectedOption = options.find((option) => option.value === value);
+  const hasSelection = Boolean(selectedOption);
+  const selectedLabel = selectedOption?.label ?? placeholder;
   const isOutlined = variant === "outlined";
 
   return (
@@ -84,7 +87,12 @@ export default function SearchDropdown({
             : "flex w-full items-center justify-between rounded-full bg-[#F4F4F5] px-5 py-3 text-left text-[14px] text-[#71717B] outline-none"
         }
       >
-        <span className="truncate">{selectedLabel}</span>
+        <span className="flex min-w-0 items-center gap-2">
+          {selectedOption?.icon && (
+            <img src={selectedOption.icon} alt="" className="h-5 w-5 shrink-0 object-contain" />
+          )}
+          <span className="truncate">{selectedLabel}</span>
+        </span>
         <ChevronDown size={16} className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`} />
       </button>
 
@@ -104,12 +112,13 @@ export default function SearchDropdown({
                   onChange(option.value);
                   setIsOpen(false);
                 }}
-                className={`flex h-[47px] w-full items-center justify-center border-b border-[#E4E4E7] px-4 py-3.5 text-center font-figtree text-[16px] leading-[18px] font-medium tracking-[0.01em] transition-colors last:border-b-0 ${
+                className={`flex h-[47px] w-full items-center justify-center gap-2 border-b border-[#E4E4E7] px-4 py-3.5 text-center font-figtree text-[16px] leading-[18px] font-medium tracking-[0.01em] transition-colors last:border-b-0 ${
                   isSelected
                     ? "bg-brand-primary text-white"
                     : "text-[#9F9FA9] hover:bg-[#F4F4F5]"
                 }`}
               >
+                {option.icon && <img src={option.icon} alt="" className="h-5 w-5 shrink-0 object-contain" />}
                 {option.label}
               </button>
             );

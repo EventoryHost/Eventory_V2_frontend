@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { OPEN_HELP_EVENT } from "@/features/customer-help/helpContext";
 
 export default function PlanningSomethingSpecialBanner() {
   return (
@@ -29,6 +32,7 @@ export default function PlanningSomethingSpecialBanner() {
         </p>
         <button
           type="button"
+          onClick={() => window.dispatchEvent(new Event(OPEN_HELP_EVENT))}
           className="rounded-full bg-brand-primary px-8 py-3 text-[15px] font-semibold text-white"
         >
           Talk to Us

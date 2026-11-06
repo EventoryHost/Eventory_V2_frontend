@@ -65,7 +65,24 @@ function ItemDetailCard({
       {item.itemDescription && (
         <p className="mt-3 font-figtree text-[13px] leading-[19.5px] text-neutral-secondary">{item.itemDescription}</p>
       )}
-      {item.colourOptions && item.colourOptions.length > 0 && (
+      {/* A single colourOption is no real choice to make — PM request
+          2026-11-02: show it the same static "Chosen" chip style as the
+          What's Included checklist (ItemColourBadge/Figma node 3233:25979)
+          instead of an interactive (but pointless, since there's nothing
+          else to pick) one-button radiogroup. */}
+      {item.colourOptions && item.colourOptions.length === 1 && (
+        <div className="mt-3">
+          <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">Color</div>
+          <span className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#F4F4F5] py-1 pr-2.5 pl-2">
+            <span
+              className="h-3.5 w-3.5 shrink-0 rounded-full"
+              style={{ backgroundColor: item.colourOptions[0].swatch }}
+            />
+            <span className="font-figtree text-[13px] font-medium text-[#030303]">{item.colourOptions[0].label}</span>
+          </span>
+        </div>
+      )}
+      {item.colourOptions && item.colourOptions.length > 1 && (
         <div className="mt-3">
           <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">
             Color <span className="text-neutral-tertiary/70">· pick the one you&apos;d like</span>

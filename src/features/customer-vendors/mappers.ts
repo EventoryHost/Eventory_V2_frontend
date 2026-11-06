@@ -24,12 +24,43 @@ const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
  * zero-filled — see filterVendors, which skips the filters that would need
  * them instead of quietly matching on a fake 0.
  */
+/**
+ * `raw.categories` (every distinct vendorType the vendor has a LIVE package
+ * under — see browseVendors) resolved + deduped into card-ready badges, one
+ * per real category. Falls back to the single `primary` category when the
+ * backend omitted `categories` entirely (an older cached response).
+ */
+function resolveVendorCategories(
+  raw: Pick<RawVendorPublic, "categories" | "vendorType">,
+  primary: { category: string; label: string } | null
+) {
+  const rawList = raw.categories && raw.categories.length > 0 ? raw.categories : [raw.vendorType];
+  const seen = new Set<string>();
+  const categories: Vendor["categories"] = [];
+  for (const vendorType of rawList) {
+    const resolved = resolveVendorCategory(vendorType);
+    if (!resolved || seen.has(resolved.category)) continue;
+    seen.add(resolved.category);
+    const meta = CATEGORY_META[resolved.category];
+    categories.push({ id: resolved.category, label: resolved.label, icon: meta?.icon, gradientFrom: meta?.gradientFrom });
+  }
+  // `primary` (the vendor's own declared type) isn't guaranteed to be among
+  // their Live-package categories — keep it first if it's missing so the
+  // badge a customer expects (the vendor's registered trade) still shows.
+  if (primary && !seen.has(primary.category)) {
+    const meta = CATEGORY_META[primary.category];
+    categories.unshift({ id: primary.category, label: primary.label, icon: meta?.icon, gradientFrom: meta?.gradientFrom });
+  }
+  return categories;
+}
+
 export function mapVendorToCard(raw: RawVendorPublic): Vendor {
   // Defensive: real vendorType values include spaced, comma-joined, empty
   // and missing variants. See resolveVendorCategory.
   const resolved = resolveVendorCategory(raw.vendorType);
   const category = resolved?.category ?? "all";
   const meta = CATEGORY_META[category];
+  const categories = resolveVendorCategories(raw, resolved);
 
   const city = sanitizeCityName(raw.city);
   const locations = [city, ...getServiceAreaNames(raw.serviceAreas)].filter(
@@ -49,6 +80,7 @@ export function mapVendorToCard(raw: RawVendorPublic): Vendor {
     categoryLabel: resolved?.label ?? "",
     categoryIcon: meta?.icon,
     categoryGradientFrom: meta?.gradientFrom,
+    categories,
     eventTypes: filterHiddenEventCategories(raw.eventCategories ?? []),
     rating: raw.rating ?? 0,
     reviewCount: raw.reviewsCount ?? 0,
@@ -85,6 +117,9 @@ export function mapPackageToVendor(pkg: RawPackage): Vendor {
     categoryLabel,
     categoryIcon: meta?.icon,
     categoryGradientFrom: meta?.gradientFrom,
+    // A package row has exactly one category — its own — not the owning
+    // vendor's other Live categories (this row IS a specific package).
+    categories: [{ id: category, label: categoryLabel, icon: meta?.icon, gradientFrom: meta?.gradientFrom }],
     eventTypes: filterHiddenEventCategories(pkg.step1_eventAndCrew?.eventCategories ?? []),
     highlightTags: extractHighlightTags(pkg),
     rating: pkg.vendorId?.rating ?? 0,

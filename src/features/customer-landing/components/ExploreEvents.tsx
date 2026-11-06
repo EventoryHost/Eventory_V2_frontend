@@ -3,7 +3,7 @@ import NeedHelpImageCarousel from "./NeedHelpImageCarousel";
 
 export default function ExploreEvents() {
   return (
-    <div className="mx-auto mt-10 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
+    <div className="mx-auto mt-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-16">
     <div className="flex w-full flex-col lg:flex-row items-center gap-8 lg:gap-10 rounded-3xl bg-[#FFFAF1] px-6 py-8 lg:px-10">
       <div className="relative w-full aspect-[744/480] overflow-hidden rounded-2xl lg:flex-1">
         <NeedHelpImageCarousel />

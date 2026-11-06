@@ -10,10 +10,11 @@ import { groupEventCategories } from "@/lib/eventCategoryGroups";
  * after that go straight back to `browseVendors` client-side, see
  * VendorsPageContent.tsx.
  *
- * Both reads are vendor-derived on purpose: the facets come from
- * /customer/vendors/filters rather than the packages equivalent, so the
- * sidebar only ever offers event categories and cities that some VENDOR
- * actually has — matching what the rows can match on.
+ * Both reads are vendor-derived on purpose: the event-category facet comes
+ * from /customer/vendors/filters rather than the packages equivalent, so
+ * the sidebar only ever offers event categories some VENDOR actually has —
+ * matching what the rows can match on. "Service Localities" isn't a facet
+ * at all — see filterConfig.ts's SERVICE_LOCALITY_OPTIONS.
  */
 export async function getVendorsPageData(): Promise<VendorsPageData> {
   const [vendorsResponse, filtersResponse] = await Promise.all([
@@ -33,6 +34,5 @@ export async function getVendorsPageData(): Promise<VendorsPageData> {
     // lib/eventCategoryGroups.ts). Selecting the merged option matches
     // every real variant server-side.
     eventCategoryOptions: groupEventCategories(filtersResponse.filters.eventCategories),
-    cityOptions: filtersResponse.filters.cities.map((city) => ({ id: city, label: city })),
   };
 }

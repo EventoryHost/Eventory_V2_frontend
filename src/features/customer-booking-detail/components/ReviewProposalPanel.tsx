@@ -28,8 +28,12 @@ const PRICE_ROW_LABEL: Partial<Record<RawPricingRow["key"], string>> = {
   addonsRemoved: "Add-ons removed",
 };
 
-/** How the customer answered, for the page behind to reload and say so. */
-export type ProposalOutcome = "accepted" | "changes-sent";
+/**
+ * How the customer answered, for the page behind to reload and say so.
+ * "accepted" waits on the vendor to confirm; "confirmed" is a reopened
+ * booking the server confirmed again straight away.
+ */
+export type ProposalOutcome = "accepted" | "confirmed" | "changes-sent";
 
 function plural(count: number, word: string) {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
@@ -224,7 +228,8 @@ function footerStatus(view: PackagePanelView): string {
   }
 
   if (view.proposal.response?.status === "Accepted") {
-    return `You accepted this proposal${respondedOn ? ` on ${respondedOn}` : ""}.`;
+    const accepted = `You accepted this proposal${respondedOn ? ` on ${respondedOn}` : ""}.`;
+    return view.status === "Confirmed" ? accepted : `${accepted} Waiting for the vendor to confirm your booking.`;
   }
   return "You asked for more changes. The vendor will get back to you with an updated proposal.";
 }
@@ -387,8 +392,8 @@ export default function ReviewProposalPanel({
     try {
       // The version on screen — the backend refuses it if the vendor has
       // revised the proposal since this panel loaded.
-      await acceptProposal(view.reference, view.proposal.version);
-      onResolved("accepted");
+      const result = await acceptProposal(view.reference, view.proposal.version);
+      onResolved(result.bookingStatus === "Confirmed" ? "confirmed" : "accepted");
     } catch (err: unknown) {
       if (err instanceof ApiError && err.code === PROPOSAL_CHANGED) {
         setNotice("The vendor updated this proposal while you were looking at it. Here's the latest version. Please review it again before accepting.");

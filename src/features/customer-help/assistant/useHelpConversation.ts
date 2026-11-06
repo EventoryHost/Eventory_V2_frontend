@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/apiClient";
 import { detectCurrentLocation } from "@/lib/geocoding";
+import { trackLead } from "@/lib/analytics";
 import {
   checkHelpArea,
   createHelpRequest,
@@ -12,22 +13,31 @@ import {
   saveHelpConversation,
   requestHelpCallBack,
   sendHelpMessage,
+  continueHelpOnWhatsApp,
+  createBookingHelpRequest,
+  markHelpRequestSorted,
+  resolveHelpRequest,
+  type HelpReport,
   type HelpAreaCheck,
   type HelpConversation,
   type HelpRequestState,
 } from "@/lib/customerHelpApi";
-import type { HelpPageContext } from "../helpContext";
+import type { HelpPackageContext as HelpPageContext } from "../helpContext";
 import {
   OCCASIONS as BRIEF_OCCASIONS,
   VENDOR_TYPES as BRIEF_VENDOR_TYPES,
   type HelpBrief,
 } from "../components/HelpBriefCard";
 import { answerQuestion, FALLBACK_ANSWER } from "./answers";
+import { REQUEST_TOPIC, type BookingAction, type BookingReply, type BookingRequestKind } from "./bookingAnswers";
 import { findPackages, type HelpPackageResult } from "./findPackages";
 import {
   BUDGET_OPTIONS,
   GUEST_OPTIONS,
   OCCASION_OPTIONS,
+  REQUIREMENT_OCCASIONS,
+  SERVICE_OPTIONS,
+  AREA_OPTIONS,
   areaPhrase,
   hasExplorerSignal,
   parseRequest,
@@ -49,35 +59,96 @@ import {
 // areas we cover and a "Notify me" lead; "Sector 15" → one question.
 
 export type FollowUpField = "occasion" | "guests" | "budget" | "area";
+/** Fields on the requirements card. */
+export type RequirementField = "occasion" | "service" | "guests" | "budget" | "area" | "date";
 type AskedField = Exclude<FollowUpField, "area">;
 
+// `at` (ISO) is when a line was posted: the thread's date chips and the
+// ticket's "raised" time read it. Older saved chats only have `time`.
 export type ThreadItem =
-  | { kind: "me"; id: string; time: string; text: string; photoUrl?: string }
-  | { kind: "assistant"; id: string; time: string; text: string }
+  | { kind: "me"; id: string; time: string; at?: string; text: string; photoUrl?: string }
+  | { kind: "assistant"; id: string; time: string; at?: string; text: string }
   | {
       kind: "event-manager";
       id: string;
       time: string;
+      at?: string;
       text: string;
       senderName: string;
     }
   | { kind: "typing"; id: string }
+  /**
+   * A follow-up question: the assistant's bubble with what it understood
+   * so far and the answer chips (v6f4). `understood` is the old tag list,
+   * kept for chats saved before the read-only line.
+   */
   | {
       kind: "question";
       id: string;
+      time?: string;
+      at?: string;
+      text?: string;
+      understoodLine?: string;
       understood: string[];
       field: FollowUpField;
       options: string[];
       answered: boolean;
     }
+  /** Packages: one assistant bubble with the line, cards and "See all". */
   | {
       kind: "results";
       id: string;
+      time?: string;
+      at?: string;
+      text?: string;
+      understoodLine?: string;
       understood: string[];
       cards: HelpPackageResult[];
       seeAll?: { count: number; href: string };
+      /** For the card's "₹X over your budget". */
+      budgetMax?: number;
       closed: boolean;
     }
+  /**
+   * "Your requirements" (v6f4): one per chat, kept as the chat moves on.
+   * `req` is what's confirmed (or proposed, while draft); `edit` is the
+   * chip editor's working copy. `photo` = asked before a photo's actions.
+   */
+  | {
+      kind: "requirements";
+      id: string;
+      state: "draft" | "edit" | "confirmed";
+      req: ParsedRequest;
+      edit?: ParsedRequest;
+      prev?: "draft" | "confirmed";
+      photo?: boolean;
+      /** Field to scroll to and highlight when editing opens. */
+      focus?: RequirementField;
+      showErrors?: boolean;
+    }
+  /** The sent brief, as a card (v6f4 "Your brief"). */
+  | {
+      kind: "brief-sent";
+      id: string;
+      time: string;
+      at?: string;
+      rows: [string, string][];
+      reach: string;
+      photoUrl?: string;
+    }
+  /** WhatsApp card inside the thread ("message us on WhatsApp"). */
+  | { kind: "whatsapp"; id: string }
+  /** Booking help: a request for the Event Manager, sent from the card. */
+  | {
+      kind: "booking-request";
+      id: string;
+      request: BookingRequestKind;
+      /** What they asked, quoted on the card. */
+      quote: string;
+      state: "open" | "sent";
+    }
+  /** Booking help: buttons under an answer ("Cancel package(s)", "Yes, money was taken"). */
+  | { kind: "booking-actions"; id: string; actions: BookingAction[]; closed: boolean }
   | { kind: "feedback"; id: string; closed: boolean; action?: "customise" }
   /** Figma 8.1: what to do with a shared reference photo. */
   | { kind: "photo-actions"; id: string; closed: boolean }
@@ -91,6 +162,7 @@ export type ThreadItem =
       kind: "system";
       id: string;
       time: string;
+      at?: string;
       text: string;
       tone?: "error";
     }
@@ -143,16 +215,18 @@ export type BriefDefaults = {
   initial: Partial<
     Pick<HelpBrief, "occasion" | "guests" | "budget" | "vendorType" | "date">
   >;
-  locationArea: string;
+  /** An area from the chat: typed, the tag, or one we don't serve yet. */
+  initialArea: string;
   /** Reference photo shared earlier in the chat; travels inside the brief. */
   photo?: File;
-  /** locationArea is the location tag's, not something they typed. */
-  areaFromLocation: boolean;
 };
 
 const MAX_FOLLOW_UPS = 2;
+/** The requirements card's location-tag Area chip. */
+export const LOCATION_TAG = "__location_tag";
 
-const guestBucket = (n: number) =>
+/** A guest count → the brief's range chip. */
+export const guestBucket = (n: number) =>
   n <= 25
     ? "Up to 25"
     : n <= 50
@@ -162,16 +236,21 @@ const guestBucket = (n: number) =>
         : n <= 200
           ? "100–200"
           : "200+";
-const budgetBucket = (n: number) =>
-  n <= 25000
-    ? "Under ₹25K"
-    : n <= 50000
-      ? "₹25–50K"
-      : n <= 100000
-        ? "₹50K–1L"
-        : n <= 200000
-          ? "₹1–2L"
-          : "₹2L+";
+/** A budget → the brief's range chip. */
+export const budgetBucket = (n: number) =>
+  n < 5000
+    ? "₹1999 - ₹4999"
+    : n < 10000
+      ? "₹5000 - ₹9999"
+      : n < 15000
+        ? "₹10000 - ₹14999"
+        : n < 20000
+          ? "₹15000 - ₹19999"
+          : n < 30000
+            ? "₹20000 - ₹29999"
+            : n < 50000
+              ? "₹30000 - ₹49999"
+              : "₹50000 and above";
 
 /** Package category label → the brief card's vendor-type chip. */
 function briefVendorType(label?: string) {
@@ -194,19 +273,25 @@ function briefVendorType(label?: string) {
     : undefined;
 }
 
-/** "Is 15 Nov available?" → "15 Nov", for the brief's date field. */
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/** "Is 15 Nov available?" → the next 15 Nov as "2026-11-15", for the brief's date. */
 function dateFrom(text: string) {
   const m = text.match(
     /\b(\d{1,2})(?:st|nd|rd|th)?\s*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\b/i,
   );
-  return m
-    ? `${Number(m[1])} ${m[2][0].toUpperCase()}${m[2].slice(1).toLowerCase()}`
-    : undefined;
+  if (!m) return undefined;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(today.getFullYear(), MONTHS.indexOf(m[2].toLowerCase()), Number(m[1]));
+  if (d < today) d.setFullYear(d.getFullYear() + 1);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 const QUESTION_TEXT: Record<AskedField, string> = {
   occasion: "Got it. What’s the occasion?",
   guests: "Got it. Roughly how many guests?",
-  budget: "Got it. Roughly what’s your budget?",
+  budget: "Got it. What budget do you have in mind?",
 };
 const OPTIONS: Record<AskedField, string[]> = {
   occasion: OCCASION_OPTIONS.map((o) => o.label),
@@ -234,6 +319,9 @@ const timeOf = (d: Date | string) =>
 const now = () => timeOf(new Date());
 
 const POLL_MS = 15000;
+// While the chat is on screen: Event Manager replies (from Slack or the
+// admin panel) show within a few seconds.
+const POLL_VIEWING_MS = 5000;
 // The open chat, so a reload (or another page) picks it up again.
 const CONVERSATION_KEY = "eventory_help_conversation";
 const SAVE_DELAY_MS = 800;
@@ -245,23 +333,6 @@ const formatPhone = (phone: string) => {
   const d = phone.replace(/\D/g, "").slice(-10);
   return d.length === 10 ? `+91 ${d.slice(0, 5)} ${d.slice(5)}` : phone;
 };
-
-/**
- * "My brief: Birthday · 25–50 guests · ₹25–50K · Saket · 14 Dec" (Figma
- * 6.4); a call back ends "· Call me on +91 98765 43210" (Figma 7.4) so the
- * Event Manager knows which number to dial.
- */
-const briefSummary = (b: HelpBrief) =>
-  `My brief: ${[
-    b.occasion,
-    `${b.guests} guests`,
-    b.budget,
-    b.area,
-    b.date,
-    b.replyMode === "call-me" && b.phone && `Call me on ${formatPhone(b.phone)}`,
-  ]
-    .filter(Boolean)
-    .join(" · ")}`;
 
 /** The status card's promise for the chosen call time (v6 mockup cbOpts). */
 function callPromise(cb: NonNullable<HelpRequestState["callBack"]>) {
@@ -301,17 +372,43 @@ const forSaving = (items: ThreadItem[]) =>
         ? { ...i, photoUrl: undefined }
         : i.kind === "brief" && i.defaults.photo
           ? { ...i, defaults: { ...i.defaults, photo: undefined } }
-          : i,
+          : i.kind === "brief-sent" && i.photoUrl
+            ? { ...i, photoUrl: undefined }
+            : i,
     );
 
-function understoodTags(req: ParsedRequest) {
+
+/** "2026-12-14" → "Mon, 14 Dec". */
+export const dateLabel = (iso?: string) => {
+  if (!iso) return "";
+  const d = new Date(`${iso}T00:00`);
+  return Number.isNaN(d.getTime())
+    ? iso
+    : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+};
+
+const serviceShown = (req: ParsedRequest) =>
+  req.service && req.service.label !== "Not sure yet" ? req.service.label : undefined;
+
+/** v6f4: what the assistant understood, as one read-only line. */
+export function understoodLine(req: ParsedRequest) {
   return [
     req.occasion?.label,
+    serviceShown(req),
     req.guests?.label,
     req.budget?.label,
-    req.area &&
-      `${req.area.label}${req.area.fromLocation ? " (your location)" : ""}`,
-  ].filter((t): t is string => Boolean(t));
+    req.area && `${req.area.label}${req.area.fromLocation ? " (your location)" : ""}`,
+    dateLabel(req.date),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** "Birthday · 25–50 guests · ₹25–50K · Saket": the brief's attached box and WhatsApp. */
+export function requirementsSummary(req: ParsedRequest) {
+  return [req.occasion?.label, serviceShown(req), req.guests?.label, req.budget?.label, req.area?.label, dateLabel(req.date)]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 const missingField = (req: ParsedRequest): AskedField | undefined =>
@@ -325,16 +422,33 @@ const missingField = (req: ParsedRequest): AskedField | undefined =>
 
 type Options = {
   pageContext: HelpPageContext | null;
-  /** Signed-in customer's number, so a call back needs no form. */
-  accountPhone?: string;
+  /** Signed-in customer's name, for the WhatsApp message. */
+  accountName?: string;
   /** City from the site's location tag, used when the customer names no area. */
   locationCity: string | null;
+  /** The thread is on screen: polled replies count as read. */
+  viewing: boolean;
+  /**
+   * On a booking page: the event's bookings, its Event Manager and the
+   * booking assistant. Questions there are answered from the bookings and
+   * requests go to the Event Manager (booking help tickets).
+   */
+  booking?: {
+    refs: string[];
+    emName: string | null;
+    answer: (text: string) => BookingReply;
+    topic: (kind: BookingRequestKind | "arrive" | "included" | "pay-issue") => BookingReply;
+  } | null;
 };
+
+const MESSAGE_KINDS = new Set(["me", "assistant", "event-manager", "system", "brief-sent"]);
 
 export function useHelpConversation({
   pageContext,
-  accountPhone,
+  accountName,
   locationCity,
+  viewing,
+  booking = null,
 }: Options) {
   const [items, setItems] = useState<ThreadItem[]>([]);
   const [busy, setBusy] = useState(false);
@@ -342,6 +456,9 @@ export function useHelpConversation({
   const [request, setRequest] = useState<HelpRequestState | null>(null);
   // The saved chat's id ("Your chats" tab); its ticket stays in it.
   const [conversationId, setConversationId] = useState<string | null>(null);
+  // A reopened chat's ticket, known before (or without) its request loading:
+  // messages go to it instead of starting a new request in this chat.
+  const savedEnquiryId = useRef<string | null>(null);
 
   /** This chat's id, made on first need (first save, or the brief). */
   const ensureConversationId = () => {
@@ -358,6 +475,20 @@ export function useHelpConversation({
 
   // The request being explored, plus how many follow-ups it has used.
   const draft = useRef<Draft | null>(null);
+  // The chat's requirements card (one per chat) and whether packages were
+  // shown from it yet — a later search says "Updated."
+  const reqCard = useRef<{ id: string; state: "draft" | "edit" | "confirmed"; searched: boolean } | null>(null);
+  // Ids of thread messages already shown, so polling only adds new ones.
+  const seen = useRef(new Set<string>());
+  // The latest reference photo; the brief picks it up (Figma 8.3).
+  const sharedPhoto = useRef<File | null>(null);
+  // What was last saved, so an unchanged thread isn't sent again.
+  const savedJson = useRef("");
+  // Booking page, "Message {EM}": what they type is the request itself.
+  const directEm = useRef(false);
+  // The ticket's resolved state as last polled (null: not polled yet in
+  // this chat), so the team resolving it adds one line, not one per poll.
+  const resolvedSeen = useRef<boolean | null>(null);
 
   // Area checks by lower-cased text; the brief's warning reads these.
   const areaCache = useRef(new Map<string, HelpAreaCheck>());
@@ -382,8 +513,13 @@ export function useHelpConversation({
     [],
   );
 
+  // Message lines get their posting time, for date chips and "raised".
   const push = useCallback(
-    (item: ThreadItem) => setItems((prev) => [...prev, item]),
+    (item: ThreadItem) =>
+      setItems((prev) => [
+        ...prev,
+        MESSAGE_KINDS.has(item.kind) && !("at" in item && item.at) ? ({ ...item, at: new Date().toISOString() } as ThreadItem) : item,
+      ]),
     [],
   );
   const replace = (
@@ -398,38 +534,32 @@ export function useHelpConversation({
     setItems((prev) => prev.filter((i) => i.id !== id));
   };
 
-  const exploreNext = async () => {
+  const say = (text: string) => push({ kind: "assistant", id: uid(), time: now(), text });
+
+  /** The requirements card shows what the draft now holds. */
+  const syncReqCard = () => {
+    const card = reqCard.current;
+    const req = draft.current?.req;
+    if (!card || !req) return;
+    replace(
+      (i) => i.id === card.id,
+      (i) => (i.kind === "requirements" ? { ...i, req: { ...req } } : i),
+    );
+  };
+
+  /** Packages for what's confirmed (v6f4 resultsMsgs). */
+  const search = async () => {
     const d = draft.current;
     if (!d) return;
-    const field = missingField(d.req);
-    if (field && d.followUps < MAX_FOLLOW_UPS) {
-      d.followUps += 1;
-      await think();
-      push({
-        kind: "assistant",
-        id: uid(),
-        time: now(),
-        text: QUESTION_TEXT[field],
-      });
-      push({
-        kind: "question",
-        id: uid(),
-        understood: understoodTags(d.req),
-        field,
-        options: OPTIONS[field],
-        answered: false,
-      });
-      return;
-    }
-
-    await think(400);
+    const again = Boolean(reqCard.current?.searched);
+    if (reqCard.current) reqCard.current.searched = true;
     const typingId = uid();
     push({ kind: "typing", id: typingId });
     const result = await findPackages(d.req);
     setItems((prev) => prev.filter((i) => i.id !== typingId));
 
-    const text = !result.cards.length
-      ? "I couldn’t find packages for that yet. An Event Manager can put something together for you."
+    const lead = !result.cards.length
+      ? "I couldn’t find a ready-made package for that. An Event Manager can put options together for you."
       : !result.occasionMatched && d.req.occasion
         ? `I couldn’t find ${d.req.occasion.label.toLowerCase()} packages yet, so here are the closest.`
         : result.exact
@@ -439,32 +569,102 @@ export function useHelpConversation({
             : result.overBudget
               ? "Nothing fits that budget exactly, so here are the closest."
               : "Nothing matches all of that exactly, so here are the closest.";
-    push({ kind: "assistant", id: uid(), time: now(), text });
+    const text = `${again ? "Updated. " : ""}${lead}`;
     if (result.cards.length) {
       push({
         kind: "results",
         id: uid(),
-        understood: understoodTags(d.req),
+        time: now(),
+        at: new Date().toISOString(),
+        text,
+        understoodLine: understoodLine(d.req),
+        understood: [],
         cards: result.cards,
         seeAll: result.seeAll,
+        budgetMax: d.req.budget?.max,
         closed: false,
       });
     } else {
+      say(text);
       push({ kind: "feedback", id: uid(), closed: false });
     }
   };
 
-  // Ids of thread messages already shown, so polling only adds new ones.
-  const seen = useRef(new Set<string>());
+  /**
+   * After each answer: ask for what's missing (at most two follow-ups),
+   * then show the requirements card; packages once it's confirmed.
+   * `changes` = what this message added, for a card being edited.
+   */
+  const exploreNext = async (changes?: ParsedRequest) => {
+    const d = draft.current;
+    if (!d) return;
+    const card = reqCard.current;
+    const field = missingField(d.req);
+    if (!card && field && d.followUps < MAX_FOLLOW_UPS) {
+      d.followUps += 1;
+      await think();
+      const understood = understoodLine(d.req);
+      push({
+        kind: "question",
+        id: uid(),
+        time: now(),
+        at: new Date().toISOString(),
+        text: Object.keys(d.req).length ? QUESTION_TEXT[field] : QUESTION_TEXT[field].replace("Got it.", "Happy to help."),
+        understoodLine: understood,
+        understood: [],
+        field,
+        options: OPTIONS[field],
+        answered: false,
+      });
+      return;
+    }
+
+    if (!card) {
+      await think();
+      say("Here’s what I’ve got. Check it, and I’ll find packages that fit.");
+      const id = uid();
+      reqCard.current = { id, state: "draft", searched: false };
+      push({ kind: "requirements", id, state: "draft", req: { ...d.req } });
+      return;
+    }
+
+    if (card.state === "edit") {
+      // Typed while the editor is open: it lands in the editor.
+      replace(
+        (i) => i.id === card.id,
+        (i) => (i.kind === "requirements" ? { ...i, edit: { ...i.edit, ...changes } } : i),
+      );
+      await think(400);
+      say("Added that to your requirements above.");
+      return;
+    }
+
+    syncReqCard();
+    if (card.state !== "confirmed") {
+      await think(400);
+      say("Added that to your requirements above.");
+      return;
+    }
+    await think(400);
+    await search();
+  };
+
 
   /** After the brief: messages go to the Event Manager team, not the assistant. */
   const messageEventManager = async (text: string) => {
-    if (!request) return;
+    const enquiryId = request?.enquiryId ?? savedEnquiryId.current;
+    if (!enquiryId) return;
     const id = uid();
     push({ kind: "me", id, time: now(), text });
     try {
-      const sent = await sendHelpMessage(request.enquiryId, text, id);
+      const sent = await sendHelpMessage(enquiryId, text, id);
       seen.current.add(sent.messageId);
+      // Writing on a resolved ticket reopens it (the backend did too).
+      if (request?.resolved) {
+        resolvedSeen.current = false;
+        setRequest((r) => (r ? { ...r, resolved: false, resolvedBy: null } : r));
+        push({ kind: "system", id: uid(), time: now(), text: "Your request is open again." });
+      }
     } catch {
       push({
         kind: "system",
@@ -506,10 +706,13 @@ export function useHelpConversation({
     {
       askOnly = false,
       place,
+      changes,
     }: {
       askOnly?: boolean;
       /** Check this place instead of reading one from the text. */
       place?: { text: string; source: AreaSource };
+      /** What else this message changed, for a card being edited. */
+      changes?: ParsedRequest;
     } = {},
   ) => {
     const d = draft.current;
@@ -518,7 +721,7 @@ export function useHelpConversation({
     const where = place?.text ?? typed ?? locationCity ?? undefined;
     const source: AreaSource = place?.source ?? (typed ? "typed" : "location_tag");
     if (!where) {
-      await exploreNext();
+      await exploreNext(changes);
       return;
     }
     const typingId = uid();
@@ -541,7 +744,7 @@ export function useHelpConversation({
       d.req.area =
         parsed.area ??
         (!typed && locationCity ? { label: locationCity, city: locationCity, fromLocation: true } : undefined);
-      await exploreNext();
+      await exploreNext({ ...changes, area: d.req.area });
       return;
     }
     if (r.ambiguous.length) {
@@ -598,7 +801,7 @@ export function useHelpConversation({
       push({ kind: "feedback", id: uid(), closed: false });
       return;
     }
-    await exploreNext();
+    await exploreNext({ ...changes, area: d.req.area });
   };
 
   /** "Notify me" (Figma 9.2): the lead, with what they were planning. */
@@ -618,6 +821,7 @@ export function useHelpConversation({
         requestText: draft.current?.text,
         pageUrl: window.location.href,
       });
+      trackLead({ leadType: "area_waitlist", formLocation: "help_widget", phone });
       replace(
         (i) => i.id === itemId,
         (i) => ({ ...i, state: "saved" }) as ThreadItem,
@@ -657,11 +861,266 @@ export function useHelpConversation({
     [busy],
   );
 
+  // ---- Booking help (v6f9 "Help with your booking") ----
+  /** An answer from the booking assistant: text, then its buttons, card or Done. */
+  const applyBookingReply = (reply: BookingReply, quote: string) => {
+    say(reply.text);
+    if (reply.actions?.length) push({ kind: "booking-actions", id: uid(), actions: reply.actions, closed: false });
+    if (reply.request) push({ kind: "booking-request", id: uid(), request: reply.request, quote, state: "open" });
+    else if (reply.feedback) push({ kind: "feedback", id: uid(), closed: false });
+  };
+
+  /** Clears the panel for a new chat (the old one stays in Your chats). */
+  const resetThread = () => {
+    setItems([]);
+    setRequest(null);
+    draft.current = null;
+    reqCard.current = null;
+    seen.current = new Set();
+    sharedPhoto.current = null;
+    savedJson.current = "";
+    directEm.current = false;
+    savedEnquiryId.current = null;
+    resolvedSeen.current = null;
+    setConversationId(null);
+    try {
+      localStorage.removeItem(CONVERSATION_KEY);
+    } catch {
+      // Nothing stored.
+    }
+  };
+
+  /** A row from a booking door ("Ask a vendor something"): a fresh thread with its answer. */
+  const startBookingTopic = useCallback(
+    async (question: string, kind: BookingRequestKind | "arrive" | "included" | "pay-issue") => {
+      if (!booking) return;
+      resetThread();
+      setBusy(true);
+      push({ kind: "me", id: uid(), time: now(), text: question });
+      try {
+        await think();
+        applyBookingReply(booking.topic(kind), question);
+      } finally {
+        setBusy(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [booking],
+  );
+
+  /** "Message {EM}": an empty chat whose first message becomes the request. */
+  const startEventManagerChat = useCallback(() => {
+    if (!booking) return;
+    resetThread();
+    directEm.current = true;
+    const who = booking.emName ?? "the Event Manager team";
+    push({
+      kind: "system",
+      id: uid(),
+      time: now(),
+      text: `Message ${who} here. They usually reply within 30 min, 9 AM–9 PM.`,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [booking]);
+
+  /** A new chat id, for a request that starts its own chat. */
+  const freshConversation = () => {
+    resetThread();
+    const id = uid();
+    setConversationId(id);
+    try {
+      localStorage.setItem(CONVERSATION_KEY, id);
+    } catch {
+      // Storage blocked: saved, but won't reopen after a reload.
+    }
+    return id;
+  };
+
+  /**
+   * Sends a booking request: the ticket, its first message, then the status
+   * card. From a request card in the chat (cardId), from the composer, or —
+   * `fresh` — as a new chat (the change screens).
+   */
+  const sendBookingRequest = async (
+    {
+      topic,
+      text,
+      details = [],
+      report,
+    }: { topic: string; text: string; details?: string[]; report?: HelpReport },
+    cardId?: string,
+    { fresh = false }: { fresh?: boolean } = {},
+  ) => {
+    if (!booking) return;
+    const id = uid();
+    const conversation = fresh ? freshConversation() : ensureConversationId();
+    const transcript = fresh
+      ? []
+      : items
+          .filter((i): i is Extract<ThreadItem, { kind: "me" | "assistant" }> => i.kind === "me" || i.kind === "assistant")
+          .slice(-10)
+          .map((i) => `${i.kind === "me" ? "Customer" : "Assistant"}: ${i.text}`);
+    const r = await createBookingHelpRequest({
+      bookingRefs: booking.refs,
+      topic,
+      text,
+      details,
+      clientId: id,
+      conversationId: conversation,
+      transcript,
+      pageUrl: window.location.href,
+      report,
+    });
+    // The backend posts the ticket to Slack (its thread's parent message).
+    seen.current = new Set(r.messages.filter((m) => m.from === "event_manager").map((m) => m.messageId));
+    const who = booking.emName ?? "the Event Manager team";
+    setItems((prev) => [
+      ...prev.map((i) =>
+        i.kind === "booking-request" && (cardId ? i.id === cardId : i.state === "open") ? { ...i, state: "sent" as const } : i,
+      ),
+      // The card's message is theirs; a direct message is already on screen.
+      ...(cardId || fresh ? [{ kind: "me", id, time: now(), at: new Date().toISOString(), text } as ThreadItem] : []),
+      {
+        kind: "system",
+        id: uid(),
+        time: timeOf(r.createdAt),
+        at: new Date(r.createdAt).toISOString(),
+        text: `${report ? "Reported to" : "Sent to"} ${who} · ${r.ticket}`,
+      },
+      { kind: "status", id: uid(), state: statusOf(r), callBackWhen: r.callBack ? callPromise(r.callBack) : undefined },
+    ]);
+    setRequest(r);
+  };
+
+  /**
+   * "Get a call back" from the booking home, with no chat yet: a ticket
+   * for it, then the call back on that ticket.
+   */
+  const bookingCallBack = async (input: { phone: string; window?: string; note?: string }) => {
+    if (!booking) throw new Error("Not on a booking page");
+    const conversation = freshConversation();
+    const id = uid();
+    const text = input.note?.trim() || "Please call me back about my booking.";
+    const first = await createBookingHelpRequest({
+      bookingRefs: booking.refs,
+      topic: "Call back request",
+      text,
+      clientId: id,
+      conversationId: conversation,
+      pageUrl: window.location.href,
+    });
+    const r = await requestHelpCallBack(first.enquiryId, input);
+    const cb = r.callBack;
+    if (!cb) throw new Error("Call back not saved");
+    trackLead({ leadType: "callback_request", formLocation: "help_widget", phone: input.phone });
+    const who = booking.emName ?? "the Event Manager team";
+    const at = new Date().toISOString();
+    setItems([
+      { kind: "me", id, time: now(), at, text },
+      { kind: "system", id: uid(), time: now(), at, text: `Sent to ${who} · ${r.ticket}` },
+      { kind: "system", id: uid(), time: now(), at, text: `Call back requested · ${cb.ticket}` },
+      { kind: "status", id: uid(), state: "call-back", callBackWhen: callPromise(cb) },
+    ]);
+    setRequest(r);
+    return { ticket: cb.ticket, when: callPromise(cb) };
+  };
+
+  /** Event-day report: "It's sorted now" — the team closes it after checking. */
+  const markSorted = async () => {
+    if (!request || request.customerSortedAt) return;
+    const r = await markHelpRequestSorted(request.enquiryId);
+    setRequest(r);
+    const who = booking?.emName ?? "The Event Manager team";
+    push({
+      kind: "system",
+      id: uid(),
+      time: now(),
+      text: `You said it’s sorted. ${who} will check with the vendor and close it.`,
+    });
+  };
+
+  /** "Mark as resolved": closed here and on the team's Slack post; writing again reopens it. */
+  const markResolved = async () => {
+    if (!request || request.resolved) return;
+    const r = await resolveHelpRequest(request.enquiryId);
+    resolvedSeen.current = true;
+    setRequest(r);
+    setItems((prev) => [
+      ...prev.filter((i) => i.kind !== "status"),
+      {
+        kind: "system",
+        id: uid(),
+        time: now(),
+        at: new Date().toISOString(),
+        text: "You marked this resolved. Write here if you need more help.",
+      },
+    ]);
+  };
+
+  /** Request card "Send to {EM}". */
+  const sendBookingCard = async (cardId: string, input: { text: string; details?: string[] }) => {
+    const card = items.find((i) => i.id === cardId);
+    if (card?.kind !== "booking-request") return;
+    await sendBookingRequest({ topic: REQUEST_TOPIC[card.request], text: input.text, details: input.details }, cardId);
+  };
+
+  /** Buttons under a booking answer. Cancel / Payments are the widget's. */
+  const bookingAction = useCallback(
+    async (itemId: string, action: BookingAction) => {
+      if (!booking || busy) return;
+      replace(
+        (i) => i.id === itemId,
+        (i) => (i.kind === "booking-actions" ? { ...i, closed: true } : i),
+      );
+      if (action !== "pay-taken" && action !== "pay-not") return;
+      setBusy(true);
+      const label = action === "pay-taken" ? "Yes, money was taken" : "No, it just failed";
+      push({ kind: "me", id: uid(), time: now(), text: label });
+      try {
+        await think();
+        if (action === "pay-taken") applyBookingReply(booking.topic("payment-issue"), "Money was deducted but the payment didn’t go through");
+        else {
+          say("Nothing was charged, so you can try again. A different method, such as UPI instead of a card, often works. If it fails again, I’ll pass it to your Event Manager.");
+          push({ kind: "feedback", id: uid(), closed: false });
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [booking, busy],
+  );
+
   const ask = useCallback(
     async (text: string) => {
       if (!text || busy) return;
-      if (request) {
+      if (request || savedEnquiryId.current) {
         void messageEventManager(text);
+        return;
+      }
+      // Booking page: "Message {EM}" sends it; otherwise the booking assistant.
+      if (booking) {
+        if (directEm.current) {
+          setBusy(true);
+          const id = uid();
+          push({ kind: "me", id, time: now(), text });
+          try {
+            await sendBookingRequest({ topic: REQUEST_TOPIC.message, text });
+          } catch {
+            push({ kind: "system", id: uid(), time: now(), text: "Not sent. Check your connection and try again.", tone: "error" });
+          } finally {
+            setBusy(false);
+          }
+          return;
+        }
+        setBusy(true);
+        push({ kind: "me", id: uid(), time: now(), text });
+        try {
+          await think();
+          applyBookingReply(booking.answer(text), text);
+        } finally {
+          setBusy(false);
+        }
         return;
       }
       if (TALK_TO_PERSON.test(text)) {
@@ -742,7 +1201,7 @@ export function useHelpConversation({
             (i) => i.kind === "question" && !i.answered,
             (i) => ({ ...i, answered: true }) as ThreadItem,
           );
-          await exploreNext();
+          await exploreNext({ ...parsed, area: openQuestion.req.area });
           return;
         }
 
@@ -752,7 +1211,18 @@ export function useHelpConversation({
             (i) => i.kind === "question" && !i.answered,
             (i) => ({ ...i, answered: true }) as ThreadItem,
           );
-          await exploreNext();
+          await exploreNext(parsed);
+          return;
+        }
+
+        // The chat has a requirements card: what they add goes on it.
+        if (reqCard.current && draft.current && Object.keys(parsed).length) {
+          const rest: ParsedRequest = { ...parsed };
+          delete rest.area;
+          draft.current.req = { ...draft.current.req, ...rest };
+          draft.current.text = text;
+          if (areaPhrase(text)) await locate(text, parsed, { changes: rest });
+          else await exploreNext(rest);
           return;
         }
 
@@ -776,7 +1246,7 @@ export function useHelpConversation({
     },
     // exploreNext/think only touch refs and stable setters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [busy, items, request, pageContext, locationCity],
+    [busy, items, request, pageContext, locationCity, booking],
   );
 
   const answerFollowUp = useCallback(
@@ -821,8 +1291,129 @@ export function useHelpConversation({
     );
   }, []);
 
-  // The latest reference photo; the brief picks it up (Figma 8.3).
-  const sharedPhoto = useRef<File | null>(null);
+  // ---- Requirements card (v6f4) ----
+  const setReqItem = (patch: (i: Extract<ThreadItem, { kind: "requirements" }>) => ThreadItem) => {
+    const card = reqCard.current;
+    if (!card) return;
+    replace(
+      (i) => i.id === card.id,
+      (i) => (i.kind === "requirements" ? patch(i) : i),
+    );
+  };
+
+  /** "Looks right, find packages". */
+  const confirmRequirements = useCallback(async () => {
+    const card = reqCard.current;
+    if (!card || busy) return;
+    setBusy(true);
+    card.state = "confirmed";
+    setReqItem((i) => ({ ...i, state: "confirmed" }));
+    push({ kind: "me", id: uid(), time: now(), text: "Looks right" });
+    try {
+      await think(400);
+      await search();
+    } finally {
+      setBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy]);
+
+  /** "Edit" / "+ Add area": the card turns into chip groups. */
+  const editRequirements = useCallback((focus?: RequirementField) => {
+    const card = reqCard.current;
+    const req = draft.current?.req;
+    if (!card || !req) return;
+    const prev = card.state === "edit" ? undefined : card.state;
+    card.state = "edit";
+    setReqItem((i) => ({
+      ...i,
+      state: "edit",
+      edit: i.state === "edit" && i.edit ? i.edit : { ...req },
+      prev: prev ?? i.prev,
+      focus,
+      showErrors: false,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** One chip in the editor; tapping the selected one again clears an optional field. */
+  const setRequirement = useCallback((field: RequirementField, value: string) => {
+    setReqItem((i) => {
+      const e: ParsedRequest = { ...(i.edit ?? i.req) };
+      if (field === "occasion") e.occasion = REQUIREMENT_OCCASIONS.find((o) => o.label === value);
+      if (field === "guests") {
+        const g = GUEST_OPTIONS.find((o) => o.label === value);
+        e.guests = g && { count: g.count, label: `${g.label} guests` };
+      }
+      if (field === "budget") e.budget = BUDGET_OPTIONS.find((o) => o.label === value);
+      if (field === "service") {
+        const v = SERVICE_OPTIONS.find((o) => o.label === value);
+        e.service = e.service?.label === value ? undefined : v;
+      }
+      if (field === "area") {
+        if (value === LOCATION_TAG && locationCity) {
+          const tagLabel = areaCache.current.get(locationCity.trim().toLowerCase())?.label ?? locationCity;
+          e.area = e.area?.fromLocation ? undefined : { label: tagLabel, city: locationCity, fromLocation: true };
+        } else {
+          const a = AREA_OPTIONS.find((o) => o.label === value) ?? (e.area?.label === value ? e.area : undefined);
+          e.area = e.area?.label === value && !e.area.fromLocation ? undefined : a;
+        }
+      }
+      if (field === "date") e.date = value || undefined;
+      return { ...i, edit: e, focus: undefined };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationCity]);
+
+  /** "Save and find packages" (or "Continue" before a photo's actions). */
+  const saveRequirements = useCallback(async () => {
+    const card = reqCard.current;
+    const d = draft.current;
+    const item = items.find((i) => i.id === card?.id);
+    if (!card || !d || item?.kind !== "requirements" || busy) return;
+    const e = item.edit ?? item.req;
+    if (!e.occasion || !e.guests || !e.budget) {
+      setReqItem((i) => ({ ...i, showErrors: true }));
+      return;
+    }
+    setBusy(true);
+    const wasConfirmed = item.prev === "confirmed";
+    const photoStep = Boolean(item.photo);
+    d.req = { ...e };
+    card.state = "confirmed";
+    setReqItem((i) => ({ ...i, state: "confirmed", req: { ...e }, edit: undefined, prev: undefined, photo: false, showErrors: false }));
+    try {
+      // Edited from the brief: the brief shows the update, nothing else.
+      if (items.some((i) => i.kind === "brief" && i.state === "open")) return;
+      if (photoStep) {
+        push({ kind: "me", id: uid(), time: now(), text: requirementsSummary(e) });
+        await think();
+        say("Thanks. What would you like to do with your photo?");
+        push({ kind: "photo-actions", id: uid(), closed: false });
+        return;
+      }
+      setItems((prev) => prev.map((i) => (i.kind === "feedback" && !i.closed ? { ...i, closed: true } : i)));
+      push({ kind: "me", id: uid(), time: now(), text: wasConfirmed ? "Updated my requirements" : "Looks right" });
+      await think(400);
+      await search();
+    } finally {
+      setBusy(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, busy]);
+
+  /** "Cancel": back to what the card showed before editing. */
+  const cancelRequirementsEdit = useCallback(() => {
+    const card = reqCard.current;
+    if (!card) return;
+    setReqItem((i) => {
+      const back = i.prev ?? "draft";
+      card.state = back;
+      return { ...i, state: back, edit: undefined, prev: undefined, showErrors: false };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   /** Figma 8.1: one upload, then a choice. */
   const photo = useCallback(
@@ -852,17 +1443,33 @@ export function useHelpConversation({
         });
         return;
       }
+      // v6f4: the three must-haves first, so packages fit the event; the
+      // photo's actions come once they're saved.
+      if (reqCard.current?.state === "confirmed") {
+        await think();
+        say("Got your photo. What would you like to do with it?");
+        push({ kind: "photo-actions", id: uid(), closed: false });
+        return;
+      }
+      if (!draft.current) draft.current = { req: {}, followUps: 0 };
+      const d = draft.current;
+      if (!d.req.area && locationCity) {
+        const tag = await lookArea(locationCity);
+        if (tag?.serviceable) d.req.area = { label: tag.label, city: tag.city ?? tag.label, fromLocation: true };
+      }
       await think();
-      push({
-        kind: "assistant",
-        id: uid(),
-        time: now(),
-        text: "Got your photo. What would you like to do with it?",
-      });
-      push({ kind: "photo-actions", id: uid(), closed: false });
+      say("Got your photo. Three quick things first, so I only show packages that fit your event.");
+      if (reqCard.current) {
+        reqCard.current.state = "edit";
+        setReqItem((i) => ({ ...i, state: "edit", edit: { ...d.req }, prev: i.state === "edit" ? i.prev : i.state, photo: true }));
+      } else {
+        const id = uid();
+        reqCard.current = { id, state: "edit", searched: false };
+        push({ kind: "requirements", id, state: "edit", req: { ...d.req }, edit: { ...d.req }, photo: true });
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [request],
+    [request, locationCity],
   );
 
   /**
@@ -907,19 +1514,14 @@ export function useHelpConversation({
           : ctxOccasion,
         guests: req?.guests ? guestBucket(req.guests.count) : undefined,
         budget: req?.budget ? budgetBucket(req.budget.max) : undefined,
-        vendorType: briefVendorType(pageContext?.vendorType),
-        date,
+        vendorType:
+          req?.service && (BRIEF_VENDOR_TYPES as readonly string[]).includes(req.service.label)
+            ? req.service.label
+            : briefVendorType(pageContext?.vendorType),
+        date: date ?? req?.date,
       },
-      locationArea:
-        req?.area?.label ??
-        draft.current?.unservedArea ??
-        (locationCity
-          ? (areaCache.current.get(locationCity.trim().toLowerCase())?.label ?? locationCity)
-          : ""),
+      initialArea: req?.area?.label ?? draft.current?.unservedArea ?? "",
       photo: sharedPhoto.current ?? undefined,
-      areaFromLocation: req?.area
-        ? Boolean(req.area.fromLocation)
-        : !draft.current?.unservedArea && Boolean(locationCity),
     };
   };
 
@@ -956,8 +1558,19 @@ export function useHelpConversation({
   );
   /** "Chat with Event Manager": the Figma 6.1 hand-off. */
   const openBrief = useCallback(
-    () => void startHandOff(), // eslint-disable-next-line react-hooks/exhaustive-deps
-    [items, pageContext, locationCity],
+    () => {
+      // Booking page: "Ask {EM}" — a request card for what they asked.
+      if (booking) {
+        if (items.some((i) => i.kind === "booking-request" && i.state === "open")) return;
+        setItems((prev) => [
+          ...prev.map((i) => (i.kind === "feedback" && !i.closed ? { ...i, closed: true } : i)),
+          { kind: "booking-request", id: uid(), request: "message", quote: threadTitle ?? "My question", state: "open" },
+        ]);
+        return;
+      }
+      void startHandOff();
+    }, // eslint-disable-next-line react-hooks/exhaustive-deps
+    [items, pageContext, locationCity, booking],
   );
 
   const dismissBrief = useCallback(() => {
@@ -986,9 +1599,9 @@ export function useHelpConversation({
       occasion: brief.occasion,
       guests: brief.guests,
       budget: brief.budget,
-      vendorType: brief.vendorType,
+      vendorType: brief.vendorType || undefined,
       area: brief.area || undefined,
-      date: brief.date || undefined,
+      date: brief.date ? dateLabel(brief.date) : undefined,
       replyMode: brief.replyMode,
       hasPhoto: Boolean(brief.photo),
       callTime: brief.callTime ?? undefined,
@@ -997,22 +1610,33 @@ export function useHelpConversation({
       transcript,
       conversationId: ensureConversationId(),
     });
+    trackLead({ leadType: "event_brief", formLocation: "help_widget", phone: brief.phone });
     const r = res.request;
+    const rows: [string, string][] = [
+      ["Occasion", brief.occasion],
+      ["Service", brief.vendorType || "Not sure yet"],
+      ["Guests", `${brief.guests} guests`],
+      ["Budget", brief.budget],
+      ...(brief.area ? ([["Area", brief.area]] as [string, string][]) : []),
+      ...(brief.date ? ([["Date", dateLabel(brief.date)]] as [string, string][]) : []),
+    ];
+    const reach =
+      brief.replyMode === "call-me" && brief.phone ? `Call me on ${formatPhone(brief.phone)}` : "Here in this chat";
     setItems((prev) => [
       ...prev.map((i) =>
         i.kind === "brief" && i.state === "open"
           ? { ...i, state: "sent" as const }
           : i,
       ),
-      { kind: "me", id: uid(), time: timeOf(r.createdAt), text: briefSummary(brief) },
+      // v6f4: the sent brief is a card, not a "My brief:" message.
       {
-        kind: "system",
+        kind: "brief-sent",
         id: uid(),
         time: timeOf(r.createdAt),
-        // "Call me" briefs are a call back request (Figma 7.4).
-        text: r.callBack
-          ? `Call back requested · ${r.callBack.ticket}`
-          : `Sent to the Event Manager team · ${r.ticket}`,
+        at: new Date(r.createdAt).toISOString(),
+        rows,
+        reach,
+        photoUrl: brief.photo ? URL.createObjectURL(brief.photo) : undefined,
       },
       {
         kind: "status",
@@ -1027,11 +1651,19 @@ export function useHelpConversation({
   /** Applies the backend's view: new Event Manager replies, late, call back. */
   const sync = useCallback((r: HelpRequestState) => {
     setRequest(r);
+    const wasResolved = resolvedSeen.current;
+    resolvedSeen.current = r.resolved;
+    const teamResolved = wasResolved === false && r.resolved && r.resolvedBy !== "customer";
     const fresh = r.messages.filter(
       (m) => m.from === "event_manager" && !seen.current.has(m.messageId),
     );
     fresh.forEach((m) => seen.current.add(m.messageId));
+    // A reply edited or deleted in Slack after it was shown: its line changes in place.
+    const current = new Map(r.messages.filter((m) => m.from === "event_manager").map((m) => [m.messageId, m.text]));
     setItems((prev) => {
+      prev = prev.map((i) =>
+        i.kind === "event-manager" && current.has(i.id) && current.get(i.id) !== i.text ? { ...i, text: current.get(i.id)! } : i,
+      );
       // The status card goes once a person has replied (Figma 6.7).
       let next = r.replied
         ? prev.filter((i) => i.kind !== "status")
@@ -1054,49 +1686,64 @@ export function useHelpConversation({
             }),
           ),
         ];
+      if (teamResolved)
+        next = [
+          ...next,
+          {
+            kind: "system",
+            id: uid(),
+            time: now(),
+            at: new Date().toISOString(),
+            text: "The Event Manager team marked this resolved. Write here if you need more help.",
+          },
+        ];
       return next;
     });
   }, []);
 
   const enquiryId = request?.enquiryId;
+  // While the chat is on screen, polls mark its replies read ("New reply"
+  // in Your chats goes); opening it marks them read straight away.
   useEffect(() => {
     if (!enquiryId) return;
     let stopped = false;
     const poll = async () => {
       if (document.visibilityState !== "visible") return;
       try {
-        const r = await getHelpRequest(enquiryId);
+        const r = await getHelpRequest(enquiryId, { seen: viewing });
         if (!stopped) sync(r);
       } catch {
         // Offline or server down: the next tick tries again.
       }
     };
-    const timer = window.setInterval(poll, POLL_MS);
+    if (viewing) void poll();
+    const timer = window.setInterval(poll, viewing ? POLL_VIEWING_MS : POLL_MS);
     document.addEventListener("visibilitychange", poll);
     return () => {
       stopped = true;
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", poll);
     };
-  }, [enquiryId, sync]);
+  }, [enquiryId, sync, viewing]);
 
-  /** Figma 6.6: the card swaps to one confirmation with the promised time. */
-  const confirmCallBack = async (phone: string) => {
-    if (!request) return;
-    const r = await requestHelpCallBack(request.enquiryId, phone);
+  /**
+   * The "Request a call back" screen's submit: the status card becomes
+   * the call back's promise, with a line for its reference.
+   */
+  const requestCallBack = async (input: { phone: string; window?: string; note?: string }) => {
+    if (!request) throw new Error("No request to call back on");
+    const r = await requestHelpCallBack(request.enquiryId, input);
     const cb = r.callBack;
     setRequest(r);
-    if (!cb) return;
+    if (!cb) throw new Error("Call back not saved");
+    trackLead({ leadType: "callback_request", formLocation: "help_widget", phone: input.phone });
     setItems((prev) => [
-      ...prev
-        .filter((i) => i.kind !== "status")
-        .map((i) =>
-          i.kind === "call-back-form" ? { ...i, state: "sent" as const } : i,
-        ),
+      ...prev.filter((i) => i.kind !== "status" && i.kind !== "whatsapp"),
       {
         kind: "system",
         id: uid(),
         time: now(),
+        at: new Date().toISOString(),
         text: `Call back requested · ${cb.ticket}`,
       },
       {
@@ -1106,11 +1753,103 @@ export function useHelpConversation({
         callBackWhen: callPromise(cb),
       },
     ]);
+    return { ticket: cb.ticket, when: callPromise(cb) };
+  };
+
+
+  // ---- WhatsApp (v6f9: the message carries the ticket when there is one) ----
+  /** "message us on WhatsApp" inside a thread: the card, at the end. */
+  const showWhatsApp = useCallback(() => {
+    setItems((prev) => [...prev.filter((i) => i.kind !== "whatsapp"), { kind: "whatsapp", id: uid() }]);
+  }, []);
+
+  // Read from the thread (not the refs) so they're safe to use in render.
+  const reqItem = items.find((i): i is Extract<ThreadItem, { kind: "requirements" }> => i.kind === "requirements");
+  const confirmedRequirements = reqItem?.state === "confirmed" ? reqItem.req : null;
+  const lastEventManager = [...items]
+    .reverse()
+    .find((i): i is Extract<ThreadItem, { kind: "event-manager" }> => i.kind === "event-manager");
+  const hasPhoto = items.some((i) => i.kind === "me" && Boolean(i.photoUrl));
+
+  /** The thread's opening question: its title, and the WhatsApp "Request". */
+  const threadTitle = items.find((i): i is Extract<ThreadItem, { kind: "me" }> => i.kind === "me" && !i.photoUrl)?.text;
+
+  /** The message WhatsApp opens with: the ticket's details, or the page and question. */
+  const whatsAppLines = (): string[] => {
+    if (typeof window === "undefined") return [];
+    const page = `${window.location.host}${window.location.pathname}`.replace(/\/$/, "");
+    const req = confirmedRequirements;
+    const pkg = pageContext ? `${pageContext.packageName} by ${pageContext.vendorName}` : null;
+    if (request) {
+      const raised = new Date(request.createdAt);
+      const day = raised.toDateString() === new Date().toDateString() ? "Today" : raised.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+      const status = request.resolved
+        ? "Resolved"
+        : request.callBack
+          ? "Open · call back booked"
+          : request.late
+            ? "Open · flagged to the team lead"
+            : request.offHours
+              ? "Open · team offline until 9 AM"
+              : "Open";
+      return [
+        "Hi Eventory, I’m continuing my request on WhatsApp.",
+        `Ref: ${request.ticket}`,
+        ...(threadTitle ? [`Request: “${threadTitle}”`] : []),
+        ...(req ? [`Requirements: ${requirementsSummary(req)}`] : []),
+        `Raised: ${day}, ${timeOf(raised)} · Status: ${status}`,
+        ...(pkg ? [`Package: ${pkg}`] : []),
+        `Page: ${page}`,
+        ...(accountName ? [`Name: ${accountName}`] : []),
+        "I’ll send any photos here.",
+      ];
+    }
+    // Their own words, not the canned hand-off lines.
+    const lastAsk = [...items]
+      .reverse()
+      .find(
+        (i) =>
+          i.kind === "me" &&
+          !i.photoUrl &&
+          !/^(I’d like to talk to an Event Manager|Send to an Event Manager|Find similar packages|Looks right|Updated my requirements)$/.test(i.text),
+      );
+    return [
+      "Hi Eventory, I have a question about planning an event.",
+      ...(pkg ? [`Looking at: ${pkg}`] : []),
+      `Page: ${page}`,
+      ...(accountName ? [`Name: ${accountName}`] : []),
+      `My question: ${lastAsk?.kind === "me" ? lastAsk.text : "I’d like help choosing packages for my event."}`,
+      ...(req ? [`My requirements: ${requirementsSummary(req)}`] : []),
+      ...(hasPhoto ? ["I’ll attach my reference photo here."] : []),
+    ];
+  };
+
+  /**
+   * "Open WhatsApp" on a ticket: noted on it once and the team told, with
+   * a line in the thread. Without a ticket nothing is logged — the
+   * WhatsApp team raises one when they know what's needed.
+   */
+  const openWhatsApp = async () => {
+    if (!request || request.whatsappAt) return;
+    try {
+      const r = await continueHelpOnWhatsApp(request.enquiryId);
+      setRequest(r);
+      setItems((prev) => [
+        ...prev.filter((i) => i.kind !== "whatsapp"),
+        {
+          kind: "system",
+          id: uid(),
+          time: now(),
+          at: new Date().toISOString(),
+          text: `You continued on WhatsApp · ${r.ticket}. The Event Manager team has been notified and can see this chat.`,
+        },
+      ]);
+    } catch {
+      // WhatsApp still opened; the team just isn't told from here.
+    }
   };
 
   // ---- Saved chats ("Your chats" tab) ----
-  // What was last saved, so an unchanged thread isn't sent again.
-  const savedJson = useRef("");
 
   /** Resumes a saved chat: its thread, where the assistant was, and its request. */
   const applyConversation = useCallback(
@@ -1119,8 +1858,16 @@ export function useHelpConversation({
         c.items.filter((i) => i.kind === "event-manager").map((i) => i.id),
       );
       draft.current = c.state?.draft ?? null;
+      const card = c.items.find((i): i is Extract<ThreadItem, { kind: "requirements" }> => i.kind === "requirements");
+      reqCard.current = card
+        ? { id: card.id, state: card.state, searched: c.items.some((i) => i.kind === "results") }
+        : null;
       sharedPhoto.current = null;
       savedJson.current = "";
+      // A reopened chat isn't the empty "Message {EM}" one, whatever was open before.
+      directEm.current = false;
+      savedEnquiryId.current = c.enquiryId;
+      resolvedSeen.current = null;
       setItems(c.items);
       setRequest(null);
       setConversationId(id);
@@ -1150,6 +1897,10 @@ export function useHelpConversation({
     setItems([]);
     setRequest(null);
     draft.current = null;
+    reqCard.current = null;
+    directEm.current = false;
+    savedEnquiryId.current = null;
+    resolvedSeen.current = null;
     seen.current = new Set();
     sharedPhoto.current = null;
     savedJson.current = "";
@@ -1191,6 +1942,9 @@ export function useHelpConversation({
   // Saves the thread once it settles (not mid-reply), from the first message on.
   useEffect(() => {
     if (busy || !items.some((i) => i.kind === "me")) return;
+    // A ticket was just raised: save straight away, so the chat is in
+    // Your chats even if they close the page right after sending.
+    const delay = request && !savedJson.current.includes(request.enquiryId) ? 0 : SAVE_DELAY_MS;
     const timer = window.setTimeout(() => {
       const body = {
         items: forSaving(items),
@@ -1215,28 +1969,9 @@ export function useHelpConversation({
         // Try again on the next change.
         savedJson.current = "";
       });
-    }, SAVE_DELAY_MS);
+    }, delay);
     return () => window.clearTimeout(timer);
   }, [items, busy, request, conversationId]);
-
-  /** Status card "Get a call back": straight away with an account number. */
-  const callBack = useCallback(() => {
-    if (!request || request.callBack) return;
-    if (accountPhone) {
-      void confirmCallBack(accountPhone);
-      return;
-    }
-    if (items.some((i) => i.kind === "call-back-form" && i.state === "open"))
-      return;
-    push({
-      kind: "assistant",
-      id: uid(),
-      time: now(),
-      text: "Sure. Which number should the Event Manager call?",
-    });
-    push({ kind: "call-back-form", id: uid(), state: "open" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [request, accountPhone, items]);
 
   return {
     items,
@@ -1262,8 +1997,32 @@ export function useHelpConversation({
     withEventManager: Boolean(request),
     /** The sent request's ref, for the WhatsApp message (Figma 11.1). */
     ticket: request?.ticket,
-    callBack,
-    confirmCallBack,
+    /** The sent request (ticket header, WhatsApp, call back). */
+    request,
+    /** The thread's opening question, for the ticket header. */
+    threadTitle,
+    /** Who replied last on the team's side, for the header. */
+    eventManagerName: lastEventManager?.senderName,
+    requestCallBack,
+    showWhatsApp,
+    whatsAppLines,
+    openWhatsApp,
+    /** Confirmed requirements, attached to the brief instead of its chips. */
+    confirmedRequirements,
+    startBookingTopic,
+    startEventManagerChat,
+    sendBookingCard,
+    sendBookingRequest,
+    bookingCallBack,
+    bookingAction,
+    markSorted,
+    markResolved,
+    hasOpenBookingCard: items.some((i) => i.kind === "booking-request" && i.state === "open"),
+    confirmRequirements,
+    editRequirements,
+    setRequirement,
+    saveRequirements,
+    cancelRequirementsEdit,
     conversationId,
     openConversation,
     startNewConversation,

@@ -15,10 +15,20 @@ export interface RawVendorPublic {
   pocName: string;
   isIndividual?: boolean;
   vendorType: string;
+  /**
+   * Every distinct vendorType the vendor has a LIVE package under —
+   * GET /customer/vendors only (browseVendors), computed from Package.vendorType,
+   * not the single Vendor.vendorType they registered as. Falls back to
+   * `[vendorType]` server-side when they have no Live package yet.
+   */
+  categories?: string[];
   eventCategories?: string[];
   city?: string;
   state?: string;
-  serviceAreas?: string[];
+  // Legacy flat `string[]` or the newer `[{ area, sublocalities }]` shape
+  // (see src/lib/vendorLocation.ts's getServiceAreaNames) — the public API
+  // passes this field through as-is, whichever shape the vendor last saved.
+  serviceAreas?: Array<string | { area?: string; sublocalities?: string[] }>;
   // STRINGS, not numbers — the Vendor model declares all three as String
   // and the real values are bucketed ranges the vendor picks during
   // onboarding ("8 - 12 years", "0 - 2 years", "1-5"). Typed as number here
@@ -86,6 +96,11 @@ export interface RawPackage {
     guestTiers?: { maxGuests: number; price: number }[];
   };
   step4_sampleMedia?: { media?: RawPackageMedia[] };
+  /** Token/advance settings: "₹X to book" vs "Free to book". */
+  bookingSettings?: {
+    paymentType?: string;
+    token?: { tokenType?: "Fixed" | "Percentage" | string; value?: number | null };
+  };
   createdAt: string;
 }
 
@@ -239,6 +254,16 @@ export async function browseVendors(params: BrowseVendorsParams = {}) {
 /** Vendor-derived facets (types/event categories/cities) — the listing sidebar. `vendorType` scopes `filters.eventCategories` to just that vendor type's own live categories — same reasoning as getPackagesFilters' own vendorType param. Omit for the unscoped "All" list. */
 export async function getVendorFilters(params: { vendorType?: string } = {}) {
   return apiFetch<VendorFiltersResponse>(`/customer/vendors/filters${toQueryString(params)}`, { auth: false });
+}
+
+/**
+ * Every vendor ever registered, UNFILTERED (includes deactivated/Unlive/
+ * incomplete-onboarding ones) — unlike browseVendors' `.total`, which is
+ * narrowed to what a customer can actually browse. Only used for the
+ * Become a Vendor hero's "Total Number of Vendors on Eventory" stat.
+ */
+export async function getVendorsTotalCount() {
+  return apiFetch<{ status: string; total: number }>("/customer/vendors/total-count", { auth: false });
 }
 
 /** `vendorType` scopes `filters.eventCategories` to just that vendor type's own live categories — e.g. the package listing's Decorator tab never offers "Workshop" (a Photographer-only category) that would resolve to zero results for that tab. Omit for the unscoped "All" list. */

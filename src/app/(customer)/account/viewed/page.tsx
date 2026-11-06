@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import ViewedItemsContent from "@/features/customer-account/components/ViewedItemsContent";
 
 export const metadata: Metadata = {
-  title: "Viewed Items - Eventory",
+  title: "Viewed Items",
 };
 
 // Auth gate + sidebar come from the /account layout.

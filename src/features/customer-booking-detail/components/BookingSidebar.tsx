@@ -44,7 +44,7 @@ export default function BookingSidebar({
   const hasPolicyText = Boolean(policy.title || policy.text || policy.fileUrl);
 
   return (
-    <div className="flex w-full flex-col gap-[22px] lg:w-[360px]">
+    <div id="booking-payments" className="flex w-full scroll-mt-24 flex-col gap-[22px] lg:w-[360px]">
       <section className="overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white">
         <div className="flex flex-col gap-[13px] border-b border-[#E4E4E7] p-4">
           <SectionTitle>PRICE SUMMARY</SectionTitle>

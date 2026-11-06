@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import SavedAddressContent from "@/features/customer-account/components/SavedAddressContent";
 
 export const metadata: Metadata = {
-  title: "Saved Address - Eventory",
+  title: "Saved Address",
 };
 
 // Reads and writes the signed-in customer's own addresses, so it's

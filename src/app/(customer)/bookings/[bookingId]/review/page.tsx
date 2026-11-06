@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import BookingReviewContent from "@/features/customer-booking-review/components/BookingReviewContent";
 
 export const metadata: Metadata = {
-  title: "Add a review - Eventory",
+  title: "Add a review",
+  robots: { index: false, follow: false },
 };
 
 // Full-width with a breadcrumb, like Booking Details next door — not under

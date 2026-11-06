@@ -155,7 +155,74 @@ export interface RawBooking {
   /** When the vendor last sent (revised) the proposal. */
   proposalSentAt?: string | null;
   cancelledBy?: RawCancelledBy;
+  /** Set by the admin side; null until an Event Manager is assigned. */
+  assignedEmName?: string | null;
+  /** What a customer cancellation owes; the team moves `status` along. */
+  refund?: RawBookingRefund | null;
+  /** Event day: when the vendor checked in, finished setup, cleared up. */
+  checkedInAt?: string | null;
+  setupCompletedAt?: string | null;
+  teardownCompletedAt?: string | null;
+  /** The vendor's on-ground contact for the day. */
+  groundStaff?: { name: string; phone: string } | null;
   createdAt: string;
+}
+
+export interface RawBookingRefund {
+  paid: number;
+  /** null = the team decides. */
+  amount: number | null;
+  charges: number | null;
+  policy: string | null;
+  status: "team_review" | "pending" | "started" | "completed" | "none";
+  startedAt: string | null;
+  completedAt: string | null;
+}
+
+/** From the package's cancellation template (backend utils/cancellationTerms.js). */
+export interface CancellationTerms {
+  policy: "flexible" | "standard" | "strict" | "custom";
+  policyTitle: string | null;
+  paid: number;
+  /** null = the team decides. */
+  refund: number | null;
+  charges: number | null;
+  teamDecides: boolean;
+  /** Full refund (and free changes) until then; null for strict/custom. */
+  freeUntil: string | null;
+  freeNow: boolean;
+  noRefundFrom: string | null;
+  /** Online cancelling closes then (11:59 PM IST the day before). */
+  selfCancelUntil: string | null;
+  canSelfCancel: boolean;
+}
+
+/** GET /customer/bookings/:id/cancellation-preview — the cost of cancelling now. */
+export async function getCancellationPreview(bookingId: string) {
+  return apiFetch<{
+    status: "SUCCESS";
+    bookingId: string;
+    cancellable: boolean;
+    terms: CancellationTerms;
+    refund: RawBookingRefund | null;
+  }>(`/customer/bookings/${bookingId}/cancellation-preview`, { auth: true });
+}
+
+/** POST /customer/bookings/:id/day-requests — an event-day change straight to the vendor's app. */
+export async function addDayRequest(bookingId: string, text: string) {
+  return apiFetch<{ status: "SUCCESS" }>(`/customer/bookings/${bookingId}/day-requests`, {
+    method: "POST",
+    auth: true,
+    body: { text },
+  });
+}
+
+/** POST /customer/bookings/:id/cancel — 409 once online cancelling has closed. */
+export async function cancelBooking(bookingId: string, reason?: string) {
+  return apiFetch<{ status: "SUCCESS"; bookingId: string; refund: RawBookingRefund | null }>(
+    `/customer/bookings/${bookingId}/cancel`,
+    { method: "POST", auth: true, body: { reason } },
+  );
 }
 
 /** Who cancelled a Cancelled booking; null/absent on older rows. */
@@ -248,7 +315,9 @@ export const PROPOSAL_CHANGED = "PROPOSAL_CHANGED";
 export const SLOT_TAKEN = "SLOT_TAKEN";
 
 /**
- * Review Proposal → "Accept Proposal". Confirms the booking. Sends the
+ * Review Proposal → "Accept Proposal". The vendor then confirms (or
+ * declines) the booking; only one confirmed before and reopened by new
+ * requests is confirmed straight away (bookingStatus "Confirmed"). Sends the
  * proposalVersion the customer was looking at: the backend 409s with
  * PROPOSAL_CHANGED if the vendor revised it since, SLOT_TAKEN if the vendor's
  * date went to another booking, and plainly while any request is Pending.

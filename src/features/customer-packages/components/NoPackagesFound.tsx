@@ -79,6 +79,7 @@ export default function NoPackagesFound({
 
       <a
         href={buildWhatsAppLink(whatsappText)}
+        data-track-location="no_packages_found"
         target="_blank"
         rel="noopener noreferrer"
         className="mt-2 flex w-[278px] items-center justify-center gap-2.5 rounded-full bg-[#00AB82] py-4 pr-9 pl-8 font-figtree text-[16px] font-semibold text-white transition-opacity hover:opacity-90"

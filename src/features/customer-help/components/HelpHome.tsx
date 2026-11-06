@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { formatPrice } from "@/features/customer-package-detail/utils/formatPrice";
+import type { HelpConversationSummary } from "@/lib/customerHelpApi";
 import type { HelpPageContext } from "../helpContext";
+import { HelpTicketCard } from "./HelpChats";
 import HelpAskBox from "./HelpAskBox";
 import HelpPersonRow from "./HelpPersonRow";
 import HelpSuggestionChip from "./HelpSuggestionChip";
@@ -16,6 +18,10 @@ type HelpHomeProps = {
   onAsk: (text: string) => void;
   onPhoto: (file: File) => void;
   onWhatsApp: () => void;
+  /** Open tickets, newest first; the two latest show as "Recent chats". */
+  recentChats: HelpConversationSummary[];
+  onOpenChat: (conversationId: string) => void;
+  onSeeAllChats: () => void;
 };
 
 // Package titles carry a tagline after an em dash ("Marigold Stage &
@@ -59,6 +65,9 @@ export default function HelpHome({
   onAsk,
   onPhoto,
   onWhatsApp,
+  recentChats,
+  onOpenChat,
+  onSeeAllChats,
 }: HelpHomeProps) {
   const [question, setQuestion] = useState("");
   const copy = copyFor(pageContext);
@@ -91,10 +100,29 @@ export default function HelpHome({
         />
       </section>
 
+      {recentChats.length > 0 && (
+        <section className="flex w-full flex-col gap-2 font-figtree">
+          <div className="flex items-center gap-2">
+            <span className="h-4 w-[3px] shrink-0 rounded-full bg-[#f0596f]" />
+            <h4 className="flex-1 text-[14px] font-semibold leading-[20px] text-[#030303]">Recent chats</h4>
+            <button
+              type="button"
+              onClick={onSeeAllChats}
+              className="text-[14px] font-medium leading-[20px] text-[#030303] underline underline-offset-[3px]"
+            >
+              See all
+            </button>
+          </div>
+          {recentChats.slice(0, 2).map((c) => (
+            <HelpTicketCard key={c.conversationId} chat={c} onOpen={() => onOpenChat(c.conversationId)} />
+          ))}
+        </section>
+      )}
+
       <section className="flex w-full flex-col gap-2 font-figtree">
         <div className="flex items-center gap-2">
           <span className="h-4 w-[3px] shrink-0 rounded-full bg-[#f0596f]" />
-          <h4 className="text-[14px] font-normal leading-[20px] text-[#030303]">Talk to a person</h4>
+          <h4 className="text-[14px] font-semibold leading-[20px] text-[#030303]">Talk to a person</h4>
         </div>
         {isAfterHours && (
           <p className="text-[12px] font-normal leading-[18px] text-[#71717b]">

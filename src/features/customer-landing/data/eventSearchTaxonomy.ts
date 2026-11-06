@@ -1,5 +1,14 @@
 import type { LucideIcon } from "lucide-react";
-import { Baby, Briefcase, Cake, Flower2, Gem, Home, PartyPopper, HeartHandshake } from "lucide-react";
+import {
+  Cake,
+  Briefcase,
+  Gift,
+  Baby,
+  Flame,
+  HeartHandshake,
+  Home,
+  PartyPopper,
+} from "lucide-react";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 
 // The Event Type dropdown shows every REAL, live event category the
@@ -17,12 +26,23 @@ import { CATEGORY_META } from "@/lib/categoryMeta";
 // PM reversal (2026-10-14): every real category is now shown here,
 // including "Wedding" and its variants, which used to be excluded via
 // filterHiddenEventCategories before this ever saw them.
+// Figma node 2240:10126 — every row's icon tile is the SAME pink
+// (#FDE7EB background, #F0596F/brand-primary text). This supersedes the
+// earlier per-row color-palette work (ICON_BG_PALETTE, 2026-10-23) — that was
+// fixing a problem (rows sharing one of only 7 colors) that a uniform
+// single-color tile design doesn't have.
+//
+// Reverted from the 2-letter monogram ("Bi") back to a real per-family
+// LUCIDE ICON (2026-10-30, PM-reported: "show unique logos to each relevant
+// to the event type") — kept the tile's bg/icon color exactly as the
+// monogram version already had, so only the glyph inside the tile changed.
+const MONOGRAM_BG = "#FDE7EB";
+
 export interface EventTypeDisplay {
   id: string;
   label: string;
   subtitle: string;
   IconComponent: LucideIcon;
-  /** Unique pastel icon-tile background per event-type family, so the dropdown's rows aren't all the same flat grey tile. */
   iconBg: string;
 }
 
@@ -48,7 +68,7 @@ const EVENT_TYPE_FAMILIES: EventTypeFamily[] = [
     icon: Briefcase,
     services: CORPORATE_SERVICES,
   },
-  { match: /anniversary/i, subtitle: "Milestone celebrations", icon: HeartHandshake, services: null },
+  { match: /anniversary/i, subtitle: "Milestone celebrations", icon: Gift, services: null },
   {
     match: /baby|shower|annaprashan|rice ceremony/i,
     subtitle: "Welcoming the little one",
@@ -58,10 +78,10 @@ const EVENT_TYPE_FAMILIES: EventTypeFamily[] = [
   {
     match: /haldi|puja|ganesh|chaturthi|griha|housewarming|mehndi|mehendi|sangeet/i,
     subtitle: "Religious and traditional ceremonies",
-    icon: Flower2,
+    icon: Flame,
     services: null,
   },
-  { match: /engagement|ring ceremony|roka|proposal/i, subtitle: "Ring ceremony, roka", icon: Gem, services: null },
+  { match: /engagement|ring ceremony|roka|proposal/i, subtitle: "Ring ceremony, roka", icon: HeartHandshake, services: null },
   { match: /house party|welcome gate|home/i, subtitle: "Celebrations at home", icon: Home, services: null },
 ];
 
@@ -76,71 +96,21 @@ function familyFor(label: string): EventTypeFamily {
   return EVENT_TYPE_FAMILIES.find((family) => family.match.test(label)) ?? DEFAULT_FAMILY;
 }
 
-// Icon-tile background color, assigned PER ROW (not per keyword family) —
-// there are only 7 families but ~15+ distinct real event types once
-// standalone ones (First Night, Garden Theme, Surprise, Wedding, etc.) are
-// counted, so family-based coloring left most rows sharing one of 7 colors.
-// PM-reported, 2026-10-23: "some event types like First Night, Garden Theme
-// still have same bg color." This palette has more entries than the real
-// catalog currently has, and assignment below resolves collisions by
-// stepping to the next free slot, so every row in one render is genuinely
-// unique as long as the list doesn't outgrow the palette.
-const ICON_BG_PALETTE = [
-  "#FFE5B4", "#C2E3FF", "#FFD6E0", "#D8F3DC", "#FFF3B0", "#E0CCFF", "#FFCCD3",
-  "#B5EAD7", "#C7CEEA", "#FFDAC1", "#E2F0CB", "#F7D6E0", "#CDE7F0", "#F6E2B3",
-  "#D7CFE3", "#F9E0D9", "#CFE8E0", "#E8D5B7", "#FBCFE8", "#BAE6FD", "#FDE68A",
-  "#C7D2FE", "#A7F3D0", "#FECACA",
-];
-
-function hashLabel(label: string): number {
-  let hash = 0;
-  for (let i = 0; i < label.length; i++) {
-    hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
-  }
-  return hash;
-}
-
-/**
- * Picks a color per label, stable across renders (same label -> same
- * preferred slot), but resolves collisions within THIS render's full list
- * by stepping to the next unused palette slot — so two labels that happen
- * to hash to the same index still end up visually distinct.
- */
-function assignIconColors(labels: string[]): Map<string, string> {
-  const used = new Set<number>();
-  const assigned = new Map<string, string>();
-  for (const label of labels) {
-    if (assigned.has(label)) continue; // duplicate label in the list — reuse its color
-    let index = hashLabel(label) % ICON_BG_PALETTE.length;
-    while (used.has(index) && used.size < ICON_BG_PALETTE.length) {
-      index = (index + 1) % ICON_BG_PALETTE.length;
-    }
-    used.add(index);
-    assigned.set(label, ICON_BG_PALETTE[index]);
-  }
-  return assigned;
-}
-
 /**
  * Grouped event-category options (lib/eventCategoryGroups.ts's merged
  * "Birthday"/"Corporate"/etc. buckets) -> the dropdown row shape, deriving
- * subtitle/icon by keyword family off each option's canonical LABEL, and a
- * per-row unique color via assignIconColors above — `id` is passed through
- * unchanged (it's the comma-joined raw values the backend actually filters
- * on, not something to re-derive styling from).
+ * the subtitle by keyword family off each option's canonical LABEL — `id` is
+ * passed through unchanged (it's the comma-joined raw values the backend
+ * actually filters on, not something to re-derive styling from).
  */
 export function toEventTypeDisplay(options: { id: string; label: string }[]): EventTypeDisplay[] {
-  const colors = assignIconColors(options.map((o) => o.label));
-  return options.map(({ id, label }) => {
-    const family = familyFor(label);
-    return {
-      id,
-      label,
-      subtitle: family.subtitle,
-      IconComponent: family.icon,
-      iconBg: colors.get(label) ?? "#F4F4F5",
-    };
-  });
+  return options.map(({ id, label }) => ({
+    id,
+    label,
+    subtitle: familyFor(label).subtitle,
+    IconComponent: familyFor(label).icon,
+    iconBg: MONOGRAM_BG,
+  }));
 }
 
 /** `null` = don't filter, show every service. */

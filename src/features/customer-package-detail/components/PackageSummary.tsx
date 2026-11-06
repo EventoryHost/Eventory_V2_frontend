@@ -13,7 +13,14 @@ const SERVICE_AREA_PREVIEW_COUNT = 2;
 // this only renders the 4 rows that are genuinely backed by real data:
 // step2_productsAndPricing.setups, Vendor.serviceAreas/city,
 // step1_eventAndCrew.duration, step1_eventAndCrew.crewSize.
-export default function PackageSummary({ summary }: { summary: PackageDetail["summary"] }) {
+export default function PackageSummary({
+  summary,
+  showTopDivider = true,
+}: {
+  summary: PackageDetail["summary"];
+  /** False when nothing renders above this section (e.g. a single-variant package hides VariantSelector entirely) — the border-t was a divider FROM that section, not a standalone rule, so it shouldn't show up as a stray line under the header when there's nothing above it to divide from. */
+  showTopDivider?: boolean;
+}) {
   const [isServiceAreaExpanded, setIsServiceAreaExpanded] = useState(false);
 
   const serviceAreaList = summary.serviceAreaList;
@@ -38,7 +45,7 @@ export default function PackageSummary({ summary }: { summary: PackageDetail["su
   if (rows.length === 0) return null;
 
   return (
-    <section className="border-t border-black/5 pt-8">
+    <section className={showTopDivider ? "border-t border-black/5 pt-8" : ""}>
       <SectionHeading>Package Summary</SectionHeading>
 
       <div className="grid grid-cols-1 gap-y-6 gap-x-10 sm:grid-cols-2">
