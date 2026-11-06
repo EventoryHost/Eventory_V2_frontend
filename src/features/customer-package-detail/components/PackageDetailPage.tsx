@@ -105,6 +105,7 @@ export default function PackageDetailPage({
       milestones: data.paymentMilestones.filter((m) => m.dueLabel),
       vendorType: data.categoryLabel,
       eventCategories: data.eventCategories,
+      serviceAreas: data.locationList,
     });
     return () => setHelpPageContext(null);
   }, [data, selectedVariantId]);

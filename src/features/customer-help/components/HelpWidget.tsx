@@ -86,6 +86,7 @@ function InlineBrief({
   isAfterHours,
   isAreaServed,
   checkArea,
+  areaOptions,
   onSubmit,
 }: {
   defaults: BriefDefaults;
@@ -97,6 +98,7 @@ function InlineBrief({
   isAfterHours: boolean;
   isAreaServed: (area: string) => boolean | undefined;
   checkArea: (area: string) => Promise<unknown>;
+  areaOptions?: string[];
   onSubmit: (brief: HelpBrief) => Promise<void>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -122,6 +124,7 @@ function InlineBrief({
         onEditRequirements={onEditRequirements}
         initialPhoto={defaults.photo}
         initialArea={defaults.initialArea}
+        areaOptions={areaOptions}
         locationTag={locationTag}
         accountPhone={accountPhone}
         signedIn={signedIn}
@@ -357,6 +360,9 @@ export default function HelpWidget() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city]);
   const locationTag = city ? { label: city, served: tagCheck } : null;
+  // On a package page the brief offers where that package is served.
+  const packageAreas =
+    pageContext?.kind === "package" && pageContext.serviceAreas?.length ? pageContext.serviceAreas : undefined;
 
   const req = convo.confirmedRequirements;
   const attached: AttachedRequirements | null = req
@@ -724,6 +730,7 @@ export default function HelpWidget() {
                 isAfterHours={isAfterHours}
                 isAreaServed={convo.isAreaServed}
                 checkArea={convo.checkArea}
+                areaOptions={packageAreas}
                 onSubmit={convo.sendBrief}
               />
             )}

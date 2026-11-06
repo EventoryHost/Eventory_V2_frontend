@@ -169,13 +169,18 @@ const SERVICES: (Service & { re?: RegExp })[] = [
 ];
 export const SERVICE_OPTIONS: Service[] = SERVICES.map(({ label, vendorType }) => ({ label, vendorType }));
 
-/** Requirements card "Area" chips (after the location tag) → search city. */
+/**
+ * "Area" chips (after the location tag) → search city: the regions of the
+ * backend's served-areas list (src/data/ncrServiceAreas.csv).
+ */
 export const AREA_OPTIONS: Area[] = [
   { label: "South Delhi", city: "Delhi" },
-  { label: "West Delhi", city: "Delhi" },
   { label: "Central Delhi", city: "Delhi" },
+  { label: "New Delhi", city: "Delhi" },
+  { label: "Old Delhi", city: "Delhi" },
   { label: "Gurugram", city: "Gurugram" },
   { label: "Noida", city: "Noida" },
+  { label: "Greater Noida", city: "Noida" },
   { label: "Ghaziabad", city: "Ghaziabad" },
   { label: "Faridabad", city: "Faridabad" },
 ];
