@@ -51,20 +51,30 @@ export default function PricingComparisonSection() {
 
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr]">
           {/* Comparison table */}
+          {/* Mobile overflow bug fixed (PM reported 2026-11-02): fixed px-5
+              padding + 16px text + nowrap pills in a rigid 3-col grid left
+              no room on a narrow screen for longer values ("₹5,000-₹15,000",
+              "Automated Platform") to fit, so they overflowed their cell.
+              Padding/text now scale down below sm, and the pill no longer
+              forces nowrap there — it wraps and grows instead of clipping. */}
           <div className="grid grid-cols-3 overflow-hidden rounded-[20px] border border-[#E4E4E7]">
             <div className="border-r border-[#E4E4E7]">
-              <div className="flex h-[60px] items-center bg-[#FAFAFA] px-5">
-                <span className="font-figtree text-[14px] leading-[20px] font-semibold text-[#71717B]">FEATURES</span>
+              <div className="flex h-[60px] items-center bg-[#FAFAFA] px-2 sm:px-5">
+                <span className="font-figtree text-[11px] leading-[16px] font-semibold text-[#71717B] sm:text-[14px] sm:leading-[20px]">
+                  FEATURES
+                </span>
               </div>
             </div>
             <div className="border-r border-[#FCDEE2] bg-[#FDEEF0]">
-              <div className="flex h-[60px] items-center justify-center px-5">
-                <span className="font-figtree text-[14px] leading-[20px] font-bold text-brand-primary">EVENTORY</span>
+              <div className="flex h-[60px] items-center justify-center px-2 sm:px-5">
+                <span className="font-figtree text-[11px] leading-[16px] font-bold text-brand-primary sm:text-[14px] sm:leading-[20px]">
+                  EVENTORY
+                </span>
               </div>
             </div>
             <div>
-              <div className="flex h-[60px] items-center bg-[#FAFAFA] px-5">
-                <span className="font-figtree text-[14px] leading-[20px] font-semibold text-[#71717B]">
+              <div className="flex h-[60px] items-center bg-[#FAFAFA] px-2 sm:px-5">
+                <span className="font-figtree text-[11px] leading-[16px] font-semibold text-[#71717B] sm:text-[14px] sm:leading-[20px]">
                   TRADITIONAL PLATFORMS
                 </span>
               </div>
@@ -72,33 +82,33 @@ export default function PricingComparisonSection() {
 
             {FEATURES.map((row) => (
               <div key={row.label} className="contents">
-                <div className="flex items-center border-t border-r border-[#E4E4E7] px-5 py-4">
-                  <span className="font-figtree text-[16px] leading-[24px] font-medium text-[#3F3F47]">
+                <div className="flex items-center border-t border-r border-[#E4E4E7] px-2 py-3 sm:px-5 sm:py-4">
+                  <span className="font-figtree text-[12px] leading-[18px] font-medium text-[#3F3F47] sm:text-[16px] sm:leading-[24px]">
                     {row.label}
                   </span>
                 </div>
-                <div className="flex items-center justify-center border-t border-r border-[#FCDEE2] px-5 py-4">
+                <div className="flex items-center justify-center border-t border-r border-[#FCDEE2] px-1.5 py-3 sm:px-5 sm:py-4">
                   {row.eventoryHighlighted ? (
-                    <span className="flex h-8 items-center gap-1.5 rounded-full border border-[#F9BDC5] bg-[#FFFAFA] px-2.5">
+                    <span className="flex min-h-8 items-center gap-1 rounded-full border border-[#F9BDC5] bg-[#FFFAFA] px-1.5 py-1 sm:gap-1.5 sm:px-2.5 sm:py-0">
                       <img
                         src="/images/customer/become/pricing-check-filled.svg"
                         alt=""
                         className="h-4 w-4 shrink-0"
                       />
-                      <span className="font-figtree text-[14px] leading-[20px] font-medium whitespace-nowrap text-[#030303]">
+                      <span className="font-figtree text-[11px] leading-[14px] font-medium text-[#030303] sm:text-[14px] sm:leading-[20px] sm:whitespace-nowrap">
                         {row.eventory}
                       </span>
                     </span>
                   ) : (
-                    <span className="flex h-8 items-center rounded-full border border-[#F9BDC5] bg-[#FFFAFA] px-2.5">
-                      <span className="font-figtree text-[14px] leading-[20px] font-medium text-[#030303]">
+                    <span className="flex min-h-8 items-center rounded-full border border-[#F9BDC5] bg-[#FFFAFA] px-1.5 py-1 sm:px-2.5 sm:py-0">
+                      <span className="font-figtree text-[11px] leading-[14px] font-medium text-[#030303] sm:text-[14px] sm:leading-[20px]">
                         {row.eventory}
                       </span>
                     </span>
                   )}
                 </div>
-                <div className="flex items-center border-t border-[#E4E4E7] px-5 py-4">
-                  <span className="font-figtree text-[16px] leading-[24px] font-normal text-[#3F3F47]">
+                <div className="flex items-center border-t border-[#E4E4E7] px-2 py-3 sm:px-5 sm:py-4">
+                  <span className="font-figtree text-[12px] leading-[18px] font-normal text-[#3F3F47] sm:text-[16px] sm:leading-[24px]">
                     {row.traditional}
                   </span>
                 </div>

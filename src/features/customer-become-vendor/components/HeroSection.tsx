@@ -5,13 +5,9 @@ import Image from "next/image";
 import Link from "next/link";
 import ContactUsModal from "./ContactUsModal";
 import ContactSuccessModal from "./ContactSuccessModal";
-import { browseVendors } from "@/lib/customerDiscoveryApi";
+import { getVendorsTotalCount } from "@/lib/customerDiscoveryApi";
 
-// Static fallback shown until the real count loads (or if the request
-// fails) — there's no dedicated vendor-count endpoint, so this reads
-// `.total` off an unfiltered, 1-result GET /customer/vendors call, which the
-// backend already computes as the full matching-vendor count regardless of
-// `limit`.
+// Static fallback shown until the real count loads (or if the request fails).
 const FALLBACK_TOTAL_VENDORS = "4503";
 
 export default function HeroSection() {
@@ -21,7 +17,13 @@ export default function HeroSection() {
 
   useEffect(() => {
     let cancelled = false;
-    browseVendors({ limit: 1 })
+    // Real bug fixed (PM reported 2026-11-02): this used to read
+    // browseVendors' `.total` off a `?limit=1` call, which only counts
+    // vendors visible to customers (excludes deactivated/Unlive/under-50%-
+    // complete ones) — not "every vendor Eventory has signed up", which is
+    // what this stat is meant to show off. GET /customer/vendors/total-count
+    // is unfiltered.
+    getVendorsTotalCount()
       .then((response) => {
         if (!cancelled) setTotalVendors(response.total.toLocaleString("en-IN"));
       })

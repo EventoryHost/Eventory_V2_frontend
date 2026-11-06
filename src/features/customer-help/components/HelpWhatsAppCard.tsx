@@ -109,6 +109,7 @@ export default function HelpWhatsAppCard({
           ) : (
             <a
               href={waHref}
+              data-track-location="help_widget"
               target="_blank"
               rel="noopener noreferrer"
               onClick={onOpen}

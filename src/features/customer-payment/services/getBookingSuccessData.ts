@@ -40,6 +40,13 @@ export interface BookingSuccessData {
   stillToPay: string;
   nextPayments: VendorNextPayment[];
   changeDeadlineLabel: string;
+  /** Raw numbers/ids for the purchase tracking event (src/lib/analytics.ts) — not rendered. */
+  tracking: {
+    value: number;
+    items: { id: string; name: string; category?: string; price: number }[];
+    email: string | null;
+    phone: string | null;
+  };
 }
 
 /** grandTotal when the backend sent it, else totalAmount + convenienceFee, else just totalAmount. */
@@ -153,5 +160,20 @@ export async function getBookingSuccessData(bookingIds: string[]): Promise<Booki
           month: "short",
         })
       : "",
+    tracking: {
+      // Same grandTotal sum the page shows as "Total cost" (total booking value, incl. platform fee).
+      value: totalCost,
+      items: responses.map(({ booking, priceBreakdown }) => {
+        const vendorType = booking.packageSnapshot?.vendorType ?? "";
+        return {
+          id: booking.packageId || booking._id,
+          name: booking.packageSnapshot?.name ?? "Package",
+          category: CATEGORY_LABEL_BY_TYPE[vendorType] ?? (vendorType || undefined),
+          price: grandTotalOf(priceBreakdown),
+        };
+      }),
+      email: first?.customer.email ?? null,
+      phone: first?.customer.phone ?? null,
+    },
   };
 }

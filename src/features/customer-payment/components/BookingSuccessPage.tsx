@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { trackPurchase } from "@/lib/analytics";
 import BookingHeroBanner from "./BookingHeroBanner";
 import BookingSummaryCard from "./BookingSummaryCard";
 import YourPaymentsCard from "./YourPaymentsCard";
@@ -13,6 +15,20 @@ export default function BookingSuccessPage() {
   const searchParams = useSearchParams();
   const bookingIds = (searchParams.get("bookingIds") ?? "").split(",").filter(Boolean);
   const { data, loading, error } = useBookingSuccessData(bookingIds);
+
+  // Purchase = this thank-you page, once the bookings have really loaded.
+  // trackPurchase dedupes per booking set (sessionStorage), so a refresh never double-counts.
+  const bookingIdsKey = bookingIds.join(",");
+  useEffect(() => {
+    if (!data || loading || error) return;
+    trackPurchase({
+      bookingIds: bookingIdsKey.split(","),
+      value: data.tracking.value,
+      items: data.tracking.items,
+      email: data.tracking.email,
+      phone: data.tracking.phone,
+    });
+  }, [data, loading, error, bookingIdsKey]);
 
   if (bookingIds.length === 0) {
     return (

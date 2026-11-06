@@ -31,6 +31,7 @@ export default function BookingSuccessSidebar({
               ? `Hi, I'd like help with my booking ${bookingIdLabel}.`
               : "Hi, I'd like help with my booking."
           )}
+          data-track-location="booking_success"
           target="_blank"
           rel="noopener noreferrer"
           className="flex w-full items-center justify-center gap-2 rounded-full border border-[#D4D4D8] bg-white py-[15px] font-figtree text-[16px] font-semibold text-[#09090B]"

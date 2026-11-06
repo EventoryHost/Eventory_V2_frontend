@@ -82,7 +82,16 @@ export default function YourRequestsPanel({
           return (
             <li key={request.key} className="flex items-start justify-between gap-3 rounded-2xl bg-white p-4">
               <div className="min-w-0">
-                {request.requestType !== "add" && (
+                {/* Real bug fixed (PM reported 2026-11-02): a "change"
+                    request showed the SETUP's own title here ("Entrance
+                    Decor"), not the name of the item actually being
+                    customized ("Balloon Arch"). "remove" keeps showing the
+                    setup title as context above the struck-through item
+                    name below it. */}
+                {request.requestType === "change" && (
+                  <p className="font-figtree text-[14px] font-bold text-[#0F172A]">{request.item.label}</p>
+                )}
+                {request.requestType === "remove" && (
                   <p className="font-figtree text-[14px] font-bold text-[#0F172A]">{request.setupTitle}</p>
                 )}
                 {request.requestType === "remove" ? (

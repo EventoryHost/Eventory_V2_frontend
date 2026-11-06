@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import BookingDetailContent from "@/features/customer-booking-detail/components/BookingDetailContent";
 
 export const metadata: Metadata = {
-  title: "Booking Details - Eventory",
+  title: "Booking Details",
+  robots: { index: false, follow: false },
 };
 
 // Deliberately NOT under /account: that route group's layout adds the account

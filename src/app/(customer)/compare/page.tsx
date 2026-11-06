@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import ComparePageContent from "@/features/customer-compare/components/ComparePageContent";
 
 export const metadata: Metadata = {
-  title: "Comparing Packages - Eventory",
+  title: "Comparing Packages",
+  robots: { index: false, follow: false },
 };
 
 // The comparison lives in the customer's own session behind an authenticated

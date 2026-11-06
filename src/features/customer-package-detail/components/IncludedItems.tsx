@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { OPEN_CUSTOMISE_EVENT } from "@/features/customer-help/helpContext";
-import { ArrowRight, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowRight, XCircle } from "lucide-react";
 import type { IncludedItemEntry } from "../types";
 import { formatPrice } from "../utils/formatPrice";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import PlaceholderMedia from "./PlaceholderMedia";
 import SectionHeading from "./SectionHeading";
+import ItemColourBadge from "./ItemColourBadge";
 import CustomizeWorkshopModal from "./CustomizeWorkshopModal";
 import IncludedItemImageModal from "./IncludedItemImageModal";
 
@@ -66,9 +67,31 @@ export default function IncludedItems({
       .filter(Boolean)
   );
 
+  // Any setup with at least one real item has something to open "Customize
+  // items" on — the heading flags that up front rather than the customer
+  // discovering it setup by setup.
+  const hasCustomizableItems = items.some((setup) => setup.items.length > 0);
+
   return (
     <section id="included" className="border-t border-black/5 pt-8">
-      <SectionHeading>What&apos;s Included</SectionHeading>
+      <SectionHeading>
+        What&apos;s Included
+        {items.length > 0 && <span> · {items.length} setup{items.length === 1 ? "" : "s"}</span>}
+        {hasCustomizableItems && (
+          <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[#F0596F]/30 bg-[#FFF0F2] px-2.5 py-1 font-figtree text-[11px] font-semibold text-[#F0596F]">
+            {/* Figma node 3233:25607 — palette icon. */}
+            <span
+              aria-hidden
+              className="h-3.5 w-3.5 shrink-0 bg-current"
+              style={{
+                WebkitMask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
+                mask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
+              }}
+            />
+            Customizable
+          </span>
+        )}
+      </SectionHeading>
 
       {/* Desktop/tablet layout — unchanged. */}
       <div className="hidden overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white md:block">
@@ -171,20 +194,20 @@ export default function IncludedItems({
                 <button
                   type="button"
                   onClick={() => setActiveSetupId(setup.id)}
-                  className="flex shrink-0 items-center gap-1.5 self-start rounded-full border border-[#F0596F] px-3.5 py-2 font-figtree text-[13px] font-medium text-[#F0596F] transition hover:bg-black/5"
+                  className="flex shrink-0 items-center gap-1.5 self-start rounded-2xl border border-[#F0596F] bg-white py-[9px] pr-[13px] pl-[9px] font-figtree text-[12px] font-semibold text-[#F0596F] transition hover:bg-black/5"
                 >
-                  {/* The icon file has a hard-coded dark fill, so it's used
-                      as a CSS mask over currentColor to pick up the button's
-                      pink — same 14px size as before. */}
+                  {/* Figma node 3233:25879 — "View & Customise", the icon
+                      file has a hard-coded dark fill, so it's used as a CSS
+                      mask over currentColor to pick up the button's pink. */}
                   <span
                     aria-hidden
-                    className="h-3.5 w-3.5 bg-current"
+                    className="h-4 w-4 shrink-0 bg-current"
                     style={{
-                      WebkitMask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
-                      mask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                      WebkitMask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
+                      mask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
                     }}
                   />
-                  View setup
+                  View & Customise
                 </button>
               </div>
 
@@ -202,11 +225,15 @@ export default function IncludedItems({
                         {liveItems.map((line) => (
                           <div
                             key={line.id}
-                            className={`flex items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
+                            className={`flex flex-wrap items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
                           >
-                            <CheckCircle2
-                              className={`h-4 w-4 shrink-0 ${line.removalRequested ? "text-neutral-tertiary" : "text-success-700"}`}
-                              strokeWidth={1.5}
+                            {/* Figma node 3233:25983 — the filled pink check
+                                circle, replacing the generic green outline
+                                lucide icon. */}
+                            <img
+                              src="/images/customer/package-detail/item-check-circle.svg"
+                              alt=""
+                              className={`h-3.5 w-3.5 shrink-0 ${line.removalRequested ? "opacity-40 grayscale" : ""}`}
                             />
                             <span
                               className={`font-figtree text-[14px] leading-[20px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}
@@ -220,6 +247,7 @@ export default function IncludedItems({
                               {line.label}
                               {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                             </span>
+                            {!line.removalRequested && <ItemColourBadge item={line} />}
                             {line.isNew && (
                               <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
                                 New
@@ -248,11 +276,9 @@ export default function IncludedItems({
 
       {/* Mobile layout (Figma node 2565:28051) — one card per setup: a
           smaller portrait image beside compact label:value detail lines
-          (instead of the desktop's wide image + stacked rows), a pill
-          "View setup" button, then the same items checklist below a dashed
-          divider, each green check now an outline icon (desktop's filled
-          CheckCircle2 swapped for the stroke-only variant Figma actually
-          uses here — same component, just unfilled). */}
+          (instead of the desktop's wide image + stacked rows), the "View &
+          Customise" button, then the same items checklist below a dashed
+          divider, using the same filled pink check-circle icon as desktop. */}
       <div className="flex flex-col divide-y divide-[#E4E4E7] rounded-2xl border border-[#E4E4E7] bg-white px-4 md:hidden">
         {items.map((setup, i) => {
           const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
@@ -314,17 +340,17 @@ export default function IncludedItems({
               <button
                 type="button"
                 onClick={() => setActiveSetupId(setup.id)}
-                className="flex w-fit items-center gap-1.5 rounded-full border border-[#F0596F] px-3 py-2 font-figtree text-[12px] font-medium text-[#F0596F]"
+                className="flex w-fit items-center gap-1.5 rounded-2xl border border-[#F0596F] bg-white py-[9px] pr-[13px] pl-[9px] font-figtree text-[12px] font-semibold text-[#F0596F]"
               >
                 <span
                   aria-hidden
-                  className="h-3.5 w-3.5 bg-current"
+                  className="h-4 w-4 shrink-0 bg-current"
                   style={{
-                    WebkitMask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
-                    mask: "url(/images/customer/viewsetup.svg) center / contain no-repeat",
+                    WebkitMask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
+                    mask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
                   }}
                 />
-                View setup
+                View & Customise
               </button>
 
               {liveItems.length > 0 && (
@@ -345,16 +371,18 @@ export default function IncludedItems({
                       {liveItems.map((line) => (
                         <div
                           key={line.id}
-                          className={`flex items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
+                          className={`flex flex-wrap items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
                         >
-                          <CheckCircle2
-                            className={`h-3.5 w-3.5 shrink-0 ${line.removalRequested ? "text-neutral-tertiary" : "text-success-700"}`}
-                            strokeWidth={1.5}
+                          <img
+                            src="/images/customer/package-detail/item-check-circle.svg"
+                            alt=""
+                            className={`h-3.5 w-3.5 shrink-0 ${line.removalRequested ? "opacity-40 grayscale" : ""}`}
                           />
                           <span className={`font-figtree text-[14px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}>
                             {line.label}
                             {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                           </span>
+                          {!line.removalRequested && <ItemColourBadge item={line} />}
                           {line.isNew && (
                             <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
                               New

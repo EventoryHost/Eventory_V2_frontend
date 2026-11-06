@@ -51,7 +51,7 @@ export default function FAQSection() {
   return (
     <section className="w-full bg-white px-4 py-12 sm:px-6 lg:px-16">
       <div className="mx-auto flex max-w-[1312px] flex-col gap-10 lg:flex-row lg:items-start lg:gap-11">
-        <div className="flex flex-col gap-2 lg:sticky lg:top-24 lg:max-w-[460px] lg:shrink-0">
+        <div className="flex flex-col gap-2 lg:max-w-[460px] lg:shrink-0">
           <p className="font-figtree text-[16px] leading-[24px] font-semibold text-[#EA1D3B] uppercase [text-shadow:0_0_4px_rgba(0,0,0,0.1)]">
             FAQs
           </p>

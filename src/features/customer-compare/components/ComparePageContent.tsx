@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Printer, X } from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
-import { removeCompareItem } from "@/lib/customerCompareApi";
-import { getComparison } from "../services/getComparison";
-import type { ComparisonView } from "../types";
+import { useComparisonView } from "../hooks/useComparisonView";
 import CompareTable from "./CompareTable";
 
 /**
@@ -15,58 +13,21 @@ import CompareTable from "./CompareTable";
  * a server-side session the customer fills from their wishlist ("Compare
  * Packages"), so this page has no query string of its own — it renders
  * whatever GET /customer/compare currently holds.
+ *
+ * The package listing's own "Compare now" flow instead opens CompareModal
+ * in place — same data/logic via useComparisonView, just without navigating
+ * away from the listing. This full page remains for the wishlist's own
+ * "Compare Packages" entry point and for a directly-shared /compare link.
  */
 export default function ComparePageContent() {
   const { isLoggedIn, isHydrated } = useCustomerSession();
   const router = useRouter();
-
-  const [view, setView] = useState<ComparisonView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [hasSettled, setHasSettled] = useState(false);
-
-  const load = useCallback(() => {
-    return getComparison()
-      .then((next) => {
-        setView(next);
-        setError(null);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Could not load your comparison");
-      })
-      .finally(() => setHasSettled(true));
-  }, []);
+  const { view, error, hasSettled, handleRemove, packageCount } = useComparisonView(isHydrated && isLoggedIn);
 
   useEffect(() => {
     if (!isHydrated) return;
-    if (!isLoggedIn) {
-      router.replace("/register?redirectTo=/compare");
-      return;
-    }
-    load();
-  }, [isHydrated, isLoggedIn, load, router]);
-
-  async function handleRemove(packageId: string) {
-    // Optimistic — the column goes immediately, and the reload below puts it
-    // back if the delete was rejected.
-    setView((current) =>
-      current
-        ? {
-            ...current,
-            columns: current.columns.filter((column) => column.packageId !== packageId),
-            sections: current.sections,
-          }
-        : current
-    );
-    try {
-      await removeCompareItem(packageId);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not update your comparison");
-    }
-    // Rebuilds the rows (and their winner badges) around what's left.
-    await load();
-  }
-
-  const packageCount = view?.columns.length ?? 0;
+    if (!isLoggedIn) router.replace("/register?redirectTo=/compare");
+  }, [isHydrated, isLoggedIn, router]);
 
   return (
     <div className="bg-white">

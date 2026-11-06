@@ -112,7 +112,7 @@ export default function ReportStatus({ request, em, repliedBy, onSorted, onCallB
             <span className="text-[12px] leading-[18px] text-[#3f3f47]">Call back requested · {request.callBack.ticket}</span>
           )}
           <div className="flex flex-wrap gap-2">
-            <a href={EVENTORY_TEL} className="flex items-center rounded-full bg-[#f0596f] px-5 py-[7px] text-[14px] leading-[20px] text-white">
+            <a href={EVENTORY_TEL} data-track-location="event_day_report" className="flex items-center rounded-full bg-[#f0596f] px-5 py-[7px] text-[14px] leading-[20px] text-white">
               Call {em.split(" ")[0]}
             </a>
             {!request.callBack && (
