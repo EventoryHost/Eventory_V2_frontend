@@ -133,7 +133,17 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // source EventSearchCard's own dropdown reads from.
   const [selected, setSelected] = useState<PackageSelectedFilters>(() => {
     const eventType = searchParams.get("eventType");
-    return eventType ? { ...EMPTY_PACKAGE_FILTERS, eventType: [eventType] } : EMPTY_PACKAGE_FILTERS;
+    if (!eventType) return EMPTY_PACKAGE_FILTERS;
+    // The URL carries event-category names comma-joined, and a merged sidebar option's own id
+    // can itself be comma-joined ("Baby Shower,Baby shower"). A hand-written campaign link
+    // usually names just ONE spelling, so an option matches when ANY of its tokens appears
+    // (case-insensitive) — that way both a landing-search link (full merged id) and a plain
+    // ?eventType=Baby%20Shower tick the right checkbox. Falls back to the raw value.
+    const tokens = new Set(eventType.split(",").map((token) => token.trim().toLowerCase()));
+    const matched = data.eventCategoryOptions
+      .filter((option) => option.id.split(",").some((token) => tokens.has(token.trim().toLowerCase())))
+      .map((option) => option.id);
+    return { ...EMPTY_PACKAGE_FILTERS, eventType: matched.length > 0 ? matched : [eventType] };
   });
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
@@ -194,20 +204,8 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Keep the shareable URL in step with the state worth deep-linking.
-  useEffect(() => {
-    const params = new URLSearchParams();
-    keepTrackingParams(searchParams, params);
-    if (search) params.set("q", search);
-    if (category !== "all") params.set("category", category);
-    if (sort !== "newest") params.set("sort", sort);
-    if (date) params.set("date", date);
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, category, sort, date]);
-
-  // The sidebar's "Event Type" section, joined for the server call below.
+  // The sidebar's "Event Type" section, joined for the server call below
+  // AND for the shareable URL (declared above the URL-sync effect that reads it).
   // REAL BUG FIXED 2026-10-14: this filter used to only ever narrow the
   // single already-loaded page client-side (see filterPackages.ts's old
   // eventType check) — a real, Live package tagged with the picked category
@@ -220,6 +218,28 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // pagination/sort — hence refetching from the server, same as
   // category/sort/search/date below, instead of a client-only refinement.
   const eventTypeParam = (selected.eventType ?? []).join(",");
+
+  // Keep the shareable URL in step with the state worth deep-linking.
+  // Real bug fixed (PM reported 2026-11-0x): this used to leave the event type
+  // out, and because it rebuilds the query string from scratch it also
+  // stripped an incoming ?eventType=... right after landing — so a campaign
+  // or landing-page link for "Baby Shower" ended up as just
+  // ?category=decorator&date=..., and a reload, share or back-navigation lost
+  // the event type. It's now part of the URL, and `city` (a one-time entry
+  // param from the Events page) is carried through instead of dropped.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    keepTrackingParams(searchParams, params);
+    if (search) params.set("q", search);
+    if (category !== "all") params.set("category", category);
+    if (eventTypeParam) params.set("eventType", eventTypeParam);
+    if (cityFilter) params.set("city", cityFilter);
+    if (sort !== "newest") params.set("sort", sort);
+    if (date) params.set("date", date);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, category, sort, date, eventTypeParam]);
 
   // Refetch page 1 when category, sort, event type, or the debounced search
   // changes. Skipped on the very first run when they all match what the
