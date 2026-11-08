@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
-import { trackVirtualPageView } from "@/lib/analytics";
+import { captureFbclid, trackVirtualPageView } from "@/lib/analytics";
 
 // The first page load is already counted by GTM's own page view, so only
 // later client-side navigations are pushed here.
@@ -12,6 +12,7 @@ export default function RouteChangeTracker() {
   const isFirstRun = useRef(true);
 
   useEffect(() => {
+    captureFbclid();
     if (isFirstRun.current) {
       isFirstRun.current = false;
       return;

@@ -7,6 +7,7 @@ import {
   type RawCheckoutSessionResponse,
 } from "@/lib/customerCheckoutApi";
 import { clearCheckoutSessionId, getCheckoutSessionId, setCheckoutSessionId } from "@/lib/checkoutSession";
+import { getMetaBrowserIds } from "@/lib/analytics";
 import { getVendorPublic, type RawVendorPublicMinimal } from "@/lib/vendorPublicApi";
 import type { RawCartQuoteLine } from "@/lib/customerCartApi";
 import { buildConvenienceFeeRow } from "@/lib/convenienceFee";
@@ -221,7 +222,11 @@ async function loadSession(): Promise<RawCheckoutSessionResponse | null> {
   }
 
   try {
-    const created = await createCheckoutSession({ source: "cart" });
+    const tracking = getMetaBrowserIds();
+    const created = await createCheckoutSession({
+      source: "cart",
+      ...(Object.keys(tracking).length > 0 && { tracking }),
+    });
     setCheckoutSessionId(created.session._id);
     return created;
   } catch (err) {
