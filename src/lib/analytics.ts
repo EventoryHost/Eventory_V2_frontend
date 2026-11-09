@@ -118,6 +118,47 @@ export function trackPhoneClick(params: { linkLocation: string; linkUrl: string 
   push({ event: "phone_click", link_location: params.linkLocation, link_url: params.linkUrl });
 }
 
+export interface FunnelItem {
+  id: string;
+  name: string;
+  category?: string;
+  price: number;
+}
+
+function pushEcommerce(event: string, value: number, items: FunnelItem[]): void {
+  if (typeof window === "undefined" || items.length === 0) return;
+  push({ ecommerce: null });
+  push({
+    event,
+    ecommerce: {
+      currency: "INR",
+      value,
+      items: items.map((item) => ({
+        item_id: item.id,
+        item_name: item.name,
+        item_category: item.category,
+        price: item.price,
+        quantity: 1,
+      })),
+    },
+  });
+}
+
+/** A package detail page was viewed. Callers must guard against repeats. */
+export function trackViewItem(params: { value: number; item: FunnelItem }): void {
+  pushEcommerce("view_item", params.value, [params.item]);
+}
+
+/** A package was successfully added to the cart. */
+export function trackAddToCart(params: { value: number; item: FunnelItem }): void {
+  pushEcommerce("add_to_cart", params.value, [params.item]);
+}
+
+/** Checkout started from the cart with the selected items. */
+export function trackBeginCheckout(params: { value: number; items: FunnelItem[] }): void {
+  pushEcommerce("begin_checkout", params.value, params.items);
+}
+
 export function trackPurchase(params: {
   bookingIds: string[];
   value: number;
