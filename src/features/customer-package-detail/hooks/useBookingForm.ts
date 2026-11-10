@@ -11,6 +11,7 @@ import type { CustomizeRequest, IncludedItemEntry, SelectedAddon } from "../type
 import { toCustomizeRequestPayload } from "../utils/customizeRequestPayload";
 import { getCancellationTiers } from "../utils/cancellationPolicy";
 import { isSafeInternalPath } from "@/lib/isSafeInternalPath";
+import { trackAddToCart } from "@/lib/analytics";
 import { useSelectedCity, setSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
 
 import type { SlotsState } from "../components/EventTimingSlots";
@@ -26,6 +27,8 @@ import type { ServiceabilityState } from "../components/LocationServiceability";
  */
 export function useBookingForm({
   packageId,
+  packageName,
+  packageCategory,
   packageTotal,
   gstPercent,
   tokenAmount,
@@ -45,6 +48,9 @@ export function useBookingForm({
   prefillEventDetails,
 }: {
   packageId: string;
+  /** Only used for the add_to_cart analytics event. */
+  packageName: string;
+  packageCategory?: string;
   packageTotal: number;
   gstPercent: number;
   tokenAmount: number;
@@ -342,6 +348,13 @@ export function useBookingForm({
     setCartError(error instanceof ApiError ? error.message : fallback);
   }
 
+  function trackCartAdd() {
+    trackAddToCart({
+      value: packageTotal,
+      item: { id: packageId, name: packageName, category: packageCategory, price: packageTotal },
+    });
+  }
+
   async function performAddToCart(noteOverride?: string, noteAttachmentsOverride?: string[]) {
     setCartError(null);
     setIsSubmitting(true);
@@ -354,6 +367,7 @@ export function useBookingForm({
       } else {
         const result = await addCartItem(buildCartPayload(noteOverride, noteAttachmentsOverride));
         setInCartItemId(result.itemId);
+        trackCartAdd();
       }
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 2000);
@@ -372,6 +386,7 @@ export function useBookingForm({
         await updateCartItem(editItemId, buildCartPayload(noteOverride, noteAttachmentsOverride));
       } else {
         await addCartItem(buildCartPayload(noteOverride, noteAttachmentsOverride));
+        trackCartAdd();
       }
       router.push("/cart");
     } catch (error) {

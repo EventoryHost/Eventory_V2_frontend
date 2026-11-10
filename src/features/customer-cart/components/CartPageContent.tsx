@@ -24,6 +24,7 @@ import { mockCartPageData, mockRecommendedAddons } from "../data/mockCartData";
 import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
 import { getRecommendedAddons } from "../services/getRecommendedAddons";
 import { startCheckout } from "../services/startCheckout";
+import { trackBeginCheckout } from "@/lib/analytics";
 import VendorGroupCard from "./VendorGroupCard";
 import CartPageSkeleton from "./CartPageSkeleton";
 import PaymentSummary from "./PaymentSummary";
@@ -399,6 +400,15 @@ export default function CartPageContent() {
         couponCode: appliedCoupon?.code,
       });
       if (result.redirectHref) {
+        trackBeginCheckout({
+          value: cartQuote?.grandTotal ?? data?.total ?? 0,
+          items: selectedVendors.map((v) => ({
+            id: v.package.id,
+            name: v.package.title,
+            category: v.package.categoryLabel,
+            price: v.package.price,
+          })),
+        });
         router.push(result.redirectHref);
         return;
       }

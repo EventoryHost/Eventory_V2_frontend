@@ -111,7 +111,7 @@ export interface RawCheckoutSessionResponse {
   validation: RawCheckoutSessionValidation;
 }
 
-export async function createCheckoutSession(body: { source: "cart" }) {
+export async function createCheckoutSession(body: { source: "cart"; tracking?: { fbp?: string; fbc?: string } }) {
   return apiFetch<RawCheckoutSessionResponse>("/customer/checkout/session", {
     method: "POST",
     auth: true,

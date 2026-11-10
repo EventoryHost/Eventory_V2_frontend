@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
+import { trackViewItem } from "@/lib/analytics";
 import { setHelpPageContext } from "@/features/customer-help/helpContext";
 import type { PackageDetail, SelectedAddon } from "../types";
 import { useCustomizeWorkshop } from "../hooks/useCustomizeWorkshop";
@@ -88,6 +89,16 @@ export default function PackageDetailPage({
   // IncludedItems, which meant the customize-items requests never reached
   // the add-to-cart call at all.
   const workshop = useCustomizeWorkshop(data.includedItems);
+
+  // view_item: once per package id per mount (the page remounts on a package
+  // change via key={packageId}). Skipped for cart edits — not a fresh view.
+  useEffect(() => {
+    if (editItemId) return;
+    const variant = data.variants.find((v) => v.id === data.defaultVariantId);
+    const price = variant?.price ?? 0;
+    trackViewItem({ value: price, item: { id: data.id, name: data.title, category: data.categoryLabel, price } });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.id]);
 
   // Tells the Help panel which package the customer is looking at (context
   // chip + "How does the ₹X token work?" suggestion).
@@ -205,6 +216,8 @@ export default function PackageDetailPage({
   // instead of two independent copies that could drift apart.
   const bookingForm = useBookingForm({
     packageId: data.id,
+    packageName: data.title,
+    packageCategory: data.categoryLabel,
     packageTotal,
     gstPercent: data.pricing.gstPercent,
     tokenAmount: data.pricing.tokenAmount,
