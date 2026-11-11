@@ -52,7 +52,7 @@ export default function BabyShowerWelcomeArticlePageContent() {
         </div>
       </section>
 
-      <RelatedPostsSection />
+      <RelatedPostsSection currentId="baby-shower-welcome-baby-decoration" />
       <div className="pb-16">
         <ReadyToPlanBanner />
       </div>

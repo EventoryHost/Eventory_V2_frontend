@@ -83,7 +83,7 @@ export const ARTICLES: Article[] = [
   },
 ];
 
-function BlogCard({ article }: { article: Article }) {
+export function BlogCard({ article }: { article: Article }) {
   return (
     <a
       href={article.href}
