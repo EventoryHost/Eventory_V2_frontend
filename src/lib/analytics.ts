@@ -43,6 +43,45 @@ export function buildUserData(params: {
   return { ...(email && { email }), ...(phone_number && { phone_number }) };
 }
 
+const FBCLID_KEY = "ev_fbclid";
+
+/** Remembers ?fbclid=... for the session so checkout can build the _fbc value later. */
+export function captureFbclid(): void {
+  if (typeof window === "undefined") return;
+  try {
+    const fbclid = new URLSearchParams(window.location.search).get("fbclid");
+    if (fbclid) window.sessionStorage.setItem(FBCLID_KEY, fbclid);
+  } catch {
+    // Storage unavailable: skip.
+  }
+}
+
+function readCookie(name: string): string | undefined {
+  try {
+    const match = document.cookie.split("; ").find((part) => part.startsWith(`${name}=`));
+    return match ? decodeURIComponent(match.slice(name.length + 1)) || undefined : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Meta browser identifiers for the server-side Conversions API; empty values are omitted. */
+export function getMetaBrowserIds(): { fbp?: string; fbc?: string } {
+  if (typeof window === "undefined") return {};
+  const fbp = readCookie("_fbp");
+  let fbc = readCookie("_fbc");
+  if (!fbc) {
+    let fbclid: string | null = null;
+    try {
+      fbclid = new URLSearchParams(window.location.search).get("fbclid") || window.sessionStorage.getItem(FBCLID_KEY);
+    } catch {
+      // Storage unavailable: skip.
+    }
+    if (fbclid) fbc = `fb.1.${Date.now()}.${fbclid}`;
+  }
+  return { ...(fbp && { fbp }), ...(fbc && { fbc }) };
+}
+
 export function trackEvent(event: string, params: Record<string, unknown> = {}): void {
   push({ event, ...params });
 }
@@ -77,6 +116,47 @@ export function trackWhatsAppClick(params: { linkLocation: string; linkUrl: stri
 
 export function trackPhoneClick(params: { linkLocation: string; linkUrl: string }): void {
   push({ event: "phone_click", link_location: params.linkLocation, link_url: params.linkUrl });
+}
+
+export interface FunnelItem {
+  id: string;
+  name: string;
+  category?: string;
+  price: number;
+}
+
+function pushEcommerce(event: string, value: number, items: FunnelItem[]): void {
+  if (typeof window === "undefined" || items.length === 0) return;
+  push({ ecommerce: null });
+  push({
+    event,
+    ecommerce: {
+      currency: "INR",
+      value,
+      items: items.map((item) => ({
+        item_id: item.id,
+        item_name: item.name,
+        item_category: item.category,
+        price: item.price,
+        quantity: 1,
+      })),
+    },
+  });
+}
+
+/** A package detail page was viewed. Callers must guard against repeats. */
+export function trackViewItem(params: { value: number; item: FunnelItem }): void {
+  pushEcommerce("view_item", params.value, [params.item]);
+}
+
+/** A package was successfully added to the cart. */
+export function trackAddToCart(params: { value: number; item: FunnelItem }): void {
+  pushEcommerce("add_to_cart", params.value, [params.item]);
+}
+
+/** Checkout started from the cart with the selected items. */
+export function trackBeginCheckout(params: { value: number; items: FunnelItem[] }): void {
+  pushEcommerce("begin_checkout", params.value, params.items);
 }
 
 export function trackPurchase(params: {
