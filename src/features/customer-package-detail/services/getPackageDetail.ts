@@ -723,6 +723,8 @@ function mapVendor(pkg: RawFullPackage): VendorInfo {
     // takes the lower bound, which is what "N+ Years" means.
     eventsCount: parseInt(vendor?.bookingsPerYear ?? "", 10) || vendor?.reviewsCount || 0,
     yearsExperience: parseInt(vendor?.experience ?? "", 10) || 0,
+    // "6 - 15 people" -> "6–15"
+    teamSize: vendor?.teamSize ? vendor.teamSize.replace(/\s*people\s*$/i, "").replace(/\s*-\s*/g, "–").trim() || undefined : undefined,
     // The vendor's own profile. This used to point at the vendor LISTING
     // filtered by category, because no per-vendor page existed when it was
     // written — "Vendor info" dropped you on a grid of every vendor in that

@@ -23,8 +23,10 @@ export default function AddonCard({
 
   return (
     <>
-      {/* Desktop/tablet layout — unchanged. */}
-      <div className="hidden overflow-hidden rounded-2xl border border-black/10 md:block">
+      {/* Desktop/tablet layout — Figma node 3233:26387: fixed-height image with
+          the category pill top-left and a white round "+" bottom-right, then
+          name, "sub-category · qty", a dashed divider and the price. */}
+      <div className="hidden overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white md:block">
         <div
           role="button"
           tabIndex={0}
@@ -33,24 +35,22 @@ export default function AddonCard({
             if (e.key === "Enter" || e.key === " ") setIsDetailsOpen(true);
           }}
           aria-label={`View details for ${addon.title}`}
-          className="relative aspect-[4/3] w-full cursor-pointer"
+          className="relative h-[157px] w-full cursor-pointer"
         >
           {addon.image ? (
-            <Image src={addon.image} alt={addon.title} fill sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw" className="object-cover" />
+            <Image src={addon.image} alt={addon.title} fill sizes="237px" className="object-cover" />
           ) : (
             <PlaceholderMedia seed={seed} className="absolute inset-0" />
           )}
-          <span className="absolute top-3 left-3 rounded-full bg-white/95 px-3 py-1 font-figtree text-[10px] font-bold tracking-wide text-brand-primary uppercase shadow-sm">
+          <span className="absolute top-3 left-3 rounded-full bg-white px-3 py-1 font-figtree text-[12px] leading-4 font-medium tracking-[0.02em] text-[#B4112A] uppercase">
             {addon.category}
           </span>
 
           {/* Always visible, even after this addon already has a line —
               picking it again (same or different colour) merges into the
               matching line's quantity or starts a new one, handled by
-              PackageDetailPage.tsx's addAddon. Quantity for an existing
-              line is otherwise only changed from the "Added Add-ons"
-              summary tab above (AddedAddonsSummary). stopPropagation so it
-              doesn't also trigger the image zoom above. */}
+              PackageDetailPage.tsx's addAddon. stopPropagation so it
+              doesn't also trigger the card's own details click above. */}
           <button
             type="button"
             onClick={(e) => {
@@ -58,21 +58,21 @@ export default function AddonCard({
               setIsDetailsOpen(true);
             }}
             aria-label={`Add ${addon.title}`}
-            className="absolute -bottom-4 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-brand-subtle text-brand-primary shadow-md transition hover:bg-brand-primary/15"
+            className="absolute right-3 bottom-3 flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#EA1D3B] shadow-md transition hover:bg-[#FDEEF0]"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-4 pt-6">
-          <h4 className="truncate font-figtree text-[15px] font-bold text-brand-950">{addon.title}</h4>
-          <p className="mt-0.5 truncate font-figtree text-[13px] text-neutral-secondary">
-            {addon.category} · {addon.qtyLabel || "Qty"}
+        <div className="p-4">
+          <h4 className="truncate font-figtree text-[16px] leading-6 font-medium text-[#030303]">{addon.title}</h4>
+          <p className="mt-0.5 truncate font-figtree text-[13px] leading-5 text-[#71717B]">
+            {addon.subCategory || addon.category} · {addon.qtyLabel || "Qty"}
           </p>
 
           <div className="mt-3 border-t border-dashed border-black/15 pt-3">
-            <span className="font-figtree text-[16px] font-bold text-brand-950">{formatPrice(addon.price)}</span>
-            <span className="font-figtree text-[12px] text-neutral-tertiary">/{priceUnit}</span>
+            <span className="font-figtree text-[18px] leading-6 font-bold text-[#030303]">{formatPrice(addon.price)}</span>
+            <span className="font-figtree text-[12px] font-semibold text-[#3F3F47]">/{priceUnit}</span>
           </div>
         </div>
       </div>

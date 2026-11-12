@@ -198,6 +198,8 @@ export interface VendorInfo {
   verified: boolean;
   eventsCount: number;
   yearsExperience: number;
+  /** Display-ready team size, e.g. "6–15" (from the vendor's "6 - 15 people" bucket). Undefined when the vendor didn't set one. */
+  teamSize?: string;
   href: string;
   /** e.g. "~2 hrs" */
   repliesIn?: string;

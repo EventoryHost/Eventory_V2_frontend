@@ -8,12 +8,14 @@ export type ReelCardProps = {
   reelId: string;
   /** Local static cover-frame image for this reel, downloaded once from Instagram's embed page — see ReelsCarousel's doc comment. */
   thumbnail: string;
-  /** Local video file for this reel, downloaded once from Instagram's embed page — plays in place on hover. */
-  video: string;
+  /** Local video file for this reel, downloaded once from Instagram's embed page — plays in place on hover. Omitted when Instagram's embed exposes no video (cover image only). */
+  video?: string;
+  /** "p" for a regular post URL (instagram.com/p/<id>/), default "reel". */
+  kind?: "reel" | "p";
   caption: string;
 };
 
-export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCardProps) {
+export default function ReelCard({ reelId, kind = "reel", thumbnail, video, caption }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const play = () => {
@@ -29,12 +31,15 @@ export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCard
     const el = videoRef.current;
     if (!el) return;
     el.pause();
-    el.currentTime = 0;
+    // Reset to the unplayed state so the poster (cover frame) shows again.
+    // Just seeking to 0 leaves the video's own first frame on screen, which is
+    // black for reels that fade in from black.
+    el.load();
   };
 
   return (
     <a
-      href={`https://www.instagram.com/reel/${reelId}/`}
+      href={`https://www.instagram.com/${kind}/${reelId}/`}
       target="_blank"
       rel="noopener noreferrer"
       className="block w-[203px]"
@@ -44,17 +49,22 @@ export default function ReelCard({ reelId, thumbnail, video, caption }: ReelCard
         onMouseEnter={play}
         onMouseLeave={stop}
       >
-        <video
-          ref={videoRef}
-          poster={thumbnail}
-          muted
-          loop
-          playsInline
-          preload="none"
-          className="h-full w-full object-cover"
-        >
-          <source src={video} type="video/mp4" />
-        </video>
+        {video ? (
+          <video
+            ref={videoRef}
+            poster={thumbnail}
+            muted
+            loop
+            playsInline
+            preload="none"
+            className="h-full w-full object-cover"
+          >
+            <source src={video} type="video/mp4" />
+          </video>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element -- static local cover frame, no video available for this post
+          <img src={thumbnail} alt={caption} className="h-full w-full object-cover" />
+        )}
       </div>
 
       {/* Figma node 1:7851 — caption only, no handle/avatar row and no

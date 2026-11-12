@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { OPEN_CUSTOMISE_EVENT } from "@/features/customer-help/helpContext";
 import { ArrowRight, XCircle } from "lucide-react";
-import type { IncludedItemEntry } from "../types";
+import type { IncludedItemEntry, IncludedItemLine } from "../types";
 import { formatPrice } from "../utils/formatPrice";
+import { splitExclusions } from "../utils/splitExclusions";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import PlaceholderMedia from "./PlaceholderMedia";
 import SectionHeading from "./SectionHeading";
@@ -60,17 +61,61 @@ export default function IncludedItems({
   // separate array elements. Flatten on "\n" and strip any "•" the vendor
   // already typed, so each line still renders as its own bullet regardless
   // of which way the vendor entered it.
-  const flatExclusions = notIncluded.flatMap((exclusion) =>
-    exclusion
-      .split("\n")
-      .map((line) => line.trim().replace(/^•\s*/, ""))
-      .filter(Boolean)
-  );
+  const flatExclusions = splitExclusions(notIncluded);
 
   // Any setup with at least one real item has something to open "Customize
   // items" on — the heading flags that up front rather than the customer
   // discovering it setup by setup.
   const hasCustomizableItems = items.some((setup) => setup.items.length > 0);
+
+  // "Check Exclusions" bar (Figma node 3233:26310) — the footer of the same
+  // card as the setups, not a separate card below it. Renders nothing when the
+  // vendor listed no exclusions.
+  function exclusionsFooter(extraClassName = "") {
+    if (flatExclusions.length === 0) return null;
+    return (
+      <div className={`border-t border-[#E4E4E7] bg-[#FAFAFA] ${extraClassName}`}>
+        <button
+          type="button"
+          onClick={() => setIsExclusionsOpen((open) => !open)}
+          aria-expanded={isExclusionsOpen}
+          className="flex w-full items-center gap-1 px-7 py-2 text-left"
+        >
+          <span className="font-figtree text-[16px] leading-6 font-medium text-[#B91D34]">Check Exclusions</span>
+          <img
+            src="/images/customer/package-detail/arrow-right.svg"
+            alt=""
+            className={`h-5 w-5 shrink-0 transition-transform ${isExclusionsOpen ? "rotate-90" : ""}`}
+          />
+        </button>
+
+        {isExclusionsOpen && (
+          <div className="border-t border-[#E4E4E7] px-7 py-4">
+            <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
+              EXCLUSIONS ({flatExclusions.length})
+            </p>
+            <div className="flex flex-col gap-2">
+              {flatExclusions.map((exclusion, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
+                  <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // The checklist itself stays as the vendor listed it, but the colour badge
+  // beside each item has to follow what the customer picked in the modal
+  // (vendor-palette pick in the item details, or custom colours in Customize
+  // items), which lives only in the workshop's own state.
+  function withLiveColours(setupId: string, line: IncludedItemLine): IncludedItemLine {
+    const live = workshop.itemsBySetup[setupId]?.find((item) => item.id === line.id);
+    return live ? { ...line, colours: live.colours, customColours: live.customColours } : line;
+  }
 
   return (
     <section id="included" className="border-t border-black/5 pt-8">
@@ -247,7 +292,7 @@ export default function IncludedItems({
                               {line.label}
                               {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                             </span>
-                            {!line.removalRequested && <ItemColourBadge item={line} />}
+                            {!line.removalRequested && <ItemColourBadge item={withLiveColours(setup.id, line)} />}
                             {line.isNew && (
                               <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
                                 New
@@ -272,6 +317,7 @@ export default function IncludedItems({
             );
           })}
         </div>
+        {exclusionsFooter()}
       </div>
 
       {/* Mobile layout (Figma node 2565:28051) — one card per setup: a
@@ -279,7 +325,7 @@ export default function IncludedItems({
           (instead of the desktop's wide image + stacked rows), the "View &
           Customise" button, then the same items checklist below a dashed
           divider, using the same filled pink check-circle icon as desktop. */}
-      <div className="flex flex-col divide-y divide-[#E4E4E7] rounded-2xl border border-[#E4E4E7] bg-white px-4 md:hidden">
+      <div className="flex flex-col divide-y divide-[#E4E4E7] overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white px-4 md:hidden">
         {items.map((setup, i) => {
           const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
           const liveItems = setup.items;
@@ -382,7 +428,7 @@ export default function IncludedItems({
                             {line.label}
                             {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                           </span>
-                          {!line.removalRequested && <ItemColourBadge item={line} />}
+                          {!line.removalRequested && <ItemColourBadge item={withLiveColours(setup.id, line)} />}
                           {line.isNew && (
                             <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
                               New
@@ -397,42 +443,8 @@ export default function IncludedItems({
             </div>
           );
         })}
+        {exclusionsFooter("-mx-4")}
       </div>
-
-      {flatExclusions.length > 0 && (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4E4E7]">
-          <button
-            type="button"
-            onClick={() => setIsExclusionsOpen((open) => !open)}
-            className="flex h-10 w-full items-center justify-start gap-2 bg-[#FAFAFA] px-7 py-2"
-          >
-            <span className="font-figtree text-[14px] leading-[20px] font-medium text-[#B4112A]">
-              Check Exclusions
-            </span>
-            <ArrowRight
-              className={`h-4 w-4 shrink-0 text-[#B4112A] transition-transform ${
-                isExclusionsOpen ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-
-          {isExclusionsOpen && (
-            <div className="border-t border-[#E4E4E7] bg-[#FAFAFA] px-7 py-4">
-              <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
-                EXCLUSIONS ({flatExclusions.length})
-              </p>
-              <div className="flex flex-col gap-2">
-                {flatExclusions.map((exclusion, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
-                    <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {activeSetup && (
         <CustomizeWorkshopModal
