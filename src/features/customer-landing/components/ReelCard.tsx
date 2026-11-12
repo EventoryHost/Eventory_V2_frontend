@@ -31,7 +31,10 @@ export default function ReelCard({ reelId, kind = "reel", thumbnail, video, capt
     const el = videoRef.current;
     if (!el) return;
     el.pause();
-    el.currentTime = 0;
+    // Reset to the unplayed state so the poster (cover frame) shows again.
+    // Just seeking to 0 leaves the video's own first frame on screen, which is
+    // black for reels that fade in from black.
+    el.load();
   };
 
   return (

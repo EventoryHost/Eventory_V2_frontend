@@ -286,10 +286,14 @@ export default function PackageDetailPage({
         categoryLabel={data.categoryLabel}
         vendorUnitName={data.vendorUnitName}
       />
-      <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
 
-      <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
+      {/* Header (Figma node 3233:25522) sits in the left column with the
+          booking card (node 3233:26781) beside it, both starting at the same
+          row; the card stays sticky as the rest of the page scrolls past. */}
+      <div className="relative grid grid-cols-1 gap-10 pt-6 md:pt-0 lg:grid-cols-3 lg:gap-x-[55px]">
         <div className="space-y-10 lg:col-span-2">
+          <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
+
           {data.variants.length > 1 && (
             <VariantSelector
               variants={data.variants}
@@ -329,7 +333,8 @@ export default function PackageDetailPage({
             MobileBookingBar (a fixed bottom bar + bottom sheet, Figma nodes
             2548:28662 onward) replaces it instead of just stacking below
             all the page content like this card used to on narrow screens. */}
-        <div className="hidden lg:block">
+        {/* pt-20: the card starts 80px below the row holding Share/Wishlist (Figma node 3233:26781). */}
+        <div className="hidden lg:block lg:pt-20">
           <StickyBookingCard
             form={bookingForm}
             packageTotal={packageTotal}

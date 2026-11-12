@@ -29,7 +29,7 @@ export default function HeroGallery({
   const sideImages = images.filter((_, i) => i !== activeIndex).slice(0, 2);
 
   return (
-    <section className="relative mb-8 overflow-hidden rounded-2xl">
+    <section className="relative mb-8 overflow-hidden rounded-2xl md:mb-[27px]">
       {/* Desktop/tablet layout — unchanged. */}
       <div className="hidden gap-4 md:grid md:grid-cols-3">
         <div className="relative h-[450px] md:col-span-2">
