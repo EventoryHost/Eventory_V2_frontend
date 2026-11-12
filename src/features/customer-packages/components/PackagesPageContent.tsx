@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { PackagesPageData } from "../types";
 import PromoBannerCarousel from "./PromoBannerCarousel";
 import VendorCategoryTabs from "./VendorCategoryTabs";
@@ -12,7 +12,6 @@ import BudgetEstimatorSection from "./BudgetEstimatorSection";
 import NoPackagesFound from "./NoPackagesFound";
 
 export default function PackagesPageContent({ data }: { data: PackagesPageData }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -41,7 +40,13 @@ export default function PackagesPageContent({ data }: { data: PackagesPageData }
     if (categoryId === data.defaultVendorCategoryId) params.delete("category");
     else params.set("category", categoryId);
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // history.replaceState, not router.replace: this page already has every
+    // category's data from the first load, and router.replace re-runs the
+    // whole force-dynamic server page (every category's package fetches
+    // again) on each tab click. Any one of those refetches failing came back
+    // as an empty list, i.e. a false "packages are coming soon". Next keeps
+    // useSearchParams in sync with replaceState, so the URL stays shareable.
+    window.history.replaceState(null, "", query ? `${pathname}?${query}` : pathname);
   }
   const blocks = data.blocksByCategory[activeCategoryId] ?? [];
   const hasPackages = data.hasPackagesByCategory[activeCategoryId] ?? true;
