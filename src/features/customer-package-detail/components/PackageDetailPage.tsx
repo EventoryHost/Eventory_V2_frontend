@@ -313,7 +313,6 @@ export default function PackageDetailPage({
             attachments={vendorNoteAttachments}
             onAttachmentsChange={setVendorNoteAttachments}
           />
-          <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
             <AddonsCarousel
               addons={data.addons}
@@ -323,8 +322,13 @@ export default function PackageDetailPage({
               onSetLineQuantity={setAddonLineQuantity}
             />
           )}
+          <VendorRequirements requirements={data.vendorRequirements} summary={data.summary} />
           <PaymentProtection protection={data.paymentProtection} />
-          {data.policies.length > 0 && <PoliciesSection policies={data.policies} />}
+          <PoliciesSection
+            policies={data.policies}
+            eventDateIso={bookingForm.validEventDate}
+            vendorPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
+          />
           <VendorSection vendor={data.vendor} />
           {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
         </div>
