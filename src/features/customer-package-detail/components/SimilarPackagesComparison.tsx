@@ -3,10 +3,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { browsePackages, getPackageStartingPrice, type RawPackage } from "@/lib/customerDiscoveryApi";
+
 import { addCompareItem, clearCompare } from "@/lib/customerCompareApi";
-import { CATEGORY_TO_VENDOR_TYPE } from "@/lib/vendorType";
-import { sanitizeCityName } from "@/lib/vendorLocation";
+import { findSimilarPackages } from "../utils/findSimilarPackages";
 import CompareModal from "@/features/customer-compare/components/CompareModal";
 import type { PackageDetail } from "../types";
 import { getPackageDetail } from "../services/getPackageDetail";
@@ -14,10 +13,6 @@ import { formatPrice } from "../utils/formatPrice";
 import SectionHeading from "./SectionHeading";
 
 const SIMILAR_COUNT = 2;
-const CANDIDATE_LIMIT = 24;
-// "Similar budget": from half to 1.6x of this package's starting price.
-const BUDGET_MIN_FACTOR = 0.5;
-const BUDGET_MAX_FACTOR = 1.6;
 
 interface Column {
   id: string;
@@ -70,58 +65,6 @@ function toColumn(detail: PackageDetail, isCurrent: boolean): Column {
   };
 }
 
-/**
- * Picks the packages most like the one being viewed: same category, then
- * ranked by how many of its event types they share, how close the price is,
- * and whether the vendor serves the same city. Variants of this same package
- * are skipped (they are the same product at another tier). Budget filtering is
- * relaxed if too few candidates fall inside it.
- */
-async function findSimilar(current: PackageDetail): Promise<RawPackage[]> {
-  const vendorType = CATEGORY_TO_VENDOR_TYPE[current.categorySlug];
-  if (!vendorType) return [];
-  const currentPrice = startingPrice(current);
-
-  const inBudget =
-    currentPrice > 0
-      ? await browsePackages({
-          vendorType,
-          minPrice: Math.floor(currentPrice * BUDGET_MIN_FACTOR),
-          maxPrice: Math.ceil(currentPrice * BUDGET_MAX_FACTOR),
-          limit: CANDIDATE_LIMIT,
-        }).catch(() => null)
-      : null;
-  let candidates = inBudget?.packages ?? [];
-  if (candidates.filter((pkg) => pkg._id !== current.id).length < SIMILAR_COUNT) {
-    const any = await browsePackages({ vendorType, limit: CANDIDATE_LIMIT }).catch(() => null);
-    candidates = [...candidates, ...(any?.packages ?? [])];
-  }
-
-  const currentEvents = new Set(current.eventCategories.map((event) => event.trim().toLowerCase()));
-  const currentCities = new Set(current.locationList.map((place) => place.trim().toLowerCase()));
-  const currentVariantIds = new Set(current.variants.map((variant) => variant.id));
-  const seen = new Set<string>();
-
-  return candidates
-    .filter((pkg) => {
-      if (pkg._id === current.id || currentVariantIds.has(pkg._id) || seen.has(pkg._id)) return false;
-      seen.add(pkg._id);
-      return true;
-    })
-    .map((pkg) => {
-      const sharedEvents = (pkg.step1_eventAndCrew?.eventCategories ?? []).filter((event) =>
-        currentEvents.has(event.trim().toLowerCase())
-      ).length;
-      const city = sanitizeCityName(pkg.vendorId?.city)?.toLowerCase();
-      const price = getPackageStartingPrice(pkg);
-      const priceGap = currentPrice > 0 && price > 0 ? Math.abs(Math.log(price / currentPrice)) : 1;
-      return { pkg, score: sharedEvents * 2 + (city && currentCities.has(city) ? 1 : 0) - priceGap };
-    })
-    .sort((a, b) => b.score - a.score)
-    .slice(0, SIMILAR_COUNT)
-    .map((entry) => entry.pkg);
-}
-
 const labelCell = "flex items-center border border-[#E4E4E7] bg-white px-5 py-4 font-figtree text-[14px] leading-5 font-medium text-[#3F3F47]";
 
 function Cell({ column, children, tall }: { column: Column; children: ReactNode; tall?: boolean }) {
@@ -153,7 +96,7 @@ export default function SimilarPackagesComparison({ current }: { current: Packag
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const similar = await findSimilar(current);
+      const similar = await findSimilarPackages(current, { count: SIMILAR_COUNT });
       const details = await Promise.all(similar.map((pkg) => getPackageDetail(pkg._id).catch(() => null)));
       if (cancelled) return;
       const others = details.filter((detail): detail is PackageDetail => detail !== null);

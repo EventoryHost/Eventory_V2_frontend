@@ -103,12 +103,12 @@ export default function ProductCard({
   return (
     <Link
       href={href}
-      className={`block overflow-hidden rounded-[20px] border border-[#F0F0F0] bg-white transition-transform duration-200 ease-out hover:scale-[1.02] ${
+      className={`flex flex-col overflow-hidden rounded-[20px] border border-[#F0F0F0] bg-white transition-transform duration-200 ease-out hover:scale-[1.02] ${
         fullWidth ? "w-full" : "w-[316px]"
       }`}
     >
       {/* Image */}
-      <div className="relative h-[191px] w-full">
+      <div className="relative h-[191px] w-full shrink-0">
         <Image
           src={imgSrc}
           alt={title}
@@ -158,7 +158,7 @@ export default function ProductCard({
       </div>
 
       {/* Content */}
-      <div className="flex w-full flex-col gap-4 p-4">
+      <div className="flex w-full flex-1 flex-col gap-4 p-4">
         <div className="flex items-center gap-3">
           <div
             className="flex h-6 w-fit shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
@@ -220,6 +220,9 @@ export default function ProductCard({
           </div>
         )}
 
+        {/* Pinned to the bottom of the card, so in a row of cards with different
+            amounts of content the divider and price line up across all of them. */}
+        <div className="mt-auto flex flex-col gap-4">
         <div className="h-px w-full bg-black/10" />
 
         <div className="flex items-end justify-between gap-3">
@@ -246,6 +249,7 @@ export default function ProductCard({
               </span>
             </span>
           )}
+        </div>
         </div>
       </div>
     </Link>
