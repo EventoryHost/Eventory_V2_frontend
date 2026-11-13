@@ -103,6 +103,8 @@ export interface BookingPaymentSummary {
   rows: BookingLineRow[];
   grandTotal: string;
   tokenAmount: string;
+  /** Balance due after the token, formatted; null when the whole amount is paid up front. */
+  remainingAmount: string | null;
   payInFull: boolean;
   cancellationNote: string;
   /**

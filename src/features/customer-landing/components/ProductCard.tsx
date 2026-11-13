@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Bookmark, Check, Star, Clock, Users, Map } from "lucide-react";
+import { Bookmark, Check } from "lucide-react";
 
 const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 
@@ -13,11 +13,19 @@ export type ProductCardProps = {
   title: string;
   rating: number;
   reviewCount: number;
+  /** No longer shown (Figma node 3233:35936 dropped these rows); still accepted so existing callers are unchanged. */
   duration: string;
   guestCapacity: string;
   price: string;
   priceSuffix?: string;
+  /** No longer shown (the location footer was dropped from the card design); still accepted so existing callers are unchanged. */
   locations: string[];
+  /** Real counts from the package. Each stat is hidden when it is 0 (variants: 1 or fewer). */
+  setupsCount?: number;
+  itemsCount?: number;
+  variantCount?: number;
+  /** Shows the "Customize it" ribbon: the package has setup items a customer can change. */
+  customizable?: boolean;
   categoryGradientFrom?: string;
   categoryGradientTo?: string;
   href?: string;
@@ -28,7 +36,7 @@ export type ProductCardProps = {
    */
   fullWidth?: boolean;
   /**
-   * Bookmark wiring. The button renders either way — without a handler it
+   * Bookmark wiring. The button renders either way. Without a handler it
    * stays the inert placeholder it has always been, so callers that don't
    * manage wishlist state keep their current behaviour.
    */
@@ -36,15 +44,14 @@ export type ProductCardProps = {
   onToggleBookmark?: () => void;
   /**
    * Package listing's "Compare Packages" mode (customer-package-listing's
-   * PackageListingContent) — same checkbox styling as the wishlist's own
-   * compare checkbox (WishlistItemCard.tsx, node 1541:6257), reused here so
-   * the control looks identical wherever a package can join a comparison.
-   * Only rendered when a handler is passed, so every other caller of this
-   * card (landing carousels, vendor profile) is unaffected.
+   * PackageListingContent), same checkbox styling as the wishlist's own
+   * compare checkbox (WishlistItemCard.tsx, node 1541:6257). Only rendered
+   * when a handler is passed, so every other caller of this card (landing
+   * carousels, vendor profile) is unaffected.
    */
   isCompareSelected?: boolean;
   onToggleCompare?: () => void;
-  /** Greyed out, non-interactive — comparison is full (3) or locked to a different category and this card doesn't qualify. */
+  /** Greyed out, non-interactive: comparison is full (3) or locked to a different category and this card doesn't qualify. */
   compareDisabled?: boolean;
 };
 
@@ -55,6 +62,7 @@ function formatTags(tags: string[]) {
   return remaining > 0 ? `${label} • +${remaining} more` : label;
 }
 
+// Figma node 3233:35936.
 export default function ProductCard({
   image,
   categoryLabel,
@@ -63,11 +71,12 @@ export default function ProductCard({
   title,
   rating,
   reviewCount,
-  duration,
-  guestCapacity,
   price,
   priceSuffix = "/event",
-  locations,
+  setupsCount = 0,
+  itemsCount = 0,
+  variantCount = 0,
+  customizable = false,
   categoryGradientFrom = "#FFE5E9",
   categoryGradientTo = "#ffffff",
   href = "/packages",
@@ -78,17 +87,15 @@ export default function ProductCard({
   onToggleCompare,
   compareDisabled = false,
 }: ProductCardProps) {
-  // Some real package images are stale CloudFront URLs that now 404 — rather
+  // Some real package images are stale CloudFront URLs that now 404. Rather
   // than showing a broken-image icon, swap to the same fallback a missing
   // `image` already uses once the real URL fails to load.
   const [imgSrc, setImgSrc] = useState(image);
-  // REAL BUG FIXED 2026-10-24: callers like PackagesCarousel render a fixed
-  // number of these cards with static placeholder data first, then swap in
-  // real packages once the API resolves — same array length/keys, so React
-  // reuses these exact component instances rather than remounting them.
-  // useState(image) only captures the prop on that FIRST render, so every
-  // card stayed stuck on the original placeholder image forever once real
-  // data arrived. Re-sync whenever the `image` prop actually changes.
+  // Callers like PackagesCarousel render a fixed number of these cards with
+  // static placeholder data first, then swap in real packages once the API
+  // resolves (same array length/keys, so React reuses these instances).
+  // useState(image) only captures the prop on the FIRST render, so re-sync
+  // whenever the `image` prop actually changes.
   useEffect(() => {
     setImgSrc(image);
   }, [image]);
@@ -96,7 +103,7 @@ export default function ProductCard({
   return (
     <Link
       href={href}
-      className={`block overflow-hidden rounded-2xl border border-black/5 bg-white transition-transform duration-200 ease-out hover:scale-[1.02] ${
+      className={`block overflow-hidden rounded-[20px] border border-[#F0F0F0] bg-white transition-transform duration-200 ease-out hover:scale-[1.02] ${
         fullWidth ? "w-full" : "w-[316px]"
       }`}
     >
@@ -140,18 +147,21 @@ export default function ProductCard({
             event.stopPropagation();
             onToggleBookmark?.();
           }}
-          className="absolute top-4 right-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 backdrop-blur-[5.6px]"
+          className="absolute top-4 right-4 flex items-center rounded-full bg-black/20 p-1.5 backdrop-blur-[7px]"
         >
-          <Bookmark className="h-5 w-5 text-white" fill={isBookmarked ? "currentColor" : "none"} />
+          {isBookmarked ? (
+            <Bookmark className="h-5 w-5 text-white" fill="currentColor" />
+          ) : (
+            <Image src="/images/customer/package-detail/card-bookmark.svg" alt="" width={20} height={20} className="h-5 w-5" />
+          )}
         </button>
       </div>
 
       {/* Content */}
-      <div className="flex w-full flex-col gap-5 p-4">
-        {/* Category badge + tags */}
+      <div className="flex w-full flex-col gap-4 p-4">
         <div className="flex items-center gap-3">
           <div
-            className="flex w-fit shrink-0 items-center gap-2 rounded-[52px] pt-1 pr-3 pb-1 pl-1"
+            className="flex h-6 w-fit shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
             style={{
               background: `linear-gradient(to left, ${categoryGradientFrom}, ${categoryGradientTo})`,
             }}
@@ -163,84 +173,80 @@ export default function ProductCard({
               height={16}
               className="h-4 w-4 rounded-full object-contain"
             />
-            <span className="font-figtree text-[12px] font-semibold text-brand-950 whitespace-nowrap uppercase">
+            <span className="font-figtree text-[12px] leading-[18px] font-bold tracking-[-0.12px] whitespace-nowrap text-[#3C060D] uppercase">
               {categoryLabel}
             </span>
           </div>
 
-          <span className="h-4 w-px shrink-0 bg-black/10" />
+          <span className="h-3 w-px shrink-0 bg-black/15" />
 
-          <p className="truncate font-figtree text-[14px] font-medium leading-[18px] tracking-[-0.01em] text-[#B4112A]">
+          <p className="truncate font-figtree text-[14px] leading-[18px] font-medium tracking-[-0.14px] text-[#B4112A]">
             {formatTags(tags)}
           </p>
         </div>
 
-        {/* Title — min-h reserves 2 lines' worth of space even when the
-            title only takes 1, so cards with short titles don't end up
-            shorter than cards whose titles wrap (PM-reported alignment
-            issue, 2026-10-15). */}
-        <h3 className="min-h-[48px] font-figtree text-[20px] font-bold leading-[1.2] text-brand-950 line-clamp-2">
+        {/* min-h reserves 2 lines so a short title doesn't make a card
+            shorter than its neighbours (PM-reported alignment issue, 2026-10-15). */}
+        <h3 className="min-h-[44px] font-figtree text-[16px] leading-[22px] font-semibold tracking-[-0.16px] text-[#1A1A1A] line-clamp-2">
           {title}
         </h3>
 
-        {/* Rating — only shown once the package actually has reviews */}
+        {/* Rating: only once the package actually has reviews */}
         {reviewCount > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-primary">
-              <Star className="h-3 w-3 fill-white text-white" />
-            </span>
-            <span className="font-figtree text-[14px] font-medium text-[#71717B]">
-              {rating} from {reviewCount} reviews
+          <div className="flex items-center gap-1.5">
+            <Image src="/images/customer/package-detail/card-star.svg" alt="" width={17} height={17} className="h-[17px] w-[17px]" />
+            <span className="font-figtree text-[14px] leading-5 font-medium tracking-[-0.14px] text-[#666]">
+              <span className="font-semibold text-[#1A1A1A]">{rating} </span>
+              from {reviewCount} reviews
             </span>
           </div>
         )}
 
-        {/* Duration / guests — each hidden when the vendor left it unset,
-            rather than rendering an icon next to a bare em dash. */}
-        <div className="flex items-center gap-6 empty:hidden">
-          {duration !== "—" && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-[#71717B]" />
-              <span className="font-figtree text-[14px] font-medium text-[#71717B]">
-                {duration}
+        {(setupsCount > 0 || variantCount > 1) && (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {setupsCount > 0 && (
+              <span className="flex items-center gap-1 font-figtree text-[14px] leading-4 font-medium text-[#666]">
+                <Image src="/images/customer/package-detail/card-box.svg" alt="" width={18} height={18} className="h-[18px] w-[18px]" />
+                {setupsCount} setup{setupsCount === 1 ? "" : "s"}
+                {itemsCount > 0 && ` · ${itemsCount} item${itemsCount === 1 ? "" : "s"}`}
               </span>
-            </div>
-          )}
-          {guestCapacity !== "—" && (
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-[#71717B]" />
-              <span className="font-figtree text-[14px] font-medium text-[#71717B]">
-                {guestCapacity}
+            )}
+            {variantCount > 1 && (
+              <span className="flex items-center gap-1 font-figtree text-[14px] leading-4 font-medium text-[#666]">
+                <Image src="/images/customer/package-detail/card-variants.svg" alt="" width={18} height={18} className="h-[18px] w-[18px]" />
+                {variantCount} variants
               </span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="h-px w-full bg-black/10" />
 
-        {/* Price */}
-        <div>
-          <p className="font-figtree text-[12px] font-medium uppercase tracking-wide text-[#A1A1AA]">
-            Starting from
-          </p>
-          <p className="font-figtree text-[24px] font-bold text-brand-950">
-            {price}
-            <span className="text-[14px] font-medium text-[#71717B]">
-              {priceSuffix}
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-figtree text-[11px] leading-[14px] font-medium tracking-wide text-[#9F9FA9] uppercase">
+              Starting from
+            </p>
+            <p className="font-figtree font-bold tracking-[-0.24px] text-black">
+              <span className="text-[24px] leading-8">{price}</span>
+              <span className="text-[16px] leading-8">{priceSuffix}</span>
+            </p>
+          </div>
+          {customizable && (
+            <span className="relative mb-1 flex h-5 w-[106px] shrink-0 items-center justify-center">
+              <Image
+                src="/images/customer/package-detail/card-customize-ribbon.svg"
+                alt=""
+                width={106}
+                height={20}
+                className="absolute inset-0 h-full w-full"
+              />
+              <span className="relative font-figtree text-[11px] leading-4 font-semibold tracking-[0.11px] whitespace-nowrap text-white">
+                CUSTOMIZE IT
+              </span>
             </span>
-          </p>
+          )}
         </div>
-      </div>
-
-      {/* Location — full-bleed footer strip, its own top border separate from
-          the padded content above. Only the first 2 locations, "..." appended
-          when there are more. */}
-      <div className="flex items-center gap-2 border-t border-[#F0F0F0] px-4 py-1.5">
-        <Map className="h-4 w-4 shrink-0 text-[#790B1A]" />
-        <p className="truncate font-figtree text-[14px] font-medium text-[#790B1A]">
-          Available in {locations.slice(0, 2).join(", ")}
-          {locations.length > 2 ? "..." : ""}
-        </p>
       </div>
     </Link>
   );

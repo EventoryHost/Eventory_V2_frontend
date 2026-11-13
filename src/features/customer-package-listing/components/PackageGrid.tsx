@@ -54,6 +54,10 @@ export default function PackageGrid({
             guestCapacity={pkg.guestCapacity}
             price={formatPrice(pkg.startingPrice)}
             locations={pkg.locations}
+            setupsCount={pkg.setupsCount}
+            itemsCount={pkg.itemsCount}
+            variantCount={pkg.variantCount}
+            customizable={pkg.customizable}
             isBookmarked={bookmarkedIds.has(pkg.id)}
             onToggleBookmark={() => onToggleBookmark(pkg.id)}
             onToggleCompare={compareMode ? () => onToggleCompare?.(pkg) : undefined}

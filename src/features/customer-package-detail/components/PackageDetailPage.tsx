@@ -26,6 +26,7 @@ import ReviewsSection from "./ReviewsSection";
 import StickyBookingCard from "./StickyBookingCard";
 import MobileBookingBar from "./MobileBookingBar";
 import RecommendedPackagesSection from "./RecommendedPackagesSection";
+import SimilarPackagesComparison from "./SimilarPackagesComparison";
 
 function scrollToBookingCard() {
   document.getElementById("booking-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -353,6 +354,9 @@ export default function PackageDetailPage({
           />
         </div>
       </div>
+
+      {/* After Reviews, full width: the table needs more room than the left column has. */}
+      <SimilarPackagesComparison current={data} />
 
       <RecommendedPackagesSection currentPackageId={data.id} categorySlug={data.categorySlug} />
 
