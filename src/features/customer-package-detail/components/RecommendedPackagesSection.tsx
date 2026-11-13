@@ -7,6 +7,7 @@ import {
   browsePackages,
   getPopularPackages,
   getPackageImage,
+  getPackageCardStats,
   getPackageStartingPrice,
   getPackageDurationLabel,
   getPackageCapacityLabel,
@@ -21,7 +22,7 @@ const FALLBACK_IMAGE = "/images/customer/packages-pics.png";
 const RECOMMENDED_COUNT = 5;
 const SCROLL_AMOUNT = 336;
 
-function toProductCardProps(pkg: RawPackage): ProductCardProps {
+export function toProductCardProps(pkg: RawPackage): ProductCardProps {
   const categoryId = VENDOR_TYPE_TO_CATEGORY[pkg.vendorType];
   const meta = categoryId ? CATEGORY_META[categoryId] : undefined;
   const categoryLabel = VENDOR_CATEGORIES.find((c) => c.id === categoryId)?.label ?? pkg.vendorType;
@@ -39,6 +40,7 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
     reviewCount: pkg.vendorId?.reviewsCount ?? 0,
     duration: getPackageDurationLabel(pkg),
     guestCapacity: getPackageCapacityLabel(pkg),
+    ...getPackageCardStats(pkg),
     price: `₹${getPackageStartingPrice(pkg).toLocaleString("en-IN")}`,
     locations: locationList.length > 0 ? locationList : ["—"],
     categoryGradientFrom: meta?.gradientFrom,

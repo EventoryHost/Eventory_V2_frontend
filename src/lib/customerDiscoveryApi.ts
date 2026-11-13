@@ -78,7 +78,11 @@ export interface RawPackage {
     capacity?: { minGuests?: number; maxGuests?: number };
     duration?: { minHours?: number; maxHours?: number };
   };
+  /** Live sibling tiers (Basic/Premium...) sharing this package's group, itself included. Attached by the list endpoints. */
+  variantCount?: number;
   step2_productsAndPricing?: {
+    /** Each setup's own item list. Only its length matters to the package cards. */
+    setups?: { items?: { name?: string }[] }[];
     /**
      * Vendor-authored "what's included" highlights. NOT reliably short/
      * pill-shaped across vendor types — confirmed with backend:
@@ -326,4 +330,23 @@ export function getPackageCapacityLabel(pkg: RawPackage): string {
   if (minGuests && maxGuests && minGuests !== maxGuests) return `${minGuests}-${maxGuests} guests`;
   if (minGuests || maxGuests) return `${minGuests ?? maxGuests} guests`;
   return "—";
+}
+
+/** The "2 setups · 11 items", "3 variants" and "Customize it" facts every package card shows, from the real package. */
+export function getPackageCardStats(pkg: RawPackage): {
+  setupsCount: number;
+  itemsCount: number;
+  variantCount: number;
+  customizable: boolean;
+} {
+  const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  // Only real, named items count: an empty or blank entry gives the customer nothing to customise.
+  const itemsCount = setups.reduce((total, setup) => total + (setup.items ?? []).filter((item) => item?.name?.trim()).length, 0);
+  return {
+    setupsCount: setups.length,
+    itemsCount,
+    variantCount: pkg.variantCount ?? 1,
+    // Same rule as the PDP's "Customizable" tag: some setup has real items to change.
+    customizable: itemsCount > 0,
+  };
 }

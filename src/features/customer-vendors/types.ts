@@ -55,6 +55,11 @@ export interface Vendor {
   guestMax?: number;
   /** Package-only, undefined on a vendor row — a vendor has no price. */
   startingPrice?: number;
+  /** Package-only card facts (see getPackageCardStats). */
+  setupsCount?: number;
+  itemsCount?: number;
+  variantCount?: number;
+  customizable?: boolean;
   /** City only — kept for the existing text-search haystack in filterVendors.ts. */
   location: string;
   /** City + service areas, same source composition as the PDP header / landing-page cards. */

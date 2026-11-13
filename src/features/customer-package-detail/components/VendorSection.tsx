@@ -73,15 +73,20 @@ export default function VendorSection({ vendor }: { vendor: VendorInfo }) {
             )}
           </div>
 
-          <div className="flex flex-col gap-2 border-t border-[#E4E4E7] bg-gradient-to-b from-[#FDEEF0]/0 to-[#FDEEF0] px-5 py-3">
+          <div className="@container flex flex-col gap-2 border-t border-[#E4E4E7] bg-gradient-to-b from-[#FDEEF0]/0 to-[#FDEEF0] px-5 py-3">
             <p className="font-figtree text-[12px] leading-4 font-semibold text-[#B91D34] uppercase">Every Eventory booking</p>
-            <div className="flex flex-wrap gap-x-3 gap-y-2">
+            {/* One line, always (Figma node 3233:35275). Compact sizing when the
+                card is narrow, the Figma sizes once it's wide enough, and a
+                scroll as the last resort instead of wrapping to a second row. */}
+            <div className="flex flex-nowrap justify-between gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden @[820px]:gap-3">
               {PROMISES.map((promise) => (
-                <div key={promise.label} className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white">
-                    <img src={promise.icon} alt="" className="h-[18px] w-[18px]" />
+                <div key={promise.label} className="flex shrink-0 items-center gap-1.5 @[820px]:gap-2.5">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white @[820px]:h-7 @[820px]:w-7">
+                    <img src={promise.icon} alt="" className="h-4 w-4 @[820px]:h-[18px] @[820px]:w-[18px]" />
                   </span>
-                  <span className="font-figtree text-[14px] leading-5 whitespace-nowrap text-[#3F3F47]">{promise.label}</span>
+                  <span className="font-figtree text-[13px] leading-5 whitespace-nowrap text-[#3F3F47] @[820px]:text-[14px]">
+                    {promise.label}
+                  </span>
                 </div>
               ))}
             </div>

@@ -13,10 +13,8 @@ import { formatPrice } from "../utils/formatPrice";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
 import VariantSelector from "./VariantSelector";
-import PackageSummary from "./PackageSummary";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
-import NotesForVendor from "./NotesForVendor";
 import VendorRequirements from "./VendorRequirements";
 import AddonsCarousel from "./AddonsCarousel";
 import PaymentProtection from "./PaymentProtection";
@@ -25,7 +23,10 @@ import VendorSection from "./VendorSection";
 import ReviewsSection from "./ReviewsSection";
 import StickyBookingCard from "./StickyBookingCard";
 import MobileBookingBar from "./MobileBookingBar";
-import RecommendedPackagesSection from "./RecommendedPackagesSection";
+import SimilarFromOthersSection from "./SimilarFromOthersSection";
+import SimilarPackagesComparison from "./SimilarPackagesComparison";
+import MoreFromVendorSection from "./MoreFromVendorSection";
+import SectionNavBar from "./SectionNavBar";
 
 function scrollToBookingCard() {
   document.getElementById("booking-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -281,6 +282,7 @@ export default function PackageDetailPage({
   return (
     <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
+      <SectionNavBar />
       <HeroGallery
         images={data.gallery}
         categoryLabel={data.categoryLabel}
@@ -302,17 +304,10 @@ export default function PackageDetailPage({
             />
           )}
 
-          <PackageSummary summary={data.summary} showTopDivider={data.variants.length > 1} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && (
             <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} workshop={workshop} />
           )}
-          <NotesForVendor
-            value={vendorNote}
-            onChange={setVendorNote}
-            attachments={vendorNoteAttachments}
-            onAttachmentsChange={setVendorNoteAttachments}
-          />
           {data.addons.length > 0 && (
             <AddonsCarousel
               addons={data.addons}
@@ -325,7 +320,6 @@ export default function PackageDetailPage({
           <VendorRequirements requirements={data.vendorRequirements} summary={data.summary} />
           <PaymentProtection protection={data.paymentProtection} />
           <PoliciesSection
-            policies={data.policies}
             eventDateIso={bookingForm.validEventDate}
             vendorPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
           />
@@ -354,7 +348,12 @@ export default function PackageDetailPage({
         </div>
       </div>
 
-      <RecommendedPackagesSection currentPackageId={data.id} categorySlug={data.categorySlug} />
+      {/* After Reviews, full width: the table needs more room than the left column has. */}
+      <SimilarPackagesComparison current={data} />
+
+      <MoreFromVendorSection current={data} />
+
+      <SimilarFromOthersSection current={data} />
 
       <MobileBookingBar
         form={bookingForm}

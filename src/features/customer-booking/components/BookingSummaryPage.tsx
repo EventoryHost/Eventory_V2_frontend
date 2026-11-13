@@ -145,6 +145,7 @@ export default function BookingSummaryPage() {
                 rows={data.paymentSummary.rows}
                 grandTotal={data.paymentSummary.grandTotal}
                 tokenAmount={data.paymentSummary.tokenAmount}
+                remainingAmount={data.paymentSummary.remainingAmount}
                 payInFull={data.paymentSummary.payInFull}
                 cancellationNote={data.paymentSummary.cancellationNote}
                 ctaLabel="Continue to Details"

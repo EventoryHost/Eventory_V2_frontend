@@ -7,6 +7,7 @@ import ProductCard, { type ProductCardProps } from "./ProductCard";
 import {
   getPopularPackages,
   getPackageImage,
+  getPackageCardStats,
   getPackageStartingPrice,
   getPackageDurationLabel,
   getPackageCapacityLabel,
@@ -43,6 +44,7 @@ function toProductCardProps(pkg: RawPackage): ProductCardProps {
     reviewCount: pkg.vendorId?.reviewsCount ?? 0,
     duration: getPackageDurationLabel(pkg),
     guestCapacity: getPackageCapacityLabel(pkg),
+    ...getPackageCardStats(pkg),
     price: `₹${getPackageStartingPrice(pkg).toLocaleString("en-IN")}`,
     locations: locationList.length > 0 ? locationList : ["—"],
     categoryGradientFrom: meta?.gradientFrom,

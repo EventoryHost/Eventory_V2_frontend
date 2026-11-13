@@ -163,6 +163,7 @@ export default function ContactPage() {
                   rows={data.paymentSummary.rows}
                   grandTotal={data.paymentSummary.grandTotal}
                   tokenAmount={data.paymentSummary.tokenAmount}
+                  remainingAmount={data.paymentSummary.remainingAmount}
                   payInFull={data.paymentSummary.payInFull}
                   cancellationNote={data.paymentSummary.cancellationNote}
                   ctaLabel={

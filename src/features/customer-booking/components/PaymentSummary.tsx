@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Tag, ShieldCheck, Info, ArrowRight, BadgeCheck } from "lucide-react";
 
@@ -10,6 +11,8 @@ export type PaymentSummaryProps = {
   rows: { label: string; value: string; hint?: string }[];
   grandTotal: string;
   tokenAmount: string;
+  /** Balance due after the token, formatted — shown in the Token Amount (i). */
+  remainingAmount?: string | null;
   payInFull?: boolean;
   cancellationNote: string;
   ctaLabel: string;
@@ -36,12 +39,87 @@ export type PaymentSummaryProps = {
   appliedCouponCode?: string | null;
 };
 
+
+/**
+ * Click-to-open (i) popover. Rendered in a portal at fixed coordinates so no
+ * ancestor's overflow-hidden (the token box has one) can clip it. Works on
+ * touch, and closes on outside click, Escape, scroll or resize.
+ */
+function InfoPopover({ label, align = "left", children }: { label: string; align?: "left" | "right"; children: React.ReactNode }) {
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const open = pos !== null;
+  const WIDTH = 280;
+
+  function toggle() {
+    if (open) return setPos(null);
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const wanted = align === "right" ? rect.right - WIDTH : rect.left;
+    const left = Math.min(Math.max(8, wanted), window.innerWidth - WIDTH - 8);
+    setPos({ top: rect.bottom + 8, left });
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setPos(null);
+    const onPointer = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      close();
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") close();
+    };
+    document.addEventListener("mousedown", onPointer);
+    document.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", close, true);
+    window.addEventListener("resize", close);
+    return () => {
+      document.removeEventListener("mousedown", onPointer);
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", close, true);
+      window.removeEventListener("resize", close);
+    };
+  }, [open]);
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={toggle}
+        className="inline-flex cursor-pointer items-center text-[#71717B] hover:text-[#030303]"
+      >
+        <Info size={14} />
+      </button>
+      {pos &&
+        createPortal(
+          <div
+            ref={panelRef}
+            role="dialog"
+            aria-label={label}
+            style={{ position: "fixed", top: pos.top, left: pos.left, width: WIDTH }}
+            className="z-[100] rounded-xl border border-[#E4E4E7] bg-white p-3 text-left shadow-lg"
+          >
+            {children}
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
 export default function PaymentSummary({
   vendorCount,
   packageCount,
   rows,
   grandTotal,
   tokenAmount,
+  remainingAmount,
   payInFull = false,
   cancellationNote,
   ctaLabel,
@@ -137,8 +215,23 @@ export default function PaymentSummary({
         <div className="h-px w-full bg-[#E4E4E7]" />
 
         <div className="flex items-center justify-between">
-          <span className="font-figtree text-[15px] font-semibold leading-[1.3] text-[#030303]">
+          <span className="flex items-center gap-1.5 font-figtree text-[15px] font-semibold leading-[1.3] text-[#030303]">
             Grand total
+            <InfoPopover label="How the grand total is calculated">
+              <p className="mb-2 font-figtree text-[12px] font-semibold text-[#030303]">How your total is calculated</p>
+              <div className="flex flex-col gap-1.5">
+                {rows.map((row) => (
+                  <div key={row.label} className="flex items-start justify-between gap-3 font-figtree text-[12px] leading-[18px] text-[#3F3F47]">
+                    <span>{row.label}</span>
+                    <span className="shrink-0">{row.value}</span>
+                  </div>
+                ))}
+                <div className="mt-1 flex justify-between border-t border-[#E4E4E7] pt-2 font-figtree text-[12px] leading-[18px] font-semibold text-[#030303]">
+                  <span>Grand total</span>
+                  <span>{grandTotal}</span>
+                </div>
+              </div>
+            </InfoPopover>
           </span>
           <span className="font-figtree text-[16px] font-semibold leading-[1.3] text-[#030303]">
             {grandTotal}
@@ -158,11 +251,24 @@ export default function PaymentSummary({
                   {tokenAmount}
                 </span>
 
-                <span className="flex w-fit items-center gap-1 rounded-full bg-[#EFF6FF] pt-1 pr-2.5 pb-1 pl-2.5">
-                  <Info size={12} className="text-[#1447E6]" />
+                <span className="flex w-fit items-center gap-1 rounded-full bg-[#EFF6FF] pt-1 pr-2 pb-1 pl-2.5">
                   <span className="font-figtree text-[11px] font-semibold leading-[16.5px] text-[#1447E6]">
                     Token Amount
                   </span>
+                  <InfoPopover label="What is the token amount?" align="right">
+                    <p className="mb-1 font-figtree text-[12px] font-semibold text-[#030303]">What is the token amount?</p>
+                    <p className="font-figtree text-[12px] leading-[18px] text-[#3F3F47]">
+                      {payInFull
+                        ? `This booking is paid in full up front: ${tokenAmount} confirms it.`
+                        : `A small advance (${tokenAmount}) that confirms your booking and locks in your date and vendor. It is part of your grand total, not an extra charge.`}
+                    </p>
+                    {!payInFull && remainingAmount && (
+                      <div className="mt-2 flex justify-between border-t border-[#E4E4E7] pt-2 font-figtree text-[12px] leading-[18px] text-[#3F3F47]">
+                        <span>Balance due closer to the event</span>
+                        <span className="shrink-0 font-semibold text-[#030303]">{remainingAmount}</span>
+                      </div>
+                    )}
+                  </InfoPopover>
                 </span>
               </div>
             </div>
