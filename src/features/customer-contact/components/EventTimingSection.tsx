@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Clock } from "lucide-react";
+import { AlertCircle, Clock, Moon } from "lucide-react";
 import { ApiError } from "@/lib/apiClient";
 import { patchCheckoutSessionEventTiming } from "@/lib/customerCheckoutApi";
 
@@ -20,6 +20,22 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
     label: `${hours12}:${String(minutes).padStart(2, "0")} ${hours24 < 12 ? "AM" : "PM"}`,
   };
 });
+
+const TIME_LABEL = new Map(TIME_OPTIONS.map((option) => [option.value, option.label]));
+
+function formatDay(date: Date): string {
+  return date.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
+}
+
+/** Friendly text for the backend's validation errors, which arrive as raw field messages. */
+function friendlyTimingError(error: unknown): string {
+  const message = error instanceof ApiError ? error.message : "";
+  if (/same as the start/i.test(message)) return SAME_TIME_MESSAGE;
+  if (/HH:MM/i.test(message)) return "That time isn't valid. Please pick one from the list.";
+  return "Couldn't save the event timing. Please try again.";
+}
+
+const SAME_TIME_MESSAGE = "The event can't end at the same time it starts. Pick the time it finishes.";
 
 function TimeField({
   label,
@@ -87,6 +103,8 @@ export type EventTimingSectionProps = {
   sessionId: string;
   initialStartTime: string;
   initialEndTime: string;
+  /** The event's date (ISO), when the order has one: lets an overnight event show the date it ends on. */
+  eventDateIso?: string | null;
   /** Called after a successful save so the caller can re-fetch validation/canContinue. */
   onSaved?: () => void;
 };
@@ -102,6 +120,7 @@ export default function EventTimingSection({
   sessionId,
   initialStartTime,
   initialEndTime,
+  eventDateIso,
   onSaved,
 }: EventTimingSectionProps) {
   const [start, setStart] = useState(initialStartTime);
@@ -127,14 +146,20 @@ export default function EventTimingSection({
       await patchCheckoutSessionEventTiming(sessionId, patch);
       onSaved?.();
     } catch (err) {
-      // A 400 here means the resulting end isn't after start (checked
-      // against whatever's already saved too) — shown under the fields
-      // rather than silently failing, per the backend's own note.
-      setError(err instanceof ApiError ? err.message : "Couldn't save the event timing. Try again.");
+      // A 400 here means start and end are identical (checked against
+      // whatever's already saved too). Shown as readable text, never the
+      // backend's raw field message.
+      setError(friendlyTimingError(err));
     } finally {
       setSaving(false);
     }
   }
+
+  // An end earlier than the start means the event runs past midnight and
+  // finishes the next day, which is valid. Only identical times are an error.
+  const overnight = Boolean(start && end && end < start);
+  const startDay = eventDateIso && !isNaN(new Date(eventDateIso).getTime()) ? new Date(eventDateIso) : null;
+  const endDay = startDay ? new Date(startDay.getTime() + 24 * 60 * 60 * 1000) : null;
 
   return (
     <section className="flex w-full max-w-[868px] flex-col gap-4">
@@ -154,7 +179,8 @@ export default function EventTimingSection({
           value={start}
           onChange={(value) => {
             setStart(value);
-            void save({ startTime: value });
+            if (value && value === end) setError(SAME_TIME_MESSAGE);
+            else void save({ startTime: value });
           }}
         />
         <TimeField
@@ -163,14 +189,35 @@ export default function EventTimingSection({
           value={end}
           onChange={(value) => {
             setEnd(value);
-            void save({ endTime: value });
+            if (value && value === start) setError(SAME_TIME_MESSAGE);
+            else void save({ endTime: value });
           }}
         />
       </div>
-      {(error || saving) && (
-        <p className={`font-figtree text-[12px] ${error ? "text-[#E7000B]" : "text-[#71717B]"}`}>
-          {error ?? "Saving…"}
-        </p>
+      {overnight && !error && (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#E4E4E7] bg-[#FAFAFA] px-4 py-3">
+          <Moon size={18} className="mt-0.5 shrink-0 text-[#71717B]" />
+          <div className="flex flex-col gap-0.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
+            <p className="font-semibold text-[#030303]">Overnight event: ends the next day</p>
+            {startDay && endDay ? (
+              <p>
+                {formatDay(startDay)} · {TIME_LABEL.get(start)} &rarr; {formatDay(endDay)} · {TIME_LABEL.get(end)}
+              </p>
+            ) : (
+              <p>
+                {TIME_LABEL.get(start)} until {TIME_LABEL.get(end)} the following day.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+      {error ? (
+        <div role="alert" className="flex items-start gap-3 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
+          <AlertCircle size={18} className="mt-0.5 shrink-0 text-[#E7000B]" />
+          <p className="font-figtree text-[14px] leading-5 font-medium text-[#B91C1C]">{error}</p>
+        </div>
+      ) : (
+        saving && <p className="font-figtree text-[12px] text-[#71717B]">Saving…</p>
       )}
     </section>
   );

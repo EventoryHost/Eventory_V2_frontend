@@ -67,6 +67,15 @@ function PaymentReturnContent() {
 
         if (TERMINAL_STATUSES.includes(result.paymentStatus)) {
           stopRef.current = true;
+          // A token payment that didn't go through (cancelled on Cashfree,
+          // failed or expired) goes back to the checkout step it came from,
+          // which shows a "your payment didn't go through" notice above the
+          // form, rather than a dead-end status screen. A milestone payment
+          // has no checkout session to return to, so it keeps its own screen.
+          if (!milestoneBooking) {
+            router.replace("/contact?paymentFailed=1");
+            return;
+          }
           setView({
             kind: "terminal-failed",
             status: result.paymentStatus,

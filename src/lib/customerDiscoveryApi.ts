@@ -350,3 +350,26 @@ export function getPackageCardStats(pkg: RawPackage): {
     customizable: itemsCount > 0,
   };
 }
+
+export interface LocationSuggestion {
+  /** Display line, e.g. "Karol Bagh, CENTRAL DELHI, 110005". */
+  label: string;
+  area: string;
+  pincode: string;
+  city: string;
+  district: string;
+}
+
+/**
+ * Localities / pincodes in the serviceable Delhi NCR dataset that match what
+ * the customer has typed so far, each with its pincode. Backs the PDP's event
+ * location typeahead, so a customer who doesn't know the pincode can pick a
+ * locality instead.
+ */
+export async function suggestServiceLocations(query: string, signal?: AbortSignal) {
+  const response = await apiFetch<{ success: true; data: LocationSuggestion[] }>(
+    `/customer/location/suggest?q=${encodeURIComponent(query)}`,
+    { auth: false, signal }
+  );
+  return response.data;
+}
