@@ -346,7 +346,7 @@ export default function PackageHeaderInfo({
           vendorName: data.vendorName,
           rating: data.rating,
           locationSummary: data.locationSummary,
-          eventsCount: data.vendor.eventsCount,
+          eventsDone: data.vendor.eventsDone,
         }}
         onCreateQuotation={onCreateQuotation}
       />

@@ -341,29 +341,45 @@ export default function CustomizeWorkshopModal({
           </>
         )}
 
+        {/* Guard popup (Figma node 3235:32101): sits above the setup modal when its X is pressed with unsaved requests. */}
         {isLeaveGuardOpen && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 p-4">
-            <div className="w-full max-w-[360px] rounded-2xl bg-white p-6 text-center shadow-xl">
-              <h3 className="font-figtree text-[18px] font-bold text-brand-950">Leaving so soon?</h3>
-              <p className="mt-2 font-figtree text-[13px] text-neutral-secondary">
-                You have {setupRequests.length} pending request{setupRequests.length === 1 ? "" : "s"} for this setup.
-                Continue editing, or leave without saving them.
-              </p>
-              <div className="mt-5 flex flex-col gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsLeaveGuardOpen(false)}
-                  className="rounded-xl bg-brand-primary py-2.5 font-figtree text-[13px] font-semibold text-white transition hover:bg-rose-600"
-                >
-                  Continue editing
-                </button>
-                <button
-                  type="button"
-                  onClick={discardAndClose}
-                  className="rounded-xl py-2.5 font-figtree text-[13px] font-semibold text-neutral-secondary transition hover:text-brand-950"
-                >
-                  Don&apos;t save changes
-                </button>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 p-4">
+            <div
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="leave-guard-title"
+              className="w-full max-w-[428px] rounded-xl bg-white px-6 py-8 shadow-xl"
+            >
+              <div className="flex flex-col gap-[35px]">
+                <div className="flex flex-col gap-4">
+                  <h3 id="leave-guard-title" className="font-figtree text-[24px] leading-[1.5] font-semibold tracking-[-0.48px] text-black">
+                    Leave without saving?
+                  </h3>
+                  <p className="font-figtree text-[16px] leading-[1.5] text-[#71717B]">
+                    You have{" "}
+                    <span className="font-semibold text-[#030303]">
+                      {setupRequests.length} request{setupRequests.length === 1 ? "" : "s"}
+                    </span>{" "}
+                    that haven&apos;t been saved to your setup. If you leave now, they won&apos;t be sent to the vendor
+                    and will be lost.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-[18px]">
+                  <button
+                    type="button"
+                    onClick={() => setIsLeaveGuardOpen(false)}
+                    className="rounded-full bg-[#09090B] px-7 py-3 font-figtree text-[16px] leading-6 font-semibold whitespace-nowrap text-white transition hover:opacity-90"
+                  >
+                    Keep editing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={discardAndClose}
+                    className="rounded-full bg-[#FFF2F1] px-7 py-3 font-figtree text-[16px] leading-6 font-semibold whitespace-nowrap text-[#C81E0D] transition hover:bg-[#FFE4E1]"
+                  >
+                    Leave without saving
+                  </button>
+                </div>
               </div>
             </div>
           </div>

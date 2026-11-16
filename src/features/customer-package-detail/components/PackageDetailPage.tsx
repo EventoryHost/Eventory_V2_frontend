@@ -317,7 +317,12 @@ export default function PackageDetailPage({
               onSetLineQuantity={setAddonLineQuantity}
             />
           )}
-          <VendorRequirements requirements={data.vendorRequirements} summary={data.summary} />
+          <VendorRequirements
+            requirements={data.vendorRequirements}
+            summary={data.summary}
+            facts={data.instructionFacts}
+            packageTitle={data.title}
+          />
           <PaymentProtection protection={data.paymentProtection} />
           <PoliciesSection
             eventDateIso={bookingForm.validEventDate}
@@ -340,6 +345,9 @@ export default function PackageDetailPage({
             overtimeBillingUnit={data.pricing.overtimeBillingUnit}
             gstPercent={data.pricing.gstPercent}
             requiresGuestCount={data.requiresGuestCount}
+            packageTitle={data.title}
+            categoryLabel={data.categoryLabel}
+            teamAndEquipmentCharge={data.pricing.teamAndEquipmentCharge}
             includedItems={data.includedItems}
             selectedAddons={selectedAddons}
             editItemId={editCartItem?._id}

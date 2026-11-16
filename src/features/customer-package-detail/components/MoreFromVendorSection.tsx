@@ -70,7 +70,7 @@ export default function MoreFromVendorSection({ current }: { current: PackageDet
             <span className="text-[#3F3F47]">
               {current.reviewCount > 0 && "· "}
               {state.total} package{state.total === 1 ? "" : "s"}
-              {vendor.eventsCount > 0 && ` · ${vendor.eventsCount} events`}
+              {vendor.eventsDone > 0 && ` · ${vendor.eventsDone} events done`}
             </span>
           </div>
         </div>

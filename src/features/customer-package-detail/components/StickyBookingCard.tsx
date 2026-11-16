@@ -29,6 +29,9 @@ export default function StickyBookingCard({
   selectedAddons,
   cancellationPolicyText,
   editItemId,
+  packageTitle,
+  categoryLabel,
+  teamAndEquipmentCharge,
 }: {
   /** Shared booking state/logic — one instance, lifted to PackageDetailPage and passed to both this (desktop) card and the mobile sticky bar/sheet, so there's a single source of truth for the in-flight booking rather than two independently-drifting copies of the same form. */
   form: UseBookingFormResult;
@@ -41,6 +44,11 @@ export default function StickyBookingCard({
   includedItems: IncludedItemEntry[];
   selectedAddons: SelectedAddon[];
   cancellationPolicyText?: string;
+  /** Shown in the price breakdown's header and package line. */
+  packageTitle: string;
+  categoryLabel: string;
+  /** The vendor's flat crew and equipment charge (0 when none), shown as its own line in the price breakdown. */
+  teamAndEquipmentCharge: number;
   /** Set when editing an existing cart line (see PackageDetailPage) — only used here to vary the Save/Add-to-cart button copy. */
   editItemId?: string;
 }) {
@@ -322,6 +330,10 @@ export default function StickyBookingCard({
       <PriceBreakdownDialog
         isOpen={isBreakdownOpen}
         onClose={() => setIsBreakdownOpen(false)}
+        packageTitle={packageTitle}
+        categoryLabel={categoryLabel}
+        guestCount={requiresGuestCount ? guestCount : ""}
+        teamAndEquipmentCharge={teamAndEquipmentCharge}
         includedItems={includedItems}
         selectedAddons={selectedAddons}
         overtimeChargeRate={overtimeChargeRate}

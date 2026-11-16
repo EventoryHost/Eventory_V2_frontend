@@ -287,16 +287,12 @@ export function buildSections(inputs: ComparisonInput[]): CompareSection[] {
         row(
           "events",
           "Events Completed",
-          details.map((detail) => (detail.vendor.eventsCount ? text(String(detail.vendor.eventsCount)) : EMPTY))
+          details.map((detail) => (detail.vendor.eventsDone ? text(String(detail.vendor.eventsDone)) : EMPTY))
         ),
         row(
           "experience",
           "Year's Experience",
-          details.map((detail) =>
-            detail.vendor.yearsExperience
-              ? text(`${detail.vendor.yearsExperience} ${detail.vendor.yearsExperience === 1 ? "Year" : "Years"}`)
-              : EMPTY
-          )
+          details.map((detail) => (detail.vendor.experienceLabel ? text(detail.vendor.experienceLabel) : EMPTY))
         ),
         row("rating", "Rating", details.map((detail) => (detail.rating ? text(String(detail.rating)) : EMPTY))),
         row(
