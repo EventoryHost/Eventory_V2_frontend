@@ -172,45 +172,49 @@ export default function EventTimingSection({
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 rounded-3xl border border-[#E4E4E7] bg-white p-8 sm:flex-row">
-        <TimeField
-          label="Event starts"
-          placeholder="Select start time"
-          value={start}
-          onChange={(value) => {
-            setStart(value);
-            if (value && value === end) setError(SAME_TIME_MESSAGE);
-            else void save({ startTime: value });
-          }}
-        />
-        <TimeField
-          label="Event ends"
-          placeholder="Select end time"
-          value={end}
-          onChange={(value) => {
-            setEnd(value);
-            if (value && value === start) setError(SAME_TIME_MESSAGE);
-            else void save({ endTime: value });
-          }}
-        />
-      </div>
-      {overnight && !error && (
-        <div className="flex items-start gap-3 rounded-2xl border border-[#E4E4E7] bg-[#FAFAFA] px-4 py-3">
-          <Moon size={18} className="mt-0.5 shrink-0 text-[#71717B]" />
-          <div className="flex flex-col gap-0.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
-            <p className="font-semibold text-[#030303]">Overnight event: ends the next day</p>
-            {startDay && endDay ? (
-              <p>
-                {formatDay(startDay)} · {TIME_LABEL.get(start)} &rarr; {formatDay(endDay)} · {TIME_LABEL.get(end)}
-              </p>
-            ) : (
-              <p>
-                {TIME_LABEL.get(start)} until {TIME_LABEL.get(end)} the following day.
-              </p>
-            )}
-          </div>
+      <div className="flex flex-col gap-6 rounded-3xl border border-[#E4E4E7] bg-white p-8">
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <TimeField
+            label="Event starts"
+            placeholder="Select start time"
+            value={start}
+            onChange={(value) => {
+              setStart(value);
+              if (value && value === end) setError(SAME_TIME_MESSAGE);
+              else void save({ startTime: value });
+            }}
+          />
+          <TimeField
+            label="Event ends"
+            placeholder="Select end time"
+            value={end}
+            onChange={(value) => {
+              setEnd(value);
+              if (value && value === start) setError(SAME_TIME_MESSAGE);
+              else void save({ endTime: value });
+            }}
+          />
         </div>
-      )}
+
+        {/* Inside the same card as the time fields, right under them. */}
+        {overnight && !error && (
+          <div className="flex items-start gap-3 rounded-2xl border border-[#E4E4E7] bg-[#FAFAFA] px-4 py-3">
+            <Moon size={18} className="mt-0.5 shrink-0 text-[#71717B]" />
+            <div className="flex flex-col gap-0.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
+              <p className="font-semibold text-[#030303]">Overnight event: ends the next day</p>
+              {startDay && endDay ? (
+                <p>
+                  {formatDay(startDay)} · {TIME_LABEL.get(start)} &rarr; {formatDay(endDay)} · {TIME_LABEL.get(end)}
+                </p>
+              ) : (
+                <p>
+                  {TIME_LABEL.get(start)} until {TIME_LABEL.get(end)} the following day.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
       {error ? (
         <div role="alert" className="flex items-start gap-3 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3">
           <AlertCircle size={18} className="mt-0.5 shrink-0 text-[#E7000B]" />
