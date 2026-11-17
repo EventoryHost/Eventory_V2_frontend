@@ -144,7 +144,9 @@ export default function HelpBriefCard({
   );
   const [replyMode, setReplyMode] = useState<HelpBrief["replyMode"]>("reply-here");
   const [callTime, setCallTime] = useState(callTimes[0]);
-  const [useAccountPhone, setUseAccountPhone] = useState(Boolean(accountPhone));
+  // null until they pick: the account's number once there is one (after "Log in to send").
+  const [accountPhoneChoice, setUseAccountPhone] = useState<boolean | null>(null);
+  const useAccountPhone = accountPhoneChoice ?? Boolean(accountPhone);
   const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -158,7 +160,8 @@ export default function HelpBriefCard({
   // if the selected one isn't in the current list.
   const activeCallTime = callTimes.includes(callTime) ? callTime : callTimes[0];
   const isCallMe = replyMode === "call-me";
-  const typesPhone = isCallMe && !useAccountPhone;
+  // Guests log in to send, so they're called on the number they log in with.
+  const typesPhone = isCallMe && signedIn && !useAccountPhone;
   const phoneDigits = phone.replace(/\D/g, "").slice(-10);
   const phoneOk = /^[6-9]\d{9}$/.test(phoneDigits);
 
@@ -167,7 +170,8 @@ export default function HelpBriefCard({
     : { occasion, guests, budget, vendorType, area, date };
   const ready =
     Boolean(value.occasion && value.guests && value.budget) &&
-    (!typesPhone || (phoneOk && (signedIn || consent)));
+    (!typesPhone || phoneOk) &&
+    (signedIn || !isCallMe || consent);
 
   const submit = () => {
     if (!ready) return;
@@ -181,7 +185,7 @@ export default function HelpBriefCard({
       photo: photo?.file ?? null,
       replyMode,
       callTime: isCallMe ? activeCallTime : null,
-      phone: isCallMe ? (useAccountPhone ? accountPhone ?? null : phoneDigits) : null,
+      phone: isCallMe && signedIn ? (useAccountPhone ? accountPhone ?? null : phoneDigits) : null,
     });
   };
 
@@ -402,7 +406,11 @@ export default function HelpBriefCard({
           )}
         </div>
 
-        {isCallMe && (
+        {isCallMe && !signedIn && (
+          <p className={`${NOTE} text-[#71717b]`}>We’ll call the mobile number you log in with.</p>
+        )}
+
+        {isCallMe && signedIn && (
           <div className="flex w-full flex-col gap-1.5">
             <p className={LABEL}>Phone number</p>
             {useAccountPhone ? (
@@ -439,15 +447,21 @@ export default function HelpBriefCard({
           </div>
         )}
 
-        {typesPhone && !signedIn && (
+        {isCallMe && !signedIn && (
           <HelpCheckbox checked={consent} onChange={setConsent}>
             I agree that Eventory can call me about this request. Only for this request, never for offers. Privacy
             notice
           </HelpCheckbox>
         )}
 
+        {!signedIn && (
+          <p className={`${NOTE} text-[#71717b]`}>
+            Log in with your name and mobile number to send this. The Event Manager can then reach you here or on
+            WhatsApp.
+          </p>
+        )}
         <HelpButton size="md" className="w-full disabled:opacity-45" onClick={submit} disabled={!ready}>
-          Send to an Event Manager
+          {signedIn ? "Send to an Event Manager" : "Log in to send"}
         </HelpButton>
         {isAfterHours && (
           <p className={`${NOTE} text-center text-[#71717b]`}>
