@@ -268,6 +268,7 @@ export const mockPackageDetail: PackageDetail = {
     "Waste disposal beyond decor material",
     "Insurance for guest-owned items near the setup",
   ],
+  instructionFacts: { vendorType: "Decorator", setupHours: 3, crewMin: 5, crewMax: 5, crewRoles: [], placements: ["Both"], itemTypes: [], hasColourOptions: false },
   vendorRequirements: [
     {
       id: "req-electricity",
@@ -468,6 +469,8 @@ export const mockPackageDetail: PackageDetail = {
     verified: true,
     eventsCount: 142,
     yearsExperience: 3,
+    eventsDone: 142,
+    experienceLabel: "3+ yrs",
     href: "/vendors?category=decorator",
     repliesIn: "~2 hrs",
   },

@@ -15,14 +15,22 @@ export type ServiceabilityState =
  * they show nothing rather than overclaiming.
  */
 export default function LocationServiceability({ state }: { state: ServiceabilityState }) {
-  if (state.status === "idle" || state.status === "error") return null;
+  if (state.status === "idle") return null;
+  // The check itself failed. Saying nothing left the customer blocked with no explanation.
+  if (state.status === "error") {
+    return (
+      <p className="mt-1.5 font-figtree text-[12px] font-medium text-error-700">
+        Couldn&apos;t check availability for this location. Please check it and try again.
+      </p>
+    );
+  }
   if (state.status === "loading") {
     return <p className="mt-1.5 font-figtree text-[11px] font-medium text-[#71717B]">Checking availability for your location…</p>;
   }
   if (state.status === "no-pincode") {
     return (
       <p className="mt-1.5 font-figtree text-[11px] font-medium text-[#71717B]">
-        Add a 6-digit pincode to check if this vendor serves your area.
+        Pick a locality from the suggestions, or add a 6-digit pincode, to check if this vendor serves your area.
       </p>
     );
   }

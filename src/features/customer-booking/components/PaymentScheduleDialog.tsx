@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Receipt } from "lucide-react";
+import { X, Receipt, Wallet } from "lucide-react";
 import type { BookingLineRow, BookingPaymentMilestone } from "../types";
 
 export default function PaymentScheduleDialog({
@@ -31,6 +31,10 @@ export default function PaymentScheduleDialog({
   grandTotal: string;
 }) {
   if (typeof document === "undefined") return null;
+
+  // The first payment after today's one, so the customer can see what is next and when.
+  const today = milestones.find((milestone) => milestone.isToday);
+  const next = milestones.find((milestone) => !milestone.isToday);
 
   return createPortal(
     <AnimatePresence>
@@ -64,9 +68,21 @@ export default function PaymentScheduleDialog({
               </button>
             </div>
             <p className="mb-6 font-figtree text-[13px] text-neutral-secondary">
-              Each vendor sets their own advance/milestone split — this is what&apos;s due, and when, across
-              every package in your booking.
+              {today
+                ? `You pay ${today.amount ?? "the token"} today to confirm your booking. The rest follows the schedule below, based on each vendor's own payment terms.`
+                : "Each vendor sets their own advance/milestone split. This is what's due, and when, across every package in your booking."}
             </p>
+
+            {today && next && (
+              <div className="mb-5 rounded-2xl border border-[#BFDBFE] bg-[#EFF6FF] px-4 py-3">
+                <p className="font-figtree text-[11px] font-semibold tracking-[0.03em] text-[#1447E6] uppercase">
+                  Next payment after today
+                </p>
+                <p className="mt-0.5 font-figtree text-[15px] font-semibold text-brand-950">
+                  {next.amount} <span className="font-medium text-neutral-secondary">due</span> {next.due ?? "closer to the event"}
+                </p>
+              </div>
+            )}
 
             {milestones.length === 0 ? (
               <p className="rounded-xl bg-neutral-subtle p-4 font-figtree text-[13px] text-neutral-secondary">
@@ -76,13 +92,27 @@ export default function PaymentScheduleDialog({
               <div className="divide-y divide-black/5 border-y border-black/5">
                 {milestones.map((milestone, index) => (
                   <div key={`${milestone.title}-${index}`} className="flex items-start gap-3 py-4">
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-subtle">
-                      <Receipt className="h-4 w-4 text-brand-primary" />
+                    <span
+                      className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                        milestone.isToday ? "bg-brand-primary" : "bg-brand-subtle"
+                      }`}
+                    >
+                      {milestone.isToday ? (
+                        <Wallet className="h-4 w-4 text-white" />
+                      ) : (
+                        <Receipt className="h-4 w-4 text-brand-primary" />
+                      )}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-figtree text-[13px] font-semibold text-brand-950">{milestone.title}</p>
                       {milestone.due && (
-                        <p className="truncate font-figtree text-[12px] text-neutral-tertiary">Due {milestone.due}</p>
+                        <p
+                          className={`truncate font-figtree text-[12px] ${
+                            milestone.isToday ? "font-semibold text-brand-primary" : "text-neutral-tertiary"
+                          }`}
+                        >
+                          {milestone.isToday ? "Due today" : `Due ${milestone.due}`}
+                        </p>
                       )}
                     </div>
                     <div className="shrink-0 text-right">

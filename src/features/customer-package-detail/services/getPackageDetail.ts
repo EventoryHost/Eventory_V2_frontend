@@ -7,6 +7,7 @@ import type {
   ColourOption,
   AddonItem,
   VendorRequirement,
+  InstructionFacts,
   VendorRequirementIcon,
   PolicyItem,
   PaymentMilestone,
@@ -193,6 +194,23 @@ function mapGallery(pkg: RawFullPackage): GalleryImage[] {
   return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
 }
 
+// Picks the closest icon for a vendor-typed requirement ("Power", "Setup area",
+// "Backdrop fixing permission"...); anything unrecognised gets the generic room icon.
+function requirementIcon(label: string): VendorRequirementIcon {
+  const text = label.toLowerCase();
+  if (/power|electric|socket|plug/.test(text)) return "electricity";
+  if (/stage|platform/.test(text)) return "stage";
+  if (/ac|air.?cond/.test(text)) return "ac";
+  if (/light/.test(text)) return "lighting";
+  if (/secur/.test(text)) return "security";
+  if (/permission|approval|fixing|drill|rigging|hanging|ceiling/.test(text)) return "permission";
+  if (/park/.test(text)) return "parking";
+  if (/water/.test(text)) return "water";
+  if (/storage|store/.test(text)) return "storage";
+  if (/vehicle|truck|lift|loading/.test(text)) return "vehicle";
+  return "room";
+}
+
 function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
   const needs = pkg.step1_eventAndCrew?.venueNeeds;
   if (!needs) return [];
@@ -204,10 +222,37 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
     { flag: needs.security, id: "req-security", label: "Security", icon: "security" },
   ];
   const requirements = entries.filter((e) => e.flag).map(({ id, label, icon }) => ({ id, label, icon }));
+  // The vendor's own checklist. Many packages carry only this list and none of
+  // the yes/no flags above, so ignoring it hid real requirements entirely.
+  (needs.requirements ?? []).forEach((raw, index) => {
+    const label = raw.trim();
+    if (!label) return;
+    const icon = requirementIcon(label);
+    // "Power" in the list and the Electricity flag are the same need.
+    if (icon !== "room" && requirements.some((existing) => existing.icon === icon)) return;
+    requirements.push({ id: `req-list-${index}`, label, icon });
+  });
   if (needs.customText?.trim()) {
     requirements.push({ id: "req-custom", label: needs.customText.trim(), icon: "room" });
   }
   return requirements;
+}
+
+function mapInstructionFacts(pkg: RawFullPackage): InstructionFacts {
+  const step1 = pkg.step1_eventAndCrew;
+  const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  const items = setups.flatMap((setup) => setup.items ?? []);
+  const { durationOfSetup } = packageDurationsInHours(step1);
+  return {
+    vendorType: pkg.vendorType,
+    setupHours: durationOfSetup && durationOfSetup > 0 ? durationOfSetup : undefined,
+    crewMin: step1?.crewSize?.minPeople,
+    crewMax: step1?.crewSize?.maxPeople,
+    crewRoles: (step1?.crewSize?.roles ?? []).filter(Boolean),
+    placements: [...new Set(setups.map((setup) => setup.referenceStyle).filter((style): style is NonNullable<typeof style> => Boolean(style)))],
+    itemTypes: [...new Set(items.map((item) => item.itemType?.trim()).filter((type): type is string => Boolean(type)))],
+    hasColourOptions: items.some((item) => (item.colors?.length ?? 0) > 0),
+  };
 }
 
 // Splits a free-text value on commas for display as "first part, +N more" —
@@ -591,6 +636,7 @@ function distributeTeamAndEquipmentCharge(
   const remainder = teamAndEquipmentCharge - share * items.length;
   return items.map((item, i) => ({
     ...item,
+    basePrice: item.price,
     price: item.price + share + (i === items.length - 1 ? remainder : 0),
   }));
 }
@@ -707,7 +753,17 @@ function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
   return policies.filter((p): p is PolicyItem => p !== null);
 }
 
-function mapVendor(pkg: RawFullPackage): VendorInfo {
+// "2 - 5 years" -> "2–5 yrs", "10+ years" -> "10+ yrs": the vendor's own range, not just its lower bound.
+function formatExperience(raw?: string): string | undefined {
+  const text = (raw ?? "").trim();
+  if (!text) return undefined;
+  return text
+    .replace(/\s*-\s*/g, "–")
+    .replace(/years/i, "yrs")
+    .replace(/year/i, "yr");
+}
+
+function mapVendor(pkg: RawFullPackage, eventsDone: number): VendorInfo {
   const vendor = vendorOf(pkg);
   const name = vendor?.pocName ?? "Vendor";
   return {
@@ -723,6 +779,8 @@ function mapVendor(pkg: RawFullPackage): VendorInfo {
     // takes the lower bound, which is what "N+ Years" means.
     eventsCount: parseInt(vendor?.bookingsPerYear ?? "", 10) || vendor?.reviewsCount || 0,
     yearsExperience: parseInt(vendor?.experience ?? "", 10) || 0,
+    eventsDone,
+    experienceLabel: formatExperience(vendor?.experience),
     // "6 - 15 people" -> "6–15"
     teamSize: vendor?.teamSize ? vendor.teamSize.replace(/\s*people\s*$/i, "").replace(/\s*-\s*/g, "–").trim() || undefined : undefined,
     // The vendor's own profile. This used to point at the vendor LISTING
@@ -914,6 +972,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     includedItems,
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
+    instructionFacts: mapInstructionFacts(pkg),
     addons: mapAddons(pkg),
     paymentProtection: {
       points: [
@@ -925,7 +984,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     },
     policies: mapPolicies(pkg),
     paymentMilestones: mapPaymentMilestones(pkg),
-    vendor: mapVendor(pkg),
+    vendor: mapVendor(pkg, response.vendorStats?.eventsCompleted ?? 0),
     reviews,
     pricing: (() => {
       // Same teamAndEquipmentCharge already distributed into includedItems

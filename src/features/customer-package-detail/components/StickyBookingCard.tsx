@@ -13,6 +13,8 @@ import SearchDropdown from "@/features/customer-landing/components/SearchDropdow
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 
 import EventTimingSlots from "./EventTimingSlots";
+import LocationSuggestionList from "./LocationSuggestionList";
+import { useLocationSuggestions } from "../hooks/useLocationSuggestions";
 import LocationServiceability from "./LocationServiceability";
 import type { UseBookingFormResult } from "../hooks/useBookingForm";
 
@@ -27,6 +29,9 @@ export default function StickyBookingCard({
   selectedAddons,
   cancellationPolicyText,
   editItemId,
+  packageTitle,
+  categoryLabel,
+  teamAndEquipmentCharge,
 }: {
   /** Shared booking state/logic — one instance, lifted to PackageDetailPage and passed to both this (desktop) card and the mobile sticky bar/sheet, so there's a single source of truth for the in-flight booking rather than two independently-drifting copies of the same form. */
   form: UseBookingFormResult;
@@ -39,6 +44,11 @@ export default function StickyBookingCard({
   includedItems: IncludedItemEntry[];
   selectedAddons: SelectedAddon[];
   cancellationPolicyText?: string;
+  /** Shown in the price breakdown's header and package line. */
+  packageTitle: string;
+  categoryLabel: string;
+  /** The vendor's flat crew and equipment charge (0 when none), shown as its own line in the price breakdown. */
+  teamAndEquipmentCharge: number;
   /** Set when editing an existing cart line (see PackageDetailPage) — only used here to vary the Save/Add-to-cart button copy. */
   editItemId?: string;
 }) {
@@ -91,6 +101,12 @@ export default function StickyBookingCard({
     handleNotePromptSave,
   } = form;
 
+  const suggest = useLocationSuggestions(location, (value) => {
+    setLocation(value);
+    setIsLocationAutoFilled(false);
+    setLocationDetectError(null);
+  });
+
   return (
     <div id="booking-card" className="relative">
       {/* top-0 lets this card scroll all the way up under the fixed navbar
@@ -139,7 +155,14 @@ export default function StickyBookingCard({
                   setLocation(event.target.value);
                   setIsLocationAutoFilled(false);
                   setLocationDetectError(null);
+                  suggest.onUserType();
                 }}
+                onKeyDown={suggest.handleKeyDown}
+                onBlur={() => suggest.setOpen(false)}
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={suggest.open}
+                aria-autocomplete="list"
                 onFocus={() => {
                   // Clicking in to edit the auto-detected guess clears it
                   // outright, rather than leaving the customer to
@@ -149,7 +172,7 @@ export default function StickyBookingCard({
                     setIsLocationAutoFilled(false);
                   }
                 }}
-                placeholder="Enter your pincode or city"
+                placeholder="Enter your pincode, locality or city"
                 className="w-full rounded-xl border border-[#E4E4E7] bg-white py-3 pr-11 pl-3.5 font-figtree text-[14px] leading-5 text-[#3F3F47] outline-none placeholder:text-[#9F9FA9] focus:border-brand-primary"
               />
               <button
@@ -165,6 +188,14 @@ export default function StickyBookingCard({
                   <MapPin className="h-5 w-5" />
                 )}
               </button>
+              {suggest.open && (
+                <LocationSuggestionList
+                  items={suggest.items}
+                  activeIndex={suggest.activeIndex}
+                  onPick={suggest.pick}
+                  onHover={suggest.setActiveIndex}
+                />
+              )}
             </div>
             {locationDetectError && (
               <p className="mt-1.5 font-figtree text-[11px] font-medium text-error-700">{locationDetectError}</p>
@@ -261,7 +292,7 @@ export default function StickyBookingCard({
             {locationNotServiceable
               ? serviceability.status === "ready" && !serviceability.data.serviceable
                 ? "This vendor doesn't serve your location — try a different address"
-                : "Add a 6-digit pincode to your location so we can confirm this vendor serves it"
+                : "Pick a locality from the suggestions, or add a 6-digit pincode, so we can confirm this vendor serves it"
               : requiresGuestCount
                 ? "Fill in event type, date, time, location and guest count to continue"
                 : "Fill in event type, date, time and location to continue"}
@@ -299,6 +330,10 @@ export default function StickyBookingCard({
       <PriceBreakdownDialog
         isOpen={isBreakdownOpen}
         onClose={() => setIsBreakdownOpen(false)}
+        packageTitle={packageTitle}
+        categoryLabel={categoryLabel}
+        guestCount={requiresGuestCount ? guestCount : ""}
+        teamAndEquipmentCharge={teamAndEquipmentCharge}
         includedItems={includedItems}
         selectedAddons={selectedAddons}
         overtimeChargeRate={overtimeChargeRate}

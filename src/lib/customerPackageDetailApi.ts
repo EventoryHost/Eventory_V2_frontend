@@ -195,6 +195,8 @@ export interface RawFullPackage {
       lighting?: boolean;
       security?: boolean;
       customText?: string;
+      /** The vendor's own checklist of what they need from the customer ("Power", "Setup area", ...). */
+      requirements?: string[];
     };
   };
   step2_productsAndPricing?: {
@@ -289,6 +291,8 @@ export interface RawPackageDetailResponse {
   availability: RawPdpAvailability;
   pricingPreview: RawPdpPricingPreview;
   reviews: RawPdpReviewsSection;
+  /** Real figures about the package's vendor, counted server-side. */
+  vendorStats?: { eventsCompleted: number };
 }
 
 export interface PackageDetailParams {

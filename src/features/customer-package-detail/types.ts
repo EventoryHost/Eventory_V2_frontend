@@ -128,10 +128,27 @@ export interface IncludedItemEntry {
   /** Decorator-only — the setup's applied theme tag(s), shown as a pill picker in the setup detail view. Undefined for vendor types with no theme concept. */
   themeOptions?: string[];
   price: number;
+  /** The setup's own price before the team & equipment charge is spread across the setups (price above includes that share). */
+  basePrice?: number;
   items: IncludedItemLine[];
 }
 
 export type VendorRequirementIcon = "electricity" | "stage" | "ac" | "room" | "vehicle" | "permission" | "storage" | "water" | "parking" | "lighting" | "security";
+
+/** Raw, real facts about a package that feed the "Know before you book" modal. */
+export interface InstructionFacts {
+  vendorType: string;
+  /** Hours of setup lead time (already normalised to hours). */
+  setupHours?: number;
+  crewMin?: number;
+  crewMax?: number;
+  crewRoles: string[];
+  /** Distinct Indoor / Outdoor / Both values the vendor set across the package's setups. */
+  placements: string[];
+  /** Distinct item types across the package's setups ("Flowers", "Balloons", ...). */
+  itemTypes: string[];
+  hasColourOptions: boolean;
+}
 
 export interface VendorRequirement {
   id: string;
@@ -198,6 +215,10 @@ export interface VendorInfo {
   verified: boolean;
   eventsCount: number;
   yearsExperience: number;
+  /** Bookings this vendor has actually completed on Eventory (counted from real Completed bookings). */
+  eventsDone: number;
+  /** The vendor's own experience bucket, shown as entered: "2–5 yrs". Undefined when not set. */
+  experienceLabel?: string;
   /** Display-ready team size, e.g. "6–15" (from the vendor's "6 - 15 people" bucket). Undefined when the vendor didn't set one. */
   teamSize?: string;
   href: string;
@@ -312,6 +333,7 @@ export interface PackageDetail {
   /** Things the package explicitly does not cover — shown right after What's Included. */
   notIncluded?: string[];
   vendorRequirements: VendorRequirement[];
+  instructionFacts: InstructionFacts;
   addons: AddonItem[];
   paymentProtection: { points: string[]; footnote: string };
   policies: PolicyItem[];

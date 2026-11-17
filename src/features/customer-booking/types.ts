@@ -95,6 +95,8 @@ export interface BookingPaymentMilestone {
   amount: string | null;
   /** Formatted display date when the backend could compute one (needs the line's event date); otherwise the vendor's free-text "due X days before event" as a fallback. */
   due: string | null;
+  /** True for the row that is paid right now, at checkout (the token / advance, or the full amount when there is no token split). */
+  isToday?: boolean;
 }
 
 export interface BookingPaymentSummary {
@@ -170,6 +172,8 @@ export interface BookingSummaryData {
    * "" until the customer sets it on the Contact page.
    */
   eventTiming: { startTime: string; endTime: string };
+  /** The event's date (earliest line date, ISO) — null when no line has one. Used to show the end date of an overnight event on the Contact page. */
+  eventDateIso: string | null;
   /** CheckoutSession.bookingNote — session-scoped, not the cart's own note. "" until set. */
   bookingNote: string;
   /** "" until the customer fills this in on the Contact page — one set for the whole order. */

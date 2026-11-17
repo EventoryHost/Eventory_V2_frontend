@@ -19,7 +19,7 @@ const NAV_LINKS = [
 
 function Logo() {
   return (
-    <Link href="/" className="flex items-center gap-2">
+    <Link href="/" className="flex shrink-0 items-center gap-2">
       {/* next/image blocks local SVGs by default (dangerouslyAllowSVG isn't
           set) — plain img sidesteps that, same as hero-bg.svg elsewhere.
           Figma node 221:589 — 31.004px, gap-[8px] to the "Eventory" text. */}
@@ -57,15 +57,15 @@ function CitySelect() {
   }, [isOpen]);
 
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className="relative min-w-0">
       <button
         type="button"
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
-        className="flex items-center gap-1.5 rounded-xl px-2 py-1 text-brand-950 font-semibold text-[13px] leading-[20px]"
+        className="flex max-w-full items-center gap-1.5 rounded-xl px-2 py-1 text-brand-950 font-semibold text-[13px] leading-[20px]"
       >
         <MapPin size={16} className="shrink-0" />
-        <span className="flex items-center gap-1">
+        <span className="flex min-w-0 items-center gap-1">
           <span className="max-w-55 truncate" title={city ?? undefined}>
             {city ?? "Select City"}
           </span>
@@ -215,12 +215,12 @@ export default function Navbar() {
         height on <header> itself would make the border-bottom cut through
         the middle of that open panel instead of sitting at its true bottom.
       */}
-      <div className="relative mx-auto flex h-[71px] max-w-[1440px] items-center px-4 sm:px-6 lg:px-16">
+      <div className="relative mx-auto flex h-[71px] max-w-[1440px] items-center px-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] lg:gap-4 lg:px-16">
         {/* First div: logo + location — Figma node 221:589's gap-[20px]
             between the logo group and the city selector. */}
-        <div className="flex items-center gap-5">
+        <div className="flex min-w-0 items-center gap-5">
           <Logo />
-          <div className="hidden lg:flex">
+          <div className="hidden min-w-0 lg:flex">
             <CitySelect />
           </div>
         </div>
@@ -228,11 +228,11 @@ export default function Navbar() {
         {/* Second div: nav links (desktop only) — each link is its own
             padded pill (pl-4 pr-3 py-3, or px-4 for the two with no
             dropdown), zero gap between them, per the Figma spec: the
-            padding itself is the spacing, not a gap on this row. Centered
-            on the FULL bar width (not just the space between the other two
-            groups) via absolute positioning, matching Figma's own
-            left-1/2/-translate-x-1/2 centering. */}
-        <nav className="absolute left-1/2 hidden -translate-x-1/2 items-center lg:flex">
+            padding itself is the spacing, not a gap on this row. Sits in the middle
+            column of a 1fr/auto/1fr grid, so it stays centered like Figma but
+            can never overlap the location or the login group (the old
+            absolute centering did when the viewport got narrow or zoomed). */}
+        <nav className="hidden items-center lg:flex">
           <NavLinks />
         </nav>
 
@@ -240,7 +240,7 @@ export default function Navbar() {
             comes first, matching the design. No gap here: each pill's own
             padding is the spacing (same "padding is the spacing" pattern as
             the nav links), per Figma. */}
-        <div className="ml-auto hidden items-center lg:flex">
+        <div className="ml-auto hidden items-center justify-end lg:flex">
           <SignupLoginLink className="rounded-full px-4 py-2" />
           <CartButton />
         </div>

@@ -19,7 +19,7 @@ import {
   getCancellationTierStatus,
 } from "@/features/customer-package-detail/utils/cancellationPolicy";
 import { CATEGORY_META } from "@/lib/categoryMeta";
-import { groupPaymentMilestones } from "../utils/groupPaymentMilestones";
+import { buildPaymentTimeline } from "../utils/groupPaymentMilestones";
 import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import type {
   BookingLineRow,
@@ -154,7 +154,7 @@ function mapMilestones(
   quote: RawCheckoutSessionResponse["session"]["lockedQuote"]
 ): BookingPaymentMilestone[] {
   if (!quote) return [];
-  return groupPaymentMilestones(quote.lines, formatPrice, formatShortDate);
+  return buildPaymentTimeline(quote, formatPrice, formatShortDate);
 }
 
 async function resolveVendors(vendorIds: string[]): Promise<Map<string, RawVendorPublicMinimal>> {
@@ -180,6 +180,7 @@ function emptyBookingSummaryData(): BookingSummaryData {
     readyForPayment: false,
     contact: { name: "", phone: "", email: "", phoneVerified: false, errors: [] },
     eventTiming: { startTime: "", endTime: "" },
+    eventDateIso: null,
     bookingNote: "",
     alternateCoordinator: { name: "", phone: "" },
     gstin: { businessName: "", number: "" },
@@ -345,6 +346,11 @@ export async function getBookingSummaryData(): Promise<BookingSummaryData> {
       startTime: session.eventTiming?.startTime ?? "",
       endTime: session.eventTiming?.endTime ?? "",
     },
+    eventDateIso:
+      session.lines
+        .map((line) => line.eventDetails.date)
+        .filter((date): date is string => Boolean(date) && !isNaN(new Date(date as string).getTime()))
+        .sort()[0] ?? null,
     bookingNote: session.bookingNote ?? "",
     alternateCoordinator: {
       name: session.alternateCoordinator?.name ?? "",

@@ -7,6 +7,8 @@ import { formatDayMonth } from "../utils/cancellationPolicy";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 import EventTimingSlots from "./EventTimingSlots";
 import LocationServiceability from "./LocationServiceability";
+import LocationSuggestionList from "./LocationSuggestionList";
+import { useLocationSuggestions } from "../hooks/useLocationSuggestions";
 import type { UseBookingFormResult } from "../hooks/useBookingForm";
 
 type StepIndex = 0 | 1 | 2;
@@ -98,15 +100,37 @@ export default function MobileBookingBar({
     guestCountComplete,
     timingComplete,
     detailsComplete,
+    locationNotServiceable,
     requestAddToCart,
     requestBookClick,
   } = form;
+
+  const suggest = useLocationSuggestions(location, (value) => {
+    setLocation(value);
+    setIsLocationAutoFilled(false);
+    setLocationDetectError(null);
+  });
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<StepIndex | null>(0);
 
   const step0Done = Boolean(eventType);
-  const step1Done = Boolean(location.trim());
+  // A location only counts as done once the vendor is confirmed to serve it.
+  // It used to be "any text typed", which collapsed this step on the first
+  // character, hiding the serviceability result, and then left the customer
+  // stuck on a disabled Continue with no explanation.
+  const step1Done = Boolean(location.trim()) && !locationNotServiceable;
+  // Why the typed location isn't accepted yet, in words (null when it is, or nothing is typed).
+  const locationIssue = !location.trim() || !locationNotServiceable
+    ? null
+    : serviceability.status === "loading"
+      ? "Checking your location…"
+      : serviceability.status === "ready"
+        ? "This vendor doesn't serve this location. Try a different one."
+        : serviceability.status === "error"
+          ? "Couldn't check this location. Please try again."
+          : "Pick a locality from the suggestions, or add a 6-digit pincode, to confirm this vendor serves your area.";
+  const locationBlocked = Boolean(locationIssue) && serviceability.status !== "loading";
   const step2Done = Boolean(validEventDate) && timingComplete && guestCountComplete;
 
   // Auto-advance — "opens as soon as X is selected" (the user's own framing
@@ -150,7 +174,9 @@ export default function MobileBookingBar({
   const barSubtitle = !step0Done
     ? "Add date & time to book"
     : !step1Done
-      ? "Add your event location"
+      ? locationBlocked
+        ? "Check your event location"
+        : "Add your event location"
       : !step2Done
         ? "Pick a date & time"
         : dateTimeSummary;
@@ -259,6 +285,8 @@ export default function MobileBookingBar({
                     <span className="block font-figtree text-[16px] font-medium text-[#222]">Event location</span>
                     {step1Done && activeStep !== 1 ? (
                       <span className="block truncate font-figtree text-[14px] text-[#3F3F47]">{location}</span>
+                    ) : locationIssue && activeStep !== 1 ? (
+                      <span className="block font-figtree text-[13px] font-medium text-error-700">{locationIssue}</span>
                     ) : activeStep !== 1 ? (
                       <span className="block font-figtree text-[14px] text-[#9F9FA9]">Venue pincode or city</span>
                     ) : null}
@@ -278,17 +306,30 @@ export default function MobileBookingBar({
                           setLocation(event.target.value);
                           setIsLocationAutoFilled(false);
                           setLocationDetectError(null);
+                          suggest.onUserType();
                         }}
+                        onKeyDown={suggest.handleKeyDown}
+                        onBlur={() => suggest.setOpen(false)}
+                        autoComplete="off"
                         onFocus={() => {
                           if (isLocationAutoFilled) {
                             setLocation("");
                             setIsLocationAutoFilled(false);
                           }
                         }}
-                        placeholder="Venue pincode or city"
+                        placeholder="Locality, pincode or city"
                         className="h-12 w-full rounded-xl border-[1.5px] border-[#F0596F] bg-white pr-4 pl-10 font-figtree text-[16px] text-[#222] outline-none placeholder:text-[#9F9FA9]"
                       />
                     </div>
+                    {suggest.open && (
+                      <LocationSuggestionList
+                        inline
+                        items={suggest.items}
+                        activeIndex={suggest.activeIndex}
+                        onPick={suggest.pick}
+                        onHover={suggest.setActiveIndex}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => detectAndFillLocation(true)}
@@ -448,7 +489,7 @@ export default function MobileBookingBar({
                       {!step0Done
                         ? "Pick an event type to continue"
                         : !step1Done
-                          ? "Add your event location to continue"
+                          ? locationIssue ?? "Add your event location to continue"
                           : "Pick a date and time to continue"}
                     </p>
                   </div>

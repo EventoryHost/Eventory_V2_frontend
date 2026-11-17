@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { Zap, LayoutGrid, Snowflake, DoorOpen, Truck, Hammer, Archive, Droplet, ParkingSquare, Lightbulb, Shield, type LucideIcon } from "lucide-react";
-import type { PackageDetail, VendorRequirement, VendorRequirementIcon } from "../types";
+import type { InstructionFacts, PackageDetail, VendorRequirement, VendorRequirementIcon } from "../types";
 import SectionHeading from "./SectionHeading";
-import VendorRequirementsModal from "./VendorRequirementsModal";
+import KnowBeforeYouBookModal from "./KnowBeforeYouBookModal";
+import { buildInstructions } from "../utils/buildInstructions";
 
 const ICON_MAP: Record<VendorRequirementIcon, LucideIcon> = {
   electricity: Zap,
@@ -41,9 +42,13 @@ type Highlight = { id: string; label: string; iconSrc?: string; Icon?: LucideIco
 export default function VendorRequirements({
   requirements,
   summary,
+  facts,
+  packageTitle,
 }: {
   requirements: VendorRequirement[];
   summary: Pick<PackageDetail["summary"], "setupTime" | "crewSize">;
+  facts: InstructionFacts;
+  packageTitle: string;
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -71,8 +76,6 @@ export default function VendorRequirements({
     });
   }
 
-  if (highlights.length === 0) return null;
-
   const preview = highlights.slice(0, PREVIEW_COUNT);
   const rows = Math.ceil(preview.length / 2);
 
@@ -97,20 +100,27 @@ export default function VendorRequirements({
         ))}
       </div>
 
-      {requirements.length > 0 && (
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="mt-6 rounded-xl border border-[#E4E4E7] bg-white px-6 py-3 font-figtree text-[16px] leading-6 font-medium text-[#030303] transition hover:bg-black/5"
-        >
-          See all instructions
-        </button>
+      {highlights.length === 0 && (
+        <p className="font-figtree text-[16px] leading-6 text-[#3F3F47]">
+          The vendor hasn&apos;t listed anything specific for this package yet.
+        </p>
       )}
 
-      <VendorRequirementsModal
+      {/* On every package, whether or not the vendor listed requirements: the modal
+          also covers setup, crew and item guidance built from the package's own data. */}
+      <button
+        type="button"
+        onClick={() => setIsModalOpen(true)}
+        className="mt-6 rounded-xl border border-[#E4E4E7] bg-white px-6 py-3 font-figtree text-[16px] leading-6 font-medium text-[#030303] transition hover:bg-black/5"
+      >
+        See all instructions
+      </button>
+
+      <KnowBeforeYouBookModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        requirements={requirements}
+        packageTitle={packageTitle}
+        parts={buildInstructions(facts, requirements)}
       />
     </section>
   );
