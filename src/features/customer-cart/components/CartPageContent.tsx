@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bookmark, CircleMinus } from "lucide-react";
 import Breadcrumb from "@/components/customer/Breadcrumb";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
@@ -25,7 +24,7 @@ import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
 import { getRecommendedAddons } from "../services/getRecommendedAddons";
 import { startCheckout } from "../services/startCheckout";
 import { trackBeginCheckout } from "@/lib/analytics";
-import VendorGroupCard from "./VendorGroupCard";
+import CartItemRow from "./CartItemRow";
 import CartPageSkeleton from "./CartPageSkeleton";
 import PaymentSummary from "./PaymentSummary";
 import LoggedInPaymentSummary from "@/features/customer-booking/components/PaymentSummary";
@@ -115,6 +114,7 @@ export default function CartPageContent() {
             rating: v.rating,
             reviewCount: v.reviewCount,
             eventsOnEventory: v.eventsOnEventory,
+            verified: v.verified,
           });
         }
       });
@@ -162,22 +162,8 @@ export default function CartPageContent() {
   const selectedVendors = useMemo(() => vendors.filter((v) => v.selected), [vendors]);
   const cartPaymentSummary = useMemo(() => buildCartPaymentSummary(cartQuote, vendors), [cartQuote, vendors]);
 
-  // The real cart is vendor-grouped (a vendor can have several packages in
-  // it) — `vendors` here is a flat item list (see types.ts's doc comment on
-  // CartVendor), so group it back by vendorId for rendering, preserving each
-  // vendor's first-appearance order.
-  const vendorGroups = useMemo(() => {
-    const order: string[] = [];
-    const byVendorId = new Map<string, CartVendor[]>();
-    for (const item of vendors) {
-      if (!byVendorId.has(item.vendorId)) {
-        byVendorId.set(item.vendorId, []);
-        order.push(item.vendorId);
-      }
-      byVendorId.get(item.vendorId)!.push(item);
-    }
-    return order.map((vendorId) => ({ vendorId, items: byVendorId.get(vendorId)! }));
-  }, [vendors]);
+  // Packages are listed flat (not grouped by vendor) — Figma node 3259:52503.
+  const allSelected = vendors.length > 0 && selectedVendors.length === vendors.length;
 
   async function handleToggleSelected(itemId: string) {
     const item = vendors.find((v) => v.id === itemId);
@@ -440,6 +426,11 @@ export default function CartPageContent() {
         <div className="flex flex-col gap-[5px]">
           <h1 className="font-figtree text-[28px] leading-[36px] font-semibold tracking-[-0.42px] text-[#030303]">
             Cart
+            {vendors.length > 0 && (
+              <span className="ml-2 text-[14px] leading-5 font-normal tracking-normal text-[#3F3F47]">
+                ({vendors.length} {vendors.length === 1 ? "package" : "packages"})
+              </span>
+            )}
           </h1>
           <p className="font-figtree text-[14px] leading-[20px] font-normal text-[#3F3F47]">
             Open a package to see its pricing breakdown, or view full details.
@@ -447,21 +438,21 @@ export default function CartPageContent() {
         </div>
 
         {vendors.length > 0 && (
-          <div className="flex shrink-0 items-center gap-4 pt-1.5">
+          <div className="flex shrink-0 items-center gap-2 pt-1.5">
             <button
               type="button"
               onClick={handleWishlistAll}
-              className="flex items-center gap-1.5 font-figtree text-[13px] font-medium text-black transition-opacity hover:opacity-70"
+              className="flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303] transition-opacity hover:opacity-70"
             >
-              <Bookmark className="h-4 w-4" /> Wishlist All
+              <img src="/images/customer/cart/bookmark-dark.svg" alt="" className="h-4 w-4" /> Wishlist All
             </button>
-            <span className="h-4 w-px bg-neutral-subtle" aria-hidden="true" />
+            <span className="h-3 w-px bg-[#E4E4E7]" aria-hidden="true" />
             <button
               type="button"
               onClick={handleRemoveAll}
-              className="flex items-center gap-1.5 font-figtree text-[13px] font-medium text-black transition-opacity hover:opacity-70"
+              className="flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303] transition-opacity hover:opacity-70"
             >
-              <CircleMinus className="h-4 w-4" /> Remove All
+              <img src="/images/customer/cart/minus-circle-dark.svg" alt="" className="h-4 w-4" /> Remove All
             </button>
           </div>
         )}
@@ -484,32 +475,43 @@ export default function CartPageContent() {
       ) : (
       <div className="flex flex-col items-start gap-8 lg:flex-row">
         <div className="flex w-full flex-grow flex-col gap-10 lg:w-2/3">
-          {vendorGroups.map((group, index) => (
-            <div key={group.vendorId} className="flex flex-col gap-10">
-              {index > 0 && <hr className="border-neutral-subtle/70" />}
-              <VendorGroupCard
-                vendorName={group.items[0].vendorName}
-                avatarInitial={group.items[0].avatarInitial}
-                avatar={group.items[0].avatar}
-                rating={group.items[0].rating}
-                reviewCount={group.items[0].reviewCount}
-                eventsOnEventory={group.items[0].eventsOnEventory}
-                items={group.items}
-                recommendedAddons={recommendedAddons.filter((a) => group.items.some((item) => item.id === a.itemId))}
-                onToggleSelected={handleToggleSelected}
-                onToggleVendorSelected={handleToggleVendorSelected}
-                onRemove={handleRemove}
-                onMoveToWishlist={handleMoveToWishlist}
-                onIncrementAddon={handleIncrementAddon}
-                onDecrementAddon={handleDecrementAddon}
-                onSetAddonQuantity={handleSetAddonQuantity}
-                onRemoveAddon={handleRemoveAddon}
-                onAddRecommendedAddon={handleAddRecommendedAddon}
+          {vendors.length > 0 && (
+            <label className="flex w-fit cursor-pointer items-center gap-3 font-figtree text-[14px] leading-5 text-[#030303]">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                ref={(el) => {
+                  if (el) el.indeterminate = !allSelected && selectedVendors.length > 0;
+                }}
+                onChange={() =>
+                  void handleToggleVendorSelected(
+                    vendors.filter((v) => v.selected === allSelected).map((v) => v.id),
+                    !allSelected
+                  )
+                }
+                className="h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-[5px] border-[1.5px] border-[#A1A1AA] bg-white bg-center bg-no-repeat outline-none checked:border-transparent checked:bg-[url(/images/customer/cart/checkbox-checked.svg)] checked:bg-[length:20px_20px] indeterminate:border-transparent indeterminate:bg-[url(/images/customer/cart/checkbox-checked.svg)] indeterminate:bg-[length:20px_20px]"
               />
-            </div>
+              Select all items
+            </label>
+          )}
+
+          {vendors.map((item) => (
+            <CartItemRow
+              key={item.id}
+              item={item}
+              recommendedAddons={recommendedAddons.filter((a) => a.itemId === item.id)}
+              onToggleSelected={handleToggleSelected}
+              onRemove={handleRemove}
+              onMoveToWishlist={handleMoveToWishlist}
+              onIncrementAddon={handleIncrementAddon}
+              onDecrementAddon={handleDecrementAddon}
+              onSetAddonQuantity={handleSetAddonQuantity}
+              onRemoveAddon={handleRemoveAddon}
+              onAddRecommendedAddon={handleAddRecommendedAddon}
+            />
           ))}
 
-          {vendorGroups.length === 0 && (
+          {vendors.length === 0 && (
             <div className="rounded-3xl border border-neutral-subtle bg-white p-10 text-center">
               <p className="font-figtree text-[15px] text-neutral-secondary">
                 Your cart is empty. Explore packages to add vendors.

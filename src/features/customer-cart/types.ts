@@ -64,6 +64,7 @@ export interface CartVendor {
   rating: number;
   reviewCount: number;
   eventsOnEventory: number;
+  verified?: boolean;
   /** This vendor's real backend-computed subtotal (RawCartVendorGroup.vendorSubtotal) — same value on every item sharing this vendorId. */
   vendorSubtotal: number;
   package: CartPackage;
