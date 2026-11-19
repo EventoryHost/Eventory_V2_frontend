@@ -35,6 +35,7 @@ export interface VendorCardMeta {
   rating: number;
   reviewCount: number;
   eventsOnEventory: number;
+  verified?: boolean;
 }
 
 function mapItem(item: RawCartItem, vendorNames: Map<string, VendorCardMeta>, vendorSubtotal: number): CartVendor {
@@ -49,6 +50,7 @@ function mapItem(item: RawCartItem, vendorNames: Map<string, VendorCardMeta>, ve
     rating: vendor?.rating ?? 0,
     reviewCount: vendor?.reviewCount ?? 0,
     eventsOnEventory: vendor?.eventsOnEventory ?? 0,
+    verified: vendor?.verified ?? false,
     // The backend's own per-vendor total (RawCartVendorGroup.vendorSubtotal)
     // — correctly includes add-ons/quantity, unlike summing item.package.price
     // client-side, which would silently drop add-on costs.
@@ -94,6 +96,7 @@ async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, Vend
           name,
           initial: name[0]?.toUpperCase() ?? "V",
           avatar: vendor.profilePicture,
+          verified: vendor.isVerified ?? false,
           rating: vendor.rating ?? 0,
           reviewCount: vendor.reviewsCount ?? 0,
           // bookingsPerYear is a coarse self-reported figure vendors fill in

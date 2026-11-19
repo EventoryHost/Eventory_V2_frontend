@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { SquarePen } from "lucide-react";
 import type { CartPackage, EventDetails as EventDetailsData } from "../types";
 import { getCategoryIconMeta, getCategoryLabel } from "../utils/categoryMeta";
 import {
@@ -16,7 +15,11 @@ export default function PackageInfo({
   eventDetails,
   onRemove,
   onMoveToWishlist,
+  vendorName,
+  vendorVerified,
 }: {
+  vendorName?: string;
+  vendorVerified?: boolean;
   cartPackage: CartPackage;
   eventDetails: EventDetailsData;
   onRemove: () => void;
@@ -63,16 +66,16 @@ export default function PackageInfo({
                   height={16}
                   className="h-4 w-4 rounded-full object-contain"
                 />
-                <span className="font-figtree text-[11px] font-bold tracking-wide text-brand-950 uppercase whitespace-nowrap">
+                <span className="font-figtree text-[12px] leading-[18px] font-bold tracking-[-0.12px] text-[#3C060D] uppercase whitespace-nowrap">
                   {getCategoryLabel(cartPackage.categoryLabel)}
                 </span>
               </span>
             </div>
             <Link
               href={cartPackage.href}
-              className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] font-semibold text-neutral-primary transition-colors hover:text-brand-primary"
+              className="flex shrink-0 items-center gap-1.5 py-1 font-figtree text-[14px] leading-5.5 font-semibold text-[#3F3F47] transition-colors hover:text-brand-primary"
             >
-              <SquarePen className="h-4 w-4" />
+              <img src="/images/customer/cart/edit.svg" alt="" className="h-4 w-4" />
               Edit Package
             </Link>
           </div>
@@ -82,14 +85,30 @@ export default function PackageInfo({
               stop it wrapping across many lines and blowing out this
               card's layout — clamped to 2 lines, same pattern this
               feature's own addon cards already use (AddonCard, AddedAddonRow). */}
-          <Link href={cartPackage.href} className="mb-3 block hover:underline" title={cartPackage.title}>
-            <span className="line-clamp-2 font-figtree text-[16px] leading-[22px] font-medium text-[#030303]">
+          <Link href={cartPackage.href} className="mb-2 block hover:underline" title={cartPackage.title}>
+            <span className="line-clamp-2 font-figtree text-[16px] leading-[normal] font-medium text-[#030303]">
               {cartPackage.title}
               {cartPackage.variantType && (
-                <span className="font-figtree text-[16px] font-medium text-[#71717B]"> &middot; {cartPackage.variantType}</span>
+                <>
+                  <img
+                    src="/images/customer/cart/title-dot.svg"
+                    alt=""
+                    className="mx-[5px] inline-block h-[5.281px] w-[2.281px] align-middle"
+                  />
+                  <span className="text-[#71717B]">{cartPackage.variantType}</span>
+                </>
               )}
             </span>
           </Link>
+
+          {vendorName && (
+            <p className="mb-3 flex items-center gap-1.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
+              <span className="truncate">By {vendorName}</span>
+              {vendorVerified && (
+                <img src="/images/customer/cart/verified.svg" alt="Verified vendor" className="h-[18px] w-[18px] shrink-0" />
+              )}
+            </p>
+          )}
 
           <EventDetails details={eventDetails} />
 
