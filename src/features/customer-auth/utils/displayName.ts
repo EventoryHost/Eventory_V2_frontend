@@ -5,10 +5,7 @@ import type { Customer } from "@/lib/customerSession";
  *
  * `name` is optional on the backend Customer model (a phone-OTP signup can
  * create an account without one), so this falls back through the other
- * identifiers the account actually has rather than to a generic greeting —
- * the email's local part, then the phone number. Only a customer with none
- * of the three gets the neutral label, and that's a customer the backend
- * genuinely knows nothing else about.
+ * identifiers the account has: the email's local part, then a neutral label.
  */
 export function customerDisplayName(customer: Customer | null | undefined): string {
   const name = customer?.name?.trim();
@@ -17,13 +14,14 @@ export function customerDisplayName(customer: Customer | null | undefined): stri
   const emailLocalPart = customer?.email?.trim().split("@")[0];
   if (emailLocalPart) return emailLocalPart;
 
-  const phone = customer?.phone?.trim();
-  if (phone) return phone;
-
+  // Never fall back to the phone number: a phone-OTP account that hasn't set a
+  // name yet (or whose profile is still loading) used to show its raw number
+  // in the navbar and sidebar.
   return "My Account";
 }
 
-/** First word of the display name — the navbar's compact "Hi, Vyom" form. */
+/** First word of the display name, the navbar's compact "Hi, Vyom" form. */
 export function customerFirstName(customer: Customer | null | undefined): string {
-  return customerDisplayName(customer).split(/\s+/)[0];
+  const name = customer?.name?.trim() || customer?.email?.trim().split("@")[0];
+  return name ? name.split(/\s+/)[0] : "Account";
 }

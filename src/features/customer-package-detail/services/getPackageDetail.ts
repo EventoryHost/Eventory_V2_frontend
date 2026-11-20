@@ -191,7 +191,14 @@ function mapGallery(pkg: RawFullPackage): GalleryImage[] {
     pkg.vendorType === "VenueProvider"
       ? (pkg.step4_sampleMedia?.spaceMedia ?? []).flatMap((space) => space.media ?? [])
       : (pkg.step4_sampleMedia?.media ?? []);
-  return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
+  if (media.length > 0) {
+    return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
+  }
+  // No sample media uploaded: show the setup photos instead of empty placeholders.
+  const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  return setups
+    .filter((setup) => Boolean(setup.setupPhoto))
+    .map((setup, i) => ({ id: `gallery-setup-${i}`, image: setup.setupPhoto as string, alt: setup.name || packageName }));
 }
 
 // Picks the closest icon for a vendor-typed requirement ("Power", "Setup area",

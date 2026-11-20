@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import ProductCard, { type ProductCardProps } from "./ProductCard";
 import {
-  getPopularPackages,
+  browsePackages,
   getPackageImage,
   getPackageCardStats,
   getPackageStartingPrice,
@@ -13,7 +13,7 @@ import {
   getPackageCapacityLabel,
   type RawPackage,
 } from "@/lib/customerDiscoveryApi";
-import { VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
+import { CATEGORY_TO_VENDOR_TYPE, VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { getServiceAreaNames, sanitizeCityName } from "@/lib/vendorLocation";
@@ -70,20 +70,28 @@ const FALLBACK_PACKAGES: ProductCardProps[] = Array.from({ length: 6 }, () => ({
 
 const SCROLL_AMOUNT = 336;
 
+// Two newest packages per category, decorators first.
+const CATEGORY_ORDER = ["decorator", "makeup-artist", "photographer", "dj-artist", "caterer", "venue-provider"];
+const PACKAGES_PER_CATEGORY = 2;
+
 export default function PackagesCarousel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [packages, setPackages] = useState<ProductCardProps[]>(FALLBACK_PACKAGES);
 
   useEffect(() => {
     let cancelled = false;
-    getPopularPackages({ limit: 6 })
-      .then((response) => {
-        if (cancelled || response.packages.length === 0) return;
-        setPackages(response.packages.map(toProductCardProps));
-      })
-      .catch(() => {
-        // Keep the static fallback on failure.
-      });
+    Promise.all(
+      CATEGORY_ORDER.map((slug) =>
+        browsePackages({ vendorType: CATEGORY_TO_VENDOR_TYPE[slug], sort: "newest", limit: PACKAGES_PER_CATEGORY })
+          .then((response) => response.packages.slice(0, PACKAGES_PER_CATEGORY))
+          // One failing category shouldn't empty the whole row.
+          .catch(() => [] as RawPackage[])
+      )
+    ).then((groups) => {
+      const all = groups.flat();
+      if (cancelled || all.length === 0) return;
+      setPackages(all.map(toProductCardProps));
+    });
     return () => {
       cancelled = true;
     };
@@ -135,7 +143,7 @@ export default function PackagesCarousel() {
         className="mt-8 flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
         {packages.map((pkg, i) => (
-          <div key={i} className="shrink-0 snap-start">
+          <div key={i} className="flex shrink-0 snap-start">
             <ProductCard {...pkg} />
           </div>
         ))}

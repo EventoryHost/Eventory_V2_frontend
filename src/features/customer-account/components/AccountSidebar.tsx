@@ -4,40 +4,53 @@ import { useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  Bookmark,
-  CalendarCheck,
-  CreditCard,
-  Eye,
-  Headphones,
-  LogOut,
-  MapPin,
-  MessageSquare,
-  Settings,
-  UserRound,
-} from "lucide-react";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { customerDisplayName } from "@/features/customer-auth/utils/displayName";
 
 interface MenuItem {
   label: string;
-  icon: typeof UserRound;
+  /** File stem in /images/customer/account/ — "<icon>.svg" outline, "<icon>-active.svg" filled. */
+  icon: string;
   /** Omitted while the destination page doesn't exist yet — the row renders
       inert rather than linking to a 404. */
   href?: string;
 }
 
 const MENU_ITEMS: MenuItem[] = [
-  { label: "Profile Information", icon: UserRound, href: "/account/profile" },
-  { label: "Saved Address", icon: MapPin, href: "/account/addresses" },
-  { label: "Payment Details", icon: CreditCard, href: "/account/payments" },
-  { label: "My Bookings", icon: CalendarCheck, href: "/account/bookings" },
-  { label: "Wishlist", icon: Bookmark, href: "/account/wishlist" },
-  { label: "Viewed Items", icon: Eye, href: "/account/viewed" },
-  { label: "Messages", icon: MessageSquare },
-  { label: "Settings", icon: Settings },
-  { label: "Help Center", icon: Headphones },
+  { label: "Profile Information", icon: "profile", href: "/account/profile" },
+  { label: "Saved Address", icon: "address", href: "/account/addresses" },
+  { label: "Payment Details", icon: "payments", href: "/account/payments" },
+  { label: "My Bookings", icon: "bookings", href: "/account/bookings" },
+  { label: "Wishlist", icon: "wishlist", href: "/account/wishlist" },
+  { label: "Viewed Items", icon: "viewed", href: "/account/viewed" },
+  { label: "Messages", icon: "messages" },
+  { label: "Settings", icon: "settings" },
+  { label: "Help Center", icon: "help" },
 ];
+
+/**
+ * Figma node 1414:6309 icons, drawn as a mask so they take the row's text
+ * colour (grey, brand pink when selected, red for Log Out).
+ */
+function MenuIcon({ name, filled = false }: { name: string; filled?: boolean }) {
+  const url = `url(/images/customer/account/${name}${filled ? "-active" : ""}.svg)`;
+  return (
+    <span
+      aria-hidden
+      className="h-5 w-5 shrink-0 bg-current"
+      style={{
+        WebkitMaskImage: url,
+        maskImage: url,
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+      }}
+    />
+  );
+}
 
 /** Never fires — the client/server answer below is fixed for a given render pass. */
 const subscribeNoop = () => () => {};
@@ -110,7 +123,7 @@ export default function AccountSidebar() {
 
       {/* Menu */}
       <nav className="flex flex-col pt-1">
-        {MENU_ITEMS.map(({ label, icon: Icon, href }) => {
+        {MENU_ITEMS.map(({ label, icon, href }) => {
           const isActive = Boolean(href) && pathname === href;
 
           // The active row is full-bleed with a brand bar tucked against the
@@ -124,7 +137,7 @@ export default function AccountSidebar() {
                   className={`${ROW_CLASS} !text-brand-primary font-semibold`}
                   aria-current="page"
                 >
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <MenuIcon name={icon} filled />
                   {label}
                 </span>
               </div>
@@ -135,12 +148,12 @@ export default function AccountSidebar() {
             <div key={label} className="px-5 py-1">
               {href ? (
                 <Link href={href} className={`${ROW_CLASS} transition-colors hover:bg-[#FAFAFA]`}>
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <MenuIcon name={icon} />
                   {label}
                 </Link>
               ) : (
                 <span className={`${ROW_CLASS} cursor-default`}>
-                  <Icon className="h-4 w-4 shrink-0" />
+                  <MenuIcon name={icon} />
                   {label}
                 </span>
               )}
@@ -154,7 +167,7 @@ export default function AccountSidebar() {
             onClick={handleLogout}
             className={`${ROW_CLASS} text-[#C81E0D] transition-colors hover:bg-[#FEF2F2]`}
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            <MenuIcon name="logout" />
             Log Out
           </button>
         </div>

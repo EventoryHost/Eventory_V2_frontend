@@ -82,7 +82,7 @@ export interface RawPackage {
   variantCount?: number;
   step2_productsAndPricing?: {
     /** Each setup's own item list. Only its length matters to the package cards. */
-    setups?: { items?: { name?: string }[] }[];
+    setups?: { themes?: string[]; items?: { name?: string; colors?: string[] }[] }[];
     /**
      * Vendor-authored "what's included" highlights. NOT reliably short/
      * pill-shaped across vendor types — confirmed with backend:
@@ -346,8 +346,13 @@ export function getPackageCardStats(pkg: RawPackage): {
     setupsCount: setups.length,
     itemsCount,
     variantCount: pkg.variantCount ?? 1,
-    // Same rule as the PDP's "Customizable" tag: some setup has real items to change.
-    customizable: itemsCount > 0,
+    // "Customize it" shows when a customer actually has a choice to make: a
+    // setup offers more than one theme, or an item offers more than one colour.
+    customizable: setups.some(
+      (setup) =>
+        (setup.themes ?? []).filter((theme) => theme?.trim()).length > 1 ||
+        (setup.items ?? []).some((item) => (item.colors ?? []).filter((color) => color?.trim()).length > 1)
+    ),
   };
 }
 

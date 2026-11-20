@@ -422,7 +422,7 @@ export default function CartPageContent() {
           the buttons inside it) ends flush with the cards' right edge
           instead of spanning the full page width past where Payment
           summary starts on wide screens. */}
-      <div className="mb-10 flex flex-wrap items-start justify-between gap-4 lg:w-2/3">
+      <div className="mb-6 lg:w-2/3">
         <div className="flex flex-col gap-[5px]">
           <h1 className="font-figtree text-[28px] leading-[36px] font-semibold tracking-[-0.42px] text-[#030303]">
             Cart
@@ -432,30 +432,7 @@ export default function CartPageContent() {
               </span>
             )}
           </h1>
-          <p className="font-figtree text-[14px] leading-[20px] font-normal text-[#3F3F47]">
-            Open a package to see its pricing breakdown, or view full details.
-          </p>
         </div>
-
-        {vendors.length > 0 && (
-          <div className="flex shrink-0 items-center gap-2 pt-1.5">
-            <button
-              type="button"
-              onClick={handleWishlistAll}
-              className="flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303] transition-opacity hover:opacity-70"
-            >
-              <img src="/images/customer/cart/bookmark-dark.svg" alt="" className="h-4 w-4" /> Wishlist All
-            </button>
-            <span className="h-3 w-px bg-[#E4E4E7]" aria-hidden="true" />
-            <button
-              type="button"
-              onClick={handleRemoveAll}
-              className="flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303] transition-opacity hover:opacity-70"
-            >
-              <img src="/images/customer/cart/minus-circle-dark.svg" alt="" className="h-4 w-4" /> Remove All
-            </button>
-          </div>
-        )}
       </div>
 
       {loadError && (
@@ -476,6 +453,7 @@ export default function CartPageContent() {
       <div className="flex flex-col items-start gap-8 lg:flex-row">
         <div className="flex w-full flex-grow flex-col gap-10 lg:w-2/3">
           {vendors.length > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-4">
             <label className="flex w-fit cursor-pointer items-center gap-3 font-figtree text-[14px] leading-5 text-[#030303]">
               <input
                 type="checkbox"
@@ -493,6 +471,24 @@ export default function CartPageContent() {
               />
               Select all items
             </label>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={handleWishlistAll}
+              className="flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303] transition-opacity hover:opacity-70"
+            >
+              <img src="/images/customer/cart/bookmark-dark.svg" alt="" className="h-4 w-4" /> Wishlist All
+            </button>
+            <span className="h-3 w-px bg-[#E4E4E7]" aria-hidden="true" />
+            <button
+              type="button"
+              onClick={handleRemoveAll}
+              className="flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303] transition-opacity hover:opacity-70"
+            >
+              <img src="/images/customer/cart/minus-circle-dark.svg" alt="" className="h-4 w-4" /> Remove All
+            </button>
+          </div>
+            </div>
           )}
 
           {vendors.map((item) => (
