@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, SlidersHorizontal } from "lucide-react";
+import Image from "next/image";
+import { SlidersHorizontal } from "lucide-react";
 import { browsePackages, getPackagesFilters, type BrowsePackagesParams } from "@/lib/customerDiscoveryApi";
 import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
@@ -624,7 +625,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
                       : "bg-brand-primary text-white hover:opacity-90"
                   }`}
                 >
-                  <ArrowLeftRight className="size-5" />
+                  <Image src="/images/customer/compare-notes-icon.svg" alt="" width={20} height={20} className="size-5 shrink-0" />
                   {compareMode ? "Exit Compare" : "Compare Packages"}
                 </button>
               </div>
