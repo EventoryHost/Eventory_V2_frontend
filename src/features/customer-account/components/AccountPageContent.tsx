@@ -69,6 +69,8 @@ export default function AccountPageContent() {
         )}
       </section>
 
+      {/* Only shown when there is no active booking to focus on. */}
+      {!isLoading && activeBookingCount === 0 && (
       <section className="flex flex-col gap-4">
         <SectionHeading title="Recently Viewed" />
 
@@ -81,6 +83,7 @@ export default function AccountPageContent() {
           recentlyViewed.map((item) => <RecentlyViewedCard key={item.packageId} item={item} />)
         )}
       </section>
+      )}
     </>
   );
 }

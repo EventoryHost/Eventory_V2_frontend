@@ -79,6 +79,12 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
       {
+        // Some packages' photos were saved as Slack file links; without this
+        // the whole page crashes with next/image's unconfigured-host error.
+        protocol: "https",
+        hostname: "files.slack.com",
+      },
+      {
         // Seen in real backend test/seed data (e.g. a promo card's image
         // field set to a picsum.photos placeholder) — allowlisted so those
         // real records render instead of crashing next/image.
