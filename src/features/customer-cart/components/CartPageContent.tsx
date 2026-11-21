@@ -413,16 +413,15 @@ export default function CartPageContent() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pt-2 pb-10 sm:px-6 sm:pb-12">
+    <div className="mx-auto max-w-[1440px] px-4 pt-2 pb-10 sm:px-6 sm:pb-12 lg:px-16">
       <div className="mb-8">
         <Breadcrumb items={data?.breadcrumb ?? [{ label: "Home", href: "/" }, { label: "Cart" }]} />
       </div>
 
-      {/* lg:w-2/3 matches the vendor-cards column below, so this row (and
-          the buttons inside it) ends flush with the cards' right edge
-          instead of spanning the full page width past where Payment
-          summary starts on wide screens. */}
-      <div className="mb-6 lg:w-2/3">
+      {/* Figma node 3259:49569: 64px page gutters, a 876px card column, a 48px
+          gutter and a 388px summary column. The title sits 20px above the
+          "Select all" row. */}
+      <div className="mb-5">
         <div className="flex flex-col gap-[5px]">
           <h1 className="font-figtree text-[28px] leading-[36px] font-semibold tracking-[-0.42px] text-[#030303]">
             Cart
@@ -450,11 +449,11 @@ export default function CartPageContent() {
       {loading ? (
         <CartPageSkeleton />
       ) : (
-      <div className="flex flex-col items-start gap-8 lg:flex-row">
-        <div className="flex w-full flex-grow flex-col gap-10 lg:w-2/3">
+      <div className="flex flex-col items-start gap-8 lg:flex-row lg:gap-12">
+        <div className="flex w-full min-w-0 flex-col gap-5 lg:flex-1">
           {vendors.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between gap-4">
-            <label className="flex w-fit cursor-pointer items-center gap-3 font-figtree text-[14px] leading-5 text-[#030303]">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-4">
+            <label className="flex w-fit cursor-pointer items-center gap-1.5 font-figtree text-[14px] leading-5 text-[#030303]">
               <input
                 type="checkbox"
                 checked={allSelected}
@@ -516,7 +515,9 @@ export default function CartPageContent() {
           )}
         </div>
 
-        <div className="flex w-full flex-col gap-6 lg:sticky lg:top-24 lg:w-1/3">
+        <div
+          className={`flex w-full flex-col gap-6 lg:sticky lg:top-24 lg:w-[388px] lg:shrink-0 ${vendors.length > 0 ? "lg:mt-[52px]" : ""}`}
+        >
           {isLoggedIn ? (
             <LoggedInPaymentSummary
               vendorCount={data?.vendorCount ?? 0}
@@ -527,7 +528,7 @@ export default function CartPageContent() {
               payInFull={cartPaymentSummary.payInFull}
               isFreeCheckout={cartPaymentSummary.isFreeCheckout}
               cancellationNote={cartPaymentSummary.cancellationNote}
-              ctaLabel="Continue to Details"
+              ctaLabel="Continue to Book"
               onCtaClick={handleContinue}
               ctaLoading={continueLoading}
               ctaDisabled={selectedVendors.length === 0}

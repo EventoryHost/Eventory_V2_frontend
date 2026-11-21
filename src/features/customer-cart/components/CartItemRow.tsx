@@ -28,7 +28,7 @@ export default function CartItemRow({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <input
           type="checkbox"
           checked={item.selected}
@@ -63,7 +63,7 @@ export default function CartItemRow({
               event details, or the add-ons drawer underneath never get
               clipped to fit the spec's 848x237 box — the box is a target
               size, not a cap. */}
-          <div className="max-w-212 overflow-hidden rounded-3xl border border-neutral-subtle bg-white shadow-sm md:min-h-59.25">
+          <div className="overflow-hidden rounded-3xl border border-neutral-subtle bg-white shadow-sm">
             <PackageInfo
               cartPackage={item.package}
               vendorName={item.vendorName}

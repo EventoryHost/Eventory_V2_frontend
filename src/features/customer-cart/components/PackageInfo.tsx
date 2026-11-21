@@ -39,21 +39,21 @@ export default function PackageInfo({
 
   return (
     <div className="flex flex-col md:flex-row">
-      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-subtle md:aspect-auto md:w-[280px]">
+      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-subtle md:aspect-auto md:min-h-[245px] md:w-[226px]">
         {cartPackage.image && (
           <Image
             src={cartPackage.image}
             alt={cartPackage.title}
             fill
-            sizes="(min-width: 768px) 280px, 100vw"
+            sizes="(min-width: 768px) 226px, 100vw"
             className="object-cover"
           />
         )}
       </div>
 
-      <div className="flex w-full flex-col justify-between p-6">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 p-4 md:py-3 md:pr-4 md:pl-4">
         <div>
-          <div className="mb-3 flex items-center justify-between gap-3">
+          <div className="mb-2 flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <span
                 className="flex w-fit shrink-0 items-center gap-1.5 rounded-[52px] py-1 pr-3 pl-1"
@@ -73,7 +73,7 @@ export default function PackageInfo({
             </div>
             <Link
               href={cartPackage.href}
-              className="flex shrink-0 items-center gap-1.5 py-1 font-figtree text-[14px] leading-5.5 font-semibold text-[#3F3F47] transition-colors hover:text-brand-primary"
+              className="-mb-1.5 flex shrink-0 items-center gap-1.5 py-1 font-figtree text-[14px] leading-5.5 font-semibold text-[#3F3F47] transition-colors hover:text-brand-primary"
             >
               <img src="/images/customer/cart/edit.svg" alt="" className="h-4 w-4" />
               Edit Package
@@ -102,7 +102,7 @@ export default function PackageInfo({
           </Link>
 
           {vendorName && (
-            <p className="mb-3 flex items-center gap-1.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
+            <p className="mb-4 flex items-center gap-1.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
               <span className="truncate">By {vendorName}</span>
               {vendorVerified && (
                 <img src="/images/customer/cart/verified.svg" alt="Verified vendor" className="h-[18px] w-[18px] shrink-0" />
