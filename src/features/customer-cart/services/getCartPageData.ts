@@ -113,9 +113,17 @@ async function resolveVendorNames(vendorIds: string[]): Promise<Map<string, Vend
 }
 
 export function mapCartPayload(payload: RawCartPayload, vendorNames: Map<string, VendorCardMeta>): CartPageData {
-  const items = payload.vendors.flatMap((group) =>
-    group.items.map((item) => mapItem(item, vendorNames, group.vendorSubtotal))
-  );
+  // The API groups items by vendor (oldest first); the cart shows one flat
+  // list with the most recently added package on top.
+  const items = payload.vendors
+    .flatMap((group) =>
+      group.items.map((item) => ({
+        added: Date.parse(item.createdAt) || 0,
+        mapped: mapItem(item, vendorNames, group.vendorSubtotal),
+      }))
+    )
+    .sort((a, b) => b.added - a.added)
+    .map((entry) => entry.mapped);
   return {
     breadcrumb: BREADCRUMB,
     vendors: items,

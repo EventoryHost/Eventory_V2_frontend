@@ -15,7 +15,7 @@ export default function VendorActions({
   onMoveToWishlist: () => void;
 }) {
   return (
-    <div className="mt-4 flex items-center justify-between">
+    <div className="flex items-center justify-between">
       <span className="font-figtree text-[20px] leading-8 font-bold tracking-[-0.01em] text-black">
         {formatPrice(price)}
       </span>

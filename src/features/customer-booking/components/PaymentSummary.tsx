@@ -137,9 +137,9 @@ export default function PaymentSummary({
   const [code, setCode] = useState("");
 
   return (
-    <div className="w-full max-w-[360px] rounded-[24px] border border-[#E4E4E7] bg-white p-5">
-      <div className="flex w-full max-w-[318px] flex-col gap-4">
-        <div className="flex flex-col gap-0.5">
+    <div className="w-full rounded-[24px] border border-[#E4E4E7] bg-white p-5">
+      <div className="flex w-full flex-col gap-4">
+        <div className="flex flex-col">
           <h2 className="font-figtree text-[16px] font-semibold leading-[24px] tracking-[-0.24px] text-[#030303]">
             Payment summary
           </h2>
@@ -149,7 +149,7 @@ export default function PaymentSummary({
           </p>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1 pt-3">
           {appliedCouponCode && (
             <div className="flex items-center gap-2 rounded-2xl border border-success-700/20 bg-success-subtle px-3 py-2.5">
               <BadgeCheck size={16} className="shrink-0 text-success-700" />
@@ -175,7 +175,7 @@ export default function PaymentSummary({
               type="button"
               disabled={!code || couponLoading}
               onClick={() => onApplyCoupon?.(code)}
-              className="flex h-11 w-[72px] shrink-0 items-center justify-center rounded-xl border border-[#FCDEE2] pt-3 pr-2 pb-3 pl-2 font-figtree text-[12px] font-medium text-[#FCDEE2] transition-colors enabled:border-[#F0596F] enabled:text-[#F0596F]"
+              className="flex w-[72px] shrink-0 items-center justify-center rounded-2xl border border-[#FDE2E6] px-0 py-3 font-figtree text-[14px] leading-5 font-medium text-[#FDE2E6] transition-colors enabled:border-[#F0596F] enabled:text-[#F0596F]"
             >
               {couponLoading ? "…" : "Apply"}
             </button>
@@ -190,56 +190,58 @@ export default function PaymentSummary({
 
         <div className="h-px w-full bg-[#E4E4E7]" />
 
-        <div className="flex flex-col gap-4">
-          {rows.map((row) => (
-            <div key={row.label} className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-1 font-figtree text-[12px] font-normal leading-[18px] text-[#71717B]">
-                {row.label}
-                {row.hint && (
-                  <span
-                    title={row.hint}
-                    aria-label={row.hint}
-                    className="inline-flex cursor-help text-[#9F9FA9]"
-                  >
-                    <Info size={12} />
-                  </span>
-                )}
-              </span>
-              <span className="shrink-0 text-right font-figtree text-[12px] font-normal leading-[18px] text-[#3F3F47]">
-                {row.value}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="h-px w-full bg-[#E4E4E7]" />
-
-        <div className="flex items-center justify-between">
-          <span className="flex items-center gap-1.5 font-figtree text-[15px] font-semibold leading-[1.3] text-[#030303]">
-            Grand total
-            <InfoPopover label="How the grand total is calculated">
-              <p className="mb-2 font-figtree text-[12px] font-semibold text-[#030303]">How your total is calculated</p>
-              <div className="flex flex-col gap-1.5">
-                {rows.map((row) => (
-                  <div key={row.label} className="flex items-start justify-between gap-3 font-figtree text-[12px] leading-[18px] text-[#3F3F47]">
-                    <span>{row.label}</span>
-                    <span className="shrink-0">{row.value}</span>
-                  </div>
-                ))}
-                <div className="mt-1 flex justify-between border-t border-[#E4E4E7] pt-2 font-figtree text-[12px] leading-[18px] font-semibold text-[#030303]">
-                  <span>Grand total</span>
-                  <span>{grandTotal}</span>
-                </div>
+        <div className="flex flex-col gap-2 pt-3">
+          <div className="flex flex-col">
+            {rows.map((row) => (
+              <div key={row.label} className="flex items-baseline justify-between gap-3 py-1.5">
+                <span className="flex items-center gap-1 font-figtree text-[14px] font-normal leading-5 text-[#71717B]">
+                  {row.label}
+                  {row.hint && (
+                    <span
+                      title={row.hint}
+                      aria-label={row.hint}
+                      className="inline-flex cursor-help text-[#9F9FA9]"
+                    >
+                      <Info size={12} />
+                    </span>
+                  )}
+                </span>
+                <span className="shrink-0 text-right font-figtree text-[14px] font-normal leading-5 text-[#3F3F47]">
+                  {row.value}
+                </span>
               </div>
-            </InfoPopover>
-          </span>
-          <span className="font-figtree text-[16px] font-semibold leading-[1.3] text-[#030303]">
-            {grandTotal}
-          </span>
+            ))}
+          </div>
+
+          <div className="flex h-[9px] flex-col py-1">
+            <div className="h-px w-full bg-[#E4E4E7]" />
+          </div>
+
+          <div className="flex items-baseline justify-between py-1.5">
+            <span className="flex items-center gap-1.5 font-figtree text-[16px] font-semibold leading-6 text-[#030303]">
+              Grand total
+              <InfoPopover label="How the grand total is calculated">
+                <p className="mb-2 font-figtree text-[12px] font-semibold text-[#030303]">How your total is calculated</p>
+                <div className="flex flex-col gap-1.5">
+                  {rows.map((row) => (
+                    <div key={row.label} className="flex items-start justify-between gap-3 font-figtree text-[12px] leading-[18px] text-[#3F3F47]">
+                      <span>{row.label}</span>
+                      <span className="shrink-0">{row.value}</span>
+                    </div>
+                  ))}
+                  <div className="mt-1 flex justify-between border-t border-[#E4E4E7] pt-2 font-figtree text-[12px] leading-[18px] font-semibold text-[#030303]">
+                    <span>Grand total</span>
+                    <span>{grandTotal}</span>
+                  </div>
+                </div>
+              </InfoPopover>
+            </span>
+            <span className="font-figtree text-[18px] font-semibold leading-6 text-[#030303]">{grandTotal}</span>
+          </div>
         </div>
 
         {!isFreeCheckout && (
-          <div className="w-full max-w-[318px] overflow-hidden rounded-[16px] border border-[#E4E4E7]">
+          <div className="w-full overflow-hidden rounded-[16px] border border-[#E4E4E7]">
             <div className="flex flex-col gap-3 p-4">
               <span className="flex items-center gap-1.5 font-figtree text-[11px] font-semibold tracking-[0.03em] text-[#71717B] uppercase">
                 <ShieldCheck size={14} />
@@ -286,7 +288,7 @@ export default function PaymentSummary({
         )}
 
         {ctaDisabled ? (
-          <span className="flex h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white opacity-50">
+          <span className="flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-full border border-transparent bg-[#F0596F] px-6 py-2.5 font-figtree text-[16px] leading-6 font-semibold text-white opacity-50">
             {ctaLabel}
           </span>
         ) : onCtaClick ? (
@@ -294,21 +296,21 @@ export default function PaymentSummary({
             type="button"
             onClick={onCtaClick}
             disabled={ctaLoading}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-transparent bg-[#F0596F] px-6 py-2.5 font-figtree text-[16px] leading-6 font-semibold text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
           >
             {ctaLabel}
           </button>
         ) : (
           <Link
             href={ctaHref ?? "#"}
-            className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#F0596F] px-6 py-2.5 font-figtree text-[15px] font-semibold text-white"
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-transparent bg-[#F0596F] px-6 py-2.5 font-figtree text-[16px] leading-6 font-semibold text-white"
           >
             {ctaLabel}
           </Link>
         )}
 
-        <span className="flex items-start gap-2">
-          <ShieldCheck size={16} className="mt-0.5 shrink-0 text-[#16A34A]" />
+        <span className="-mt-1 flex items-start gap-1.5">
+          <ShieldCheck size={14} className="mt-[3px] shrink-0 text-[#16A34A]" />
           <span className="font-figtree text-[12px] font-normal leading-[18px] text-[#71717B]">
             {cancellationNote}
           </span>
