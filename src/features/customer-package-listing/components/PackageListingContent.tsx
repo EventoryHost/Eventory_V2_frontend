@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { SlidersHorizontal } from "lucide-react";
 import { browsePackages, getPackagesFilters, type BrowsePackagesParams } from "@/lib/customerDiscoveryApi";
@@ -128,7 +128,6 @@ async function fetchPackagesWithFallback(
 }
 
 export default function PackageListingContent({ data }: { data: PackageListingData }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -266,7 +265,16 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     if (sort !== "newest") params.set("sort", sort);
     if (date) params.set("date", date);
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // history.replaceState, not router.replace: this page is force-dynamic, so
+    // router.replace re-ran the server component (several backend calls) on
+    // EVERY keystroke in the search box — that flood hit the API's rate limit
+    // (429) and crashed the page with "This page couldn't load". Next keeps
+    // useSearchParams in sync with replaceState, and nothing server-side
+    // reads these params, so no server round trip is needed.
+    const url = query ? `${pathname}?${query}` : pathname;
+    if (url !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(window.history.state, "", url);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sort, date, eventTypeParam]);
 
