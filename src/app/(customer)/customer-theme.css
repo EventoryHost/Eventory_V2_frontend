@@ -82,3 +82,24 @@
   --font-lora: var(--font-lora);
   --font-figtree: var(--font-figtree);
 }
+
+/* Skeleton shimmer: a soft diagonal highlight sweeping over a light grey block. */
+@keyframes skeleton-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.skeleton {
+  background-color: #f0f0f2;
+  background-image: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.85) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}

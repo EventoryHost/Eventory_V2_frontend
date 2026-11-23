@@ -17,7 +17,11 @@ export default function PackageInfo({
   onMoveToWishlist,
   vendorName,
   vendorVerified,
+  selected,
+  onToggleSelected,
 }: {
+  selected?: boolean;
+  onToggleSelected?: () => void;
   vendorName?: string;
   vendorVerified?: boolean;
   cartPackage: CartPackage;
@@ -39,7 +43,7 @@ export default function PackageInfo({
 
   return (
     <div className="flex flex-col md:flex-row">
-      <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-neutral-subtle md:aspect-auto md:min-h-[245px] md:w-[226px]">
+      <div className="relative h-40 w-full shrink-0 overflow-hidden bg-neutral-subtle md:aspect-auto md:h-auto md:min-h-[245px] md:w-[226px]">
         {cartPackage.image && (
           <Image
             src={cartPackage.image}
@@ -49,11 +53,23 @@ export default function PackageInfo({
             className="object-cover"
           />
         )}
+        {/* Mobile only (Figma 3831:62659): the select checkbox sits on the photo. */}
+        {onToggleSelected && (
+          <label className="absolute top-3 left-3 flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-[#E6E6E6] bg-white/95 shadow-[0_2px_3px_rgba(0,0,0,0.12)] md:hidden">
+            <input
+              type="checkbox"
+              checked={!!selected}
+              onChange={onToggleSelected}
+              aria-label={`${selected ? "Deselect" : "Select"} ${cartPackage.title} for checkout`}
+              className="h-5 w-5 cursor-pointer appearance-none rounded-[5px] border-[1.5px] border-[#A1A1AA] bg-white bg-center bg-no-repeat outline-none checked:border-transparent checked:bg-[url(/images/customer/cart/checkbox-checked.svg)] checked:bg-[length:20px_20px]"
+            />
+          </label>
+        )}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-between gap-2 p-4 md:py-3 md:pr-4 md:pl-4">
-        <div>
-          <div className="mb-2 flex items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-1 flex-col justify-between gap-0 p-3 md:gap-2 md:p-4 md:py-3 md:pr-4 md:pl-4">
+        <div className="pb-1 md:pb-0">
+          <div className="mb-1 flex md:mb-2 items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2">
               <span
                 className="flex w-fit shrink-0 items-center gap-1.5 rounded-[52px] py-1 pr-3 pl-1"
@@ -73,9 +89,9 @@ export default function PackageInfo({
             </div>
             <Link
               href={cartPackage.href}
-              className="-mb-1.5 flex shrink-0 items-center gap-1.5 py-1 font-figtree text-[14px] leading-5.5 font-semibold text-[#3F3F47] transition-colors hover:text-brand-primary"
+              className="flex shrink-0 items-center gap-1.5 py-1 font-figtree text-[14px] leading-5.5 font-semibold text-[#3F3F47] underline transition-colors hover:text-brand-primary md:-mb-1.5 md:no-underline"
             >
-              <img src="/images/customer/cart/edit.svg" alt="" className="h-4 w-4" />
+              <img src="/images/customer/cart/edit.svg" alt="" className="hidden h-4 w-4 md:block" />
               Edit Package
             </Link>
           </div>
@@ -85,7 +101,7 @@ export default function PackageInfo({
               stop it wrapping across many lines and blowing out this
               card's layout — clamped to 2 lines, same pattern this
               feature's own addon cards already use (AddonCard, AddedAddonRow). */}
-          <Link href={cartPackage.href} className="mb-2 block hover:underline" title={cartPackage.title}>
+          <Link href={cartPackage.href} className="mb-1 block hover:underline md:mb-2" title={cartPackage.title}>
             <span className="line-clamp-2 font-figtree text-[16px] leading-[normal] font-medium text-[#030303]">
               {cartPackage.title}
               {cartPackage.variantType && (
@@ -102,7 +118,7 @@ export default function PackageInfo({
           </Link>
 
           {vendorName && (
-            <p className="mb-4 flex items-center gap-1.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
+            <p className="mb-1 flex items-center md:mb-4 gap-1.5 font-figtree text-[14px] leading-5 text-[#3F3F47]">
               <span className="truncate">By {vendorName}</span>
               {vendorVerified && (
                 <img src="/images/customer/cart/verified.svg" alt="Verified vendor" className="h-[18px] w-[18px] shrink-0" />

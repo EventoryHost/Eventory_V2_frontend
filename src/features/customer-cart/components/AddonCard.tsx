@@ -20,10 +20,10 @@ export default function AddonCard({
   return (
     <>
       <div
-        className="group w-full cursor-pointer overflow-hidden rounded-xl border border-neutral-subtle bg-white transition-shadow hover:shadow-md"
+        className="group w-[234px] shrink-0 cursor-pointer overflow-hidden rounded-2xl border md:w-full md:rounded-xl border border-neutral-subtle bg-white transition-shadow hover:shadow-md"
         onClick={() => setIsDetailsOpen(true)}
       >
-        <div className="relative aspect-square w-full bg-neutral-subtle">
+        <div className="relative aspect-[234/120] w-full bg-neutral-subtle md:aspect-square">
           {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="200px" className="object-cover" />}
           <span className="absolute top-2 left-2 rounded bg-brand-subtle px-2 py-0.5 font-figtree text-[10px] font-bold text-brand-primary uppercase shadow-sm">
             {addon.category}

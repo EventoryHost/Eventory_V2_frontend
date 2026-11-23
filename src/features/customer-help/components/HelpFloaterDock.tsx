@@ -141,7 +141,13 @@ export default function HelpFloaterDock({ onOpen, unread = false, label }: HelpF
   }
 
   return (
-    <div className="fixed bottom-6 right-4 z-40 lg:right-6">
+    // On the phone cart page a payment bar is pinned to the bottom, so the
+    // floater rides above it instead of covering its button.
+    <div
+      className={`fixed right-4 z-40 lg:right-6 ${
+        !isDesktop && (pathname === "/cart" || pathname === "/cart/") ? "bottom-[104px]" : "bottom-6"
+      }`}
+    >
       <HelpFloater
         variant={isDesktop && isCompact ? "compact" : "default"}
         unread={unread}

@@ -28,9 +28,9 @@ export default function AddedAddonsSection({
         type="button"
         onClick={() => setIsExpanded((prev) => !prev)}
         aria-expanded={isExpanded}
-        className="flex w-full items-center justify-between px-6 py-4 transition-colors hover:bg-[#F2F2F2]"
+        className="flex w-full items-center justify-between px-3 py-3 transition-colors hover:bg-[#F2F2F2] md:px-6 md:py-4"
       >
-        <h4 className="font-figtree text-[12px] leading-[16px] font-semibold text-[#111827]">
+        <h4 className="font-figtree text-[14px] leading-5 font-semibold text-[#111827] md:text-[12px] md:leading-[16px]">
           Added Add-ons ({addons.length})
         </h4>
         <ChevronDown
@@ -41,7 +41,7 @@ export default function AddedAddonsSection({
       </button>
 
       {isExpanded && (
-        <div className="flex flex-col gap-6 px-6 pb-6">
+        <div className="flex flex-col gap-4 px-3 pb-3 md:gap-6 md:px-6 md:pb-6">
           {addons.map((addon, index) => (
             <Fragment key={addon.id}>
               {index > 0 && <hr className="border-neutral-subtle" />}
