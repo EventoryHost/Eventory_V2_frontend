@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
@@ -24,6 +24,18 @@ export default function KnowBeforeYouBookModal({
   packageTitle: string;
   parts: InstructionPart[];
 }) {
+  // The hairline scrollbar only shows while scrolling, then fades out after a pause.
+  const [scrolling, setScrolling] = useState(false);
+  const scrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleScroll = () => {
+    setScrolling(true);
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+    scrollTimer.current = setTimeout(() => setScrolling(false), 700);
+  };
+  useEffect(() => () => {
+    if (scrollTimer.current) clearTimeout(scrollTimer.current);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -58,7 +70,9 @@ export default function KnowBeforeYouBookModal({
             initial={{ opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
-            className="relative max-h-[90vh] w-full max-w-[780px] overflow-y-auto rounded-2xl bg-white px-5 pt-6 pb-10 shadow-[0px_14px_72px_-10px_rgba(3,3,3,0.05),0px_6px_16px_0px_rgba(3,3,3,0.05),0px_4px_4px_0px_rgba(3,3,3,0.1)] sm:px-8"
+            data-scrolling={scrolling}
+            onScroll={handleScroll}
+            className="thin-scroll relative max-h-[90vh] w-full max-w-[780px] overflow-y-auto rounded-2xl bg-white px-5 pt-6 pb-10 shadow-[0px_14px_72px_-10px_rgba(3,3,3,0.05),0px_6px_16px_0px_rgba(3,3,3,0.05),0px_4px_4px_0px_rgba(3,3,3,0.1)] sm:px-8"
           >
             <div className="flex items-start gap-1 pb-2">
               <div className="flex min-w-0 flex-1 flex-col gap-1">

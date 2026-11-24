@@ -91,7 +91,6 @@ export default function MobileBookingBar({
     setGuestCount,
     isSubmitting,
     cartError,
-    inCartItemId,
     justAdded,
     liveTokenAmount,
     validEventDate,
@@ -461,9 +460,7 @@ export default function MobileBookingBar({
                           : "Added ✓"
                         : editItemId
                           ? "Save changes"
-                          : inCartItemId
-                            ? "View cart"
-                            : "Add to cart"}
+                          : "Add to cart"}
                     </button>
                     <button
                       type="button"

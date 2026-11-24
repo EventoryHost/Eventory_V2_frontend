@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
+import { MapPin, ShieldCheck, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -82,7 +82,6 @@ export default function StickyBookingCard({
     setIsAuthOpen,
     isSubmitting,
     cartError,
-    inCartItemId,
     isNotePromptOpen,
     setIsNotePromptOpen,
     setPendingAction,
@@ -144,7 +143,7 @@ export default function StickyBookingCard({
           />
 
           <label className="block">
-            <span className="mb-1.5 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]">
+            <span className="mb-2 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]">
               Event location
             </span>
             <div className="relative">
@@ -172,7 +171,7 @@ export default function StickyBookingCard({
                     setIsLocationAutoFilled(false);
                   }
                 }}
-                placeholder="Enter your pincode, locality or city"
+                placeholder="Enter your pincode or city"
                 className="w-full rounded-xl border border-[#E4E4E7] bg-white py-3 pr-11 pl-3.5 font-figtree text-[14px] leading-5 text-[#3F3F47] outline-none placeholder:text-[#9F9FA9] focus:border-brand-primary"
               />
               <button
@@ -215,6 +214,7 @@ export default function StickyBookingCard({
             state={slotsState}
             selectedValue={startTime && endTime ? `${startTime} - ${endTime}` : ""}
             onSelect={onSelectSlot}
+            title={/decor/i.test(categoryLabel) ? "Installation Time" : undefined}
           />
 
           {requiresGuestCount && (
@@ -237,22 +237,6 @@ export default function StickyBookingCard({
           )}
         </form>
 
-        {validEventDate && cancellationTiers ? (
-          <button
-            type="button"
-            onClick={() => setIsCancellationOpen(true)}
-            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-success-700/20 bg-success-subtle px-3 py-3 font-figtree text-[12px] font-medium text-success-700 transition hover:border-success-700/40"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
-          </button>
-        ) : (
-          <div className="mt-5 flex items-center justify-center gap-2 font-figtree text-[14px] leading-5 text-[#5E5E5E]">
-            <Image src="/images/customer/package-detail/calendar-search.svg" alt="" width={18} height={18} />
-            Pick a date to see your free-cancellation cut-off
-          </div>
-        )}
-
         <div className="mt-5 flex gap-3">
           <button
             type="button"
@@ -268,11 +252,6 @@ export default function StickyBookingCard({
               )
             ) : editItemId ? (
               "Save changes"
-            ) : inCartItemId ? (
-              <>
-                <Check className="h-4 w-4" />
-                In cart &middot; view cart
-              </>
             ) : (
               "Add to Cart"
             )}
@@ -303,9 +282,21 @@ export default function StickyBookingCard({
           <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">{cartError}</p>
         )}
 
-        <p className="mt-3 text-center font-figtree text-[11px] text-neutral-tertiary">
-          Date locked instantly · held safely until setup
-        </p>
+        {validEventDate && cancellationTiers ? (
+          <button
+            type="button"
+            onClick={() => setIsCancellationOpen(true)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-success-700/20 bg-success-subtle px-3 py-3 font-figtree text-[12px] font-medium text-success-700 transition hover:border-success-700/40"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
+          </button>
+        ) : (
+          <div className="mt-4 flex items-center justify-center gap-2 font-figtree text-[14px] leading-5 text-[#5E5E5E]">
+            <Image src="/images/customer/package-detail/calendar-search.svg" alt="" width={18} height={18} />
+            Pick a date to see your free-cancellation cut-off
+          </div>
+        )}
       </div>
 
       <VendorNotePromptModal
