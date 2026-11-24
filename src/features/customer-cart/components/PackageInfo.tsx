@@ -128,21 +128,11 @@ export default function PackageInfo({
 
           <EventDetails details={eventDetails} />
 
-          {cancellationTiers && cancellationStatus && (
-            <p
-              className={`font-figtree text-[14px] leading-[22px] font-medium ${
-                cancellationStatus === "full"
-                  ? "text-[#008236]"
-                  : cancellationStatus === "half"
-                    ? "text-amber-600"
-                    : "text-red-600"
-              }`}
-            >
-              {cancellationStatus === "full"
-                ? `Free cancellation till ${formatDayMonth(cancellationTiers.fullRefundCutoff)}`
-                : cancellationStatus === "half"
-                  ? `50% refund if cancelled before ${formatDayMonth(cancellationTiers.halfRefundCutoff)}`
-                  : "No refund on cancellation"}
+          {/* Only the free-cancellation promise is shown; partial / no-refund
+              windows are left to the cancellation policy page. */}
+          {cancellationTiers && cancellationStatus === "full" && (
+            <p className="font-figtree text-[14px] leading-[22px] font-medium text-[#008236]">
+              Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
             </p>
           )}
         </div>

@@ -221,6 +221,8 @@ export interface VendorInfo {
   experienceLabel?: string;
   /** Display-ready team size, e.g. "6–15" (from the vendor's "6 - 15 people" bucket). Undefined when the vendor didn't set one. */
   teamSize?: string;
+  /** The vendor's own bookings-per-year bucket, compacted: "100-140", "15+". Undefined when not set. */
+  bookingsPerYear?: string;
   href: string;
   /** e.g. "~2 hrs" */
   repliesIn?: string;

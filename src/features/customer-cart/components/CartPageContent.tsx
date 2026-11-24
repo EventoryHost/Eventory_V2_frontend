@@ -79,7 +79,7 @@ export default function CartPageContent() {
   const [continueMessage, setContinueMessage] = useState<string | null>(null);
 
   const [authIntent, setAuthIntent] = useState<AuthIntent>(null);
-  const { isLoggedIn } = useCustomerSession();
+  const { isLoggedIn, isHydrated } = useCustomerSession();
 
   // Only fetched for a logged-in customer — GET /customer/cart/quote is the
   // exact same shape as a checkout session's lockedQuote (see
@@ -148,10 +148,15 @@ export default function CartPageContent() {
     }
   }
 
+  // Wait for the stored session to be read, and refetch whenever the identity
+  // changes (login, token refresh). Fetching once on mount could go out before
+  // the session was ready, so the backend saw a guest and returned an empty
+  // cart until the next cart action refetched with the real identity.
   useEffect(() => {
+    if (!isHydrated) return;
     void refreshCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isHydrated, isLoggedIn]);
 
   // Re-fetched whenever the cart itself changes (data) so the token
   // amount/rows stay in sync with every add/remove/quantity/coupon change —

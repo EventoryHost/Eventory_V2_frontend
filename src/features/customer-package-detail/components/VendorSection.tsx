@@ -14,13 +14,13 @@ const PROMISES = [
 
 export default function VendorSection({ vendor }: { vendor: VendorInfo }) {
   const subtitleParts = [
-    vendor.eventsDone > 0 ? `${vendor.eventsDone} Events done` : null,
+    vendor.bookingsPerYear ? `${vendor.bookingsPerYear} Bookings/year` : null,
     vendor.experienceLabel ? `${vendor.experienceLabel} experience` : null,
   ].filter((part): part is string => part !== null);
 
   // A stat only shows when the vendor actually has that number.
   const stats = [
-    vendor.eventsDone > 0 ? { value: String(vendor.eventsDone), label: "Events done" } : null,
+    vendor.bookingsPerYear ? { value: vendor.bookingsPerYear, label: "Bookings per year" } : null,
     vendor.experienceLabel ? { value: vendor.experienceLabel, label: "Experience" } : null,
     vendor.teamSize ? { value: vendor.teamSize, label: "Team members" } : null,
   ].filter((stat): stat is { value: string; label: string } => stat !== null);
