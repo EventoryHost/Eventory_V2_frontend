@@ -1,3 +1,4 @@
+import { formatRangeStat } from "@/features/customer-vendors/utils/vendorStats";
 import type {
   PackageDetail,
   PackageVariant,
@@ -787,6 +788,7 @@ function mapVendor(pkg: RawFullPackage, eventsDone: number): VendorInfo {
     eventsCount: parseInt(vendor?.bookingsPerYear ?? "", 10) || vendor?.reviewsCount || 0,
     yearsExperience: parseInt(vendor?.experience ?? "", 10) || 0,
     eventsDone,
+    bookingsPerYear: formatRangeStat(vendor?.bookingsPerYear) ?? undefined,
     experienceLabel: formatExperience(vendor?.experience),
     // "6 - 15 people" -> "6–15"
     teamSize: vendor?.teamSize ? vendor.teamSize.replace(/\s*people\s*$/i, "").replace(/\s*-\s*/g, "–").trim() || undefined : undefined,

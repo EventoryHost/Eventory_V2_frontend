@@ -122,7 +122,7 @@ export default function BlogsSection() {
             it's the one oversized card in the row. */}
         <a
           href={FEATURED_POST.href}
-          className="flex flex-col sm:flex-row h-full min-h-[396px] overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition-colors hover:border-[#F0596F]/30"
+          className="flex flex-col sm:flex-row h-full min-h-[396px] overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition duration-300 ease-out hover:scale-[1.02] hover:border-[#F0596F]/30"
         >
           <div className="relative h-[240px] sm:h-auto sm:w-[424px] shrink-0">
             <Image
@@ -153,7 +153,7 @@ export default function BlogsSection() {
         {/* Top-right card */}
         <a
           href={TOP_RIGHT_POST.href}
-          className="flex flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition-colors hover:border-[#F0596F]/30"
+          className="flex flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition duration-300 ease-out hover:scale-[1.02] hover:border-[#F0596F]/30"
         >
           <div className="relative h-[220px] w-full shrink-0">
             <Image
@@ -187,7 +187,7 @@ export default function BlogsSection() {
           <a
             key={post.title}
             href={post.href}
-            className="flex flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition-colors hover:border-[#F0596F]/30"
+            className="flex flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition duration-300 ease-out hover:scale-[1.02] hover:border-[#F0596F]/30"
           >
             <div className="relative h-[220px] w-full shrink-0">
               <Image

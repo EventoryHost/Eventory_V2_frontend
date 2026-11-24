@@ -24,6 +24,7 @@ import { applyCouponCode, removeCouponCode } from "../services/applyCouponCode";
 import { getRecommendedAddons } from "../services/getRecommendedAddons";
 import { startCheckout } from "../services/startCheckout";
 import { trackBeginCheckout } from "@/lib/analytics";
+import { formatPrice } from "../utils/currency";
 import CartItemRow from "./CartItemRow";
 import CartPageSkeleton from "./CartPageSkeleton";
 import PaymentSummary from "./PaymentSummary";
@@ -78,7 +79,7 @@ export default function CartPageContent() {
   const [continueMessage, setContinueMessage] = useState<string | null>(null);
 
   const [authIntent, setAuthIntent] = useState<AuthIntent>(null);
-  const { isLoggedIn } = useCustomerSession();
+  const { isLoggedIn, isHydrated } = useCustomerSession();
 
   // Only fetched for a logged-in customer — GET /customer/cart/quote is the
   // exact same shape as a checkout session's lockedQuote (see
@@ -87,6 +88,21 @@ export default function CartPageContent() {
   // session even exists.
   const [cartQuote, setCartQuote] = useState<RawCartQuote | null>(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+  // Phones only: the payment summary opens as a bottom sheet from the floater.
+  const [isSummaryOpen, setIsSummaryOpen] = useState(false);
+  useEffect(() => {
+    if (!isSummaryOpen) return;
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSummaryOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = previous;
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [isSummaryOpen]);
 
   const vendorNamesRef = useRef(new Map<string, VendorCardMeta>());
 
@@ -132,10 +148,15 @@ export default function CartPageContent() {
     }
   }
 
+  // Wait for the stored session to be read, and refetch whenever the identity
+  // changes (login, token refresh). Fetching once on mount could go out before
+  // the session was ready, so the backend saw a guest and returned an empty
+  // cart until the next cart action refetched with the real identity.
   useEffect(() => {
+    if (!isHydrated) return;
     void refreshCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isHydrated, isLoggedIn]);
 
   // Re-fetched whenever the cart itself changes (data) so the token
   // amount/rows stay in sync with every add/remove/quantity/coupon change —
@@ -413,8 +434,8 @@ export default function CartPageContent() {
   }
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 pt-2 pb-10 sm:px-6 sm:pb-12 lg:px-16">
-      <div className="mb-8">
+    <div className="mx-auto max-w-[1440px] px-4 pt-2 pb-28 sm:px-6 md:pb-12 lg:px-16">
+      <div className="mb-8 hidden md:block">
         <Breadcrumb items={data?.breadcrumb ?? [{ label: "Home", href: "/" }, { label: "Cart" }]} />
       </div>
 
@@ -423,7 +444,7 @@ export default function CartPageContent() {
           "Select all" row. */}
       <div className="mb-5">
         <div className="flex flex-col gap-[5px]">
-          <h1 className="font-figtree text-[28px] leading-[36px] font-semibold tracking-[-0.42px] text-[#030303]">
+          <h1 className="font-figtree text-[24px] leading-8 md:text-[28px] md:leading-[36px] font-semibold tracking-[-0.42px] text-[#030303]">
             Cart
             {vendors.length > 0 && (
               <span className="ml-2 text-[14px] leading-5 font-normal tracking-normal text-[#3F3F47]">
@@ -515,9 +536,32 @@ export default function CartPageContent() {
           )}
         </div>
 
+        {/* On phones this column is the bottom sheet opened from the floater
+            (Figma 3831:62961); from md up it is the normal in-page summary. */}
+        {isSummaryOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={() => setIsSummaryOpen(false)}
+            aria-hidden="true"
+          />
+        )}
         <div
-          className={`flex w-full flex-col gap-6 lg:sticky lg:top-24 lg:w-[388px] lg:shrink-0 ${vendors.length > 0 ? "lg:mt-[52px]" : ""}`}
+          id="cart-payment-summary"
+          role={isSummaryOpen ? "dialog" : undefined}
+          aria-label="Payment summary"
+          className={`flex w-full flex-col gap-6 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-50 max-md:max-h-[92vh] max-md:overflow-y-auto max-md:rounded-t-3xl max-md:bg-white max-md:px-4 max-md:pt-8 max-md:pb-5 max-md:shadow-[0_-8px_24px_rgba(3,3,3,0.12)] max-md:transition-transform max-md:duration-300 max-md:[&>div]:rounded-none max-md:[&>div]:border-0 max-md:[&>div]:p-0 ${isSummaryOpen ? "" : "max-md:invisible max-md:translate-y-full"} lg:sticky lg:top-24 lg:w-[388px] lg:shrink-0 ${vendors.length > 0 ? "lg:mt-[52px]" : ""}`}
         >
+          <span className="absolute top-2.5 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-[#D4D4D8] md:hidden" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setIsSummaryOpen(false)}
+            aria-label="Close payment summary"
+            className="absolute top-6 right-4 z-10 flex h-8 w-8 items-center justify-center rounded-full border-[1.5px] border-[#1F2A5A] text-[#1F2A5A] md:hidden"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="m3 3 8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            </svg>
+          </button>
           {isLoggedIn ? (
             <LoggedInPaymentSummary
               vendorCount={data?.vendorCount ?? 0}
@@ -561,6 +605,36 @@ export default function CartPageContent() {
           )}
         </div>
       </div>
+      )}
+
+      {/* Mobile payment floater (Figma 3831:62954) — the full summary stays at
+          the bottom of the page; "View price details" scrolls to it. */}
+      {!loading && vendors.length > 0 && (
+        <div className="fixed inset-x-3 bottom-3 z-40 flex items-center gap-3 rounded-3xl border border-[#F4F4F5] bg-white py-3 pr-3 pl-4 shadow-[0_8px_14px_rgba(3,3,3,0.14)] md:hidden">
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="font-figtree text-[20px] leading-7 font-bold text-[#030303]">
+              {isLoggedIn ? cartPaymentSummary.grandTotal : formatPrice(data?.total ?? 0)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsSummaryOpen(true)}
+              className="flex w-fit items-center gap-1 font-figtree text-[12px] leading-[18px] font-semibold text-[#B91D34]"
+            >
+              View price details
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3 8.5 7 4.5l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={handleContinue}
+            disabled={selectedVendors.length === 0 || continueLoading}
+            className="shrink-0 rounded-full bg-brand-primary px-6 py-2.5 font-figtree text-[16px] leading-6 font-semibold text-white transition-opacity disabled:opacity-50"
+          >
+            {continueLoading ? "Please wait…" : "Continue to Book"}
+          </button>
+        </div>
       )}
 
       <PaymentScheduleDialog

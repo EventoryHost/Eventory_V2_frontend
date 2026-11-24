@@ -27,8 +27,74 @@ export default function AddedAddonRow({
 }) {
   const [isZoomed, setIsZoomed] = useState(false);
 
+  const subLine = [addon.category, addon.subCategory].filter(Boolean).join(" · ");
+
   return (
-    <div className="flex items-center gap-3">
+    <>
+      {/* Mobile (Figma 3831:62783): photo | name ×qty + price, sub-line, colour + stepper. */}
+      <div className="flex items-start gap-3 md:hidden">
+        <button
+          type="button"
+          onClick={() => setIsZoomed(true)}
+          aria-label={`View larger image of ${addon.title}`}
+          disabled={!addon.image}
+          className="relative h-[82px] w-[82px] shrink-0 overflow-hidden rounded-xl bg-neutral-subtle disabled:cursor-default"
+        >
+          {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="82px" className="object-cover" />}
+        </button>
+        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <div>
+            <div className="flex items-start justify-between gap-2 font-figtree font-semibold text-[#030303]">
+              <p className="min-w-0 text-[14px] leading-5">
+                {addon.title} <span className="text-[#3F3F47]">×{addon.quantity}</span>
+              </p>
+              <p className="shrink-0 text-[16px] leading-5">{formatPrice(addon.price * addon.quantity)}</p>
+            </div>
+            {subLine && <p className="truncate font-figtree text-[12px] leading-5 text-[#71717B]">{subLine}</p>}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            {addon.color ? (
+              <span className="flex min-w-0 items-center gap-1.5 rounded-md bg-[#F4F4F5] py-1 pr-2 pl-1.5 font-figtree text-[12px] leading-4 font-medium text-[#030303]">
+                <span className="h-3 w-3 shrink-0 rounded-full border border-black/10" style={{ background: addon.color }} aria-hidden="true" />
+                <span className="truncate">{addon.color}</span>
+              </span>
+            ) : (
+              <span />
+            )}
+            <div className="flex shrink-0 items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => onDecrement(addon.id)}
+                aria-label={`Decrease ${addon.title} quantity`}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-[#E4E4E7] bg-white text-brand-950"
+              >
+                <Minus className="h-3.5 w-3.5" />
+              </button>
+              <span className="min-w-3 text-center font-figtree text-[14px] leading-4 font-semibold text-[#030303]">
+                {addon.quantity}
+              </span>
+              <button
+                type="button"
+                onClick={() => onIncrement(addon.id)}
+                aria-label={`Increase ${addon.title} quantity`}
+                className="flex h-6 w-6 items-center justify-center rounded-full border border-[#E4E4E7] bg-white text-brand-950"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onRemove(addon.id)}
+                aria-label={`Remove ${addon.title} add-on`}
+                className="flex h-6 w-6 items-center justify-center text-neutral-tertiary"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <div className="hidden items-center gap-3 md:flex">
       <button
         type="button"
         onClick={() => setIsZoomed(true)}
@@ -39,14 +105,6 @@ export default function AddedAddonRow({
         {addon.image && <Image src={addon.image} alt={addon.title} fill sizes="84px" className="object-cover" />}
       </button>
 
-      {addon.image && (
-        <IncludedItemImageModal
-          isOpen={isZoomed}
-          onClose={() => setIsZoomed(false)}
-          image={addon.image}
-          alt={addon.title}
-        />
-      )}
 
       <div className="min-w-0 flex-1">
         <h5 className="truncate font-figtree text-[14px] leading-[20px] font-semibold text-[#030303]">
@@ -107,5 +165,15 @@ export default function AddedAddonRow({
         </div>
       </div>
     </div>
+
+      {addon.image && (
+        <IncludedItemImageModal
+          isOpen={isZoomed}
+          onClose={() => setIsZoomed(false)}
+          image={addon.image}
+          alt={addon.title}
+        />
+      )}
+    </>
   );
 }

@@ -9,9 +9,10 @@ import { patchCheckoutSessionEventTiming } from "@/lib/customerCheckoutApi";
 // full day — but ORDERED starting at 9:00 AM (most events start well into
 // the morning, not at midnight) and wrapping around through the rest of
 // the day, ending at 8:30 AM, right before the next day's 9:00 AM.
-const DAY_START_HOUR = 9;
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const totalMinutes = ((DAY_START_HOUR * 2 + index) % 48) * 30;
+// The start list opens at 6:00 AM, the end list at 9:00 AM.
+function buildTimeOptions(dayStartHour: number) {
+  return Array.from({ length: 48 }, (_, index) => {
+  const totalMinutes = ((dayStartHour * 2 + index) % 48) * 30;
   const hours24 = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   const hours12 = hours24 % 12 === 0 ? 12 : hours24 % 12;
@@ -19,7 +20,11 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
     value: `${String(hours24).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`,
     label: `${hours12}:${String(minutes).padStart(2, "0")} ${hours24 < 12 ? "AM" : "PM"}`,
   };
-});
+  });
+}
+const START_OPTIONS = buildTimeOptions(6);
+const END_OPTIONS = buildTimeOptions(9);
+const TIME_OPTIONS = START_OPTIONS;
 
 const TIME_LABEL = new Map(TIME_OPTIONS.map((option) => [option.value, option.label]));
 
@@ -42,7 +47,9 @@ function TimeField({
   placeholder,
   value,
   onChange,
+  options,
 }: {
+  options: { value: string; label: string }[];
   label: string;
   placeholder: string;
   value: string;
@@ -60,7 +67,7 @@ function TimeField({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
-  const selected = TIME_OPTIONS.find((option) => option.value === value);
+  const selected = options.find((option) => option.value === value);
 
   return (
     <div ref={ref} className="relative flex flex-1 flex-col gap-3">
@@ -77,7 +84,7 @@ function TimeField({
 
       {isOpen && (
         <div className="absolute top-full left-0 z-20 mt-2 max-h-[280px] w-full overflow-y-auto rounded-2xl bg-white shadow-[0_4px_24px_rgba(0,0,0,0.12)]">
-          {TIME_OPTIONS.map((option) => (
+          {options.map((option) => (
             <button
               key={option.value}
               type="button"
@@ -175,6 +182,7 @@ export default function EventTimingSection({
       <div className="flex flex-col gap-6 rounded-3xl border border-[#E4E4E7] bg-white p-8">
         <div className="flex flex-col gap-4 sm:flex-row">
           <TimeField
+            options={START_OPTIONS}
             label="Event starts"
             placeholder="Select start time"
             value={start}
@@ -185,6 +193,7 @@ export default function EventTimingSection({
             }}
           />
           <TimeField
+            options={END_OPTIONS}
             label="Event ends"
             placeholder="Select end time"
             value={end}

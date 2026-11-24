@@ -3,7 +3,7 @@ import { formatPrice } from "../utils/currency";
 // Figma node 3259:52570 — price on the left, "Wishlist | Remove" text actions
 // with their own outline icons on the right.
 const ACTION =
-  "flex items-center gap-1.5 font-figtree text-[12px] leading-4 font-medium text-[#71717B] transition-colors hover:text-neutral-primary";
+  "flex items-center gap-1.5 rounded-xl p-3 md:rounded-none md:p-0 font-figtree text-[12px] leading-4 font-medium text-[#71717B] transition-colors hover:text-neutral-primary";
 
 export default function VendorActions({
   price,
@@ -20,13 +20,13 @@ export default function VendorActions({
         {formatPrice(price)}
       </span>
 
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={onMoveToWishlist} className={ACTION}>
-          <img src="/images/customer/cart/bookmark.svg" alt="" className="h-4 w-4" /> Wishlist
+      <div className="flex items-center md:gap-2">
+        <button type="button" onClick={onMoveToWishlist} aria-label="Move to wishlist" className={ACTION}>
+          <img src="/images/customer/cart/bookmark.svg" alt="" className="h-4 w-4" /> <span className="hidden md:inline">Wishlist</span>
         </button>
-        <span className="h-3 w-px bg-[#E4E4E7]" aria-hidden="true" />
-        <button type="button" onClick={onRemove} className={ACTION}>
-          <img src="/images/customer/cart/minus-circle.svg" alt="" className="h-4 w-4" /> Remove
+        <span className="hidden h-3 w-px bg-[#E4E4E7] md:block" aria-hidden="true" />
+        <button type="button" onClick={onRemove} aria-label="Remove from cart" className={ACTION}>
+          <img src="/images/customer/cart/minus-circle.svg" alt="" className="h-4 w-4" /> <span className="hidden md:inline">Remove</span>
         </button>
       </div>
     </div>
