@@ -29,7 +29,7 @@ export default function LocationSuggestionList({
     <ul
       role="listbox"
       aria-label="Location suggestions"
-      className={`z-30 max-h-[260px] overflow-y-auto rounded-xl border border-[#E4E4E7] bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)] ${
+      className={`menu-scroll z-30 max-h-[260px] overflow-y-auto rounded-xl border border-[#E4E4E7] bg-white py-1 shadow-[0_8px_24px_rgba(0,0,0,0.12)] ${
         inline ? "mt-2" : "absolute top-full right-0 left-0 mt-1.5"
       }`}
     >

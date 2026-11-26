@@ -11,6 +11,10 @@ export interface GalleryImage {
   id: string;
   image?: string;
   alt: string;
+  /** Photo or video — drives the Photos / Videos filters in the media modal. Undefined means photo. */
+  type?: "image" | "video";
+  /** Who uploaded it. Only the vendor's own package media exists today; customer uploads will arrive as "customer". */
+  source?: "vendor" | "customer";
 }
 
 export interface PackageVariant {

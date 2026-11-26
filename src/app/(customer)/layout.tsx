@@ -6,6 +6,7 @@ import { Lora } from "next/font/google";
 import Navbar from "@/features/customer-landing/components/Navbar";
 import Footer from "@/features/customer-landing/components/Footer";
 import BecomeVendorFooter from "@/features/customer-become-vendor/components/BecomeVendorFooter";
+import ConnectionBanner from "@/features/customer-landing/components/ConnectionBanner";
 import HelpWidget from "@/features/customer-help/components/HelpWidget";
 import "./customer-theme.css";
 
@@ -42,6 +43,7 @@ export default function CustomerLayout({
       <Navbar />
       <main className="flex-1">{children}</main>
       {isBecomeVendorPage ? <BecomeVendorFooter /> : <Footer />}
+      <ConnectionBanner />
       <HelpWidget />
     </div>
   );

@@ -193,13 +193,25 @@ function mapGallery(pkg: RawFullPackage): GalleryImage[] {
       ? (pkg.step4_sampleMedia?.spaceMedia ?? []).flatMap((space) => space.media ?? [])
       : (pkg.step4_sampleMedia?.media ?? []);
   if (media.length > 0) {
-    return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
+    return media.map((item, i) => ({
+      id: `gallery-${i}`,
+      image: item.url,
+      alt: packageName,
+      type: item.type === "video" || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.url) ? ("video" as const) : ("image" as const),
+      source: "vendor" as const,
+    }));
   }
   // No sample media uploaded: show the setup photos instead of empty placeholders.
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups
     .filter((setup) => Boolean(setup.setupPhoto))
-    .map((setup, i) => ({ id: `gallery-setup-${i}`, image: setup.setupPhoto as string, alt: setup.name || packageName }));
+    .map((setup, i) => ({
+      id: `gallery-setup-${i}`,
+      image: setup.setupPhoto as string,
+      alt: setup.name || packageName,
+      type: "image" as const,
+      source: "vendor" as const,
+    }));
 }
 
 // Picks the closest icon for a vendor-typed requirement ("Power", "Setup area",

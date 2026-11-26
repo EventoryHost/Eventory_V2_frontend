@@ -154,6 +154,7 @@ export default function HeroGallery({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         images={images}
+        vendorName={vendorUnitName}
       />
     </section>
   );

@@ -54,7 +54,7 @@ export default function VendorServiceDropdownPanel({
 
   return (
     <div
-      className={`absolute left-0 top-full z-20 mt-2 max-h-[320px] overflow-y-auto rounded-[12px] border border-[#E4E4E7] bg-white shadow-[0px_8px_24px_0px_rgba(0,0,0,0.08)] [scrollbar-width:thin] [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-button]:hidden ${className}`}
+      className={`absolute left-0 top-full z-20 mt-2 max-h-[320px] overflow-y-auto rounded-[12px] border border-[#E4E4E7] bg-white shadow-[0px_8px_24px_0px_rgba(0,0,0,0.08)] menu-scroll ${className}`}
     >
       {live.map((row) => (
         <Row key={row.id} row={row} />

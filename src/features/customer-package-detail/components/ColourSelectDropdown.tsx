@@ -86,7 +86,7 @@ export default function ColourSelectDropdown({
       {isOpen && (
         <ul
           role="listbox"
-          className="absolute top-[calc(100%+6px)] left-0 z-20 max-h-[320px] w-full overflow-y-auto rounded-xl bg-white shadow-[0px_0px_2.5px_0px_rgba(0,0,0,0.12)]"
+          className="menu-scroll absolute top-[calc(100%+6px)] left-0 z-20 max-h-[320px] w-full overflow-y-auto rounded-xl bg-white shadow-[0px_0px_2.5px_0px_rgba(0,0,0,0.12)]"
         >
           {categories
             ? categories.map((cat) => (

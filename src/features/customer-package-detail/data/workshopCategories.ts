@@ -119,6 +119,14 @@ export const WORKSHOP_CATEGORIES: WorkshopCategoryDef[] = [
       "Other",
     ],
   },
+  {
+    id: "Flex",
+    label: "Flex",
+    typeLabel: "Flex type",
+    // Printed flex/vinyl pieces — a reasonable starter set (like Rangoli above,
+    // not from a product-supplied list); flag for product review.
+    typeOptions: ["Backdrop Flex", "Welcome Banner", "Standee", "Photo Booth Backdrop", "Stage Flex", "Other"],
+  },
 ];
 
 // Maps a real vendor item's itemType (decoratorStep2Schema.js's enum:
@@ -156,8 +164,7 @@ export function getWorkshopCategoryForItemType(itemType: string | undefined): Wo
 export const VOLUME_OPTIONS = ["Low", "Medium", "High"];
 
 // Illustration shown on each "Add an item" category card — saved as
-// /public/images/customize/<slug>.png. No "Props" entry exists yet (no
-// illustration asset for it) — CategoryGrid skips the <img> for any
+// /public/images/customize/<slug>.png. CategoryGrid skips the <img> for any
 // category id with no mapping here rather than rendering a broken image.
 export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
   Flowers: "/images/customize/flowers.png",
@@ -168,6 +175,8 @@ export const WORKSHOP_CATEGORY_IMAGES: Record<string, string> = {
   "Fabric/Drapery": "/images/customize/fabric.png",
   Balloons: "/images/customize/balloon.png",
   Rangoli: "/images/customize/rangoli.png",
+  Props: "/images/customize/props.png",
+  Flex: "/images/customize/flex.png",
 };
 
 // Flat colour list for the "Add an item" workshop flow's Colours dropdown —

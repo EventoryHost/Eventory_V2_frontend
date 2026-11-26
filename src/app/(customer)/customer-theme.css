@@ -132,3 +132,28 @@
     scrollbar-color: #a1a1aa transparent;
   }
 }
+
+/* Scrollable dropdown lists: a slim always-on thumb and, importantly, no
+   up/down arrow buttons (Windows Chrome/Edge draw the classic arrows on any
+   unstyled overflow list). Firefox has no arrow buttons, so thin + colour is enough. */
+.menu-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.menu-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.menu-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.menu-scroll::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 999px;
+}
+@supports (-moz-appearance: none) {
+  .menu-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #d4d4d8 transparent;
+  }
+}
