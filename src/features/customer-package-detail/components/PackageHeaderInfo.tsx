@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { Share2, BadgeCheck } from "lucide-react";
+import { Share2 } from "lucide-react";
 import type { PackageDetail } from "../types";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
@@ -44,6 +44,7 @@ export default function PackageHeaderInfo({
     | "fullLocationSummary"
     | "locationList"
     | "vendor"
+    | "pricing"
   >;
   onCreateQuotation: () => void;
 }) {
@@ -171,12 +172,6 @@ export default function PackageHeaderInfo({
           <div className="flex flex-col gap-1">
             <h1 className="flex flex-wrap items-center gap-3 font-figtree text-[32px] leading-[50px] font-semibold tracking-[-0.6px] text-[#030303]">
               {data.title}
-              {data.instantBooking && (
-                <span className="flex items-center gap-1 rounded-full border border-[#FEE2E2] bg-[#FEF2F2] px-2 py-1 font-figtree text-[11px] leading-normal font-medium tracking-normal text-brand-primary">
-                  <span className="h-1.5 w-1.5 rounded-full bg-brand-primary" />
-                  Instant booking
-                </span>
-              )}
             </h1>
             <p className="flex items-center gap-1.5 font-figtree text-[16px] leading-6 font-medium text-[#030303]">
               By {data.vendorName}
@@ -225,107 +220,110 @@ export default function PackageHeaderInfo({
           icon here (Figma's actual asset for this button), not the
           bookmark icon the desktop button uses. */}
       <div className="flex flex-col gap-1 font-figtree md:hidden">
-        <div className="flex flex-wrap items-center gap-2 text-[13px]">
-          <div
-            className="flex h-6 shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
-            style={{
-              background: `linear-gradient(to left, ${data.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
-            }}
-          >
-            {data.categoryIcon && (
-              <Image
-                src={data.categoryIcon}
-                alt={data.categoryLabel}
-                width={16}
-                height={16}
-                className="h-4 w-4 rounded-full object-contain"
-              />
-            )}
-            <span className="font-bold whitespace-nowrap text-[#3C060D] text-[11px] tracking-[-0.11px] uppercase">
-              {data.categoryLabel}
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className="flex h-6 shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
+              style={{
+                background: `linear-gradient(to left, ${data.categoryGradientFrom ?? "#FFE5E9"}, #ffffff)`,
+              }}
+            >
+              {data.categoryIcon && (
+                <Image
+                  src={data.categoryIcon}
+                  alt={data.categoryLabel}
+                  width={16}
+                  height={16}
+                  className="h-4 w-4 rounded-full object-contain"
+                />
+              )}
+              <span className="text-[11px] leading-[18px] font-bold tracking-[-0.11px] whitespace-nowrap text-[#3C060D] uppercase">
+                {data.categoryLabel}
+              </span>
+            </div>
+            <span className="text-[12px] text-[#71717B]">
+              {(isEventTagsExpanded ? data.eventCategories : data.eventTags).map(dotSeparated).join(" • ")}
+              {data.moreEventTagsCount > 0 && (
+                <>
+                  {" "}
+                  <button
+                    type="button"
+                    onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
+                    className="font-bold underline"
+                  >
+                    {isEventTagsExpanded ? "Show less" : `+${data.moreEventTagsCount}`}
+                  </button>
+                </>
+              )}
             </span>
           </div>
-          <span className="text-[12px] whitespace-nowrap text-[#71717B]">
-            {(isEventTagsExpanded ? data.eventCategories : data.eventTags).map(dotSeparated).join(" • ")}
-            {data.moreEventTagsCount > 0 && (
-              <>
-                {" "}
-                <button
-                  type="button"
-                  onClick={() => setIsEventTagsExpanded((expanded) => !expanded)}
-                  className="ml-1 font-bold underline"
-                >
-                  {isEventTagsExpanded ? "Show less" : `+${data.moreEventTagsCount}`}
-                </button>
-              </>
-            )}
-          </span>
+
+          <h1 className="text-[24px] leading-[34px] font-semibold text-[#222]">{data.title}</h1>
         </div>
 
-        <h1 className="font-semibold text-[#222] text-[24px] leading-[34px]">{data.title}</h1>
-
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1 px-0.5 text-[14px] text-[#3F3F47]">
-            by <span className="font-semibold text-brand-950">{data.vendorName}</span>
-            {(data.idVerified || data.gstinVerified) && <span className="text-neutral-tertiary/50">·</span>}
-            {data.idVerified && (
-              <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-[11px] font-medium text-success-700">
-                <BadgeCheck className="h-3.5 w-3.5" /> ID verified
-              </span>
-            )}
-            {data.gstinVerified && (
-              <span className="flex items-center gap-1 rounded-full bg-success-subtle px-2 py-0.5 text-[11px] font-medium text-success-700">
-                <BadgeCheck className="h-3.5 w-3.5" /> GSTIN verified
-              </span>
+        {/* Figma node 3642:96973 — "by <vendor>" with icon-only Share and Wishlist. */}
+        <div className="flex items-center justify-between gap-2">
+          <p className="flex min-w-0 items-center gap-1.5 px-0.5 text-[14px] text-[#3F3F47]">
+            <span className="truncate">by {data.vendorName}</span>
+            {(data.idVerified || data.gstinVerified) && (
+              <Image
+                src="/images/customer/package-detail/verified-check.svg"
+                alt="Verified vendor"
+                width={16}
+                height={16}
+                className="shrink-0"
+              />
             )}
           </p>
-
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="flex shrink-0 items-start">
             <button
               type="button"
+              aria-label="Share"
               onClick={() => setIsShareOpen(true)}
-              className="flex items-center gap-2 rounded-xl px-3 py-1.5 text-[14px] font-medium text-[#030303] transition hover:bg-black/5"
+              className="flex items-center justify-center rounded-xl p-3 transition hover:bg-black/5"
             >
-              <Share2 className="h-3.5 w-3.5" /> Share
+              <Image src="/images/customer/package-detail/header-share.svg" alt="" width={20} height={20} />
             </button>
             <button
               type="button"
+              aria-label={isSaved ? "Remove from wishlist" : "Add to wishlist"}
               onClick={handleSaveClick}
               disabled={isSaving}
-              className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-[14px] font-medium transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 ${
-                "text-[#030303]"
-              }`}
+              className="flex items-center justify-center rounded-xl p-3 transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60"
             >
               <Image
-              src={isSaved ? "/images/customer/package-detail/wishlist-bookmark-filled.svg" : "/images/customer/package-detail/wishlist-bookmark.svg"}
-              alt=""
-              width={16}
-              height={16}
-            />
-              {isSaved ? "Wishlisted" : "Add to Wishlist"}
+                src={
+                  isSaved
+                    ? "/images/customer/package-detail/wishlist-bookmark-filled.svg"
+                    : "/images/customer/package-detail/header-bookmark.svg"
+                }
+                alt=""
+                width={20}
+                height={20}
+              />
             </button>
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {data.instantBooking && (
-            <span className="w-fit rounded-full bg-[#FDEEF0] px-2.5 py-1 text-[12px] font-medium text-[#F0596F]">
-              Instant booking
+        <div className="flex flex-col items-start gap-4">
+          {data.pricing.tokenType && data.pricing.tokenAmount > 0 && (
+            <span className="rounded-full border border-[#00C950] bg-gradient-to-r from-[#F0FDF4] to-white px-2 py-0.5 text-[12px] leading-[18px] font-medium text-[#008236]">
+              Token Required
             </span>
           )}
 
           {data.reviewCount > 0 && (
             <div className="flex items-center gap-1">
-              <Image src="/images/customer/package-detail/rating-star.svg" alt="" width={15} height={15} />
+              <Image src="/images/customer/package-detail/header-star.svg" alt="" width={15} height={15} />
               <span className="text-[14px] font-semibold text-[#222]">{data.rating}</span>
               <span className="text-[14px] text-[#71717B] underline">({data.reviewCount} reviews)</span>
             </div>
           )}
 
-          {/* Figma node 2404:22954: "fit as many chips as the row allows,
-              then +N more" — ONLY the vendor's serviceAreas field, nothing
-              else composed in alongside it (PM instruction, 2026-10-12). */}
-          <LocationChipRow locations={data.locationList} />
+          {/* Service-area chips — as many as fit, then "+N more" (only the vendor's serviceAreas, PM instruction 2026-10-12). */}
+          <div className="flex w-full">
+            <LocationChipRow locations={data.locationList} compact />
+          </div>
         </div>
       </div>
 
