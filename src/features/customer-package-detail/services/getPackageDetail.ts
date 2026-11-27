@@ -193,13 +193,25 @@ function mapGallery(pkg: RawFullPackage): GalleryImage[] {
       ? (pkg.step4_sampleMedia?.spaceMedia ?? []).flatMap((space) => space.media ?? [])
       : (pkg.step4_sampleMedia?.media ?? []);
   if (media.length > 0) {
-    return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
+    return media.map((item, i) => ({
+      id: `gallery-${i}`,
+      image: item.url,
+      alt: packageName,
+      type: item.type === "video" || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.url) ? ("video" as const) : ("image" as const),
+      source: "vendor" as const,
+    }));
   }
   // No sample media uploaded: show the setup photos instead of empty placeholders.
   const setups = pkg.step2_productsAndPricing?.setups ?? [];
   return setups
     .filter((setup) => Boolean(setup.setupPhoto))
-    .map((setup, i) => ({ id: `gallery-setup-${i}`, image: setup.setupPhoto as string, alt: setup.name || packageName }));
+    .map((setup, i) => ({
+      id: `gallery-setup-${i}`,
+      image: setup.setupPhoto as string,
+      alt: setup.name || packageName,
+      type: "image" as const,
+      source: "vendor" as const,
+    }));
 }
 
 // Picks the closest icon for a vendor-typed requirement ("Power", "Setup area",
@@ -916,7 +928,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
   const includedItems = distributeTeamAndEquipmentCharge(mapIncludedItems(pkg), teamAndEquipmentCharge);
 
-  return {
+  const detail: PackageDetail = {
     id: pkg._id,
     categoryLabel: VENDOR_CATEGORIES.find((c) => c.id === slug)?.label ?? pkg.vendorType,
     categorySlug: slug,
@@ -983,14 +995,8 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     vendorRequirements: mapVendorRequirements(pkg),
     instructionFacts: mapInstructionFacts(pkg),
     addons: mapAddons(pkg),
-    paymentProtection: {
-      points: [
-        "A token amount holds your date and starts planning with the vendor.",
-        "The remaining balance is due as per the payment milestones shown at checkout.",
-        "Cancellation and change terms are listed in the Policies section below.",
-      ],
-      footnote: "Held safely by Eventory until your event is delivered.",
-    },
+    // Placeholder — replaced below once the token amount and vendor are known.
+    paymentProtection: { points: [], footnote: "" },
     policies: mapPolicies(pkg),
     paymentMilestones: mapPaymentMilestones(pkg),
     vendor: mapVendor(pkg, response.vendorStats?.eventsCompleted ?? 0),
@@ -1039,4 +1045,50 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       };
     })(),
   };
+  detail.paymentProtection = buildPaymentProtection(pkg, detail);
+  return detail;
+}
+
+const VENDOR_NOUN: Record<string, string> = {
+  Decorator: "decorator",
+  VenueProvider: "venue",
+  DJArtist: "DJ",
+  PAV: "photographer",
+};
+
+// "Payment protection" bullets (Figma node 3642:93999). The token amount, the
+// vendor's name, the balance due date and the vendor type come from the
+// package; the faulty-items and vendor-cancellation promises are
+// platform-wide.
+function buildPaymentProtection(pkg: RawFullPackage, detail: PackageDetail): PackageDetail["paymentProtection"] {
+  const vendorName = detail.vendor.name;
+  const noun = VENDOR_NOUN[pkg.vendorType] ?? "vendor";
+  const points: string[] = [];
+
+  const tokenAmount = detail.pricing.tokenAmount;
+  const planning = pkg.vendorType === "Decorator" ? "the mood-board process" : "planning with your vendor";
+  if (tokenAmount > 0) {
+    points.push(`The ${formatPrice(tokenAmount)} token holds your date on ${vendorName}'s calendar and starts ${planning}.`);
+  } else {
+    points.push(`Your booking holds your date on ${vendorName}'s calendar and starts ${planning}.`);
+  }
+
+  // Balance due: the last milestone that is due before / on the event, else the generic line.
+  const balance = [...detail.paymentMilestones]
+    .reverse()
+    .find((m) => m.dueLabel && !/at booking/i.test(m.dueLabel));
+  points.push(
+    balance
+      ? `The balance covers materials, crew, transport and teardown, and is due ${balance.dueLabel}.`
+      : "The balance covers materials, crew, transport and teardown, and is due as per the payment timeline shown at checkout."
+  );
+
+  points.push(
+    "Faulty items policy: any item damaged, wilted or missing at handover is replaced within 2 hrs or refunded at the item price shown in What's included."
+  );
+  points.push(
+    `If the vendor cancels for any reason, you get 100% back within 5 working days, plus help re-booking a comparable ${noun}.`
+  );
+
+  return { points, footnote: "Held safely by Eventory until setup is complete." };
 }

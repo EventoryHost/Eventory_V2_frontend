@@ -16,6 +16,7 @@ import VariantSelector from "./VariantSelector";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
 import VendorRequirements from "./VendorRequirements";
+import BookingJourney from "./BookingJourney";
 import AddonsCarousel from "./AddonsCarousel";
 import PaymentProtection from "./PaymentProtection";
 import PoliciesSection from "./PoliciesSection";
@@ -323,6 +324,7 @@ export default function PackageDetailPage({
             facts={data.instructionFacts}
             packageTitle={data.title}
           />
+          <BookingJourney />
           <PaymentProtection protection={data.paymentProtection} />
           <PoliciesSection
             eventDateIso={bookingForm.validEventDate}
@@ -373,6 +375,7 @@ export default function PackageDetailPage({
         addonsTotal={addonsTotal}
         requiresGuestCount={data.requiresGuestCount}
         editItemId={editCartItem?._id}
+        categoryLabel={data.categoryLabel}
       />
     </main>
     </div>

@@ -398,10 +398,6 @@ export function useBookingForm({
 
   function requestAddToCart() {
     if (!detailsComplete) return;
-    if (inCartItemId && !editItemId) {
-      router.push("/cart");
-      return;
-    }
     if (!vendorNote.trim()) {
       setPendingAction("cart");
       setIsNotePromptOpen(true);

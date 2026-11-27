@@ -19,7 +19,10 @@ const NAV_LINKS = [
 
 function Logo() {
   return (
-    <Link href="/" className="flex shrink-0 items-center gap-2">
+    <Link
+      href="/"
+      className="flex shrink-0 items-center gap-2 outline-none focus:outline-none focus-visible:outline-none"
+    >
       {/* next/image blocks local SVGs by default (dangerouslyAllowSVG isn't
           set) — plain img sidesteps that, same as hero-bg.svg elsewhere.
           Figma node 221:589 — 31.004px, gap-[8px] to the "Eventory" text. */}

@@ -14,6 +14,8 @@ const UNAVAILABLE_MESSAGES: Record<RawSlotUnavailableReason, string> = {
   ALL_SLOTS_BOOKED: "All time slots on this date are booked. Please pick another date.",
 };
 
+const SLOT_COUNT_WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
 const NOTE = "font-figtree text-[12px] leading-[16.5px] font-medium text-[#71717B]";
 
 /**
@@ -30,11 +32,20 @@ export default function EventTimingSlots({
   state,
   selectedValue,
   onSelect,
+  title = "Event timing",
+  variant = "card",
+  dateLabel,
 }: {
   state: SlotsState;
   /** The selected slot's "HH:MM - HH:MM" value. */
   selectedValue: string;
   onSelect: (value: string) => void;
+  /** Heading above the chips — the desktop booking card says "Installation Time" for decorator packages. */
+  title?: string;
+  /** "sheet" is the phone booking sheet's look: a title row with the open-slot count, then a 3-up grid. */
+  variant?: "card" | "sheet";
+  /** "Sun 14" — shown in the sheet variant's "5 slots open on Sun 14". */
+  dateLabel?: string;
 }) {
   if (state.status === "idle") return null;
   if (state.status === "loading") return <p className={NOTE}>Checking available time slots…</p>;
@@ -54,12 +65,45 @@ export default function EventTimingSlots({
   // Nothing to choose from (e.g. a package with no price to derive slots from).
   if (data.slots.length === 0) return null;
 
-  return (
-    <div className="border-l-[3px] border-[#F0596F] pl-4">
-      <h3 className="font-figtree text-[16px] leading-[20px] font-semibold text-[#3F3F47]">Event timing</h3>
-      <p className={`mt-1 ${NOTE}`}>Choose a slot from any of these {data.slots.length}</p>
+  if (variant === "sheet") {
+    const open = data.slots.filter((slot) => slot.available).length;
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-figtree text-[14px] font-medium text-[#3F3F47]">{title}</p>
+          <p className="font-figtree text-[11px] text-[#71717B]">
+            {open} slot{open === 1 ? "" : "s"} open{dateLabel ? ` on ${dateLabel}` : ""}
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {data.slots.map((slot) => {
+            const isSelected = slot.available && slot.value === selectedValue;
+            return (
+              <button
+                key={slot.value}
+                type="button"
+                disabled={!slot.available}
+                aria-pressed={isSelected}
+                onClick={() => onSelect(slot.value)}
+                className={`flex h-10 w-full items-center justify-center rounded-xl border font-figtree text-[14px] font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  isSelected ? "border-[#B4112A] bg-[#FDEEF0] text-[#B4112A]" : "border-[#E4E4E7] bg-white text-[#3F3F47]"
+                }`}
+              >
+                {slot.label.replace(/:00/g, "")}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
-      <div className="mt-3 grid grid-cols-3 gap-2">
+  return (
+    <div className="border-l-2 border-[#F0596F] pl-3.5">
+      <h3 className="font-figtree text-[14px] leading-[16.5px] font-semibold tracking-[-0.01em] text-[#3F3F47]">{title}</h3>
+      <p className={`mt-1 ${NOTE} font-normal tracking-[-0.01em]`}>Choose a slot from any of these {SLOT_COUNT_WORDS[data.slots.length] ?? data.slots.length}</p>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
         {data.slots.map((slot) => {
           const isSelected = slot.available && slot.value === selectedValue;
           return (
@@ -69,9 +113,9 @@ export default function EventTimingSlots({
               disabled={!slot.available}
               aria-pressed={isSelected}
               onClick={() => onSelect(slot.value)}
-              className={`flex h-11 w-full items-center justify-center rounded-lg border p-1 font-figtree text-[13px] leading-[16.5px] tracking-[-0.01em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+              className={`flex w-full items-center justify-center rounded-lg border px-1 py-2.5 font-figtree text-[14px] leading-[16.5px] tracking-[-0.01em] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                 isSelected
-                  ? "border-[#B4112A] bg-[#FDEEF0] font-medium text-[#B4112A]"
+                  ? "border-[#B91D34] bg-[#FEF5F7] font-medium text-[#B91D34]"
                   : "border-[#E4E4E7] bg-white font-medium text-[#3F3F47] hover:bg-[#F4F4F5]"
               }`}
             >

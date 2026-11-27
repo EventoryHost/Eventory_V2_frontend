@@ -6,6 +6,7 @@ import type { IncludedItemEntry, IncludedItemLine, WorkshopCategoryDef } from ".
 import { WORKSHOP_CATEGORIES, WORKSHOP_CATEGORY_IMAGES } from "../data/workshopCategories";
 import { EXTENDED_COLOUR_PALETTE } from "../data/extendedColorPalette";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
+import { useScrollingFlag } from "../hooks/useScrollingFlag";
 import SetupDetailPanel from "./SetupDetailPanel";
 import QuantityInput from "./QuantityInput";
 import TypeSelectDropdown from "./TypeSelectDropdown";
@@ -36,6 +37,7 @@ export default function CustomizeWorkshopModal({
    */
   onBack?: () => void;
 }) {
+  const scrollFlag = useScrollingFlag();
   const [view, setView] = useState<ModalView>(initialItemId || onBack ? "customize" : "detail");
   const [selectedItemId, setSelectedItemId] = useState(initialItemId ?? items[0]?.id ?? NEW_ITEM_SLOT);
   const [phase, setPhase] = useState<FooterPhase>("idle");
@@ -275,7 +277,7 @@ export default function CustomizeWorkshopModal({
               </div>
 
               <div className="flex flex-1 flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+                <div {...scrollFlag} className="thin-scroll flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
                   {selectedItem ? (
                     selectedItem.removalRequested ? (
                       <RemovalPanel item={selectedItem} onCancel={cancelRemoval} />

@@ -3,10 +3,13 @@
 import { useLayoutEffect, useRef, useState } from "react";
 
 const GAP_PX = 8; // matches the row's gap-2
+const COMPACT_GAP_PX = 4; // the mobile header's tighter gap-x-1
 
 const chipBase = "rounded-[87px] border border-[#E4E4E7] bg-white px-2.5 py-1 font-figtree font-medium whitespace-nowrap";
 // "large" is the desktop header's chip (Figma node 3233:25555): 14px / 24px line, tighter tracking.
 const chipSize = (large: boolean) => (large ? "text-[14px] leading-6 tracking-[-0.14px]" : "text-[13px]");
+// Mobile header chip (Figma node 3642:96973): 12px / 24px line, 8px × 2px padding.
+const compactChip = "rounded-[87px] border border-[#E4E4E7] bg-white px-2 py-0.5 font-figtree text-[12px] leading-6 font-medium tracking-[-0.12px] whitespace-nowrap";
 
 /**
  * Service-area pills (Figma node 2404:22954) that fill as much of the
@@ -20,15 +23,23 @@ const chipSize = (large: boolean) => (large ? "text-[14px] leading-6 tracking-[-
 export default function LocationChipRow({
   locations,
   large = false,
+  compact = false,
   maxRows = 1,
 }: {
   locations: string[];
   large?: boolean;
+  /** The mobile PDP header's smaller chips and tighter gaps. */
+  compact?: boolean;
   /** How many wrapped rows of chips may show before collapsing the rest into "+N more". */
   maxRows?: number;
 }) {
-  const chipClassName = `${chipBase} ${chipSize(large)} ${large ? "text-[#71717B]" : "text-neutral-secondary"}`;
-  const moreChipClassName = `${chipBase} ${chipSize(large)} ${large ? "text-[#3F3F47]" : "text-brand-950"}`;
+  const chipClassName = compact
+    ? `${compactChip} text-[#71717B]`
+    : `${chipBase} ${chipSize(large)} ${large ? "text-[#71717B]" : "text-neutral-secondary"}`;
+  const moreChipClassName = compact
+    ? `${compactChip} text-[#3F3F47]`
+    : `${chipBase} ${chipSize(large)} ${large ? "text-[#3F3F47]" : "text-brand-950"}`;
+  const gapPx = compact ? COMPACT_GAP_PX : GAP_PX;
   const [isExpanded, setIsExpanded] = useState(false);
   const [visibleCount, setVisibleCount] = useState(locations.length);
 
@@ -57,10 +68,10 @@ export default function LocationChipRow({
         let x = 0;
         for (const w of widths) {
           if (x === 0) x = w;
-          else if (x + GAP_PX + w > containerWidth) {
+          else if (x + gapPx + w > containerWidth) {
             rows++;
             x = w;
-          } else x += GAP_PX + w;
+          } else x += gapPx + w;
         }
         return rows <= maxRows;
       };
@@ -80,7 +91,7 @@ export default function LocationChipRow({
     const observer = new ResizeObserver(measure);
     observer.observe(row);
     return () => observer.disconnect();
-  }, [locations.length, maxRows]);
+  }, [locations.length, maxRows, gapPx]);
 
   const remainingCount = locations.length - visibleCount;
   const hasMore = remainingCount > 0;
@@ -91,7 +102,10 @@ export default function LocationChipRow({
   return (
     <div className="flex min-w-0 flex-1 items-center">
       {/* Visible row — width-constrained, this is what the customer sees. */}
-      <div ref={rowRef} className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+      <div
+        ref={rowRef}
+        className={`flex min-w-0 flex-1 flex-wrap items-center ${compact ? "gap-x-1 gap-y-1.5" : "gap-2"}`}
+      >
         {visibleLocations.map((area) => (
           <span key={area} className={chipClassName}>
             {area}
@@ -110,7 +124,7 @@ export default function LocationChipRow({
       <div
         ref={measureRowRef}
         aria-hidden="true"
-        className="pointer-events-none absolute top-0 left-0 flex -translate-y-full items-center gap-2 opacity-0"
+        className={`pointer-events-none absolute top-0 left-0 flex -translate-y-full items-center opacity-0 ${compact ? "gap-1" : "gap-2"}`}
         style={{ visibility: "hidden" }}
       >
         {locations.map((area, i) => (

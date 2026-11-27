@@ -43,9 +43,49 @@ export default function MoreFromVendorSection({ current }: { current: PackageDet
 
   return (
     <section id="more-from-vendor" className="mx-auto mt-12 w-full max-w-[1280px]">
-      <SectionHeading>Explore more packages</SectionHeading>
+      <div className="hidden md:block">
+        <SectionHeading>Explore more packages</SectionHeading>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-5">
+      {/* Phone heading + vendor strip (Figma node 3642:97813). */}
+      <h2 className="mb-3 flex items-center gap-3 font-figtree text-[18px] font-semibold text-[#222] md:hidden">
+        <span className="h-6 w-[5px] rounded-sm bg-[#F0596F]" />
+        Explore more packages
+      </h2>
+      <div className="flex items-center gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-3 md:hidden">
+        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-[#F0596F] font-figtree text-[28px] leading-9 font-semibold text-[#FDE2E6]">
+          {vendor.initials}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <div className="flex items-center justify-between gap-2">
+            {vendor.verified ? (
+              <span className="flex min-h-6 items-center gap-2 rounded-full bg-[#EFF6FF] py-0.5 pr-3 pl-2.5 font-figtree text-[14px] leading-5 whitespace-nowrap text-[#1447E6]">
+                <Image src="/images/customer/package-detail/vendor-verified-circle.svg" alt="" width={16} height={16} />
+                Eventory Verified
+              </span>
+            ) : (
+              <span />
+            )}
+            {current.reviewCount > 0 && (
+              <span className="flex shrink-0 items-center gap-1.5 font-figtree text-[14px] leading-5 font-semibold text-[#030303]">
+                <Image src="/images/customer/package-detail/card-star.svg" alt="" width={16} height={16} />
+                {current.rating}
+              </span>
+            )}
+          </div>
+          <p className="font-figtree text-[18px] leading-normal font-semibold text-[#222]">More from {vendor.name}</p>
+          <p className="font-figtree text-[14px] leading-5 text-[#71717B] underline">
+            {current.reviewCount > 0 && `(${current.reviewCount} reviews) · `}
+            {state.total} package{state.total === 1 ? "" : "s"}
+            {vendor.eventsDone > 0 &&
+              (current.locationSummary
+                ? ` · ${vendor.eventsDone} events in ${current.locationSummary}`
+                : ` · ${vendor.eventsDone} events done`)}
+          </p>
+        </div>
+      </div>
+
+      <div className="hidden flex-wrap items-center gap-4 rounded-2xl border border-[#E4E4E7] bg-white p-5 md:flex">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#F0596F] font-figtree text-[28px] leading-9 font-semibold text-[#FDE2E6]">
           {vendor.initials}
         </div>
@@ -83,9 +123,18 @@ export default function MoreFromVendorSection({ current }: { current: PackageDet
       </div>
 
       {/* Same grid as SimilarFromOthersSection, so the cards are exactly the same size in both. */}
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-4 hidden grid-cols-2 gap-4 md:grid lg:grid-cols-4">
         {state.packages.map((pkg) => (
           <ProductCard key={pkg._id} fullWidth {...toProductCardProps(pkg)} />
+        ))}
+      </div>
+
+      {/* Phones: the cards swipe sideways, one 300px card with the next peeking in. */}
+      <div className="mt-3 flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
+        {state.packages.map((pkg) => (
+          <div key={pkg._id} className="shrink-0 snap-start">
+            <ProductCard compactOnMobile {...toProductCardProps(pkg)} />
+          </div>
         ))}
       </div>
     </section>
