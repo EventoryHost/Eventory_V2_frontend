@@ -375,6 +375,7 @@ export default function PackageDetailPage({
         addonsTotal={addonsTotal}
         requiresGuestCount={data.requiresGuestCount}
         editItemId={editCartItem?._id}
+        categoryLabel={data.categoryLabel}
       />
     </main>
     </div>

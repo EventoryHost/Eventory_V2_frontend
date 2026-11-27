@@ -33,6 +33,8 @@ export default function EventTimingSlots({
   selectedValue,
   onSelect,
   title = "Event timing",
+  variant = "card",
+  dateLabel,
 }: {
   state: SlotsState;
   /** The selected slot's "HH:MM - HH:MM" value. */
@@ -40,6 +42,10 @@ export default function EventTimingSlots({
   onSelect: (value: string) => void;
   /** Heading above the chips — the desktop booking card says "Installation Time" for decorator packages. */
   title?: string;
+  /** "sheet" is the phone booking sheet's look: a title row with the open-slot count, then a 3-up grid. */
+  variant?: "card" | "sheet";
+  /** "Sun 14" — shown in the sheet variant's "5 slots open on Sun 14". */
+  dateLabel?: string;
 }) {
   if (state.status === "idle") return null;
   if (state.status === "loading") return <p className={NOTE}>Checking available time slots…</p>;
@@ -58,6 +64,39 @@ export default function EventTimingSlots({
 
   // Nothing to choose from (e.g. a package with no price to derive slots from).
   if (data.slots.length === 0) return null;
+
+  if (variant === "sheet") {
+    const open = data.slots.filter((slot) => slot.available).length;
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-start justify-between gap-2">
+          <p className="font-figtree text-[14px] font-medium text-[#3F3F47]">{title}</p>
+          <p className="font-figtree text-[11px] text-[#71717B]">
+            {open} slot{open === 1 ? "" : "s"} open{dateLabel ? ` on ${dateLabel}` : ""}
+          </p>
+        </div>
+        <div className="grid grid-cols-3 gap-2.5">
+          {data.slots.map((slot) => {
+            const isSelected = slot.available && slot.value === selectedValue;
+            return (
+              <button
+                key={slot.value}
+                type="button"
+                disabled={!slot.available}
+                aria-pressed={isSelected}
+                onClick={() => onSelect(slot.value)}
+                className={`flex h-10 w-full items-center justify-center rounded-xl border font-figtree text-[14px] font-medium whitespace-nowrap transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  isSelected ? "border-[#B4112A] bg-[#FDEEF0] text-[#B4112A]" : "border-[#E4E4E7] bg-white text-[#3F3F47]"
+                }`}
+              >
+                {slot.label.replace(/:00/g, "")}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border-l-2 border-[#F0596F] pl-3.5">

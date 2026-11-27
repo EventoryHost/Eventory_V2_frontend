@@ -25,6 +25,42 @@ export default function LocationSuggestionList({
   onHover: (index: number) => void;
   inline?: boolean;
 }) {
+  if (inline) {
+    return (
+      <ul
+        role="listbox"
+        aria-label="Location suggestions"
+        className="menu-scroll mt-2.5 max-h-[260px] overflow-y-auto rounded-xl border border-[#E4E4E7] bg-white"
+      >
+        {items.map((item, index) => (
+          <li
+            key={`${item.area}-${item.pincode}`}
+            role="option"
+            aria-selected={index === activeIndex}
+            className="border-b border-[#E4E4E7] last:border-b-0"
+          >
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => onPick(item)}
+              onMouseEnter={() => onHover(index)}
+              className={`flex w-full items-center gap-3 px-3.5 py-3 text-left ${index === activeIndex ? "bg-[#FDEEF0]" : ""}`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- static local icon */}
+              <img src="/images/customer/package-detail/sheet-pin-wave.svg" alt="" className="h-4 w-4 shrink-0" />
+              <span className="min-w-0">
+                <span className="block font-figtree text-[14px] leading-[normal] font-medium text-[#222]">{item.pincode}</span>
+                <span className="block truncate font-figtree text-[12px] leading-[normal] text-[#71717B]">
+                  {item.area}, {titleCase(item.district)}
+                </span>
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <ul
       role="listbox"
