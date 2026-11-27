@@ -293,6 +293,24 @@ export interface RawPackageDetailResponse {
   reviews: RawPdpReviewsSection;
   /** Real figures about the package's vendor, counted server-side. */
   vendorStats?: { eventsCompleted: number };
+  /** The logical package this variant belongs to (its own _id for a package of one). */
+  packageGroupId?: string;
+  /** Always `package._id` — the variant the customer opened, never a default. */
+  selectedVariantId?: string;
+  /** Every Live sibling variant (same vendor), oldest first — light summaries. */
+  variants?: RawVariantSummary[];
+}
+
+export interface RawVariantSummary {
+  _id: string;
+  packageGroupId: string | null;
+  variantType: string | null;
+  price: number | null;
+  originalPrice: number | null;
+  billingUnit: string | null;
+  included: string[];
+  notIncluded: string[];
+  image: string | null;
 }
 
 export interface PackageDetailParams {
@@ -439,6 +457,8 @@ export interface RawPackageGroupResponse {
   packages: (RawFullPackage & { bookingsCount?: number })[];
   /** The variant (packageId) with the highest real booking count in this group — null if every variant is still tied at 0. */
   mostBookedVariantId: string | null;
+  /** Echo of `?variantId=` once confirmed to be a Live member of this group, else null. */
+  selectedVariantId?: string | null;
 }
 
 /**
@@ -448,6 +468,9 @@ export interface RawPackageGroupResponse {
  * (could leak Draft/Under Review/Deleted variants to a customer) and no
  * vendor field whitelist.
  */
-export async function getPackageGroupVariants(packageGroupId: string) {
-  return apiFetch<RawPackageGroupResponse>(`/customer/packages/group/${packageGroupId}`, { auth: false });
+export async function getPackageGroupVariants(packageGroupId: string, variantId?: string) {
+  const query = variantId ? `?variantId=${encodeURIComponent(variantId)}` : "";
+  return apiFetch<RawPackageGroupResponse>(`/customer/packages/group/${encodeURIComponent(packageGroupId)}${query}`, {
+    auth: false,
+  });
 }

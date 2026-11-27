@@ -199,7 +199,7 @@ export default function DjPublishSummary({ packageId, packageData: initialPackag
                             </div>
 
                             <h2 className="text-[18px] font-bold text-[#04222D] leading-snug mb-4" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                {pkgName} {hasVariants ? `- ${packageData?.variantType || 'Premium'} Package` : ''}
+                                {pkgName} {hasVariants && packageData?.variantType ? `- ${packageData.variantType} Package` : ''}
                             </h2>
 
                             <div className="grid grid-cols-2 gap-y-3 mb-5">

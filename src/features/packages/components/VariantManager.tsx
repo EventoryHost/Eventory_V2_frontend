@@ -46,6 +46,25 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
     const safeVariants = Array.isArray(variants) ? variants : [];
     const activeVariant = safeVariants.find(v => v._id === packageId) || safeVariants[0];
 
+    // Suggested names only — any name is allowed via "Custom". Names this
+    // package already uses are hidden: the backend refuses duplicates
+    // (case-insensitive) with a 409.
+    const usedNames = new Set(
+        safeVariants
+            .filter(v => v.packageStatus !== 'Deleted')
+            .map(v => (v.variantType || '').trim().toLowerCase())
+    );
+    const suggestedNames = ['Premium', 'Standard', 'Basic'].filter(name => !usedNames.has(name.toLowerCase()));
+
+    // Opening "Choose the Variant": preselect the first name not yet taken,
+    // or Custom once all the suggestions are in use.
+    const openChooseModal = () => {
+        const first = suggestedNames[0];
+        setSelectedVariantType(first ?? 'Custom');
+        setVariantName(first ?? '');
+        setActiveActionModal('choose');
+    };
+
     const fetchVariants = async () => {
         try {
             setIsLoading(true);
@@ -109,6 +128,13 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                 });
             }
 
+            if (res && !res.ok) {
+                // The backend explains refusals (duplicate name, another
+                // vendor's package…) in `message`.
+                const body = await res.json().catch(() => null);
+                alert(body?.message || 'Action failed. Please try again.');
+                return;
+            }
             if (res && res.ok) {
                 const data = await res.json();
                 await fetchVariants();
@@ -179,7 +205,7 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                     onClick={() => setIsSelectVariantModalOpen(true)}
                     className="flex items-center justify-between w-[140px] bg-[#F4F4F5] px-4 py-2.5 rounded-full font-medium text-[15px] font-figtree"
                 >
-                    {activeVariant?.variantType || 'Premium'}
+                    {activeVariant?.variantType || 'Variant'}
                     <ChevronDown size={18} className="text-gray-600" />
                 </button>
             </div>
@@ -199,7 +225,7 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                                         type="button"
                                         onClick={() => {
                                             setActionType('create');
-                                            setActiveActionModal('choose');
+                                            openChooseModal();
                                         }}
                                         className="p-2 -mr-2"
                                     >
@@ -208,7 +234,7 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                                 </div>
 
                                 <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-                                    {(variants.length > 0 ? variants : [{ _id: packageId, variantType: 'Premium', packageGroupId }]).map(variant => (
+                                    {(variants.length > 0 ? variants : [{ _id: packageId, variantType: 'Variant', packageGroupId }]).map(variant => (
                                         <div 
                                             key={variant._id} 
                                             className={`border rounded-2xl p-4 flex items-start gap-3 cursor-pointer transition-all ${
@@ -327,9 +353,9 @@ export const VariantManager: React.FC<VariantManagerProps> = ({
                                             }}
                                             className="w-full border border-gray-300 rounded-xl p-4 appearance-none bg-white font-figtree text-[15px] focus:outline-none focus:border-black"
                                         >
-                                            <option value="Premium">Premium</option>
-                                            <option value="Standard">Standard</option>
-                                            <option value="Basic">Basic</option>
+                                            {suggestedNames.map(name => (
+                                                <option key={name} value={name}>{name}</option>
+                                            ))}
                                             <option value="Custom">Custom</option>
                                         </select>
                                         <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" size={20} />

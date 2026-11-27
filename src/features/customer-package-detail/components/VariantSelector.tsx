@@ -7,33 +7,49 @@ import PlaceholderMedia from "./PlaceholderMedia";
 export default function VariantSelector({
   variants,
   selectedId,
+  pendingId = null,
   onSelect,
 }: {
   variants: PackageVariant[];
+  /** The variant the page currently shows (the one the server rendered). */
   selectedId: string;
+  /** The variant being switched to, while its page loads. */
+  pendingId?: string | null;
   onSelect: (id: string) => void;
 }) {
   const selected = variants.find((variant) => variant.id === selectedId);
+  const pending = pendingId ? variants.find((variant) => variant.id === pendingId) : undefined;
 
   return (
     <section id="overview">
       {/* Desktop/tablet layout — unchanged. */}
       <div className="hidden md:block">
-        <p className="mb-4 font-figtree text-[14px] leading-[20px] font-normal align-middle">
-          Variant Selected:{" "}
-          <span className="font-semibold text-[#030303]">{selected?.label}</span>{" "}
-          <span className="font-semibold text-[#030303]">
-            {selected && formatPrice(selected.price)}
-          </span>
+        <p className="mb-4 font-figtree text-[14px] leading-[20px] font-normal align-middle" aria-live="polite">
+          {pending ? (
+            <>
+              Loading <span className="font-semibold text-[#030303]">{pending.label}</span>…
+            </>
+          ) : (
+            <>
+              Variant Selected:{" "}
+              <span className="font-semibold text-[#030303]">{selected?.label}</span>{" "}
+              <span className="font-semibold text-[#030303]">
+                {selected && formatPrice(selected.price)}
+              </span>
+            </>
+          )}
         </p>
 
         <div
           role="radiogroup"
           aria-label="Package variant"
+          aria-busy={Boolean(pending)}
           className="grid grid-cols-1 gap-4 sm:grid-cols-3"
         >
         {variants.map((variant, i) => {
-          const isSelected = variant.id === selectedId;
+          // The card being loaded is highlighted as the choice; the page's
+          // content below stays dimmed until it actually arrives.
+          const isSelected = variant.id === (pendingId ?? selectedId);
           return (
             <button
               key={variant.id}
@@ -133,10 +149,11 @@ export default function VariantSelector({
         <div
           role="radiogroup"
           aria-label="Package variant"
+          aria-busy={Boolean(pending)}
           className="flex w-full gap-[10px] overflow-x-auto px-4"
         >
           {variants.map((variant, i) => {
-            const isSelected = variant.id === selectedId;
+            const isSelected = variant.id === (pendingId ?? selectedId);
             return (
               <button
                 key={variant.id}

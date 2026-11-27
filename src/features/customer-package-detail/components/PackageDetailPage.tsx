@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { getCart, type RawCartItem } from "@/lib/customerCartApi";
 import { recordView } from "@/lib/recentlyViewed";
@@ -45,7 +45,19 @@ export default function PackageDetailPage({
   returnTo?: string;
 }) {
   const router = useRouter();
-  const [selectedVariantId, setSelectedVariantId] = useState(data.defaultVariantId);
+  // The variant everything on this page describes — price, inclusions,
+  // add-ons, policies, gallery AND the packageId the booking form submits —
+  // is always the one the server rendered (data.id). There is deliberately no
+  // separate optimistic "selected" state: that used to flip the selector,
+  // price and booking total to the new variant immediately while every other
+  // section (and add-to-cart's packageId) still belonged to the previous one
+  // until navigation finished — the "Premium details persist after choosing
+  // another variant" report.
+  const selectedVariantId = data.defaultVariantId;
+  // The variant being navigated to, while the switch is in flight.
+  const [pendingVariantId, setPendingVariantId] = useState<string | null>(null);
+  const [isSwitchingVariant, startVariantSwitch] = useTransition();
+  const switchingTo = isSwitchingVariant ? pendingVariantId : null;
 
   /**
    * Real bug fixed (PM reported 2026-11-02): "ensure that content in the PDP
@@ -65,14 +77,22 @@ export default function PackageDetailPage({
    * not just its price. `selectedVariantId` is still set immediately too,
    * so the booking card/price update without waiting on navigation.
    */
+  //
+  // While the switch is in flight (useTransition keeps isPending true until
+  // the new variant's page has rendered) the content is dimmed and the
+  // booking card is inert, so nothing can be added to cart against the
+  // variant being navigated away from. replace (not push) so switching tiers
+  // doesn't stack history entries between the customer and the listing.
   function selectVariant(variantId: string) {
-    setSelectedVariantId(variantId);
-    if (variantId === data.id) return;
+    if (variantId === data.id || isSwitchingVariant) return;
     const params = new URLSearchParams();
     if (editItemId) params.set("editItemId", editItemId);
     if (returnTo) params.set("returnTo", returnTo);
     const qs = params.toString();
-    router.push(`/packages/${variantId}${qs ? `?${qs}` : ""}`);
+    setPendingVariantId(variantId);
+    startVariantSwitch(() => {
+      router.replace(`/packages/${variantId}${qs ? `?${qs}` : ""}`, { scroll: false });
+    });
   }
   // One entry per LINE (addonId + colour combination), not one per addon —
   // real bug fixed 2026-10-01: the old Record<addonId, qty>/Record<addonId,
@@ -158,8 +178,8 @@ export default function PackageDetailPage({
     };
   }, [editItemId]);
 
-  const selectedVariant =
-    data.variants.find((variant) => variant.id === selectedVariantId) ?? data.variants[0];
+  // getPackageDetail guarantees the opened package is in data.variants.
+  const selectedVariant = data.variants.find((variant) => variant.id === selectedVariantId);
 
   // Feeds the account dashboard's "Recently Viewed" list and "Viewed Items"
   // count. There's no backend endpoint for this, so it's stored per-browser
@@ -300,10 +320,15 @@ export default function PackageDetailPage({
             <VariantSelector
               variants={data.variants}
               selectedId={selectedVariantId}
+              pendingId={switchingTo}
               onSelect={selectVariant}
             />
           )}
 
+          <div
+            aria-busy={isSwitchingVariant}
+            className={`space-y-10 transition-opacity ${isSwitchingVariant ? "pointer-events-none opacity-40" : ""}`}
+          >
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && (
             <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} workshop={workshop} />
@@ -330,6 +355,7 @@ export default function PackageDetailPage({
           />
           <VendorSection vendor={data.vendor} />
           {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
+          </div>
         </div>
 
         {/* Desktop/tablet sidebar card — unchanged. Hidden on mobile, where
@@ -337,7 +363,11 @@ export default function PackageDetailPage({
             2548:28662 onward) replaces it instead of just stacking below
             all the page content like this card used to on narrow screens. */}
         {/* pt-20: the card starts 80px below the row holding Share/Wishlist (Figma node 3233:26781). */}
-        <div className="hidden lg:block lg:pt-20">
+        <div
+          className={`hidden lg:block lg:pt-20 ${isSwitchingVariant ? "opacity-40" : ""}`}
+          inert={isSwitchingVariant}
+          aria-busy={isSwitchingVariant}
+        >
           <StickyBookingCard
             form={bookingForm}
             packageTotal={packageTotal}
@@ -363,17 +393,19 @@ export default function PackageDetailPage({
 
       <SimilarFromOthersSection current={data} />
 
-      <MobileBookingBar
-        form={bookingForm}
-        title={data.title}
-        variantLabel={data.variants.find((v) => v.id === selectedVariantId)?.label}
-        setupsCount={data.variants.find((v) => v.id === selectedVariantId)?.setupsCount}
-        packageTotal={packageTotal}
-        gstPercent={data.pricing.gstPercent}
-        addonsTotal={addonsTotal}
-        requiresGuestCount={data.requiresGuestCount}
-        editItemId={editCartItem?._id}
-      />
+      <div inert={isSwitchingVariant} aria-busy={isSwitchingVariant}>
+        <MobileBookingBar
+          form={bookingForm}
+          title={data.title}
+          variantLabel={selectedVariant?.label}
+          setupsCount={selectedVariant?.setupsCount}
+          packageTotal={packageTotal}
+          gstPercent={data.pricing.gstPercent}
+          addonsTotal={addonsTotal}
+          requiresGuestCount={data.requiresGuestCount}
+          editItemId={editCartItem?._id}
+        />
+      </div>
     </main>
     </div>
   );
