@@ -245,7 +245,7 @@ export default function MakeupPublishSummary({ packageId, packageData: initialPa
                             </div>
 
                             <h2 className="text-[16px] font-extrabold text-[#04222D] leading-tight mb-4" style={{ fontFamily: 'Figtree, sans-serif' }}>
-                                {pkgName} {hasVariants ? `- ${packageData?.variantType || 'Premium'} Package` : ''}
+                                {pkgName} {hasVariants && packageData?.variantType ? `- ${packageData.variantType} Package` : ''}
                             </h2>
 
                             <div className="flex flex-wrap gap-x-5 gap-y-2 mb-5">

@@ -172,10 +172,13 @@ function variantCardContentOf(pkg: RawFullPackage): { setupsCount: number; items
   }
 }
 
-function mapVariant(pkg: RawFullPackage, mostBookedVariantId?: string | null): PackageVariant {
+// A variant's name is whatever the vendor/admin called it — never assume a
+// fixed Basic/Standard/Premium set. Only a nameless legacy document falls
+// back to a neutral positional label.
+function mapVariant(pkg: RawFullPackage, mostBookedVariantId?: string | null, index = 0): PackageVariant {
   return {
     id: pkg._id,
-    label: pkg.variantType || "Standard",
+    label: pkg.variantType?.trim() || `Option ${index + 1}`,
     image: pkg.step4_sampleMedia?.media?.[0]?.url,
     ...variantCardContentOf(pkg),
     price: priceOf(pkg),
@@ -859,14 +862,21 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   const { package: pkg } = response;
   const vendor = vendorOf(pkg);
 
+  // The variant list for the picker. The opened package is ALWAYS in it and is
+  // always the selected one (see defaultVariantId below) — never the first
+  // sibling, never a hardcoded tier.
+  const groupId = response.packageGroupId ?? pkg.packageGroupId ?? pkg._id;
   let variants: PackageVariant[] = [mapVariant(pkg)];
   try {
-    const group = await getPackageGroupVariants(pkg.packageGroupId);
+    const group = await getPackageGroupVariants(groupId, pkg._id);
     if (group.packages.length) {
-      variants = group.packages.map((groupPkg) => mapVariant(groupPkg, group.mostBookedVariantId));
+      variants = group.packages.map((groupPkg, i) => mapVariant(groupPkg, group.mostBookedVariantId, i));
     }
   } catch {
     // Sibling variants are a nice-to-have — fall back to just this one package.
+  }
+  if (!variants.some((variant) => variant.id === pkg._id)) {
+    variants = [...variants, mapVariant(pkg, null, variants.length)];
   }
 
   // total: 0 here (not vendor?.reviewsCount) — that field is the vendor's
