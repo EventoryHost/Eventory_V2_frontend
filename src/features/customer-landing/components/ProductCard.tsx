@@ -35,6 +35,8 @@ export type ProductCardProps = {
    * Defaults to the fixed width so every existing caller is unchanged.
    */
   fullWidth?: boolean;
+  /** Phone carousels (PDP "Explore more packages"): a 300px card with a 149px photo and tighter spacing. Only applies below the md breakpoint. */
+  compactOnMobile?: boolean;
   /**
    * Bookmark wiring. The button renders either way. Without a handler it
    * stays the inert placeholder it has always been, so callers that don't
@@ -81,6 +83,7 @@ export default function ProductCard({
   categoryGradientTo = "#ffffff",
   href = "/packages",
   fullWidth = false,
+  compactOnMobile = false,
   isBookmarked = false,
   onToggleBookmark,
   isCompareSelected = false,
@@ -105,10 +108,10 @@ export default function ProductCard({
       href={href}
       className={`flex flex-col overflow-hidden rounded-[20px] border border-[#F0F0F0] bg-white transition-transform duration-200 ease-out hover:scale-[1.02] ${
         fullWidth ? "w-full" : "w-[316px]"
-      }`}
+      } ${compactOnMobile ? "max-md:w-[300px] max-md:shrink-0 max-md:gap-3 max-md:rounded-2xl" : ""}`}
     >
       {/* Image */}
-      <div className="relative h-[191px] w-full shrink-0">
+      <div className={`relative w-full shrink-0 ${compactOnMobile ? "h-[191px] max-md:h-[149px]" : "h-[191px]"}`}>
         <Image
           src={imgSrc}
           alt={title}
@@ -147,7 +150,7 @@ export default function ProductCard({
             event.stopPropagation();
             onToggleBookmark?.();
           }}
-          className="absolute top-4 right-4 flex items-center rounded-full bg-black/20 p-1.5 backdrop-blur-[7px]"
+          className={`absolute top-4 right-4 flex items-center rounded-full p-1.5 backdrop-blur-[7px] ${compactOnMobile ? "bg-black/20 max-md:bg-white/10" : "bg-black/20"}`}
         >
           {isBookmarked ? (
             <Bookmark className="h-5 w-5 text-white" fill="currentColor" />
@@ -158,7 +161,7 @@ export default function ProductCard({
       </div>
 
       {/* Content */}
-      <div className="flex w-full flex-1 flex-col gap-4 p-4">
+      <div className={`flex w-full flex-1 flex-col gap-4 p-4 ${compactOnMobile ? "max-md:gap-3 max-md:px-3 max-md:pt-0 max-md:pb-3" : ""}`}>
         <div className="flex items-center gap-3">
           <div
             className="flex h-6 w-fit shrink-0 items-center gap-2 rounded-[52px] py-1 pr-3 pl-1"
@@ -187,7 +190,7 @@ export default function ProductCard({
 
         {/* min-h reserves 2 lines so a short title doesn't make a card
             shorter than its neighbours (PM-reported alignment issue, 2026-10-15). */}
-        <h3 className="min-h-[44px] font-figtree text-[16px] leading-[22px] font-semibold tracking-[-0.16px] text-[#1A1A1A] line-clamp-2">
+        <h3 className={`${compactOnMobile ? "max-md:min-h-0" : ""} min-h-[44px] font-figtree text-[16px] leading-[22px] font-semibold tracking-[-0.16px] text-[#1A1A1A] line-clamp-2`}>
           {title}
         </h3>
 

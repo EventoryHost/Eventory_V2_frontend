@@ -27,6 +27,7 @@ export default function AddonsCarousel({
 }) {
   const [activeTab, setActiveTab] = useState(ALL_TAB);
   const railRef = useRef<HTMLDivElement>(null);
+  const mobileRailRef = useRef<HTMLDivElement>(null);
 
   // "All" plus each distinct add-on category, in the order the vendor listed them.
   // Each tab's round thumbnail is the first add-on image in that category.
@@ -46,6 +47,7 @@ export default function AddonsCarousel({
   function selectTab(label: string) {
     setActiveTab(label);
     railRef.current?.scrollTo({ left: 0 });
+    mobileRailRef.current?.scrollTo({ left: 0 });
   }
 
   function scrollRail(direction: 1 | -1) {
@@ -53,7 +55,7 @@ export default function AddonsCarousel({
   }
 
   return (
-    <section id="addons" className="border-t border-black/5 pt-8">
+    <section id="addons" className="border-t border-black/5 pt-5 md:pt-8">
       {/* Desktop/tablet — Figma node 3233:26387: category tabs, then the cards for the selected tab. */}
       <div className="hidden md:block">
         <SectionHeading>Add-ons &amp; Extras</SectionHeading>
@@ -127,7 +129,7 @@ export default function AddonsCarousel({
 
       {/* Mobile header (Figma node 2565:28233) — same accent-bar title, but
           with an "N available" count where desktop has none. */}
-      <div className="mb-4 flex items-center justify-between md:hidden">
+      <div className="mb-3 flex items-center justify-between md:hidden">
         <h2 className="flex items-center gap-2 font-figtree text-[18px] font-semibold text-[#222]">
           <span className="h-[22px] w-1 rounded-sm bg-[#F0596F]" />
           Add-ons &amp; Extras
@@ -135,13 +137,54 @@ export default function AddonsCarousel({
         <p className="font-figtree text-[12px] text-[#71717B]">{addons.length} available</p>
       </div>
 
-      {/* Mobile horizontal-scroll rail (Figma node 2565:28233's "Add-on rail"). */}
-      <div className="flex gap-[10px] overflow-x-auto md:hidden">
-        {addons.map((addon, i) => (
+      {/* Mobile category tabs (Figma node 3642:97211) — round thumbnail over the
+          label, the active tab underlined in pink; they filter the rail below. */}
+      <div
+        role="tablist"
+        aria-label="Add-on categories"
+        className="mb-3 flex gap-1 overflow-x-auto [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
+      >
+        {tabs.map((tab) => {
+          const isActive = tab.label === activeTab;
+          return (
+            <button
+              key={tab.label}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => selectTab(tab.label)}
+              className="flex min-w-[64px] shrink-0 flex-col items-center gap-0.5"
+            >
+              <span className="flex flex-col items-center gap-2 px-3">
+                <span className="relative h-10 w-10 overflow-hidden rounded-full bg-[#D9D9D9]">
+                  {tab.image && <Image src={tab.image} alt="" fill sizes="40px" className="object-cover" />}
+                </span>
+                <span
+                  className={`font-figtree text-[14px] leading-5 whitespace-nowrap ${
+                    isActive ? "font-semibold text-[#030303]" : "font-medium text-[#3F3F47]"
+                  }`}
+                >
+                  {tab.label}
+                </span>
+              </span>
+              <span
+                className={`h-[3px] w-full rounded-t-[27px] rounded-b-[4px] ${isActive ? "bg-[#F0596F]" : "bg-transparent"}`}
+              />
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Mobile horizontal-scroll rail (Figma node 3642:97224's "Add-on rail"). */}
+      <div
+        ref={mobileRailRef}
+        className="flex gap-[10px] overflow-x-auto [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden"
+      >
+        {visibleAddons.map((addon) => (
           <AddonCard
             key={addon.id}
             addon={addon}
-            seed={i}
+            seed={addons.indexOf(addon)}
             onAdd={(colourId) => onAdd(addon.id, colourId)}
           />
         ))}

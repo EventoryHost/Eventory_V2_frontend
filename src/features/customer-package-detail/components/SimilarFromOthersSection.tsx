@@ -45,7 +45,13 @@ export default function SimilarFromOthersSection({ current }: { current: Package
 
   return (
     <section id="similar-from-others" className="mx-auto mt-12 w-full max-w-[1280px]">
-      <div className="mb-6 flex items-end justify-between gap-4">
+      {/* Phone heading (Figma node 3642:98001): accent bar + one wrapping 18px title; no subtitle or "View all". */}
+      <h2 className="mb-3 flex items-center gap-3 font-figtree text-[18px] font-semibold text-[#222] md:hidden">
+        <span className="h-6 w-[5px] shrink-0 rounded-sm bg-[#F0596F]" />
+        <span className="min-w-0 flex-1">Similar packages from other {plural}</span>
+      </h2>
+
+      <div className="mb-6 hidden items-end justify-between gap-4 md:flex">
         <div>
           <SectionHeading>Similar packages from other {plural}</SectionHeading>
           <p className="-mt-4 pl-[17px] font-figtree text-[14px] leading-5 text-[#3F3F47]">
@@ -61,9 +67,18 @@ export default function SimilarFromOthersSection({ current }: { current: Package
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="hidden grid-cols-2 gap-4 md:grid lg:grid-cols-4">
         {state.packages.map((pkg) => (
           <ProductCard key={pkg._id} fullWidth {...toProductCardProps(pkg)} />
+        ))}
+      </div>
+
+      {/* Phones: the cards swipe sideways, one 300px card with the next peeking in. */}
+      <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
+        {state.packages.map((pkg) => (
+          <div key={pkg._id} className="shrink-0 snap-start">
+            <ProductCard compactOnMobile {...toProductCardProps(pkg)} />
+          </div>
         ))}
       </div>
     </section>

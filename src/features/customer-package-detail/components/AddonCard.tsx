@@ -119,7 +119,10 @@ export default function AddonCard({
           <div>
             <p className="truncate font-figtree text-[16px] font-medium text-[#222]">{addon.title}</p>
             <p className="truncate font-figtree text-[12px] text-[#71717B]">
-              {addon.category} · {addon.qtyLabel || "Qty"}
+              {addon.category} ·{" "}
+              {addon.colourOptions && addon.colourOptions.length > 0
+                ? `${addon.colourOptions.length} colour${addon.colourOptions.length === 1 ? "" : "s"}`
+                : addon.qtyLabel || "Qty"}
             </p>
           </div>
 
