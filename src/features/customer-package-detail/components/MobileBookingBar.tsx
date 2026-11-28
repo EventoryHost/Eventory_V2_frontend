@@ -97,6 +97,7 @@ export default function MobileBookingBar({
     cartError,
     justAdded,
     setIsBreakdownOpen,
+    setIsCancellationOpen,
     liveTokenAmount,
     validEventDate,
     cancellationTiers,
@@ -455,27 +456,31 @@ export default function MobileBookingBar({
                       {/* Real bug fixed (PM reported 2026-11-02): unlike the desktop
                           StickyBookingCard, this never checked gstPercent > 0, so a
                           package with no GST configured still showed "incl. 0% GST". */}
-                      {gstPercent > 0 && (
-                        <button
-                          type="button"
-                          onClick={() => setIsBreakdownOpen(true)}
-                          className="block text-left font-figtree text-[11px] text-[#71717B] underline"
-                        >
-                          incl. {gstPercent}% GST · tap for breakdown
-                        </button>
-                      )}
+                      {/* Always offered, so the breakdown is reachable even when the package has no separate GST. */}
+                      <button
+                        type="button"
+                        onClick={() => setIsBreakdownOpen(true)}
+                        className="block text-left font-figtree text-[11px] text-[#71717B] underline"
+                      >
+                        {gstPercent > 0 ? `incl. ${gstPercent}% GST · tap for breakdown` : "Tap for price breakdown"}
+                      </button>
                     </span>
                     <span className="font-figtree text-[20px] font-semibold text-[#222]">
                       {formatPrice(estimatedTotal)}
                     </span>
                   </div>
                   {cancellationTiers && (
-                    <div className="flex items-center gap-2 rounded-xl bg-[#ECFDF3] px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsCancellationOpen(true)}
+                      className="flex items-center gap-2 rounded-xl bg-[#ECFDF3] px-3 py-2.5 text-left"
+                    >
                       <ShieldCheck className="h-4 w-4 shrink-0 text-[#067647]" />
                       <p className="font-figtree text-[12px] leading-[17px] font-medium text-[#067647]">
                         Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
+                        <span className="ml-1.5 underline">Learn more</span>
                       </p>
-                    </div>
+                    </button>
                   )}
                 </div>
               )}
@@ -526,13 +531,13 @@ export default function MobileBookingBar({
                     <p className="font-figtree text-[18px] font-semibold text-[#222]">
                       {formatPrice(step2Done ? estimatedTotal : packageTotal)}
                     </p>
-                    {step2Done && gstPercent > 0 ? (
+                    {step2Done ? (
                       <button
                         type="button"
                         onClick={() => setIsBreakdownOpen(true)}
                         className="block truncate text-left font-figtree text-[12px] text-[#71717B] underline"
                       >
-                        incl. GST · Breakdown
+                        {gstPercent > 0 ? "incl. GST · Breakdown" : "Price breakdown"}
                       </button>
                     ) : (
                       <p className="line-clamp-2 font-figtree text-[12px] leading-4 text-[#71717B]">
