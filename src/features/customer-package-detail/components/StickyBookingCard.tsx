@@ -1,6 +1,7 @@
 "use client";
 
-import { Calendar, MapPin, ShieldCheck, Check, Users, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { MapPin, ShieldCheck, Users, Loader2 } from "lucide-react";
 import AuthModal from "@/features/customer-auth/components/AuthModal";
 import type { IncludedItemEntry, SelectedAddon } from "../types";
 import { formatPrice } from "../utils/formatPrice";
@@ -12,6 +13,8 @@ import SearchDropdown from "@/features/customer-landing/components/SearchDropdow
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 
 import EventTimingSlots from "./EventTimingSlots";
+import LocationSuggestionList from "./LocationSuggestionList";
+import { useLocationSuggestions } from "../hooks/useLocationSuggestions";
 import LocationServiceability from "./LocationServiceability";
 import type { UseBookingFormResult } from "../hooks/useBookingForm";
 
@@ -26,6 +29,9 @@ export default function StickyBookingCard({
   selectedAddons,
   cancellationPolicyText,
   editItemId,
+  packageTitle,
+  categoryLabel,
+  teamAndEquipmentCharge,
 }: {
   /** Shared booking state/logic — one instance, lifted to PackageDetailPage and passed to both this (desktop) card and the mobile sticky bar/sheet, so there's a single source of truth for the in-flight booking rather than two independently-drifting copies of the same form. */
   form: UseBookingFormResult;
@@ -38,6 +44,11 @@ export default function StickyBookingCard({
   includedItems: IncludedItemEntry[];
   selectedAddons: SelectedAddon[];
   cancellationPolicyText?: string;
+  /** Shown in the price breakdown's header and package line. */
+  packageTitle: string;
+  categoryLabel: string;
+  /** The vendor's flat crew and equipment charge (0 when none), shown as its own line in the price breakdown. */
+  teamAndEquipmentCharge: number;
   /** Set when editing an existing cart line (see PackageDetailPage) — only used here to vary the Save/Add-to-cart button copy. */
   editItemId?: string;
 }) {
@@ -71,7 +82,6 @@ export default function StickyBookingCard({
     setIsAuthOpen,
     isSubmitting,
     cartError,
-    inCartItemId,
     isNotePromptOpen,
     setIsNotePromptOpen,
     setPendingAction,
@@ -90,28 +100,36 @@ export default function StickyBookingCard({
     handleNotePromptSave,
   } = form;
 
+  const suggest = useLocationSuggestions(location, (value) => {
+    setLocation(value);
+    setIsLocationAutoFilled(false);
+    setLocationDetectError(null);
+  });
+
   return (
     <div id="booking-card" className="relative">
       {/* top-0 lets this card scroll all the way up under the fixed navbar
           (z-50, 71.6px tall) instead of stopping below it — trades a slice
           of the card's own top being covered for noticeably more of its
           bottom (the Book Now button) staying inside the viewport. */}
-      <div className="sticky top-0 z-10 rounded-2xl border border-black/10 bg-white p-6 shadow-lg shadow-black/[0.04]">
-        <button
-          type="button"
-          onClick={() => setIsBreakdownOpen(true)}
-          className="mb-6 block w-full text-left"
-        >
-          <div className="mb-1 flex items-end gap-2">
-            <h2 className="font-figtree text-[24px] font-bold text-brand-950">
-              from {formatPrice(estimatedTotal)}
-            </h2>
-            {gstPercent > 0 && (
-              <span className="mb-1 font-figtree text-[11px] text-neutral-tertiary">incl. {gstPercent}% GST</span>
+      <div className="sticky top-0 z-10 rounded-[22px] bg-white px-5 py-4 shadow-[0_5px_8px_rgba(0,0,0,0.08)]">
+        {/* Figma node 3233:26781 — price (tap for breakdown) with a "Token
+            Required" pill on the right when a token amount applies. */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" onClick={() => setIsBreakdownOpen(true)} className="text-left">
+              <h2 className="font-figtree text-[24px] leading-[33.6px] font-semibold text-[#222] underline decoration-[#ddd]">
+                from {formatPrice(estimatedTotal)}
+              </h2>
+            </button>
+            {liveTokenAmount > 0 && (
+              <span className="shrink-0 rounded-full border border-[#00C950] bg-gradient-to-r from-[#F0FDF4] to-white px-2 py-0.5 font-figtree text-[14px] leading-5 font-medium text-[#008236]">
+                Token Required
+              </span>
             )}
           </div>
-          <p className="font-figtree text-[12px] text-neutral-tertiary">tap the price for the full breakdown</p>
-        </button>
+          <p className="mt-2 font-figtree text-[12px] leading-4 text-[#717171]">Tap the price for the full breakdown</p>
+        </div>
 
         <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
           <SearchDropdown
@@ -125,7 +143,7 @@ export default function StickyBookingCard({
           />
 
           <label className="block">
-            <span className="mb-1.5 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]">
+            <span className="mb-2 block font-figtree text-[14px] leading-[16.5px] font-medium tracking-[-0.01em] text-[#3F3F47]">
               Event location
             </span>
             <div className="relative">
@@ -136,7 +154,14 @@ export default function StickyBookingCard({
                   setLocation(event.target.value);
                   setIsLocationAutoFilled(false);
                   setLocationDetectError(null);
+                  suggest.onUserType();
                 }}
+                onKeyDown={suggest.handleKeyDown}
+                onBlur={() => suggest.setOpen(false)}
+                autoComplete="off"
+                role="combobox"
+                aria-expanded={suggest.open}
+                aria-autocomplete="list"
                 onFocus={() => {
                   // Clicking in to edit the auto-detected guess clears it
                   // outright, rather than leaving the customer to
@@ -147,7 +172,7 @@ export default function StickyBookingCard({
                   }
                 }}
                 placeholder="Enter your pincode or city"
-                className="h-11 w-full rounded-2xl border border-[#E4E4E7] bg-white pr-11 pl-4 font-figtree text-[14px] text-[#3F3F47] outline-none placeholder:text-[#9F9FA9] focus:border-brand-primary"
+                className="w-full rounded-xl border border-[#E4E4E7] bg-white py-3 pr-11 pl-3.5 font-figtree text-[14px] leading-5 text-[#3F3F47] outline-none placeholder:text-[#9F9FA9] focus:border-brand-primary"
               />
               <button
                 type="button"
@@ -162,6 +187,14 @@ export default function StickyBookingCard({
                   <MapPin className="h-5 w-5" />
                 )}
               </button>
+              {suggest.open && (
+                <LocationSuggestionList
+                  items={suggest.items}
+                  activeIndex={suggest.activeIndex}
+                  onPick={suggest.pick}
+                  onHover={suggest.setActiveIndex}
+                />
+              )}
             </div>
             {locationDetectError && (
               <p className="mt-1.5 font-figtree text-[11px] font-medium text-error-700">{locationDetectError}</p>
@@ -181,6 +214,7 @@ export default function StickyBookingCard({
             state={slotsState}
             selectedValue={startTime && endTime ? `${startTime} - ${endTime}` : ""}
             onSelect={onSelectSlot}
+            title={/decor/i.test(categoryLabel) ? "Installation Time" : undefined}
           />
 
           {requiresGuestCount && (
@@ -203,36 +237,12 @@ export default function StickyBookingCard({
           )}
         </form>
 
-        {validEventDate && cancellationTiers ? (
-          <button
-            type="button"
-            onClick={() => setIsCancellationOpen(true)}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-success-700/20 bg-success-subtle px-3 py-3 font-figtree text-[12px] font-medium text-success-700 transition hover:border-success-700/40"
-          >
-            <ShieldCheck className="h-4 w-4" />
-            Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
-          </button>
-        ) : (
-          <div className="mt-6 flex items-center justify-center gap-2 rounded-xl border border-black/10 px-3 py-3 font-figtree text-[12px] font-medium text-neutral-secondary">
-            <Calendar className="h-4 w-4" />
-            Pick a date to see your free-cancellation cut-off
-          </div>
-        )}
-
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={requestBookClick}
-            disabled={isSubmitting || !detailsComplete}
-            className="rounded-xl bg-brand-primary py-3 text-center font-figtree text-[14px] font-semibold text-white shadow-sm transition hover:bg-rose-600 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {liveTokenAmount > 0 ? `Book & pay ${formatPrice(liveTokenAmount)}` : "Book now"}
-          </button>
+        <div className="mt-5 flex gap-3">
           <button
             type="button"
             onClick={requestAddToCart}
             disabled={isSubmitting || !detailsComplete}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-black/15 py-3 font-figtree text-[14px] font-semibold text-brand-950 transition hover:border-black/30 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-full border border-[#E4E4E7] px-6 py-2.5 font-figtree text-[16px] leading-6 font-semibold text-[#3F3F47] transition hover:border-black/30 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {justAdded ? (
               editItemId ? (
@@ -242,14 +252,17 @@ export default function StickyBookingCard({
               )
             ) : editItemId ? (
               "Save changes"
-            ) : inCartItemId ? (
-              <>
-                <Check className="h-4 w-4" />
-                In cart &middot; view cart
-              </>
             ) : (
-              "Add to cart"
+              "Add to Cart"
             )}
+          </button>
+          <button
+            type="button"
+            onClick={requestBookClick}
+            disabled={isSubmitting || !detailsComplete}
+            className="flex-1 rounded-full bg-[linear-gradient(-5.5deg,#D92640_14%,#F0596F_86%)] px-6 py-2.5 text-center font-figtree text-[16px] leading-6 font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {liveTokenAmount > 0 ? `Book at ${formatPrice(liveTokenAmount)}` : "Book now"}
           </button>
         </div>
 
@@ -258,7 +271,7 @@ export default function StickyBookingCard({
             {locationNotServiceable
               ? serviceability.status === "ready" && !serviceability.data.serviceable
                 ? "This vendor doesn't serve your location — try a different address"
-                : "Add a 6-digit pincode to your location so we can confirm this vendor serves it"
+                : "Pick a locality from the suggestions, or add a 6-digit pincode, so we can confirm this vendor serves it"
               : requiresGuestCount
                 ? "Fill in event type, date, time, location and guest count to continue"
                 : "Fill in event type, date, time and location to continue"}
@@ -269,9 +282,21 @@ export default function StickyBookingCard({
           <p className="mt-3 text-center font-figtree text-[12px] font-medium text-error-700">{cartError}</p>
         )}
 
-        <p className="mt-3 text-center font-figtree text-[11px] text-neutral-tertiary">
-          Date locked instantly · held safely until setup
-        </p>
+        {validEventDate && cancellationTiers ? (
+          <button
+            type="button"
+            onClick={() => setIsCancellationOpen(true)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-success-700/20 bg-success-subtle px-3 py-3 font-figtree text-[12px] font-medium text-success-700 transition hover:border-success-700/40"
+          >
+            <ShieldCheck className="h-4 w-4" />
+            Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
+          </button>
+        ) : (
+          <div className="mt-4 flex items-center justify-center gap-2 font-figtree text-[14px] leading-5 text-[#5E5E5E]">
+            <Image src="/images/customer/package-detail/calendar-search.svg" alt="" width={18} height={18} />
+            Pick a date to see your free-cancellation cut-off
+          </div>
+        )}
       </div>
 
       <VendorNotePromptModal
@@ -296,6 +321,10 @@ export default function StickyBookingCard({
       <PriceBreakdownDialog
         isOpen={isBreakdownOpen}
         onClose={() => setIsBreakdownOpen(false)}
+        packageTitle={packageTitle}
+        categoryLabel={categoryLabel}
+        guestCount={requiresGuestCount ? guestCount : ""}
+        teamAndEquipmentCharge={teamAndEquipmentCharge}
         includedItems={includedItems}
         selectedAddons={selectedAddons}
         overtimeChargeRate={overtimeChargeRate}

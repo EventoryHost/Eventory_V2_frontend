@@ -145,9 +145,10 @@ export default function BookingSummaryPage() {
                 rows={data.paymentSummary.rows}
                 grandTotal={data.paymentSummary.grandTotal}
                 tokenAmount={data.paymentSummary.tokenAmount}
+                remainingAmount={data.paymentSummary.remainingAmount}
                 payInFull={data.paymentSummary.payInFull}
                 cancellationNote={data.paymentSummary.cancellationNote}
-                ctaLabel="Continue to Details"
+                ctaLabel="Continue to Book"
                 ctaHref="/contact"
                 // Not data.canContinue: that also requires contact.valid, which
                 // can only become true after the Details step — gating this

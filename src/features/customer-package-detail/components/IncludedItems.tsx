@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { OPEN_CUSTOMISE_EVENT } from "@/features/customer-help/helpContext";
-import { ArrowRight, XCircle } from "lucide-react";
-import type { IncludedItemEntry } from "../types";
+import { ChevronRight, XCircle } from "lucide-react";
+import type { IncludedItemEntry, IncludedItemLine } from "../types";
 import { formatPrice } from "../utils/formatPrice";
+import { splitExclusions } from "../utils/splitExclusions";
 import type { UseCustomizeWorkshopResult } from "../hooks/useCustomizeWorkshop";
 import PlaceholderMedia from "./PlaceholderMedia";
 import SectionHeading from "./SectionHeading";
@@ -43,7 +44,18 @@ export default function IncludedItems({
   // Keyed by `${setupId}-${detailLabel}` — which "+N more" rows (e.g. this
   // setup's "Structures Included") are currently expanded to show every
   // value instead of just the first + a count.
+  // Mobile: which setups have their full items list open (collapsed shows the first 3).
+  const [expandedItemSetupIds, setExpandedItemSetupIds] = useState<Set<string>>(new Set());
   const [expandedDetailKeys, setExpandedDetailKeys] = useState<Set<string>>(new Set());
+
+  function toggleItemsExpanded(setupId: string) {
+    setExpandedItemSetupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(setupId)) next.delete(setupId);
+      else next.add(setupId);
+      return next;
+    });
+  }
 
   function toggleDetailExpanded(key: string) {
     setExpandedDetailKeys((prev) => {
@@ -60,26 +72,97 @@ export default function IncludedItems({
   // separate array elements. Flatten on "\n" and strip any "•" the vendor
   // already typed, so each line still renders as its own bullet regardless
   // of which way the vendor entered it.
-  const flatExclusions = notIncluded.flatMap((exclusion) =>
-    exclusion
-      .split("\n")
-      .map((line) => line.trim().replace(/^•\s*/, ""))
-      .filter(Boolean)
-  );
+  const flatExclusions = splitExclusions(notIncluded);
 
   // Any setup with at least one real item has something to open "Customize
   // items" on — the heading flags that up front rather than the customer
   // discovering it setup by setup.
   const hasCustomizableItems = items.some((setup) => setup.items.length > 0);
 
+  // "Check Exclusions" bar (Figma node 3233:26310) — the footer of the same
+  // card as the setups, not a separate card below it. Renders nothing when the
+  // vendor listed no exclusions.
+  function exclusionsFooter(extraClassName = "", compact = false) {
+    if (flatExclusions.length === 0) return null;
+    return (
+      <div className={`border-t border-[#E4E4E7] bg-[#FAFAFA] ${extraClassName}`}>
+        <button
+          type="button"
+          onClick={() => setIsExclusionsOpen((open) => !open)}
+          aria-expanded={isExclusionsOpen}
+          className={`flex w-full items-center gap-1 text-left ${compact ? "px-3 py-2.5" : "px-7 py-2"}`}
+        >
+          <span
+            className={`font-figtree font-medium ${compact ? "text-[14px] text-[#B4112A]" : "text-[16px] leading-6 text-[#B91D34]"}`}
+          >
+            Check Exclusions
+          </span>
+          <img
+            src="/images/customer/package-detail/arrow-right.svg"
+            alt=""
+            className={`shrink-0 transition-transform ${compact ? "h-4 w-4" : "h-5 w-5"} ${isExclusionsOpen ? "rotate-90" : ""}`}
+          />
+        </button>
+
+        {isExclusionsOpen && (
+          <div className={`border-t border-[#E4E4E7] py-4 ${compact ? "px-3" : "px-7"}`}>
+            <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
+              EXCLUSIONS ({flatExclusions.length})
+            </p>
+            <div className="flex flex-col gap-2">
+              {flatExclusions.map((exclusion, i) => (
+                <div key={i} className="flex items-start gap-2">
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
+                  <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // The checklist itself stays as the vendor listed it, but the colour badge
+  // beside each item has to follow what the customer picked in the modal
+  // (vendor-palette pick in the item details, or custom colours in Customize
+  // items), which lives only in the workshop's own state.
+  function withLiveColours(setupId: string, line: IncludedItemLine): IncludedItemLine {
+    const live = workshop.itemsBySetup[setupId]?.find((item) => item.id === line.id);
+    return live ? { ...line, colours: live.colours, customColours: live.customColours } : line;
+  }
+
   return (
-    <section id="included" className="border-t border-black/5 pt-8">
-      <SectionHeading>
-        What&apos;s Included
-        {items.length > 0 && <span> · {items.length} setup{items.length === 1 ? "" : "s"}</span>}
+    <section id="included" className="border-t border-black/5 pt-5 md:pt-8">
+      <div className="hidden md:block">
+        <SectionHeading>
+          What&apos;s Included
+          {items.length > 0 && <span> · {items.length} setup{items.length === 1 ? "" : "s"}</span>}
+          {hasCustomizableItems && (
+            <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[#F0596F]/30 bg-[#FFF0F2] px-2.5 py-1 font-figtree text-[11px] font-semibold text-[#F0596F]">
+              {/* Figma node 3233:25607 — palette icon. */}
+              <span
+                aria-hidden
+                className="h-3.5 w-3.5 shrink-0 bg-current"
+                style={{
+                  WebkitMask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
+                  mask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
+                }}
+              />
+              Customizable
+            </span>
+          )}
+        </SectionHeading>
+      </div>
+
+      {/* Mobile header (Figma node 3642:97078): accent bar, 18px title and a Customisable tag. */}
+      <div className="mb-3 flex items-start gap-1 md:hidden">
+        <h2 className="flex items-center gap-2.5 font-figtree text-[18px] font-semibold text-[#222]">
+          <span className="h-[22px] w-1 rounded-[2px] bg-[#F0596F]" />
+          What&apos;s Included
+        </h2>
         {hasCustomizableItems && (
-          <span className="ml-1 inline-flex items-center gap-1.5 rounded-full border border-[#F0596F]/30 bg-[#FFF0F2] px-2.5 py-1 font-figtree text-[11px] font-semibold text-[#F0596F]">
-            {/* Figma node 3233:25607 — palette icon. */}
+          <span className="flex items-center gap-1.5 rounded-full bg-[#FEF5F7] px-2.5 py-1 font-figtree text-[12px] leading-4 font-medium whitespace-nowrap text-[#B4112A]">
             <span
               aria-hidden
               className="h-3.5 w-3.5 shrink-0 bg-current"
@@ -88,10 +171,10 @@ export default function IncludedItems({
                 mask: "url(/images/customer/package-detail/customizable-palette.svg) center / contain no-repeat",
               }}
             />
-            Customizable
+            Customisable
           </span>
         )}
-      </SectionHeading>
+      </div>
 
       {/* Desktop/tablet layout — unchanged. */}
       <div className="hidden overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white md:block">
@@ -247,7 +330,7 @@ export default function IncludedItems({
                               {line.label}
                               {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                             </span>
-                            {!line.removalRequested && <ItemColourBadge item={line} />}
+                            {!line.removalRequested && <ItemColourBadge item={withLiveColours(setup.id, line)} />}
                             {line.isNew && (
                               <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
                                 New
@@ -272,103 +355,100 @@ export default function IncludedItems({
             );
           })}
         </div>
+        {exclusionsFooter()}
       </div>
 
-      {/* Mobile layout (Figma node 2565:28051) — one card per setup: a
-          smaller portrait image beside compact label:value detail lines
-          (instead of the desktop's wide image + stacked rows), the "View &
-          Customise" button, then the same items checklist below a dashed
-          divider, using the same filled pink check-circle icon as desktop. */}
-      <div className="flex flex-col divide-y divide-[#E4E4E7] rounded-2xl border border-[#E4E4E7] bg-white px-4 md:hidden">
-        {items.map((setup, i) => {
-          const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
-          const liveItems = setup.items;
-          return (
-            <div key={setup.id} className="flex flex-col gap-3 py-[14px]">
-              <div className="flex items-start gap-3">
-                {setup.image ? (
-                  <button
-                    type="button"
-                    onClick={() => setExpandedImageSetupId(setup.id)}
-                    aria-label={`View larger image of ${setup.title}`}
-                    className="h-[139px] w-[118px] shrink-0 overflow-hidden rounded-xl"
-                  >
-                    <img src={setup.image} alt={setup.title} className="block h-full w-full object-cover" />
-                  </button>
-                ) : (
-                  <div className="h-[139px] w-[118px] shrink-0 overflow-hidden rounded-xl">
-                    <PlaceholderMedia seed={i} className="absolute inset-0" />
+      {/* Mobile layout (Figma node 3642:97078) — one block per setup: a small
+          image beside the setup type, name and price, a three-column attributes
+          strip, the items checklist (first three, then "Show all"), and a
+          full-width "View & Customize" pill; "Check Exclusions" closes the card. */}
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-[#E4E4E7] bg-white md:hidden">
+        <div className="flex flex-col px-3">
+          {items.map((setup, i) => {
+            const requestCount = workshop.requests.filter((r) => r.setupId === setup.id).length;
+            const liveItems = setup.items;
+            const itemsOpen = expandedItemSetupIds.has(setup.id);
+            const shownItems = itemsOpen ? liveItems : liveItems.slice(0, 3);
+            const setupType = setup.details.find((d) => d.label === "Setup type")?.value;
+            // Attributes strip: Decorating, Theme, Setup type — whichever the vendor filled in.
+            const attributes = ["Decorating", "Theme", "Setup type"]
+              .map((label) => setup.details.find((d) => d.label === label))
+              .filter((d): d is NonNullable<typeof d> => Boolean(d));
+            return (
+              <div
+                key={setup.id}
+                className={`flex flex-col gap-2 py-3 ${i > 0 ? "border-t border-[#E4E4E7]" : ""}`}
+              >
+                <div className="flex h-[74px] items-center gap-3">
+                  {setup.image ? (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedImageSetupId(setup.id)}
+                      aria-label={`View larger image of ${setup.title}`}
+                      className="h-[74px] w-[95px] shrink-0 overflow-hidden rounded-xl"
+                    >
+                      <img src={setup.image} alt={setup.title} className="block h-full w-full object-cover" />
+                    </button>
+                  ) : (
+                    <div className="relative h-[74px] w-[95px] shrink-0 overflow-hidden rounded-xl">
+                      <PlaceholderMedia seed={i} className="absolute inset-0" />
+                    </div>
+                  )}
+                  <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+                    <div className="flex flex-col">
+                      {setupType && (
+                        <span className="font-figtree text-[12px] leading-[18px] text-[#71717B]">{setupType} setup</span>
+                      )}
+                      <p className="font-figtree text-[16px] leading-6 font-medium text-[#030303]">{setup.title}</p>
+                    </div>
+                    <p className="font-figtree text-[16px] leading-6 font-semibold text-[#030303]">
+                      {formatPrice(setup.price)}
+                    </p>
                   </div>
-                )}
+                </div>
 
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <p className="font-figtree text-[16px] leading-[22px] font-semibold text-[#222]">{setup.title}</p>
-
-                  <div className="flex flex-col gap-1">
-                    {setup.details.map((detail) => {
+                {attributes.length > 0 && (
+                  <div className="flex items-stretch rounded-xl bg-[#FAFAFA] py-3">
+                    {attributes.map((detail, index) => {
                       const key = `${setup.id}-${detail.label}-m`;
                       const isExpanded = expandedDetailKeys.has(key);
                       return (
-                        <p key={detail.label} className="font-figtree text-[14px] text-[#71717B]">
-                          {detail.label}:{" "}
-                          <span className="font-medium text-[#3F3F47]">
+                        <div
+                          key={detail.label}
+                          className={`flex min-w-0 flex-1 flex-col gap-0.5 px-3 ${index < attributes.length - 1 ? "border-r border-[#E4E4E7]" : ""}`}
+                        >
+                          <span className="font-figtree text-[12px] leading-[18px] text-[#71717B]">{detail.label}</span>
+                          <p className="font-figtree text-[14px] leading-5 font-medium text-[#030303]">
                             {isExpanded && detail.allValues ? detail.allValues.join(", ") : detail.value}
                             {detail.moreCount ? (
                               <>
                                 {!isExpanded && " "}
-                                <button
-                                  type="button"
-                                  onClick={() => toggleDetailExpanded(key)}
-                                  className="underline"
-                                >
+                                <button type="button" onClick={() => toggleDetailExpanded(key)} className="underline">
                                   {isExpanded ? "Show less" : `+${detail.moreCount}`}
                                 </button>
                               </>
                             ) : null}
-                          </span>
-                        </p>
+                          </p>
+                        </div>
                       );
                     })}
                   </div>
+                )}
 
-                  <div className="pt-0.5 font-figtree text-[18px] font-semibold text-[#222]">
-                    {formatPrice(setup.price)}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setActiveSetupId(setup.id)}
-                className="flex w-fit items-center gap-1.5 rounded-2xl border border-[#F0596F] bg-white py-[9px] pr-[13px] pl-[9px] font-figtree text-[12px] font-semibold text-[#F0596F]"
-              >
-                <span
-                  aria-hidden
-                  className="h-4 w-4 shrink-0 bg-current"
-                  style={{
-                    WebkitMask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
-                    mask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
-                  }}
-                />
-                View & Customise
-              </button>
-
-              {liveItems.length > 0 && (
-                <>
-                  <hr className="border-dashed border-black/10" />
-
-                  <div className="flex flex-col gap-3">
+                {liveItems.length > 0 && (
+                  <div className="flex flex-col gap-2.5">
                     <div className="flex items-center gap-2">
-                      <p className="font-figtree text-[12px] tracking-[0.06em] text-[#71717B]">ITEMS</p>
+                      <p className="font-figtree text-[12px] leading-[18px] font-medium text-[#71717B]">
+                        ITEMS ({liveItems.length})
+                      </p>
                       {requestCount > 0 && (
-                        <span className="rounded-full bg-[#FEF3E2] px-2.5 py-1.5 font-figtree text-[11px] font-medium text-[#C2410C]">
+                        <span className="rounded-full bg-[#FEF3E2] px-2.5 py-1 font-figtree text-[11px] font-medium text-[#C2410C]">
                           {requestCount} customisation{requestCount === 1 ? "" : "s"} requested
                         </span>
                       )}
                     </div>
-
-                    <div className="flex flex-col gap-2">
-                      {liveItems.map((line) => (
+                    <div className="flex flex-col gap-2.5">
+                      {shownItems.map((line) => (
                         <div
                           key={line.id}
                           className={`flex flex-wrap items-center gap-2 ${line.removalRequested ? "text-neutral-tertiary line-through" : ""}`}
@@ -378,11 +458,13 @@ export default function IncludedItems({
                             alt=""
                             className={`h-3.5 w-3.5 shrink-0 ${line.removalRequested ? "opacity-40 grayscale" : ""}`}
                           />
-                          <span className={`font-figtree text-[14px] ${line.removalRequested ? "" : "text-[#3F3F47]"}`}>
+                          <span
+                            className={`font-figtree text-[14px] leading-5 ${line.removalRequested ? "" : "text-[#3F3F47]"}`}
+                          >
                             {line.label}
                             {!(line.category === "Flowers" && line.volume) && ` × ${line.qty}`}
                           </span>
-                          {!line.removalRequested && <ItemColourBadge item={line} />}
+                          {!line.removalRequested && <ItemColourBadge item={withLiveColours(setup.id, line)} />}
                           {line.isNew && (
                             <span className="rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 no-underline">
                               New
@@ -390,49 +472,42 @@ export default function IncludedItems({
                           )}
                         </div>
                       ))}
+                      {liveItems.length > 3 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleItemsExpanded(setup.id)}
+                          aria-expanded={itemsOpen}
+                          className="flex w-fit items-center gap-1 font-figtree text-[14px] leading-5 font-medium text-[#3F3F47]"
+                        >
+                          {itemsOpen ? "Show fewer items" : `Show all ${liveItems.length} items`}
+                          <ChevronRight className={`h-4 w-4 transition-transform ${itemsOpen ? "-rotate-90" : ""}`} />
+                        </button>
+                      )}
                     </div>
                   </div>
-                </>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                )}
 
-      {flatExclusions.length > 0 && (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-[#E4E4E7]">
-          <button
-            type="button"
-            onClick={() => setIsExclusionsOpen((open) => !open)}
-            className="flex h-10 w-full items-center justify-start gap-2 bg-[#FAFAFA] px-7 py-2"
-          >
-            <span className="font-figtree text-[14px] leading-[20px] font-medium text-[#B4112A]">
-              Check Exclusions
-            </span>
-            <ArrowRight
-              className={`h-4 w-4 shrink-0 text-[#B4112A] transition-transform ${
-                isExclusionsOpen ? "rotate-90" : ""
-              }`}
-            />
-          </button>
-
-          {isExclusionsOpen && (
-            <div className="border-t border-[#E4E4E7] bg-[#FAFAFA] px-7 py-4">
-              <p className="mb-3 font-figtree text-[12px] leading-[20px] font-medium tracking-[0.03em] text-[#71717B]">
-                EXCLUSIONS ({flatExclusions.length})
-              </p>
-              <div className="flex flex-col gap-2">
-                {flatExclusions.map((exclusion, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-[#B4112A]" strokeWidth={1.5} />
-                    <span className="font-figtree text-[14px] leading-[20px] text-[#3F3F47]">{exclusion}</span>
-                  </div>
-                ))}
+                <button
+                  type="button"
+                  onClick={() => setActiveSetupId(setup.id)}
+                  className="flex w-full items-center justify-center gap-1.5 rounded-full border border-[#F0596F] bg-white px-3.5 py-2 font-figtree text-[14px] leading-5 font-medium text-[#F0596F]"
+                >
+                  <span
+                    aria-hidden
+                    className="h-3.5 w-3.5 shrink-0 bg-current"
+                    style={{
+                      WebkitMask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
+                      mask: "url(/images/customer/package-detail/view-customise.svg) center / contain no-repeat",
+                    }}
+                  />
+                  View & Customize
+                </button>
               </div>
-            </div>
-          )}
+            );
+          })}
         </div>
-      )}
+        {exclusionsFooter("", true)}
+      </div>
 
       {activeSetup && (
         <CustomizeWorkshopModal

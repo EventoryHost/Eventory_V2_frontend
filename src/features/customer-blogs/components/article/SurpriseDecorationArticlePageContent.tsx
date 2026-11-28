@@ -52,7 +52,7 @@ export default function SurpriseDecorationArticlePageContent() {
         </div>
       </section>
 
-      <RelatedPostsSection />
+      <RelatedPostsSection currentId="surprise-decoration-for-partner" />
       <div className="pb-16">
         <ReadyToPlanBanner />
       </div>

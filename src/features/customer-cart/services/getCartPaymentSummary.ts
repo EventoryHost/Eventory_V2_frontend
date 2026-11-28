@@ -1,7 +1,7 @@
 import type { RawCartQuote } from "@/lib/customerCartApi";
 import type { CartVendor } from "../types";
 import type { BookingLineRow, BookingPaymentMilestone } from "@/features/customer-booking/types";
-import { groupPaymentMilestones } from "@/features/customer-booking/utils/groupPaymentMilestones";
+import { buildPaymentTimeline } from "@/features/customer-booking/utils/groupPaymentMilestones";
 import { formatPrice } from "../utils/currency";
 import {
   formatShortDate,
@@ -63,7 +63,7 @@ export function buildCartPaymentSummary(quote: RawCartQuote | null, vendors: Car
     }
   }
 
-  const milestones: BookingPaymentMilestone[] = groupPaymentMilestones(quote?.lines ?? [], formatPrice, formatShortDate);
+  const milestones: BookingPaymentMilestone[] = buildPaymentTimeline(quote, formatPrice, formatShortDate);
 
   return {
     rows,

@@ -4,6 +4,7 @@ import {
   getPackageCapacityLabel,
   getPackageDurationLabel,
   getPackageImage,
+  getPackageCardStats,
   getPackageStartingPrice,
 } from "@/lib/customerDiscoveryApi";
 import { resolveVendorCategory, VENDOR_TYPE_TO_CATEGORY } from "@/lib/vendorType";
@@ -135,6 +136,7 @@ export function mapPackageToVendor(pkg: RawPackage): Vendor {
     locations: locations.length > 0 ? locations : ["—"],
     description: pkg.vendorId?.description ?? "",
     images: image ? [image] : [FALLBACK_IMAGE],
+    ...getPackageCardStats(pkg),
 
     // Vendor-card fields. coverImage/profilePicture are the VENDOR's own
     // branding — deliberately not the package media used for `images`,

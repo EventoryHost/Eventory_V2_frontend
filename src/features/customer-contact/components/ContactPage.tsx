@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import ContactPageHeader from "./ContactPageHeader";
+import PaymentFailedBanner from "./PaymentFailedBanner";
 import ContactDetailsForm from "./ContactDetailsForm";
 import AlternateCoordinatorSection from "./AlternateCoordinatorSection";
 import BookingNotesSection from "./BookingNotesSection";
@@ -26,6 +27,19 @@ export default function ContactPage() {
   const [confirming, setConfirming] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+
+  // Sent back here by /payment/return when a payment was cancelled or failed.
+  // Show the notice once, then drop the flag from the URL so a refresh or a
+  // share doesn't bring it back.
+  const searchParams = useSearchParams();
+  const [paymentFailed, setPaymentFailed] = useState(searchParams.get("paymentFailed") === "1");
+  useEffect(() => {
+    if (searchParams.get("paymentFailed") !== "1") return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete("paymentFailed");
+    const query = params.toString();
+    window.history.replaceState(null, "", query ? `${window.location.pathname}?${query}` : window.location.pathname);
+  }, [searchParams]);
 
   // Real, in-app Cashfree payment (pay-integrate.txt, 2026-08-27) — the
   // customer is redirected to Cashfree's hosted page to actually pay, then
@@ -89,6 +103,8 @@ export default function ContactPage() {
       <div className="mx-auto w-full max-w-[1320px] bg-white px-4 pt-8 pb-16 shadow-[0_0_0_100vmax_white] [clip-path:inset(0_-100vmax)] sm:px-6 lg:px-16">
         <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
           <div className="flex w-full flex-col gap-6 lg:flex-1">
+            {paymentFailed && <PaymentFailedBanner onDismiss={() => setPaymentFailed(false)} />}
+
             <ContactPageHeader />
 
             {/* readyForPayment being false already bounces this page back to
@@ -127,6 +143,7 @@ export default function ContactPage() {
               sessionId={data?.sessionId ?? ""}
               initialStartTime={data?.eventTiming.startTime ?? ""}
               initialEndTime={data?.eventTiming.endTime ?? ""}
+              eventDateIso={data?.eventDateIso ?? null}
               onSaved={refresh}
             />
             <AlternateCoordinatorSection
@@ -163,6 +180,7 @@ export default function ContactPage() {
                   rows={data.paymentSummary.rows}
                   grandTotal={data.paymentSummary.grandTotal}
                   tokenAmount={data.paymentSummary.tokenAmount}
+                  remainingAmount={data.paymentSummary.remainingAmount}
                   payInFull={data.paymentSummary.payInFull}
                   cancellationNote={data.paymentSummary.cancellationNote}
                   ctaLabel={

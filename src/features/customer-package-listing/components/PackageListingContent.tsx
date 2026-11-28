@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeftRight, SlidersHorizontal } from "lucide-react";
+import { usePathname, useSearchParams } from "next/navigation";
+import Image from "next/image";
+import { SlidersHorizontal } from "lucide-react";
 import { browsePackages, getPackagesFilters, type BrowsePackagesParams } from "@/lib/customerDiscoveryApi";
 import { groupEventCategories } from "@/lib/eventCategoryGroups";
 import { CATEGORY_TO_VENDOR_TYPE, SORT_UI_TO_API } from "@/lib/vendorType";
@@ -51,6 +52,28 @@ const NO_BOOKMARKS: ReadonlySet<string> = new Set<string>();
  * first non-empty result, or the final (possibly still empty) attempt along
  * with a one-line explanation of what had to be dropped to get there.
  */
+/**
+ * Lowest and highest price across the selected price-range ids, for the
+ * server's minPrice/maxPrice. `contiguous` is false when the chosen ranges
+ * leave a gap between them (so the server's bounding total over-counts).
+ */
+function getPricingBounds(ids: string[]): { min?: number; max?: number; contiguous: boolean } {
+  const ranges = ids
+    .map((id) => {
+      const [minStr, maxStr] = id.split("-");
+      return { min: Number(minStr), max: maxStr === "plus" ? Infinity : Number(maxStr) };
+    })
+    .filter((range) => Number.isFinite(range.min))
+    .sort((a, b) => a.min - b.min);
+  if (ranges.length === 0) return { contiguous: true };
+  let contiguous = true;
+  for (let i = 1; i < ranges.length; i++) {
+    if (ranges[i].min > ranges[i - 1].max + 1) contiguous = false;
+  }
+  const max = ranges[ranges.length - 1].max;
+  return { min: ranges[0].min, max: Number.isFinite(max) ? max : undefined, contiguous };
+}
+
 async function fetchPackagesWithFallback(
   params: BrowsePackagesParams
 ): Promise<{
@@ -105,7 +128,6 @@ async function fetchPackagesWithFallback(
 }
 
 export default function PackageListingContent({ data }: { data: PackageListingData }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
@@ -179,6 +201,8 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   const [packages, setPackages] = useState(data.packages);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(data.totalPages);
+  // Every result matching the current filters on the server, not just the pages loaded so far.
+  const [total, setTotal] = useState(data.total);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   // Set only when the cascading fallback below had to drop a filter to find
@@ -218,6 +242,10 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   // pagination/sort — hence refetching from the server, same as
   // category/sort/search/date below, instead of a client-only refinement.
   const eventTypeParam = (selected.eventType ?? []).join(",");
+  // Pricing is sent to the server too (as the lowest and highest selected
+  // range), so `total` counts every matching package, not just loaded ones.
+  const pricingKey = (selected.pricing ?? []).join(",");
+  const pricingBounds = useMemo(() => getPricingBounds(selected.pricing ?? []), [selected.pricing]);
 
   // Keep the shareable URL in step with the state worth deep-linking.
   // Real bug fixed (PM reported 2026-11-0x): this used to leave the event type
@@ -237,7 +265,16 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
     if (sort !== "newest") params.set("sort", sort);
     if (date) params.set("date", date);
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    // history.replaceState, not router.replace: this page is force-dynamic, so
+    // router.replace re-ran the server component (several backend calls) on
+    // EVERY keystroke in the search box — that flood hit the API's rate limit
+    // (429) and crashed the page with "This page couldn't load". Next keeps
+    // useSearchParams in sync with replaceState, and nothing server-side
+    // reads these params, so no server round trip is needed.
+    const url = query ? `${pathname}?${query}` : pathname;
+    if (url !== `${window.location.pathname}${window.location.search}`) {
+      window.history.replaceState(window.history.state, "", url);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, category, sort, date, eventTypeParam]);
 
@@ -249,7 +286,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
   useEffect(() => {
     if (isFirstRun.current) {
       isFirstRun.current = false;
-      if (category === "all" && sort === "newest" && !debouncedSearch && !date && !eventTypeParam && !cityFilter) return;
+      if (category === "all" && sort === "newest" && !debouncedSearch && !date && !eventTypeParam && !cityFilter && !pricingKey) return;
     }
     let cancelled = false;
     setIsLoading(true);
@@ -260,6 +297,8 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
       city: cityFilter || undefined,
       sort: SORT_UI_TO_API[sort],
       date: date || undefined,
+      minPrice: pricingBounds.min,
+      maxPrice: pricingBounds.max,
       page: 1,
       limit: PACKAGES_PAGE_SIZE,
     })
@@ -268,6 +307,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
         setPackages(response.packages.map(mapPackageToListItem));
         setPage(1);
         setTotalPages(response.totalPages);
+        setTotal(response.total);
         setFallbackNotice(notice);
         effectiveParamsRef.current = effectiveParams;
       })
@@ -281,7 +321,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category, sort, debouncedSearch, date, eventTypeParam]);
+  }, [category, sort, debouncedSearch, date, eventTypeParam, pricingKey]);
 
   // Re-fetch the Event Type options scoped to whichever category tab is now
   // active (unscoped for "All"). Any currently-selected event type that
@@ -458,6 +498,10 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
 
   const visiblePackages = useMemo(() => filterPackages(packages, selected), [packages, selected]);
   const hasMore = page < totalPages;
+  // The server total is exact unless the selected price ranges leave a gap
+  // (e.g. 1999-4999 and 20000-29999), where it also counts the gap; then the
+  // count is limited to what has been loaded and filtered.
+  const resultCount = !pricingKey || pricingBounds.contiguous ? total : visiblePackages.length;
 
   const compareIdSet = useMemo(() => new Set(compareIds), [compareIds]);
   const compareItems = useMemo(
@@ -506,6 +550,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
       setPackages((prev) => [...prev, ...response.packages.map(mapPackageToListItem)]);
       setPage(nextPage);
       setTotalPages(response.totalPages);
+      setTotal(response.total);
     } catch {
       // Leave the loaded results in place; the button stays available.
     } finally {
@@ -547,7 +592,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
           selected={selected}
           onToggleOption={toggleOption}
           onClear={clearFilters}
-          resultCount={visiblePackages.length}
+          resultCount={resultCount}
         />
 
         <div className="min-w-0 flex-1">
@@ -575,7 +620,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
             {chips.length > 0 && <ActiveFilterChips chips={chips} onClearAll={clearAll} />}
 
             <div className="flex flex-wrap items-center justify-between gap-4">
-              <ResultsHeader heading={heading} resultCount={visiblePackages.length} />
+              <ResultsHeader heading={heading} resultCount={resultCount} />
               <div className="flex items-center gap-4">
                 <SortMenu value={sort} onChange={setSort} />
                 <button
@@ -588,7 +633,7 @@ export default function PackageListingContent({ data }: { data: PackageListingDa
                       : "bg-brand-primary text-white hover:opacity-90"
                   }`}
                 >
-                  <ArrowLeftRight className="size-5" />
+                  <Image src="/images/customer/compare-notes-icon.svg" alt="" width={20} height={20} className="size-5 shrink-0" />
                   {compareMode ? "Exit Compare" : "Compare Packages"}
                 </button>
               </div>

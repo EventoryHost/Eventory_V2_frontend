@@ -29,6 +29,10 @@ export interface PackageListItem {
   /** City + service areas of the owning vendor. */
   locations: string[];
   image?: string;
+  setupsCount?: number;
+  itemsCount?: number;
+  variantCount?: number;
+  customizable?: boolean;
 }
 
 /**

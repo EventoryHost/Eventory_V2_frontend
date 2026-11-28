@@ -13,11 +13,10 @@ import { formatPrice } from "../utils/formatPrice";
 import HeroGallery from "./HeroGallery";
 import PackageHeaderInfo from "./PackageHeaderInfo";
 import VariantSelector from "./VariantSelector";
-import PackageSummary from "./PackageSummary";
 import AboutPackage from "./AboutPackage";
 import IncludedItems from "./IncludedItems";
-import NotesForVendor from "./NotesForVendor";
 import VendorRequirements from "./VendorRequirements";
+import BookingJourney from "./BookingJourney";
 import AddonsCarousel from "./AddonsCarousel";
 import PaymentProtection from "./PaymentProtection";
 import PoliciesSection from "./PoliciesSection";
@@ -25,7 +24,10 @@ import VendorSection from "./VendorSection";
 import ReviewsSection from "./ReviewsSection";
 import StickyBookingCard from "./StickyBookingCard";
 import MobileBookingBar from "./MobileBookingBar";
-import RecommendedPackagesSection from "./RecommendedPackagesSection";
+import SimilarFromOthersSection from "./SimilarFromOthersSection";
+import SimilarPackagesComparison from "./SimilarPackagesComparison";
+import MoreFromVendorSection from "./MoreFromVendorSection";
+import SectionNavBar from "./SectionNavBar";
 
 function scrollToBookingCard() {
   document.getElementById("booking-card")?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -281,15 +283,20 @@ export default function PackageDetailPage({
   return (
     <div className="w-full bg-white">
     <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6">
+      <SectionNavBar />
       <HeroGallery
         images={data.gallery}
         categoryLabel={data.categoryLabel}
         vendorUnitName={data.vendorUnitName}
       />
-      <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
 
-      <div className="grid grid-cols-1 gap-10 pt-8 lg:grid-cols-3">
+      {/* Header (Figma node 3233:25522) sits in the left column with the
+          booking card (node 3233:26781) beside it, both starting at the same
+          row; the card stays sticky as the rest of the page scrolls past. */}
+      <div className="relative grid grid-cols-1 gap-10 pt-6 md:pt-0 lg:grid-cols-3 lg:gap-x-[55px]">
         <div className="space-y-10 lg:col-span-2">
+          <PackageHeaderInfo data={data} onCreateQuotation={scrollToBookingCard} />
+
           {data.variants.length > 1 && (
             <VariantSelector
               variants={data.variants}
@@ -298,18 +305,10 @@ export default function PackageDetailPage({
             />
           )}
 
-          <PackageSummary summary={data.summary} showTopDivider={data.variants.length > 1} />
           <AboutPackage text={data.aboutText} />
           {data.includedItems.length > 0 && (
             <IncludedItems items={data.includedItems} notIncluded={data.notIncluded} workshop={workshop} />
           )}
-          <NotesForVendor
-            value={vendorNote}
-            onChange={setVendorNote}
-            attachments={vendorNoteAttachments}
-            onAttachmentsChange={setVendorNoteAttachments}
-          />
-          <VendorRequirements requirements={data.vendorRequirements} />
           {data.addons.length > 0 && (
             <AddonsCarousel
               addons={data.addons}
@@ -319,8 +318,18 @@ export default function PackageDetailPage({
               onSetLineQuantity={setAddonLineQuantity}
             />
           )}
+          <VendorRequirements
+            requirements={data.vendorRequirements}
+            summary={data.summary}
+            facts={data.instructionFacts}
+            packageTitle={data.title}
+          />
+          <BookingJourney />
           <PaymentProtection protection={data.paymentProtection} />
-          {data.policies.length > 0 && <PoliciesSection policies={data.policies} />}
+          <PoliciesSection
+            eventDateIso={bookingForm.validEventDate}
+            vendorPolicyText={data.policies.find((policy) => policy.id === "policy-cancellation")?.description}
+          />
           <VendorSection vendor={data.vendor} />
           {data.reviews.total > 0 && <ReviewsSection reviews={data.reviews} />}
         </div>
@@ -329,7 +338,8 @@ export default function PackageDetailPage({
             MobileBookingBar (a fixed bottom bar + bottom sheet, Figma nodes
             2548:28662 onward) replaces it instead of just stacking below
             all the page content like this card used to on narrow screens. */}
-        <div className="hidden lg:block">
+        {/* pt-20: the card starts 80px below the row holding Share/Wishlist (Figma node 3233:26781). */}
+        <div className="hidden lg:block lg:pt-20">
           <StickyBookingCard
             form={bookingForm}
             packageTotal={packageTotal}
@@ -337,6 +347,9 @@ export default function PackageDetailPage({
             overtimeBillingUnit={data.pricing.overtimeBillingUnit}
             gstPercent={data.pricing.gstPercent}
             requiresGuestCount={data.requiresGuestCount}
+            packageTitle={data.title}
+            categoryLabel={data.categoryLabel}
+            teamAndEquipmentCharge={data.pricing.teamAndEquipmentCharge}
             includedItems={data.includedItems}
             selectedAddons={selectedAddons}
             editItemId={editCartItem?._id}
@@ -345,7 +358,12 @@ export default function PackageDetailPage({
         </div>
       </div>
 
-      <RecommendedPackagesSection currentPackageId={data.id} categorySlug={data.categorySlug} />
+      {/* After Reviews, full width: the table needs more room than the left column has. */}
+      <SimilarPackagesComparison current={data} />
+
+      <MoreFromVendorSection current={data} />
+
+      <SimilarFromOthersSection current={data} />
 
       <MobileBookingBar
         form={bookingForm}
@@ -357,6 +375,7 @@ export default function PackageDetailPage({
         addonsTotal={addonsTotal}
         requiresGuestCount={data.requiresGuestCount}
         editItemId={editCartItem?._id}
+        categoryLabel={data.categoryLabel}
       />
     </main>
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -9,10 +9,12 @@ import {
   getServerSnapshot,
   type RecentlyViewedPackage,
 } from "@/lib/recentlyViewed";
+import { getPackageDetail } from "@/lib/customerPackageDetailApi";
+import { getPackageCardStats, type RawPackage } from "@/lib/customerDiscoveryApi";
 import { CATEGORY_META } from "@/lib/categoryMeta";
 import { VENDOR_CATEGORIES } from "@/features/customer-vendors/data/filterConfig";
 import AccountViewToggle, { type AccountViewMode } from "./AccountViewToggle";
-import ViewedItemCard from "./ViewedItemCard";
+import ProductCard from "@/features/customer-landing/components/ProductCard";
 import RecentlyViewedCard from "./RecentlyViewedCard";
 
 /** The design's tab order (node 1414:8182 onward) — "all" is dropped. */
@@ -33,12 +35,42 @@ function slugOf(item: RecentlyViewedPackage) {
   return VENDOR_CATEGORIES.find((category) => category.label === item.categoryLabel)?.id ?? "";
 }
 
+type CardStats = ReturnType<typeof getPackageCardStats>;
+
+/**
+ * The viewed-items store only keeps what the PDP knew when it was opened, so
+ * the setups / items / variants / "Customize it" facts the listing cards show
+ * are read fresh from each package. Failures just leave that card without them.
+ */
+function useCardStats(packageIds: string[]) {
+  const [stats, setStats] = useState<Record<string, CardStats>>({});
+  const key = packageIds.join(",");
+
+  useEffect(() => {
+    let cancelled = false;
+    for (const id of key ? key.split(",") : []) {
+      getPackageDetail(id)
+        .then(({ package: pkg }) => {
+          if (cancelled) return;
+          setStats((prev) => ({ ...prev, [id]: getPackageCardStats(pkg as unknown as RawPackage) }));
+        })
+        .catch(() => {});
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [key]);
+
+  return stats;
+}
+
 export default function ViewedItemsContent() {
   const items = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const [activeSlug, setActiveSlug] = useState(TAB_SLUGS[0]);
   const [view, setView] = useState<AccountViewMode>("grid");
 
   const visible = items.filter((item) => slugOf(item) === activeSlug);
+  const cardStats = useCardStats(visible.map((item) => item.packageId));
 
   return (
     <>
@@ -105,9 +137,28 @@ export default function ViewedItemsContent() {
               </Link>
             </div>
           ) : view === "grid" ? (
-            <div className="flex flex-wrap gap-6">
+            // The same shared card the package listing page uses, so a package looks identical everywhere.
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
               {visible.map((item) => (
-                <ViewedItemCard key={item.packageId} item={item} />
+                <ProductCard
+                  key={item.packageId}
+                  fullWidth
+                  href={`/packages/${item.packageId}`}
+                  image={item.image ?? "/images/customer/packages-pics.png"}
+                  categoryLabel={item.categoryLabel}
+                  categoryIcon={item.categoryIcon ?? "/images/customer/packages-pics.png"}
+                  categoryGradientFrom={item.categoryGradientFrom}
+                  tags={item.eventTags}
+                  title={item.variantLabel ? `${item.title} - ${item.variantLabel}` : item.title}
+                  rating={item.rating}
+                  reviewCount={item.reviewCount}
+                  duration=""
+                  guestCapacity=""
+                  price={item.price}
+                  priceSuffix={item.priceSuffix}
+                  locations={[]}
+                  {...cardStats[item.packageId]}
+                />
               ))}
             </div>
           ) : (

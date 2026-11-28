@@ -2,7 +2,7 @@ import ArticleHeroSection from "./ArticleHeroSection";
 import ArticleShareRail from "./ArticleShareRail";
 import ArticleBody from "./ArticleBody";
 import ArticleTableOfContents from "./ArticleTableOfContents";
-import RelatedArticlesSection from "./RelatedArticlesSection";
+import RelatedPostsSection from "./RelatedPostsSection";
 import ReadyToPlanBanner from "@/features/customer-landing/components/ReadyToPlanBanner";
 
 const TOC_ITEMS = [
@@ -51,7 +51,7 @@ export default function DiwaliOfficeArticlePageContent() {
         </div>
       </section>
 
-      <RelatedArticlesSection />
+      <RelatedPostsSection currentId="diwali-office-decoration-ideas-2026" />
       <div className="pb-16">
         <ReadyToPlanBanner />
       </div>

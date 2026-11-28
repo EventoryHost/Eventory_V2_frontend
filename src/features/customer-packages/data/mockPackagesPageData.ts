@@ -54,8 +54,13 @@ const POPULAR_CATEGORY_IMAGES = [
   "/images/customer/packages/popular-categories/entertainer.png",
 ];
 
-function pickPopularCategoryImage(index: number) {
-  return POPULAR_CATEGORY_IMAGES[index % POPULAR_CATEGORY_IMAGES.length];
+// Subcategories with their own dedicated artwork — everything else cycles through the generic renders above by position.
+const POPULAR_CATEGORY_IMAGE_BY_TITLE: Record<string, string> = {
+  "Car Decoration": "/images/customer/packages/popular-categories/car-decoration.png",
+};
+
+function pickPopularCategoryImage(index: number, title?: string) {
+  return (title && POPULAR_CATEGORY_IMAGE_BY_TITLE[title]) || POPULAR_CATEGORY_IMAGES[index % POPULAR_CATEGORY_IMAGES.length];
 }
 
 const FESTIVE_OFFER: FestiveOffer = {
@@ -158,7 +163,7 @@ function buildCategoryBlocks(
         items: subcategories.map((title, i) => ({
           id: `${categoryId}-sub-${i}`,
           title,
-          image: pickPopularCategoryImage(i),
+          image: pickPopularCategoryImage(i, title),
           // The filterable package listing, this category preselected AND
           // the subcategory's own title forwarded as the listing's real
           // free-text search (`q`, PackageListingContent.tsx line 41/129) —
@@ -272,6 +277,7 @@ export const mockPackagesPageData: PackagesPageData = {
         "Theme Decor",
         "Entrance Decor",
         "Ceiling Decor",
+        "Car Decoration",
       ],
       [
         { title: "Birthday Balloon Arch", price: 5000 },

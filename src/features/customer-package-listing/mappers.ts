@@ -1,6 +1,7 @@
 import type { RawPackage } from "@/lib/customerDiscoveryApi";
 import {
   getPackageCapacityLabel,
+  getPackageCardStats,
   getPackageDurationLabel,
   getPackageImage,
   getPackageStartingPrice,
@@ -43,5 +44,6 @@ export function mapPackageToListItem(pkg: RawPackage): PackageListItem {
     startingPrice: getPackageStartingPrice(pkg),
     locations,
     image: getPackageImage(pkg),
+    ...getPackageCardStats(pkg),
   };
 }

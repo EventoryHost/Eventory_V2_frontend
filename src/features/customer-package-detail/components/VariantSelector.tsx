@@ -120,20 +120,23 @@ export default function VariantSelector({
         </div>
       </div>
 
-      {/* Mobile layout (Figma node 2565:27923) — a white, rounded card
-          wrapping its own "Choose your variant" header, a horizontally
+      {/* Mobile layout (Figma node 3642:97023) — a white, rounded card
+          wrapping its own accent-bar "Variants" header with an options count, a horizontally
           scrolling row of compact variant cards, and a footer line that
           jumps to the What's Included section. */}
       <div className="flex flex-col gap-[14px] rounded-[20px] bg-white py-4 md:hidden">
         <div className="flex items-center justify-between px-4">
-          <p className="font-figtree text-[16px] font-semibold text-[#222]">Choose your variant</p>
+          <h2 className="flex items-center gap-2.5 font-figtree text-[18px] font-semibold text-[#222]">
+            <span className="h-[22px] w-1 rounded-[2px] bg-[#F0596F]" />
+            Variants
+          </h2>
           <p className="font-figtree text-[12px] text-[#71717B]">{variants.length} options</p>
         </div>
 
         <div
           role="radiogroup"
           aria-label="Package variant"
-          className="flex w-full gap-[10px] overflow-x-auto px-4"
+          className="flex w-full gap-[10px] overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {variants.map((variant, i) => {
             const isSelected = variant.id === selectedId;

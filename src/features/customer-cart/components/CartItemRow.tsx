@@ -28,7 +28,7 @@ export default function CartItemRow({
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <input
           type="checkbox"
           checked={item.selected}
@@ -49,7 +49,7 @@ export default function CartItemRow({
           // this vertically centered against the card beside it — not a
           // fixed margin, so it stays centered whether the card is short or
           // grows taller (a longer title, the add-ons drawer opening, etc.).
-          className="h-4 w-4 shrink-0 rounded accent-black outline-none"
+          className="hidden h-5 w-5 shrink-0 cursor-pointer appearance-none rounded-[5px] md:block border-[1.5px] border-[#A1A1AA] bg-white bg-center bg-no-repeat outline-none checked:border-transparent checked:bg-[url(/images/customer/cart/checkbox-checked.svg)] checked:bg-[length:20px_20px] indeterminate:border-transparent indeterminate:bg-[url(/images/customer/cart/checkbox-checked.svg)] indeterminate:bg-[length:20px_20px]"
         />
 
         <div className="min-w-0 flex-1">
@@ -63,10 +63,14 @@ export default function CartItemRow({
               event details, or the add-ons drawer underneath never get
               clipped to fit the spec's 848x237 box — the box is a target
               size, not a cap. */}
-          <div className="max-w-212 overflow-hidden rounded-3xl border border-neutral-subtle bg-white shadow-sm md:min-h-59.25">
+          <div className="overflow-hidden rounded-3xl border border-neutral-subtle bg-white shadow-sm">
             <PackageInfo
               cartPackage={item.package}
+              vendorName={item.vendorName}
+              vendorVerified={item.verified}
               eventDetails={item.eventDetails}
+              selected={item.selected}
+              onToggleSelected={() => onToggleSelected(item.id)}
               onRemove={() => onRemove(item.id)}
               onMoveToWishlist={() => onMoveToWishlist(item.id)}
             />

@@ -50,17 +50,24 @@ function toBudgetSuggestion(pkg: RawPackage): BudgetEstimatorSuggestion {
   };
 }
 
+// A failed request must not read as "this category has no packages" (that
+// shows the "coming soon" screen), so a failure is retried before giving up.
+const FETCH_ATTEMPTS = 3;
+
 async function fetchRealPackagesForCategory(categoryId: string): Promise<RawPackage[][]> {
   const vendorType = CATEGORY_TO_VENDOR_TYPE[categoryId];
   if (!vendorType) return [];
-  try {
-    const responses = await Promise.all(
-      PRODUCT_BLOCK_SORTS.map((sort) => browsePackages({ vendorType, sort, page: 1, limit: PRODUCT_SECTION_LIMIT }))
-    );
-    return responses.map((response) => response.packages);
-  } catch {
-    return [];
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    try {
+      const responses = await Promise.all(
+        PRODUCT_BLOCK_SORTS.map((sort) => browsePackages({ vendorType, sort, page: 1, limit: PRODUCT_SECTION_LIMIT }))
+      );
+      return responses.map((response) => response.packages);
+    } catch {
+      if (attempt < FETCH_ATTEMPTS) await new Promise((resolve) => setTimeout(resolve, 300 * attempt));
+    }
   }
+  return [];
 }
 
 /**

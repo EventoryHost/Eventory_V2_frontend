@@ -4,6 +4,7 @@ import { Inter, Figtree } from "next/font/google";
 import TrackingScripts from "@/components/analytics/TrackingScripts";
 import RouteChangeTracker from "@/components/analytics/RouteChangeTracker";
 import ContactClickTracker from "@/components/analytics/ContactClickTracker";
+import HeicInputConverter from "@/components/HeicInputConverter";
 import { INDEXING_ENABLED, SITE_NAME, SITE_URL } from "@/lib/siteConfig";
 
 const inter = Inter({
@@ -44,6 +45,7 @@ export default function RootLayout({
         {children}
         <TrackingScripts />
         <ContactClickTracker />
+        <HeicInputConverter />
         <Suspense fallback={null}>
           <RouteChangeTracker />
         </Suspense>

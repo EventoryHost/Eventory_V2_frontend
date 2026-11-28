@@ -52,7 +52,7 @@ export default function DecoratorQuestionsArticlePageContent() {
         </div>
       </section>
 
-      <RelatedPostsSection />
+      <RelatedPostsSection currentId="decorator-questions-checklist" />
       <div className="pb-16">
         <ReadyToPlanBanner />
       </div>

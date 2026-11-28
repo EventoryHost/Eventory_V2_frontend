@@ -83,11 +83,11 @@ export const ARTICLES: Article[] = [
   },
 ];
 
-function BlogCard({ article }: { article: Article }) {
+export function BlogCard({ article }: { article: Article }) {
   return (
     <a
       href={article.href}
-      className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition-colors hover:border-[#F0596F]/30"
+      className="flex flex-1 flex-col overflow-hidden rounded-2xl border border-[#F4F4F5] bg-white transition duration-300 ease-out hover:scale-[1.02] hover:border-[#F0596F]/30"
     >
       <div className="relative h-[240px] w-full shrink-0">
         <Image src={article.cover} alt={article.title} fill className="object-cover" />

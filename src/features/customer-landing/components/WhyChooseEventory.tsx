@@ -42,12 +42,12 @@ function FeatureCard({ feature }: { feature: Feature }) {
   const Icon = feature.icon;
   return (
     <div
-      className={`relative mt-6 flex flex-col gap-4 rounded-tl-[4px] rounded-tr-2xl rounded-br-2xl rounded-bl-2xl px-6 pt-11 pb-6 ${
+      className={`group relative mt-6 flex flex-col gap-4 rounded-tl-[4px] rounded-tr-2xl rounded-br-2xl rounded-bl-2xl px-6 pt-11 pb-6 transition-transform duration-300 ease-out hover:scale-[1.03] ${
         isPink ? "bg-[#F0596F]" : "bg-[#FFF9F1]"
       }`}
     >
       <span
-        className={`absolute -top-6 left-4 flex h-12 w-12 -rotate-[11.25deg] items-center justify-center rounded-full border-2 ${
+        className={`absolute -top-6 left-4 flex h-12 w-12 -rotate-[11.25deg] items-center transition-transform duration-300 ease-out group-hover:rotate-0 justify-center rounded-full border-2 ${
           isPink ? "border-[#F0596F] bg-[#FFF9F1] text-[#F0596F]" : "border-[#FFF9F1] bg-[#F0596F] text-white"
         }`}
       >

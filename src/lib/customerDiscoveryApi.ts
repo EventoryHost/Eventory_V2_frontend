@@ -78,7 +78,11 @@ export interface RawPackage {
     capacity?: { minGuests?: number; maxGuests?: number };
     duration?: { minHours?: number; maxHours?: number };
   };
+  /** Live sibling tiers (Basic/Premium...) sharing this package's group, itself included. Attached by the list endpoints. */
+  variantCount?: number;
   step2_productsAndPricing?: {
+    /** Each setup's own item list. Only its length matters to the package cards. */
+    setups?: { themes?: string[]; items?: { name?: string; colors?: string[] }[] }[];
     /**
      * Vendor-authored "what's included" highlights. NOT reliably short/
      * pill-shaped across vendor types — confirmed with backend:
@@ -326,4 +330,51 @@ export function getPackageCapacityLabel(pkg: RawPackage): string {
   if (minGuests && maxGuests && minGuests !== maxGuests) return `${minGuests}-${maxGuests} guests`;
   if (minGuests || maxGuests) return `${minGuests ?? maxGuests} guests`;
   return "—";
+}
+
+/** The "2 setups · 11 items", "3 variants" and "Customize it" facts every package card shows, from the real package. */
+export function getPackageCardStats(pkg: RawPackage): {
+  setupsCount: number;
+  itemsCount: number;
+  variantCount: number;
+  customizable: boolean;
+} {
+  const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  // Only real, named items count: an empty or blank entry gives the customer nothing to customise.
+  const itemsCount = setups.reduce((total, setup) => total + (setup.items ?? []).filter((item) => item?.name?.trim()).length, 0);
+  return {
+    setupsCount: setups.length,
+    itemsCount,
+    variantCount: pkg.variantCount ?? 1,
+    // "Customize it" shows when a customer actually has a choice to make: a
+    // setup offers more than one theme, or an item offers more than one colour.
+    customizable: setups.some(
+      (setup) =>
+        (setup.themes ?? []).filter((theme) => theme?.trim()).length > 1 ||
+        (setup.items ?? []).some((item) => (item.colors ?? []).filter((color) => color?.trim()).length > 1)
+    ),
+  };
+}
+
+export interface LocationSuggestion {
+  /** Display line, e.g. "Karol Bagh, CENTRAL DELHI, 110005". */
+  label: string;
+  area: string;
+  pincode: string;
+  city: string;
+  district: string;
+}
+
+/**
+ * Localities / pincodes in the serviceable Delhi NCR dataset that match what
+ * the customer has typed so far, each with its pincode. Backs the PDP's event
+ * location typeahead, so a customer who doesn't know the pincode can pick a
+ * locality instead.
+ */
+export async function suggestServiceLocations(query: string, signal?: AbortSignal) {
+  const response = await apiFetch<{ success: true; data: LocationSuggestion[] }>(
+    `/customer/location/suggest?q=${encodeURIComponent(query)}`,
+    { auth: false, signal }
+  );
+  return response.data;
 }

@@ -1,3 +1,4 @@
+import { formatRangeStat } from "@/features/customer-vendors/utils/vendorStats";
 import type {
   PackageDetail,
   PackageVariant,
@@ -7,6 +8,7 @@ import type {
   ColourOption,
   AddonItem,
   VendorRequirement,
+  InstructionFacts,
   VendorRequirementIcon,
   PolicyItem,
   PaymentMilestone,
@@ -190,7 +192,43 @@ function mapGallery(pkg: RawFullPackage): GalleryImage[] {
     pkg.vendorType === "VenueProvider"
       ? (pkg.step4_sampleMedia?.spaceMedia ?? []).flatMap((space) => space.media ?? [])
       : (pkg.step4_sampleMedia?.media ?? []);
-  return media.map((item, i) => ({ id: `gallery-${i}`, image: item.url, alt: packageName }));
+  if (media.length > 0) {
+    return media.map((item, i) => ({
+      id: `gallery-${i}`,
+      image: item.url,
+      alt: packageName,
+      type: item.type === "video" || /\.(mp4|mov|webm|m4v)(\?|$)/i.test(item.url) ? ("video" as const) : ("image" as const),
+      source: "vendor" as const,
+    }));
+  }
+  // No sample media uploaded: show the setup photos instead of empty placeholders.
+  const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  return setups
+    .filter((setup) => Boolean(setup.setupPhoto))
+    .map((setup, i) => ({
+      id: `gallery-setup-${i}`,
+      image: setup.setupPhoto as string,
+      alt: setup.name || packageName,
+      type: "image" as const,
+      source: "vendor" as const,
+    }));
+}
+
+// Picks the closest icon for a vendor-typed requirement ("Power", "Setup area",
+// "Backdrop fixing permission"...); anything unrecognised gets the generic room icon.
+function requirementIcon(label: string): VendorRequirementIcon {
+  const text = label.toLowerCase();
+  if (/power|electric|socket|plug/.test(text)) return "electricity";
+  if (/stage|platform/.test(text)) return "stage";
+  if (/ac|air.?cond/.test(text)) return "ac";
+  if (/light/.test(text)) return "lighting";
+  if (/secur/.test(text)) return "security";
+  if (/permission|approval|fixing|drill|rigging|hanging|ceiling/.test(text)) return "permission";
+  if (/park/.test(text)) return "parking";
+  if (/water/.test(text)) return "water";
+  if (/storage|store/.test(text)) return "storage";
+  if (/vehicle|truck|lift|loading/.test(text)) return "vehicle";
+  return "room";
 }
 
 function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
@@ -204,10 +242,37 @@ function mapVendorRequirements(pkg: RawFullPackage): VendorRequirement[] {
     { flag: needs.security, id: "req-security", label: "Security", icon: "security" },
   ];
   const requirements = entries.filter((e) => e.flag).map(({ id, label, icon }) => ({ id, label, icon }));
+  // The vendor's own checklist. Many packages carry only this list and none of
+  // the yes/no flags above, so ignoring it hid real requirements entirely.
+  (needs.requirements ?? []).forEach((raw, index) => {
+    const label = raw.trim();
+    if (!label) return;
+    const icon = requirementIcon(label);
+    // "Power" in the list and the Electricity flag are the same need.
+    if (icon !== "room" && requirements.some((existing) => existing.icon === icon)) return;
+    requirements.push({ id: `req-list-${index}`, label, icon });
+  });
   if (needs.customText?.trim()) {
     requirements.push({ id: "req-custom", label: needs.customText.trim(), icon: "room" });
   }
   return requirements;
+}
+
+function mapInstructionFacts(pkg: RawFullPackage): InstructionFacts {
+  const step1 = pkg.step1_eventAndCrew;
+  const setups = pkg.step2_productsAndPricing?.setups ?? [];
+  const items = setups.flatMap((setup) => setup.items ?? []);
+  const { durationOfSetup } = packageDurationsInHours(step1);
+  return {
+    vendorType: pkg.vendorType,
+    setupHours: durationOfSetup && durationOfSetup > 0 ? durationOfSetup : undefined,
+    crewMin: step1?.crewSize?.minPeople,
+    crewMax: step1?.crewSize?.maxPeople,
+    crewRoles: (step1?.crewSize?.roles ?? []).filter(Boolean),
+    placements: [...new Set(setups.map((setup) => setup.referenceStyle).filter((style): style is NonNullable<typeof style> => Boolean(style)))],
+    itemTypes: [...new Set(items.map((item) => item.itemType?.trim()).filter((type): type is string => Boolean(type)))],
+    hasColourOptions: items.some((item) => (item.colors?.length ?? 0) > 0),
+  };
 }
 
 // Splits a free-text value on commas for display as "first part, +N more" —
@@ -591,6 +656,7 @@ function distributeTeamAndEquipmentCharge(
   const remainder = teamAndEquipmentCharge - share * items.length;
   return items.map((item, i) => ({
     ...item,
+    basePrice: item.price,
     price: item.price + share + (i === items.length - 1 ? remainder : 0),
   }));
 }
@@ -707,7 +773,17 @@ function mapPolicies(pkg: RawFullPackage): PolicyItem[] {
   return policies.filter((p): p is PolicyItem => p !== null);
 }
 
-function mapVendor(pkg: RawFullPackage): VendorInfo {
+// "2 - 5 years" -> "2–5 yrs", "10+ years" -> "10+ yrs": the vendor's own range, not just its lower bound.
+function formatExperience(raw?: string): string | undefined {
+  const text = (raw ?? "").trim();
+  if (!text) return undefined;
+  return text
+    .replace(/\s*-\s*/g, "–")
+    .replace(/years/i, "yrs")
+    .replace(/year/i, "yr");
+}
+
+function mapVendor(pkg: RawFullPackage, eventsDone: number): VendorInfo {
   const vendor = vendorOf(pkg);
   const name = vendor?.pocName ?? "Vendor";
   return {
@@ -723,6 +799,11 @@ function mapVendor(pkg: RawFullPackage): VendorInfo {
     // takes the lower bound, which is what "N+ Years" means.
     eventsCount: parseInt(vendor?.bookingsPerYear ?? "", 10) || vendor?.reviewsCount || 0,
     yearsExperience: parseInt(vendor?.experience ?? "", 10) || 0,
+    eventsDone,
+    bookingsPerYear: formatRangeStat(vendor?.bookingsPerYear) ?? undefined,
+    experienceLabel: formatExperience(vendor?.experience),
+    // "6 - 15 people" -> "6–15"
+    teamSize: vendor?.teamSize ? vendor.teamSize.replace(/\s*people\s*$/i, "").replace(/\s*-\s*/g, "–").trim() || undefined : undefined,
     // The vendor's own profile. This used to point at the vendor LISTING
     // filtered by category, because no per-vendor page existed when it was
     // written — "Vendor info" dropped you on a grid of every vendor in that
@@ -847,7 +928,7 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
   const teamAndEquipmentCharge = pkg.step3_policiesAndCharges?.teamAndEquipment?.price ?? 0;
   const includedItems = distributeTeamAndEquipmentCharge(mapIncludedItems(pkg), teamAndEquipmentCharge);
 
-  return {
+  const detail: PackageDetail = {
     id: pkg._id,
     categoryLabel: VENDOR_CATEGORIES.find((c) => c.id === slug)?.label ?? pkg.vendorType,
     categorySlug: slug,
@@ -912,18 +993,13 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
     includedItems,
     notIncluded: mapNotIncluded(pkg),
     vendorRequirements: mapVendorRequirements(pkg),
+    instructionFacts: mapInstructionFacts(pkg),
     addons: mapAddons(pkg),
-    paymentProtection: {
-      points: [
-        "A token amount holds your date and starts planning with the vendor.",
-        "The remaining balance is due as per the payment milestones shown at checkout.",
-        "Cancellation and change terms are listed in the Policies section below.",
-      ],
-      footnote: "Held safely by Eventory until your event is delivered.",
-    },
+    // Placeholder — replaced below once the token amount and vendor are known.
+    paymentProtection: { points: [], footnote: "" },
     policies: mapPolicies(pkg),
     paymentMilestones: mapPaymentMilestones(pkg),
-    vendor: mapVendor(pkg),
+    vendor: mapVendor(pkg, response.vendorStats?.eventsCompleted ?? 0),
     reviews,
     pricing: (() => {
       // Same teamAndEquipmentCharge already distributed into includedItems
@@ -969,4 +1045,50 @@ export async function getPackageDetail(packageId: string): Promise<PackageDetail
       };
     })(),
   };
+  detail.paymentProtection = buildPaymentProtection(pkg, detail);
+  return detail;
+}
+
+const VENDOR_NOUN: Record<string, string> = {
+  Decorator: "decorator",
+  VenueProvider: "venue",
+  DJArtist: "DJ",
+  PAV: "photographer",
+};
+
+// "Payment protection" bullets (Figma node 3642:93999). The token amount, the
+// vendor's name, the balance due date and the vendor type come from the
+// package; the faulty-items and vendor-cancellation promises are
+// platform-wide.
+function buildPaymentProtection(pkg: RawFullPackage, detail: PackageDetail): PackageDetail["paymentProtection"] {
+  const vendorName = detail.vendor.name;
+  const noun = VENDOR_NOUN[pkg.vendorType] ?? "vendor";
+  const points: string[] = [];
+
+  const tokenAmount = detail.pricing.tokenAmount;
+  const planning = pkg.vendorType === "Decorator" ? "the mood-board process" : "planning with your vendor";
+  if (tokenAmount > 0) {
+    points.push(`The ${formatPrice(tokenAmount)} token holds your date on ${vendorName}'s calendar and starts ${planning}.`);
+  } else {
+    points.push(`Your booking holds your date on ${vendorName}'s calendar and starts ${planning}.`);
+  }
+
+  // Balance due: the last milestone that is due before / on the event, else the generic line.
+  const balance = [...detail.paymentMilestones]
+    .reverse()
+    .find((m) => m.dueLabel && !/at booking/i.test(m.dueLabel));
+  points.push(
+    balance
+      ? `The balance covers materials, crew, transport and teardown, and is due ${balance.dueLabel}.`
+      : "The balance covers materials, crew, transport and teardown, and is due as per the payment timeline shown at checkout."
+  );
+
+  points.push(
+    "Faulty items policy: any item damaged, wilted or missing at handover is replaced within 2 hrs or refunded at the item price shown in What's included."
+  );
+  points.push(
+    `If the vendor cancels for any reason, you get 100% back within 5 working days, plus help re-booking a comparable ${noun}.`
+  );
+
+  return { points, footnote: "Held safely by Eventory until setup is complete." };
 }

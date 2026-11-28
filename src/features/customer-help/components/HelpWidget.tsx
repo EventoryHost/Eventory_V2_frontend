@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import AuthModal from "@/features/customer-auth/components/AuthModal";
 import { useCustomerSession } from "@/features/customer-auth/hooks/useCustomerSession";
 import { useSelectedCity } from "@/features/customer-landing/hooks/useSelectedCity";
 import { listHelpConversations, type HelpConversationSummary } from "@/lib/customerHelpApi";
@@ -111,10 +112,26 @@ function InlineBrief({
   }, []);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A guest's brief waits here while they log in, then sends with their account.
+  const pending = useRef<HelpBrief | null>(null);
+  const [authOpen, setAuthOpen] = useState(false);
 
   useEffect(() => {
     if (ref.current) scrollWithinPanel(ref.current);
   }, []);
+
+  const send = async (brief: HelpBrief) => {
+    if (sending) return;
+    setSending(true);
+    setError(null);
+    try {
+      await onSubmit(brief);
+    } catch {
+      setError("We couldn’t send that. Check your connection and try again.");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <div ref={ref} className="flex w-full flex-col gap-3">
@@ -130,17 +147,20 @@ function InlineBrief({
         signedIn={signedIn}
         isAfterHours={isAfterHours}
         isAreaServed={isAreaServed}
-        onSubmit={async (brief) => {
-          if (sending) return;
-          setSending(true);
-          setError(null);
-          try {
-            await onSubmit(brief);
-          } catch {
-            setError("We couldn’t send that. Check your connection and try again.");
-          } finally {
-            setSending(false);
-          }
+        onSubmit={(brief) => {
+          if (signedIn) return void send(brief);
+          pending.current = brief;
+          setAuthOpen(true);
+        }}
+      />
+      <AuthModal
+        isOpen={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onAuthenticated={(customer) => {
+          const brief = pending.current;
+          pending.current = null;
+          if (!brief) return;
+          void send({ ...brief, phone: brief.replyMode === "call-me" ? (customer.phone ?? null) : null });
         }}
       />
       {error && (

@@ -151,6 +151,10 @@ export default function VendorPackagesSection({
               guestCapacity={pkg.guestCapacity ?? "—"}
               price={formatPrice(pkg.startingPrice ?? 0)}
               locations={pkg.locations}
+              setupsCount={pkg.setupsCount}
+              itemsCount={pkg.itemsCount}
+              variantCount={pkg.variantCount}
+              customizable={pkg.customizable}
               isBookmarked={bookmarkedIds.has(pkg.id)}
               onToggleBookmark={() => onToggleBookmark(pkg.id)}
             />

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 // categoryId matches the ids VENDOR_CATEGORIES uses in
 // customer-vendors/data/filterConfig.ts, so each card deep-links straight
-// into that category's tab on /vendors.
+// into that category's package listing (/packages/browse).
 //
 // Decorator listed FIRST (PM instruction) — it's the only category with
 // real package depth right now, so it leads, and every other category
@@ -70,7 +70,7 @@ export default function BrowseVendors() {
         {VENDOR_CATEGORIES.map((category) => (
           <Link
             key={category.label}
-            href={`/vendors?category=${category.categoryId}`}
+            href={`/packages/browse?category=${category.categoryId}`}
             style={{
               background: `radial-gradient(circle at 100% 100%, ${category.color} 0%, #ffffff 65%)`,
             }}

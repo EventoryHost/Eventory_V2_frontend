@@ -1,5 +1,6 @@
 import { getCompare } from "@/lib/customerCompareApi";
 import { getWishlist } from "@/lib/customerWishlistApi";
+import { getAccessToken } from "@/lib/customerSession";
 import { getPackageDetail } from "@/features/customer-package-detail/services/getPackageDetail";
 import type { ComparisonView } from "../types";
 import { buildSections, toColumn, type ComparisonInput } from "../utils/buildComparison";
@@ -23,7 +24,8 @@ export async function getComparison(): Promise<ComparisonView> {
     return { vendorType: session.vendorType, columns: [], sections: [] };
   }
 
-  const notesByPackageId = await getWishlist()
+  // Notes live on the wishlist, which needs an account — guests just have none.
+  const notesByPackageId = await (getAccessToken() ? getWishlist() : Promise.reject(new Error("guest")))
     .then((wishlist) => {
       const notes = new Map<string, string>();
       wishlist.items.forEach((item) => {

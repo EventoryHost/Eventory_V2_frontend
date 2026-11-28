@@ -11,11 +11,11 @@ export default function AddonSection({
   if (addons.length === 0) return null;
 
   return (
-    <section>
-      <h4 className="mb-4 font-figtree text-[13px] font-bold tracking-wider text-neutral-primary uppercase">
+    <section className="-mx-4 md:mx-0">
+      <h4 className="mb-4 px-4 md:px-0 font-figtree text-[13px] font-bold tracking-wider text-neutral-primary uppercase">
         People also buy this
       </h4>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="flex gap-3 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 md:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
         {addons.map((addon) => (
           <AddonCard key={`${addon.itemId}-${addon.id}`} addon={addon} onAdd={onAdd} />
         ))}

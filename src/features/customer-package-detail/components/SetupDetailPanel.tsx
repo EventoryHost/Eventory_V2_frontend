@@ -4,13 +4,14 @@ import { useMemo, useState } from "react";
 import { PlusCircle, XCircle } from "lucide-react";
 import type { CustomizeRequest, IncludedItemEntry, IncludedItemLine } from "../types";
 import { formatPrice } from "../utils/formatPrice";
+import { useScrollingFlag } from "../hooks/useScrollingFlag";
 import YourRequestsPanel from "./YourRequestsPanel";
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div className="font-figtree text-[12px] text-neutral-tertiary">{label}</div>
-      <div className="mt-0.5 font-figtree text-[15px] font-semibold text-brand-950">{value}</div>
+      <div className="font-figtree text-[12px] leading-[18px] text-[#71717B]">{label}</div>
+      <div className="font-figtree text-[16px] leading-6 font-medium text-[#030303]">{value}</div>
     </div>
   );
 }
@@ -34,18 +35,20 @@ function ItemDetailCard({
   const displayVolume = item.category === "Flowers" ? (item.originalVolume ?? item.volume) : undefined;
 
   return (
-    <div className={`rounded-2xl border border-black/10 p-4 ${item.removalRequested ? "opacity-50" : ""}`}>
-      <div className="flex items-start justify-between gap-4">
+    <div
+      className={`flex flex-col gap-3 rounded-2xl border border-[#E4E4E7] bg-white px-3 pt-3 pb-4 ${item.removalRequested ? "opacity-50" : ""}`}
+    >
+      <div className="flex items-center justify-between gap-4">
         <h4
-          className={`font-figtree text-[15px] font-bold text-brand-950 ${item.removalRequested ? "line-through" : ""}`}
+          className={`font-figtree text-[16px] leading-6 font-medium text-[#030303] ${item.removalRequested ? "line-through" : ""}`}
         >
           {item.label}
         </h4>
         {item.price != null && (
-          <span className="shrink-0 font-figtree text-[15px] font-bold text-brand-950">{formatPrice(item.price)}</span>
+          <span className="shrink-0 font-figtree text-[16px] leading-6 font-semibold text-[#030303]">{formatPrice(item.price)}</span>
         )}
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-4">
+      <div className="flex flex-wrap gap-x-10 gap-y-3 md:gap-x-[120px]">
         {item.category && <Stat label="Item Type" value={item.category} />}
         {item.typeLabel && displayType && <Stat label={item.typeLabel} value={displayType} />}
         {/* Volume (Low/Medium/High density — e.g. flowers) replaces the
@@ -63,49 +66,39 @@ function ItemDetailCard({
         )}
       </div>
       {item.itemDescription && (
-        <p className="mt-3 font-figtree text-[13px] leading-[19.5px] text-neutral-secondary">{item.itemDescription}</p>
+        <p className="font-figtree text-[14px] leading-5 text-[#3F3F47]">{item.itemDescription}</p>
       )}
-      {/* A single colourOption is no real choice to make — PM request
-          2026-11-02: show it the same static "Chosen" chip style as the
-          What's Included checklist (ItemColourBadge/Figma node 3233:25979)
-          instead of an interactive (but pointless, since there's nothing
-          else to pick) one-button radiogroup. */}
-      {item.colourOptions && item.colourOptions.length === 1 && (
-        <div className="mt-3">
-          <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">Color</div>
-          <span className="inline-flex items-center gap-1.5 rounded-[6px] bg-[#F4F4F5] py-1 pr-2.5 pl-2">
-            <span
-              className="h-3.5 w-3.5 shrink-0 rounded-full"
-              style={{ backgroundColor: item.colourOptions[0].swatch }}
-            />
-            <span className="font-figtree text-[13px] font-medium text-[#030303]">{item.colourOptions[0].label}</span>
-          </span>
-        </div>
-      )}
-      {item.colourOptions && item.colourOptions.length > 1 && (
-        <div className="mt-3">
-          <div className="mb-2 font-figtree text-[12px] text-neutral-tertiary">
-            Color <span className="text-neutral-tertiary/70">· pick the one you&apos;d like</span>
-          </div>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Color">
+      {/* Colours (Figma 3641:83338): each is a bordered card with a round swatch
+          and the name. One option is just shown as the chosen colour; several
+          are a radio group — picking among the vendor's own colours is free
+          and never a request. */}
+      {item.colourOptions && item.colourOptions.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <div className="font-figtree text-[12px] leading-[18px] text-[#71717B]">Color</div>
+          <div className="flex flex-wrap gap-3" role="radiogroup" aria-label="Color">
             {item.colourOptions.map((colour) => {
-              const selected = item.colours?.includes(colour.id);
+              const single = item.colourOptions!.length === 1;
+              const selected = single || item.colours?.includes(colour.id);
               return (
                 <button
                   key={colour.id}
                   type="button"
                   role="radio"
                   aria-checked={selected}
-                  disabled={item.removalRequested}
+                  disabled={item.removalRequested || single}
                   onClick={() => onSelectColour(colour.id)}
-                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 font-figtree text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                    selected ? "border-[1.5px] border-[#B4112A] text-brand-950" : "border-black/15 text-neutral-secondary hover:border-black/30"
+                  className={`flex items-center gap-1 rounded-xl bg-white px-2 py-1.5 font-figtree text-[14px] leading-[17px] text-[#030303] transition disabled:cursor-default ${
+                    selected
+                      ? "border-[1.5px] border-[#B91D34]"
+                      : "border border-[#D5DAE2] hover:border-[#A1A1AA] disabled:opacity-50"
                   }`}
                 >
-                  <span
-                    className="h-4 w-4 shrink-0 rounded-full border border-black/10"
-                    style={{ backgroundColor: colour.swatch }}
-                  />
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center">
+                    <span
+                      className="h-[22px] w-[22px] rounded-full ring-2 ring-white ring-offset-1 ring-offset-black/10"
+                      style={{ backgroundColor: colour.swatch }}
+                    />
+                  </span>
                   {colour.label}
                 </button>
               );
@@ -139,6 +132,7 @@ export default function SetupDetailPanel({
   /** "Save setup" — the changes are already live-committed, so this just closes. */
   onSave: () => void;
 }) {
+  const scrollFlag = useScrollingFlag();
   const [selectedTheme, setSelectedTheme] = useState(setup.themeOptions?.[0]);
 
   // Same rule as ItemDetailCard — this summarises the setup's original
@@ -154,7 +148,8 @@ export default function SetupDetailPanel({
     return [...seen.values()];
   }, [items]);
 
-  const stats = [...setup.details, { label: "Items", value: String(items.length) }];
+  // Theme is shown as the chip picker below, so it is left out of the facts grid.
+  const stats = [...setup.details.filter((detail) => !/^themes?$/i.test(detail.label)), { label: "Items", value: String(items.length) }];
 
   return (
     <div className="flex h-full flex-col">
@@ -168,35 +163,42 @@ export default function SetupDetailPanel({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-6">
-        <h3 className="font-figtree text-[16px] font-bold text-brand-950">Setup Details</h3>
-        <div className="mt-4 grid grid-cols-3 gap-4">
+      <div {...scrollFlag} className="thin-scroll flex-1 overflow-y-auto px-6 py-6">
+        <h3 className="font-figtree text-[16px] leading-6 text-[#3F3F47]">Setup Details</h3>
+        <div className="mt-6 grid grid-cols-2 gap-x-6 gap-y-4 md:gap-x-[100px]">
           {stats.map((stat) => (
             <Stat key={stat.label} label={stat.label} value={stat.value} />
           ))}
         </div>
 
+
+        {/* Setup Theme (Figma 3641:83323): outlined chips, the picked one in the brand colour. */}
         {setup.themeOptions && setup.themeOptions.length > 0 && (
-          <div className="mt-6">
-            <div className="font-figtree text-[12px] text-neutral-tertiary">Setup Theme</div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {setup.themeOptions.map((theme) => (
-                <button
-                  key={theme}
-                  type="button"
-                  onClick={() => setSelectedTheme(theme)}
-                  className={`rounded-full border px-4 py-2 font-figtree text-[13px] transition ${
-                    selectedTheme === theme
-                      ? "border-[1.5px] border-[#B4112A] font-semibold text-brand-950"
-                      : "border-black/15 text-neutral-secondary hover:border-black/30"
-                  }`}
-                >
-                  {theme}
-                </button>
-              ))}
+          <div className="mt-6 flex flex-col gap-2">
+            <p className="font-figtree text-[14px] leading-5 text-[#71717B]">Setup Theme</p>
+            <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Setup theme">
+              {setup.themeOptions.map((theme) => {
+                const selected = selectedTheme === theme;
+                return (
+                  <button
+                    key={theme}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => setSelectedTheme(theme)}
+                    className={`flex min-h-8 items-center justify-center rounded-full px-4 py-1.5 font-figtree text-[14px] leading-5 whitespace-nowrap transition-colors ${
+                      selected
+                        ? "border-[1.5px] border-[#B91D34] text-[#030303]"
+                        : "border border-[#71717B] text-[#71717B] hover:border-[#030303] hover:text-[#030303]"
+                    }`}
+                  >
+                    {theme}
+                  </button>
+                );
+              })}
             </div>
             {palette.length > 0 && (
-              <p className="mt-2 font-figtree text-[12px] text-neutral-tertiary">Palette: {palette.join(" · ")}</p>
+              <p className="font-figtree text-[12px] leading-[18px] text-[#71717B]">Palette: {palette.join(" · ")}</p>
             )}
           </div>
         )}
@@ -204,7 +206,7 @@ export default function SetupDetailPanel({
         <div className="my-6 border-t border-dashed border-black/15" />
 
         <div className="flex items-center justify-between gap-3">
-          <h3 className="font-figtree text-[16px] font-bold text-brand-950">Items Details</h3>
+          <h3 className="font-figtree text-[16px] leading-6 text-[#3F3F47]">Items Details</h3>
           <button
             type="button"
             onClick={onCustomize}

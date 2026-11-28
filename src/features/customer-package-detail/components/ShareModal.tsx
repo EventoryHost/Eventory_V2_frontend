@@ -10,7 +10,7 @@ interface ShareTarget {
   vendorName: string;
   rating: number;
   locationSummary: string;
-  eventsCount: number;
+  eventsDone: number;
 }
 
 function buildShareText(target: ShareTarget, url: string) {
@@ -136,7 +136,7 @@ export default function ShareModal({
               </div>
               <p className="font-figtree text-[14px] text-neutral-secondary">
                 <span className="font-semibold text-brand-950">{target.title}</span> · {target.vendorName} ·{" "}
-                {target.locationSummary} · {target.eventsCount} events
+                {target.locationSummary}{target.eventsDone > 0 && ` · ${target.eventsDone} events done`}
               </p>
             </div>
 

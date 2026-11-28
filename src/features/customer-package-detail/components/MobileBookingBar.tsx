@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { X, MapPin, Loader2, ChevronDown, ShieldCheck, CheckCircle2 } from "lucide-react";
+import { X, Map as MapIcon, MapPin, Loader2, ChevronDown, ShieldCheck } from "lucide-react";
 import { formatPrice } from "../utils/formatPrice";
-import { formatDayMonth } from "../utils/cancellationPolicy";
+import { formatDayMonth, getCancellationTierStatus } from "../utils/cancellationPolicy";
 import SearchDatePicker from "@/features/customer-landing/components/SearchDatePicker";
 import EventTimingSlots from "./EventTimingSlots";
 import LocationServiceability from "./LocationServiceability";
+import LocationSuggestionList from "./LocationSuggestionList";
+import { useLocationSuggestions } from "../hooks/useLocationSuggestions";
 import type { UseBookingFormResult } from "../hooks/useBookingForm";
 
 type StepIndex = 0 | 1 | 2;
@@ -15,7 +17,8 @@ function StepBadge({ index, state }: { index: number; state: "done" | "active" |
   if (state === "done") {
     return (
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-[#ECFDF3]">
-        <CheckCircle2 className="h-4 w-4 fill-[#ECFDF3] text-[#008236]" />
+        {/* eslint-disable-next-line @next/next/no-img-element -- static local icon */}
+        <img src="/images/customer/package-detail/sheet-step-done.svg" alt="" className="h-4 w-4" />
       </span>
     );
   }
@@ -55,6 +58,7 @@ export default function MobileBookingBar({
   addonsTotal,
   requiresGuestCount = true,
   editItemId,
+  categoryLabel,
 }: {
   form: UseBookingFormResult;
   title: string;
@@ -65,6 +69,8 @@ export default function MobileBookingBar({
   addonsTotal: number;
   requiresGuestCount?: boolean;
   editItemId?: string;
+  /** Decorator packages call the slots "Installation time"; everything else "Event timing". */
+  categoryLabel?: string;
 }) {
   const {
     eventTypeOptions,
@@ -89,8 +95,9 @@ export default function MobileBookingBar({
     setGuestCount,
     isSubmitting,
     cartError,
-    inCartItemId,
     justAdded,
+    setIsBreakdownOpen,
+    setIsCancellationOpen,
     liveTokenAmount,
     validEventDate,
     cancellationTiers,
@@ -98,15 +105,37 @@ export default function MobileBookingBar({
     guestCountComplete,
     timingComplete,
     detailsComplete,
+    locationNotServiceable,
     requestAddToCart,
     requestBookClick,
   } = form;
+
+  const suggest = useLocationSuggestions(location, (value) => {
+    setLocation(value);
+    setIsLocationAutoFilled(false);
+    setLocationDetectError(null);
+  });
 
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [activeStep, setActiveStep] = useState<StepIndex | null>(0);
 
   const step0Done = Boolean(eventType);
-  const step1Done = Boolean(location.trim());
+  // A location only counts as done once the vendor is confirmed to serve it.
+  // It used to be "any text typed", which collapsed this step on the first
+  // character, hiding the serviceability result, and then left the customer
+  // stuck on a disabled Continue with no explanation.
+  const step1Done = Boolean(location.trim()) && !locationNotServiceable;
+  // Why the typed location isn't accepted yet, in words (null when it is, or nothing is typed).
+  const locationIssue = !location.trim() || !locationNotServiceable
+    ? null
+    : serviceability.status === "loading"
+      ? "Checking your location…"
+      : serviceability.status === "ready"
+        ? "This vendor doesn't serve this location. Try a different one."
+        : serviceability.status === "error"
+          ? "Couldn't check this location. Please try again."
+          : "Pick a locality from the suggestions, or add a 6-digit pincode, to confirm this vendor serves your area.";
+  const locationBlocked = Boolean(locationIssue) && serviceability.status !== "loading";
   const step2Done = Boolean(validEventDate) && timingComplete && guestCountComplete;
 
   // Auto-advance — "opens as soon as X is selected" (the user's own framing
@@ -119,6 +148,8 @@ export default function MobileBookingBar({
     if (activeStep === 1 && step1Done) setActiveStep(2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step1Done]);
+  // Step 3 closes as soon as a date, slot (and guest count, when asked for) are in,
+  // which reveals "Your booking" with Add to cart / Book.
   useEffect(() => {
     if (activeStep === 2 && step2Done) setActiveStep(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -142,37 +173,61 @@ export default function MobileBookingBar({
       : undefined;
 
   const dateTimeSummary = validEventDate
-    ? `${new Date(validEventDate).toLocaleDateString("en-US", { weekday: "short", day: "numeric", month: "short" })}${
-        selectedSlotLabel ? ` · ${selectedSlotLabel}` : ""
+    ? `${new Date(validEventDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}${
+        selectedSlotLabel ? ` · ${selectedSlotLabel.replace(/:00/g, "").replace(" - ", " – ")}` : ""
       }`
     : "";
+  // "Sun 14" for the slot list's "5 slots open on Sun 14".
+  const dayLabel = validEventDate
+    ? new Date(validEventDate).toLocaleDateString("en-GB", { weekday: "short", day: "numeric" })
+    : undefined;
+  // Everything is filled in and the customer has moved past step 3: show the summary + Add to cart / Book.
+  const showSummary = detailsComplete && activeStep !== 2;
+  // The bar's "Free cancellation" note only shows while the free window is still open.
+  const freeCancellation = Boolean(cancellationTiers) && getCancellationTierStatus(cancellationTiers!) === "full";
 
   const barSubtitle = !step0Done
     ? "Add date & time to book"
     : !step1Done
-      ? "Add your event location"
+      ? locationBlocked
+        ? "Check your event location"
+        : "Add your event location"
       : !step2Done
         ? "Pick a date & time"
         : dateTimeSummary;
 
   return (
     <>
-      {/* Floating sticky bar — Figma node 2548:28662. */}
+      {/* Floating sticky bar — Figma node 2548:28662; once every step is filled in it
+          becomes the "done" bar (Figma node 3642:100117): price, date · slot, free-cancellation note. */}
       <div className="fixed inset-x-4 bottom-4 z-40 lg:hidden">
-        <div className="flex items-center gap-2.5 rounded-[32px] border-[0.5px] border-[#E4E4E7] bg-white py-2 pr-2 pl-5 shadow-[0px_8px_28px_0px_rgba(0,0,0,0.16)]">
+        <div
+          className={`flex items-center gap-2.5 rounded-[32px] border-[0.5px] border-[#E4E4E7] bg-white py-2 pl-5 shadow-[0px_8px_14px_0px_rgba(0,0,0,0.16)] ${
+            detailsComplete ? "pr-3" : "pr-2"
+          }`}
+        >
           <button type="button" onClick={openSheet} className="flex min-w-0 flex-1 flex-col items-start gap-1 text-left">
             <span className="flex items-baseline gap-1">
-              <span className="font-figtree text-[18px] font-semibold text-[#222]">{formatPrice(packageTotal)}</span>
+              <span className="font-figtree text-[18px] font-semibold text-[#222]">
+                {formatPrice(detailsComplete ? estimatedTotal : packageTotal)}
+              </span>
               <span className="font-figtree text-[12px] text-[#71717B]">/ setup</span>
             </span>
-            <span className="truncate font-figtree text-[12px] text-[#71717B]">{barSubtitle}</span>
+            {detailsComplete ? (
+              <span className="flex flex-col gap-0.5 font-figtree text-[12px] leading-[normal] font-medium">
+                <span className="truncate text-[#3F3F47]">{dateTimeSummary}</span>
+                {freeCancellation && <span className="text-[#D92640]">Free cancellation</span>}
+              </span>
+            ) : (
+              <span className="truncate font-figtree text-[12px] text-[#71717B]">{barSubtitle}</span>
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => (detailsComplete ? requestBookClick() : openSheet())}
             disabled={isSubmitting}
-            className="flex h-12 w-40 shrink-0 items-center justify-center rounded-full bg-brand-primary font-figtree text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className={`flex h-12 shrink-0 items-center justify-center rounded-full bg-brand-primary font-figtree text-[16px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 ${detailsComplete ? "w-36" : "w-40"}`}
           >
             {detailsComplete ? (liveTokenAmount > 0 ? `Book at ${formatPrice(liveTokenAmount)}` : "Book now") : "Book Now"}
           </button>
@@ -190,7 +245,9 @@ export default function MobileBookingBar({
             onClick={() => setIsSheetOpen(false)}
             className="absolute inset-0 bg-black/45"
           />
-          <div className="absolute inset-x-0 bottom-0 flex max-h-[90vh] flex-col rounded-t-3xl bg-white">
+          <div
+            className="absolute inset-x-0 bottom-0 flex max-h-[92dvh] flex-col rounded-t-3xl bg-white"
+          >
             <div className="flex shrink-0 flex-col items-center pt-2.5">
               <span className="h-1 w-10 rounded-full bg-[#E4E4E7]" />
             </div>
@@ -215,7 +272,7 @@ export default function MobileBookingBar({
 
             <div className="flex-1 overflow-y-auto px-4 pb-4">
               {/* Step 1 — Event type */}
-              <div className="border-b border-[#E4E4E7] py-4">
+              <div className={`border-b border-[#E4E4E7] ${showSummary ? "py-3" : "py-4"}`}>
                 <button type="button" onClick={() => toggleStep(0)} className="flex w-full items-center gap-3">
                   <StepBadge index={1} state={step0Done ? "done" : activeStep === 0 ? "active" : "upcoming"} />
                   <span className="min-w-0 flex-1 text-left">
@@ -252,13 +309,17 @@ export default function MobileBookingBar({
               </div>
 
               {/* Step 2 — Event location */}
-              <div className="border-b border-[#E4E4E7] py-4">
+              <div className={`border-b border-[#E4E4E7] ${showSummary ? "py-3" : "py-4"}`}>
                 <button type="button" onClick={() => toggleStep(1)} className="flex w-full items-center gap-3">
                   <StepBadge index={2} state={step1Done ? "done" : activeStep === 1 ? "active" : "upcoming"} />
                   <span className="min-w-0 flex-1 text-left">
-                    <span className="block font-figtree text-[16px] font-medium text-[#222]">Event location</span>
+                    <span className={`block font-figtree text-[16px] font-medium ${step1Done || activeStep === 1 ? "text-[#222]" : "text-[#3F3F47]"}`}>
+                      Event location
+                    </span>
                     {step1Done && activeStep !== 1 ? (
                       <span className="block truncate font-figtree text-[14px] text-[#3F3F47]">{location}</span>
+                    ) : locationIssue && activeStep !== 1 ? (
+                      <span className="block font-figtree text-[13px] font-medium text-error-700">{locationIssue}</span>
                     ) : activeStep !== 1 ? (
                       <span className="block font-figtree text-[14px] text-[#9F9FA9]">Venue pincode or city</span>
                     ) : null}
@@ -270,7 +331,7 @@ export default function MobileBookingBar({
                 {activeStep === 1 && (
                   <div className="mt-3.5">
                     <div className="relative">
-                      <MapPin className="pointer-events-none absolute top-1/2 left-3.5 h-[18px] w-[18px] -translate-y-1/2 text-[#71717B]" />
+                      <MapIcon className="pointer-events-none absolute top-1/2 left-3.5 h-[18px] w-[18px] -translate-y-1/2 text-[#F0596F]" />
                       <input
                         type="text"
                         value={location}
@@ -278,17 +339,30 @@ export default function MobileBookingBar({
                           setLocation(event.target.value);
                           setIsLocationAutoFilled(false);
                           setLocationDetectError(null);
+                          suggest.onUserType();
                         }}
+                        onKeyDown={suggest.handleKeyDown}
+                        onBlur={() => suggest.setOpen(false)}
+                        autoComplete="off"
                         onFocus={() => {
                           if (isLocationAutoFilled) {
                             setLocation("");
                             setIsLocationAutoFilled(false);
                           }
                         }}
-                        placeholder="Venue pincode or city"
+                        placeholder="Locality, pincode or city"
                         className="h-12 w-full rounded-xl border-[1.5px] border-[#F0596F] bg-white pr-4 pl-10 font-figtree text-[16px] text-[#222] outline-none placeholder:text-[#9F9FA9]"
                       />
                     </div>
+                    {suggest.open && (
+                      <LocationSuggestionList
+                        inline
+                        items={suggest.items}
+                        activeIndex={suggest.activeIndex}
+                        onPick={suggest.pick}
+                        onHover={suggest.setActiveIndex}
+                      />
+                    )}
                     <button
                       type="button"
                       onClick={() => detectAndFillLocation(true)}
@@ -307,11 +381,13 @@ export default function MobileBookingBar({
               </div>
 
               {/* Step 3 — Date & time */}
-              <div className={step2Done || activeStep === 2 ? "border-b border-[#E4E4E7] py-4" : "py-4"}>
+              <div className={step2Done || activeStep === 2 ? `border-b border-[#E4E4E7] ${showSummary ? "py-3" : "py-4"}` : "border-b border-[#E4E4E7] py-4"}>
                 <button type="button" onClick={() => toggleStep(2)} className="flex w-full items-center gap-3">
                   <StepBadge index={3} state={step2Done ? "done" : activeStep === 2 ? "active" : "upcoming"} />
                   <span className="min-w-0 flex-1 text-left">
-                    <span className="block font-figtree text-[16px] font-medium text-[#222]">Date &amp; time</span>
+                    <span className={`block font-figtree text-[16px] font-medium ${step2Done || activeStep === 2 ? "text-[#222]" : "text-[#3F3F47]"}`}>
+                      Date &amp; time
+                    </span>
                     {step2Done && activeStep !== 2 ? (
                       <span className="block truncate font-figtree text-[14px] text-[#3F3F47]">{dateTimeSummary}</span>
                     ) : activeStep !== 2 ? (
@@ -332,9 +408,12 @@ export default function MobileBookingBar({
                       variant="quick"
                     />
                     <EventTimingSlots
+                      variant="sheet"
                       state={slotsState}
                       selectedValue={startTime && endTime ? `${startTime} - ${endTime}` : ""}
                       onSelect={onSelectSlot}
+                      title={/decor/i.test(categoryLabel ?? "") ? "Installation time" : "Event timing"}
+                      dateLabel={dayLabel}
                     />
                     {requiresGuestCount && (
                       <label className="block">
@@ -356,7 +435,7 @@ export default function MobileBookingBar({
               </div>
 
               {/* "Your booking" summary (Figma node 2548:32152) — shown once every step above is done. */}
-              {detailsComplete && (
+              {showSummary && (
                 <div className="mt-4 flex flex-col gap-2.5 rounded-2xl border border-[#E4E4E7] bg-[#FAFAFA] p-4">
                   <p className="font-figtree text-[16px] font-semibold text-[#222]">Your booking</p>
                   <div className="flex items-center justify-between font-figtree text-[14px]">
@@ -377,23 +456,31 @@ export default function MobileBookingBar({
                       {/* Real bug fixed (PM reported 2026-11-02): unlike the desktop
                           StickyBookingCard, this never checked gstPercent > 0, so a
                           package with no GST configured still showed "incl. 0% GST". */}
-                      {gstPercent > 0 && (
-                        <span className="block font-figtree text-[11px] text-[#71717B] underline">
-                          incl. {gstPercent}% GST
-                        </span>
-                      )}
+                      {/* Always offered, so the breakdown is reachable even when the package has no separate GST. */}
+                      <button
+                        type="button"
+                        onClick={() => setIsBreakdownOpen(true)}
+                        className="block text-left font-figtree text-[11px] text-[#71717B] underline"
+                      >
+                        {gstPercent > 0 ? `incl. ${gstPercent}% GST · tap for breakdown` : "Tap for price breakdown"}
+                      </button>
                     </span>
                     <span className="font-figtree text-[20px] font-semibold text-[#222]">
                       {formatPrice(estimatedTotal)}
                     </span>
                   </div>
                   {cancellationTiers && (
-                    <div className="flex items-center gap-2 rounded-xl bg-[#ECFDF3] px-3 py-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setIsCancellationOpen(true)}
+                      className="flex items-center gap-2 rounded-xl bg-[#ECFDF3] px-3 py-2.5 text-left"
+                    >
                       <ShieldCheck className="h-4 w-4 shrink-0 text-[#067647]" />
                       <p className="font-figtree text-[12px] leading-[17px] font-medium text-[#067647]">
                         Free cancellation till {formatDayMonth(cancellationTiers.fullRefundCutoff)}
+                        <span className="ml-1.5 underline">Learn more</span>
                       </p>
-                    </div>
+                    </button>
                   )}
                 </div>
               )}
@@ -405,7 +492,7 @@ export default function MobileBookingBar({
 
             {/* Sheet footer (pinned) */}
             <div className="shrink-0 border-t border-[#E4E4E7] bg-white px-4 pt-3 pb-7">
-              {detailsComplete ? (
+              {showSummary ? (
                 <>
                   <div className="flex gap-2.5">
                     <button
@@ -420,9 +507,7 @@ export default function MobileBookingBar({
                           : "Added ✓"
                         : editItemId
                           ? "Save changes"
-                          : inCartItemId
-                            ? "View cart"
-                            : "Add to cart"}
+                          : "Add to cart"}
                     </button>
                     <button
                       type="button"
@@ -443,20 +528,35 @@ export default function MobileBookingBar({
               ) : (
                 <div className="flex items-center gap-3">
                   <div className="min-w-0 flex-1">
-                    <p className="font-figtree text-[18px] font-semibold text-[#222]">{formatPrice(packageTotal)}</p>
-                    <p className="truncate font-figtree text-[12px] text-[#71717B]">
-                      {!step0Done
-                        ? "Pick an event type to continue"
-                        : !step1Done
-                          ? "Add your event location to continue"
-                          : "Pick a date and time to continue"}
+                    <p className="font-figtree text-[18px] font-semibold text-[#222]">
+                      {formatPrice(step2Done ? estimatedTotal : packageTotal)}
                     </p>
+                    {step2Done ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsBreakdownOpen(true)}
+                        className="block truncate text-left font-figtree text-[12px] text-[#71717B] underline"
+                      >
+                        {gstPercent > 0 ? "incl. GST · Breakdown" : "Price breakdown"}
+                      </button>
+                    ) : (
+                      <p className="line-clamp-2 font-figtree text-[12px] leading-4 text-[#71717B]">
+                        {!step0Done
+                          ? "Pick an event type to continue"
+                          : !step1Done
+                            ? locationIssue ?? "Add your event location to continue"
+                            : step2Done
+                              ? "Review your booking"
+                              : "Pick a date and time to continue"}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"
                     onClick={() => {
                       if (activeStep === 0 && step0Done) setActiveStep(1);
                       else if (activeStep === 1 && step1Done) setActiveStep(2);
+                      else if (activeStep === 2 && step2Done) setActiveStep(null);
                     }}
                     disabled={
                       activeStep === null ||

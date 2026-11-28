@@ -50,7 +50,7 @@ export default function DecorationCostArticlePageContent() {
         </div>
       </section>
 
-      <RelatedPostsSection />
+      <RelatedPostsSection currentId="decoration-cost-delhi-ncr-2026" />
       <div className="pb-16">
         <ReadyToPlanBanner
           heading="Ready to plan your next celebration?"
